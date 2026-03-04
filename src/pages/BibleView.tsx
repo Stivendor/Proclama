@@ -30,9 +30,15 @@ export default function BibleView() {
   const loadChapter = async () => {
     setLoading(true)
     setSelectedVerses(new Set())
-    const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
-    setVerses(result)
-    setLoading(false)
+    try {
+      const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
+      setVerses(result)
+    } catch (error) {
+      console.error('Error loading chapter:', error)
+      setVerses([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSearch = async () => {

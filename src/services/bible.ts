@@ -82,9 +82,15 @@ export interface BibleChapterResult {
   verses: BibleVerseResult[]
 }
 
-// Datos locales de ejemplo - Juan 3 (RVR1960)
+// Datos locales de ejemplo - Juan 3 (RVR1960) + otros capítulos de prueba
 const BIBLE_DATA: Record<string, Record<number, Array<{verse: number; text: string}>>> = {
   'JHN': {
+    1: [
+      { verse: 1, text: 'En el principio era el Verbo, y el Verbo era con Dios, y el Verbo era Dios.' },
+      { verse: 2, text: 'Este era en el principio con Dios.' },
+      { verse: 3, text: 'Todas las cosas por él fueron hechas, y sin él nada de lo que ha sido hecho, fue hecho.' },
+      { verse: 4, text: 'En él estaba la vida, y la vida era la luz de los hombres.' },
+    ],
     3: [
       { verse: 1, text: 'Había un hombre de los fariseos que se llamaba Nicodemo, un principal entre los judíos.' },
       { verse: 2, text: 'Este vino a Jesús de noche, y le dijo: Rabí, sabemos que has venido de Dios como maestro; porque nadie puede hacer estas señales que tú haces, si no está Dios con él.' },
@@ -107,6 +113,13 @@ const BIBLE_DATA: Record<string, Record<number, Array<{verse: number; text: stri
       { verse: 19, text: 'Y esta es la condenación: que la luz vino al mundo, y los hombres amaron más las tinieblas que la luz, porque sus obras eran malas.' },
       { verse: 20, text: 'Porque todo aquel que hace lo malo, aborrece la luz, y no viene a la luz, para que sus obras no sean reprendidas.' },
       { verse: 21, text: 'Mas el que practica la verdad viene a la luz, para que sea manifiesto que sus obras son hechas en Dios.' },
+    ]
+  },
+  'MAT': {
+    1: [
+      { verse: 1, text: 'Libro de la genealogía de Jesucristo, hijo de David, hijo de Abraham.' },
+      { verse: 2, text: 'Abraham engendró a Isaac, Isaac a Jacob, y Jacob a Judá y a sus hermanos.' },
+      { verse: 3, text: 'Judá engendró a Fares y a Zara, de Tamar. Fares engendró a Esrom, y Esrom a Aram.' },
     ]
   }
 }
