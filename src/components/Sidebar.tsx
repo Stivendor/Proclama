@@ -2,6 +2,8 @@ import { Music2, List, Settings, Plus, BookOpen, Tv2 } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { useProjectionStore } from '@/stores'
 import { openProjectionWindow } from '@/services/projection'
+import { BookOpen } from 'lucide-react'
+
 
 export default function Sidebar() {
   const { activeView, setActiveView, setEditingSong, settings } = useAppStore()
@@ -21,6 +23,7 @@ export default function Sidebar() {
     { id: 'library', icon: BookOpen, label: 'Biblioteca' },
     { id: 'setlists', icon: List, label: 'Setlists' },
     { id: 'settings', icon: Settings, label: 'Ajustes' },
+    { id: 'bible', icon: BookOpen, label: 'Biblia' }
   ] as const
 
   return (
@@ -40,7 +43,7 @@ export default function Sidebar() {
         Nueva Canción
       </button>
 
-      {/* Nav */}
+      {/* Nav */ }
       <nav className="sidebar-nav">
         {nav.map(({ id, icon: Icon, label }) => (
           <button
