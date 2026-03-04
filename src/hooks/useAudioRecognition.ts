@@ -1,6 +1,8 @@
 import { useRef, useCallback, useEffect } from 'react'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { captureAudioSample, recognizeAudio } from '@/services/acrcloud'
+import { fetchLyrics } from '@/services/genius'
+import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
 
 const CAPTURE_DURATION_MS = 10_000
@@ -26,10 +28,7 @@ export function useAudioRecognition() {
 
   const performRecognition = useCallback(async () => {
     if (!streamRef.current || isCapturingRef.current) return
-    if (!settings.acrcloudHost || !settings.acrcloudAccessKey) {
-      console.warn('Proclama: ACRCloud no configurado')
-      return
-    }
+    if (!settings.acrcloudHost || !settings.acrcloudAccessKey) return
 
     isCapturingRef.current = true
     setRecognitionStatus('detecting')
@@ -52,7 +51,7 @@ export function useAudioRecognition() {
       setDetectedSong({ title: result.title, artist: result.artist, confidence: result.confidence })
       setRecognitionStatus('found')
 
-      // Buscar en BD local
+      // 1. Buscar en BD local primero
       const matches = await db.songs
         .filter(s =>
           s.title.toLowerCase().includes(result.title.toLowerCase()) ||
@@ -61,13 +60,50 @@ export function useAudioRecognition() {
         .toArray()
 
       if (matches.length > 0) {
+        // ✅ Encontrada en BD local
         const song = matches[0]
         if (settings.recognitionMode === 'automatic') {
           loadSong(song)
           await db.songs.update(song.id!, { usageCount: (song.usageCount || 0) + 1 })
         }
         // En modo 'assisted' el usuario confirma en la UI
+        return
       }
+
+      // 2. No está en BD — buscar letra en internet automáticamente
+      setRecognitionStatus('detecting') // reutilizamos para indicar "buscando letra..."
+      const rawLyrics = await fetchLyrics(result.artist, result.title)
+
+      if (rawLyrics) {
+        const lyrics = cleanLyricsText(rawLyrics)
+        const now = new Date()
+        // Guardar en BD para la próxima vez
+        const newId = await db.songs.add({
+          title: result.title,
+          artist: result.artist,
+          lyrics,
+          key: '',
+          tags: [],
+          language: 'Español',
+          usageCount: 1,
+          createdAt: now,
+          updatedAt: now
+        })
+        const newSong = await db.songs.get(newId)
+        if (newSong) {
+          if (settings.recognitionMode === 'automatic') {
+            loadSong(newSong)
+          }
+          // Actualizar el detectedSong para que el usuario pueda confirmar en modo assisted
+          setDetectedSong({ title: result.title, artist: result.artist, confidence: result.confidence })
+        }
+        setRecognitionStatus('found')
+      } else {
+        // No se encontró letra en ninguna fuente — el operador puede buscarla manualmente
+        setRecognitionStatus('not_found')
+        setTimeout(() => setRecognitionStatus('listening'), 3000)
+      }
+
     } catch (err) {
       console.error('Error en reconocimiento:', err)
       setRecognitionStatus('error')
@@ -80,17 +116,13 @@ export function useAudioRecognition() {
   const startListening = useCallback(async (deviceId?: string) => {
     try {
       stopListening()
-
       const constraints: MediaStreamConstraints = {
         audio: deviceId
           ? { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
           : { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
       }
-
       streamRef.current = await navigator.mediaDevices.getUserMedia(constraints)
       setRecognitionStatus('listening')
-
-      // Dispara una detección inmediata, luego cada AUTO_INTERVAL_MS
       performRecognition()
       intervalRef.current = setInterval(performRecognition, AUTO_INTERVAL_MS)
     } catch (err) {
@@ -99,13 +131,11 @@ export function useAudioRecognition() {
     }
   }, [stopListening, setRecognitionStatus, performRecognition])
 
-  // Cleanup al desmontar
   useEffect(() => () => stopListening(), [stopListening])
 
   return { startListening, stopListening, recognitionStatus, performRecognition }
 }
 
-// ─── Hook para listar dispositivos de audio ────────────────────────────────────
 export async function getAudioInputDevices(): Promise<MediaDeviceInfo[]> {
   await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null)
   const devices = await navigator.mediaDevices.enumerateDevices()
