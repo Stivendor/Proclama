@@ -7,7 +7,7 @@ import { useProjectionStore } from '@/stores'
 const TRANSLATIONS = ['RVR1960']
 
 export default function BibleView() {
-  const [selectedBook, setSelectedBook] = useState('JHN')
+  const [selectedBook, setSelectedBook] = useState('jhn')
   const [selectedChapter, setSelectedChapter] = useState(3)
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
   const [verses, setVerses] = useState<BibleVerseResult[]>([])
