@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X } from 'lucide-react'
-import { BIBLE_BOOKS, fetchChapter, searchVerses } from '@/services/bible'
+import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useProjectionStore } from '@/stores'
 
@@ -17,6 +17,8 @@ export default function BibleView() {
   const [searchResults, setSearchResults] = useState<BibleVerseResult[]>([])
   const [searching, setSearching] = useState(false)
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set())
+  const [bookSearchQuery, setBookSearchQuery] = useState('')
+  const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
 
   const { state, loadSong } = useProjectionStore()
 
@@ -27,6 +29,16 @@ export default function BibleView() {
     console.log('Loading chapter:', selectedBook, selectedChapter)
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
+
+  // Autocompletado de libros
+  useEffect(() => {
+    if (!bookSearchQuery.trim()) {
+      setBookSuggestion(null)
+      return
+    }
+    const suggestion = getBookSuggestion(bookSearchQuery)
+    setBookSuggestion(suggestion)
+  }, [bookSearchQuery])
 
   const loadChapter = async () => {
     try {
@@ -46,9 +58,21 @@ export default function BibleView() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
     setSearching(true)
-    const results = await searchVerses(searchQuery, selectedTranslation)
+    const results = await searchGlobal(searchQuery, selectedTranslation)
     setSearchResults(results)
     setSearching(false)
+  }
+
+  const handleSelectBook = (bookId: string) => {
+    setSelectedBook(bookId)
+    setSelectedChapter(1)
+    setBookSearchQuery('')
+  }
+
+  const handleBookSuggestionClick = () => {
+    if (bookSuggestion) {
+      handleSelectBook(bookSuggestion.id)
+    }
   }
 
   const toggleVerse = (index: number) => {
@@ -118,6 +142,24 @@ export default function BibleView() {
 
       <div className="bible-body">
         <div className="bible-sidebar">
+          {/* Búsqueda rápida de libros */}
+          <div className="book-search">
+            <input
+              type="text"
+              placeholder="Buscar libro..."
+              value={bookSearchQuery}
+              onChange={e => setBookSearchQuery(e.target.value)}
+              className="book-search-input"
+            />
+            {bookSuggestion && (
+              <div className="book-suggestion">
+                <button onClick={handleBookSuggestionClick} className="suggestion-button">
+                  {bookSuggestion.name}
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="testament-tabs">
             {(['ALL', 'AT', 'NT'] as const).map(t => (
               <button
@@ -135,7 +177,7 @@ export default function BibleView() {
               <button
                 key={b.id}
                 className={`book-item ${selectedBook === b.id ? 'active' : ''}`}
-                onClick={() => { setSelectedBook(b.id); setSelectedChapter(1) }}
+                onClick={() => handleSelectBook(b.id)}
               >
                 {b.name}
               </button>
@@ -178,7 +220,7 @@ export default function BibleView() {
               <Search size={14} />
               <input
                 type="text"
-                placeholder='Ej: "Juan 3:16" o "porque de tal manera"'
+                placeholder="Buscar en toda la Biblia..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -197,20 +239,22 @@ export default function BibleView() {
           {searchResults.length > 0 && (
             <div className="search-results-bible">
               <div className="search-results-header">
-                {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''}
+                {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} en toda la Biblia
                 <button className="btn-icon" onClick={() => setSearchResults([])}>
                   <X size={12} />
                 </button>
               </div>
-              {searchResults.map((v, i) => (
-                <div key={i} className="verse-result">
-                  <div className="verse-reference">{v.reference}</div>
-                  <div className="verse-text">{v.text}</div>
-                  <button className="btn-ghost small" onClick={() => projectVerse(v)}>
-                    <Tv2 size={12} /> Proyectar
-                  </button>
-                </div>
-              ))}
+              <div className="search-results-scroll">
+                {searchResults.map((v, i) => (
+                  <div key={i} className="verse-result">
+                    <div className="verse-reference">{v.reference}</div>
+                    <div className="verse-text">{v.text}</div>
+                    <button className="btn-ghost small" onClick={() => projectVerse(v)}>
+                      <Tv2 size={12} /> Proyectar
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
