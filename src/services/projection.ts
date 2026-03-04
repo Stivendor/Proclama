@@ -1,0 +1,50 @@
+import type { BroadcastMessage, ProjectionState } from '@/types'
+
+export const CHANNEL_NAME = 'proclama-projection'
+
+let channel: BroadcastChannel | null = null
+
+export function getChannel(): BroadcastChannel {
+  if (!channel) channel = new BroadcastChannel(CHANNEL_NAME)
+  return channel
+}
+
+export function sendProjectionUpdate(state: ProjectionState) {
+  getChannel().postMessage({ type: 'PROJECTION_UPDATE', payload: state } satisfies BroadcastMessage)
+}
+
+export function sendSlideCommand(cmd: 'NEXT_SLIDE' | 'PREV_SLIDE') {
+  getChannel().postMessage({ type: cmd } satisfies BroadcastMessage)
+}
+
+export function sendGoToSlide(index: number) {
+  getChannel().postMessage({ type: 'GO_TO_SLIDE', payload: index } satisfies BroadcastMessage)
+}
+
+export function sendBlack(value: boolean) {
+  getChannel().postMessage({ type: 'SET_BLACK', payload: value } satisfies BroadcastMessage)
+}
+
+export function sendLogo(value: boolean) {
+  getChannel().postMessage({ type: 'SET_LOGO', payload: value } satisfies BroadcastMessage)
+}
+
+export function onMessage(handler: (msg: BroadcastMessage) => void): () => void {
+  const ch = getChannel()
+  const listener = (e: MessageEvent) => handler(e.data as BroadcastMessage)
+  ch.addEventListener('message', listener)
+  return () => ch.removeEventListener('message', listener)
+}
+
+/**
+ * Abre la ventana de proyección en el segundo monitor.
+ * El operador debe moverla manualmente si no hay API de Window Management.
+ */
+export function openProjectionWindow(): Window | null {
+  const w = window.open(
+    '/projection',
+    'proclama-projection',
+    'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
+  )
+  return w
+}
