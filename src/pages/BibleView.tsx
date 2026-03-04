@@ -4,7 +4,7 @@ import { BIBLE_BOOKS, fetchChapter, searchVerses } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useProjectionStore } from '@/stores'
 
-const TRANSLATIONS = ['RVR1960', 'RVA', 'NVI', 'PDT']
+const TRANSLATIONS = ['RVR1960']  // Solo RVR1960 es soportada por bible-api.com
 
 export default function BibleView() {
   const [selectedBook, setSelectedBook] = useState('JHN')

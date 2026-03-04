@@ -82,12 +82,13 @@ export interface BibleChapterResult {
   verses: BibleVerseResult[]
 }
 
-// bible-api.com — gratuita, sin CORS, RVR1960 en español
+// bible-api.com — gratuita, sin CORS. Solo soporta RVR1960
+// Las demás traducción se ignoran y se usa RVR1960 por defecto
 const TRANSLATIONS: Record<string, string> = {
-  'RVR1960': 'reina-valera-1960',
-  'NVI':     'nueva-version-internacional',
-  'RVA':     'reina-valera-antigua',
-  'PDT':     'palabra-de-dios-para-todos',
+  'RVR1960': '',  // Sin parámetro, es la predeterminada
+  'NVI':     '',  // No soportado, usa RVR1960
+  'RVA':     '',  // No soportado, usa RVR1960
+  'PDT':     '',  // No soportado, usa RVR1960
 }
 
 export async function fetchChapter(
@@ -97,15 +98,15 @@ export async function fetchChapter(
 ): Promise<BibleVerseResult[]> {
   try {
     const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
-    const trans = TRANSLATIONS[translation] ?? 'reina-valera-1960'
-    const url = `https://bible-api.com/${encodeURIComponent(bookName)}+${chapter}?translation=${trans}`
+    // bible-api.com solo usa RVR1960, ignoramos el parámetro translation
+    const url = `https://bible-api.com/${encodeURIComponent(bookName)}+${chapter}`
     const res = await fetch(url)
     if (!res.ok) return []
     const data = await res.json()
     return (data.verses ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
       text: v.text.trim(),
-      translation
+      translation: 'RVR1960'  // Siempre RVR1960
     }))
   } catch {
     return []
@@ -128,8 +129,8 @@ export async function fetchVerse(
 
 export async function searchVerses(query: string, translation = 'RVR1960'): Promise<BibleVerseResult[]> {
   try {
-    const trans = TRANSLATIONS[translation] ?? 'reina-valera-1960'
-    const url = `https://bible-api.com/${encodeURIComponent(query)}?translation=${trans}`
+    // bible-api.com solo usa RVR1960, ignoramos el parámetro translation
+    const url = `https://bible-api.com/${encodeURIComponent(query)}`
     const res = await fetch(url)
     if (!res.ok) return []
     const data = await res.json()
@@ -137,7 +138,7 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
       return data.verses.map((v: any) => ({
         reference: v.book_name ? `${v.book_name} ${v.chapter}:${v.verse}` : data.reference,
         text: v.text.trim(),
-        translation
+        translation: 'RVR1960'  // Siempre RVR1960
       }))
     }
     return []
