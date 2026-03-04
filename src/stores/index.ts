@@ -133,7 +133,7 @@ interface AppStore {
   updateSettings: (s: Partial<AppSettings>) => void
 
   // UI
-  activeView: 'library' | 'editor' | 'setlists' | 'settings'
+  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible'
   setActiveView: (v: AppStore['activeView']) => void
 
   editingSong: Song | null
