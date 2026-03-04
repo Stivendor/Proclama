@@ -222,3 +222,61 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
     return []
   }
 }
+
+// Búsqueda global de texto en toda la Biblia
+export async function searchGlobal(query: string, translation = 'RVR1960'): Promise<BibleVerseResult[]> {
+  if (!query.trim()) return []
+  
+  const results: BibleVerseResult[] = []
+  const queryLower = query.toLowerCase()
+  
+  // Buscar en todos los datos locales
+  for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
+    const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
+    for (const [chapterStr, verses] of Object.entries(chapters)) {
+      const chapter = Number(chapterStr)
+      for (const verse of verses) {
+        if (verse.text.toLowerCase().includes(queryLower)) {
+          results.push({
+            reference: `${bookName} ${chapter}:${verse.verse}`,
+            text: verse.text,
+            translation: 'RVR1960'
+          })
+        }
+      }
+    }
+  }
+  
+  return results
+}
+
+// Autocompletado de libros - devuelve el libro solo si la búsqueda es suficientemente específica
+export function getBookSuggestion(query: string): { id: string; name: string } | null {
+  if (!query.trim()) return null
+  
+  const queryLower = query.toLowerCase()
+  
+  // Buscar libros que comiencen con la query
+  const matches = BIBLE_BOOKS.filter(b => 
+    b.name.toLowerCase().startsWith(queryLower)
+  )
+  
+  // Si hay exactamente una coincidencia, devolverla
+  if (matches.length === 1) {
+    return { id: matches[0].id, name: matches[0].name }
+  }
+  
+  // Si hay múltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
+  // Por ejemplo: "san" coincide con "Santiago" pero no debería coincidir con "Salmos"
+  const wordMatches = BIBLE_BOOKS.filter(b => {
+    const parts = b.name.toLowerCase().split(' ')
+    return parts.some(part => part.startsWith(queryLower))
+  })
+  
+  // Si solo hay una coincidencia de palabra, devolverla
+  if (wordMatches.length === 1 && matches.length > 1) {
+    return { id: wordMatches[0].id, name: wordMatches[0].name }
+  }
+  
+  return null
+}
