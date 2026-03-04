@@ -140,6 +140,8 @@ a:hover { text-decoration: underline; }
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ─── Right Panel ─────────────────────────────────────────────────────────────── */
