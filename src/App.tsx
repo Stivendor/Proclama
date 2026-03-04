@@ -9,6 +9,7 @@ import SetlistsView from '@/pages/SetlistsView'
 import SettingsView from '@/pages/SettingsView'
 import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
+import ProjectionWindow from '@/pages/ProjectionWindow'
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
@@ -17,8 +18,6 @@ export default function App() {
   useEffect(() => { seedDatabase() }, [])
 
   if (IS_PROJECTION) {
-    // Importación lazy de la ventana de proyección
-    const ProjectionWindow = require('@/pages/ProjectionWindow').default
     return <ProjectionWindow />
   }
 

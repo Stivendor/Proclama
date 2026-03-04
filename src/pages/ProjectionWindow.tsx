@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { onMessage } from '@/services/projection'
+import { onMessage, getChannel } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage } from '@/types'
 import { DEFAULT_THEME } from '@/stores'
 
@@ -30,7 +30,6 @@ export default function ProjectionWindow() {
         setState(s => ({ ...s, isLogo: msg.payload, isBlack: false }))
       } else if (msg.type === 'PING') {
         // Responder para que la ventana principal sepa que estamos vivos
-        const { getChannel } = require('@/services/projection')
         getChannel().postMessage({ type: 'PONG' })
       }
     })
