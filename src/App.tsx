@@ -10,6 +10,7 @@ import SettingsView from '@/pages/SettingsView'
 import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
+import BibleView from '@/pages/BibleView'
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
@@ -36,6 +37,7 @@ function MainApp() {
         {activeView === 'editor' && <SongEditor />}
         {activeView === 'setlists' && <SetlistsView />}
         {activeView === 'settings' && <SettingsView />}
+        {activeView === 'bible' && <BibleView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />

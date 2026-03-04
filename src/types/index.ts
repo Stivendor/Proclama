@@ -94,3 +94,24 @@ export interface AppSettings {
   churchLogoUrl?: string
   defaultTheme: ProjectionTheme
 }
+
+// ─── Biblia ───────────────────────────────────────────────────────────────────
+export interface BibleBook {
+  id: string
+  name: string
+  chapters: number
+  testament: 'AT' | 'NT'
+}
+
+export interface BibleVerse {
+  book: string
+  chapter: number
+  verse: number
+  text: string
+}
+
+export interface BibleSlide {
+  reference: string   // "Juan 3:16"
+  text: string
+  translation: string
+}

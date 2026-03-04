@@ -40,6 +40,20 @@ export default function ControlPanel() {
         />
       </div>
 
+      {/* Tamaño de texto de estrofas */}
+      <div className="slides-size-control">
+        <span>Tamaño</span>
+        <input
+          type="range" min="11" max="22" step="1"
+          defaultValue={13}
+          onChange={e => {
+            document.documentElement.style.setProperty(
+              '--slide-preview-size', `${e.target.value}px`
+            )
+          }}
+        />
+      </div>
+      
       {/* Lista de estrofas */}
       <div className="slides-list">
         {slides.map((slide, i) => (

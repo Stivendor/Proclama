@@ -4,14 +4,14 @@ import { BIBLE_BOOKS, fetchChapter, searchVerses } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useProjectionStore } from '@/stores'
 
-const TRANSLATIONS = ['RVR1960']  // Solo RVR1960 es soportada por bible-api.com
+const TRANSLATIONS = ['RVR1960']
 
 export default function BibleView() {
   const [selectedBook, setSelectedBook] = useState('JHN')
   const [selectedChapter, setSelectedChapter] = useState(3)
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
   const [verses, setVerses] = useState<BibleVerseResult[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [testament, setTestament] = useState<'AT' | 'NT' | 'ALL'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<BibleVerseResult[]>([])
@@ -20,18 +20,20 @@ export default function BibleView() {
 
   const { state, loadSong } = useProjectionStore()
 
-  const book = BIBLE_BOOKS.find(b => b.id === selectedBook)!
+  const book = BIBLE_BOOKS.find(b => b.id === selectedBook)
   const filteredBooks = BIBLE_BOOKS.filter(b => testament === 'ALL' || b.testament === testament)
 
   useEffect(() => {
+    console.log('Loading chapter:', selectedBook, selectedChapter)
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
 
   const loadChapter = async () => {
-    setLoading(true)
-    setSelectedVerses(new Set())
     try {
+      setLoading(true)
+      setSelectedVerses(new Set())
       const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
+      console.log('Loaded verses:', result.length)
       setVerses(result)
     } catch (error) {
       console.error('Error loading chapter:', error)
@@ -52,14 +54,17 @@ export default function BibleView() {
   const toggleVerse = (index: number) => {
     setSelectedVerses(prev => {
       const next = new Set(prev)
-      next.has(index) ? next.delete(index) : next.add(index)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
       return next
     })
   }
 
   const projectVerses = (versesToProject: BibleVerseResult[]) => {
     if (versesToProject.length === 0) return
-    // Construir un "song" temporal con los versículos como estrofas
     const lyrics = versesToProject
       .map(v => `${v.text}\n\n`)
       .join('')
@@ -67,8 +72,12 @@ export default function BibleView() {
       title: versesToProject.map(v => v.reference).join(', '),
       artist: versesToProject[0].translation,
       lyrics,
-      key: '', tags: ['Biblia'], language: 'Español',
-      usageCount: 0, createdAt: new Date(), updatedAt: new Date()
+      key: '',
+      tags: ['Biblia'],
+      language: 'Español',
+      usageCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
     })
   }
 
@@ -81,9 +90,12 @@ export default function BibleView() {
     projectVerses([verse])
   }
 
+  if (!book) {
+    return <div style={{ padding: '20px' }}>Error: Libro no encontrado</div>
+  }
+
   return (
     <div className="bible-view">
-      {/* Header */}
       <div className="view-header">
         <div>
           <h1><BookOpen size={18} style={{ display: 'inline', marginRight: 8 }} />Biblia</h1>
@@ -105,9 +117,7 @@ export default function BibleView() {
       </div>
 
       <div className="bible-body">
-        {/* Columna izquierda — selector */}
         <div className="bible-sidebar">
-          {/* Testamento */}
           <div className="testament-tabs">
             {(['ALL', 'AT', 'NT'] as const).map(t => (
               <button
@@ -120,7 +130,6 @@ export default function BibleView() {
             ))}
           </div>
 
-          {/* Lista de libros */}
           <div className="books-list">
             {filteredBooks.map(b => (
               <button
@@ -134,9 +143,7 @@ export default function BibleView() {
           </div>
         </div>
 
-        {/* Columna central — versículos */}
         <div className="bible-main">
-          {/* Navegación de capítulo */}
           <div className="chapter-nav">
             <button
               className="btn-icon"
@@ -166,7 +173,6 @@ export default function BibleView() {
             </button>
           </div>
 
-          {/* Búsqueda rápida */}
           <div className="bible-search">
             <div className="search-box">
               <Search size={14} />
@@ -188,7 +194,6 @@ export default function BibleView() {
             </button>
           </div>
 
-          {/* Resultados de búsqueda */}
           {searchResults.length > 0 && (
             <div className="search-results-bible">
               <div className="search-results-header">
@@ -209,9 +214,10 @@ export default function BibleView() {
             </div>
           )}
 
-          {/* Versículos del capítulo */}
           {loading ? (
             <div className="bible-loading">Cargando...</div>
+          ) : verses.length === 0 ? (
+            <div className="bible-loading">No hay versículos disponibles para este capítulo</div>
           ) : (
             <div className="verses-list">
               {verses.map((verse, i) => (
@@ -235,7 +241,6 @@ export default function BibleView() {
           )}
         </div>
 
-        {/* Preview */}
         <div className="bible-preview">
           <div className="preview-header"><Tv2 size={14} /> En proyección ahora</div>
           <div className="bible-projection-preview" style={{ background: state.theme.background }}>
