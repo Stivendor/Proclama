@@ -82,13 +82,33 @@ export interface BibleChapterResult {
   verses: BibleVerseResult[]
 }
 
-// bible-api.com — gratuita, sin CORS. Solo soporta RVR1960
-// Las demás traducción se ignoran y se usa RVR1960 por defecto
-const TRANSLATIONS: Record<string, string> = {
-  'RVR1960': '',  // Sin parámetro, es la predeterminada
-  'NVI':     '',  // No soportado, usa RVR1960
-  'RVA':     '',  // No soportado, usa RVR1960
-  'PDT':     '',  // No soportado, usa RVR1960
+// Datos locales de ejemplo - Juan 3 (RVR1960)
+const BIBLE_DATA: Record<string, Record<number, Array<{verse: number; text: string}>>> = {
+  'JHN': {
+    3: [
+      { verse: 1, text: 'Había un hombre de los fariseos que se llamaba Nicodemo, un principal entre los judíos.' },
+      { verse: 2, text: 'Este vino a Jesús de noche, y le dijo: Rabí, sabemos que has venido de Dios como maestro; porque nadie puede hacer estas señales que tú haces, si no está Dios con él.' },
+      { verse: 3, text: 'Respondió Jesús y le dijo: De cierto, de cierto te digo, que el que no naciere de nuevo, no puede ver el reino de Dios.' },
+      { verse: 4, text: 'Nicodemo le dijo: ¿Cómo puede un hombre nacer siendo viejo? ¿Puede acaso entrar por segunda vez en el vientre de su madre, y nacer?' },
+      { verse: 5, text: 'Respondió Jesús: De cierto, de cierto te digo, que el que no naciere de agua y del Espíritu, no puede entrar en el reino de Dios.' },
+      { verse: 6, text: 'Lo que es nacido de la carne, carne es; y lo que es nacido del Espíritu, espíritu es.' },
+      { verse: 7, text: 'No te maravilles de que te dije: Os es necesario nacer de nuevo.' },
+      { verse: 8, text: 'El viento de donde quiere sopla, y oyes su sonido; mas ni sabes de dónde viene, ni a dónde va; así es todo aquel que es nacido del Espíritu.' },
+      { verse: 9, text: 'Respondió Nicodemo y le dijo: ¿Cómo puede hacerse esto?' },
+      { verse: 10, text: 'Respondió Jesús y le dijo: ¿Eres tú maestro de Israel, y no sabes esto?' },
+      { verse: 11, text: 'De cierto, de cierto te digo, que hablamos lo que sabemos, y testificamos lo que hemos visto; y no recibís nuestro testimonio.' },
+      { verse: 12, text: 'Si os he dicho cosas terrenales, y no creéis, ¿cómo creeréis si os dijere las celestiales?' },
+      { verse: 13, text: 'Y nadie subió al cielo, sino el que descendió del cielo; el Hijo del hombre.' },
+      { verse: 14, text: 'Y como Moisés levantó la serpiente en el desierto, así es necesario que el Hijo del hombre sea levantado,' },
+      { verse: 15, text: 'para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.' },
+      { verse: 16, text: 'Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.' },
+      { verse: 17, text: 'Porque no envió Dios a su Hijo al mundo para condenar al mundo, sino para que el mundo sea salvo por él.' },
+      { verse: 18, text: 'El que en él cree, no es condenado; pero el que no cree, ya ha sido condenado, porque no ha creído en el nombre del unigénito Hijo de Dios.' },
+      { verse: 19, text: 'Y esta es la condenación: que la luz vino al mundo, y los hombres amaron más las tinieblas que la luz, porque sus obras eran malas.' },
+      { verse: 20, text: 'Porque todo aquel que hace lo malo, aborrece la luz, y no viene a la luz, para que sus obras no sean reprendidas.' },
+      { verse: 21, text: 'Mas el que practica la verdad viene a la luz, para que sea manifiesto que sus obras son hechas en Dios.' },
+    ]
+  }
 }
 
 export async function fetchChapter(
@@ -98,17 +118,33 @@ export async function fetchChapter(
 ): Promise<BibleVerseResult[]> {
   try {
     const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
-    // bible-api.com solo usa RVR1960, ignoramos el parámetro translation
+    
+    // Primero intentar datos locales
+    if (BIBLE_DATA[bookId]?.[chapter]) {
+      return BIBLE_DATA[bookId][chapter].map(v => ({
+        reference: `${bookName} ${chapter}:${v.verse}`,
+        text: v.text,
+        translation: 'RVR1960'
+      }))
+    }
+    
+    // Si no hay datos locales, intentar API remota
     const url = `https://bible-api.com/${encodeURIComponent(bookName)}+${chapter}`
-    const res = await fetch(url)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
+    
+    const res = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    
     if (!res.ok) return []
     const data = await res.json()
     return (data.verses ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
       text: v.text.trim(),
-      translation: 'RVR1960'  // Siempre RVR1960
+      translation: 'RVR1960'
     }))
-  } catch {
+  } catch (error) {
+    console.error('Error fetching chapter:', error)
     return []
   }
 }
@@ -129,20 +165,47 @@ export async function fetchVerse(
 
 export async function searchVerses(query: string, translation = 'RVR1960'): Promise<BibleVerseResult[]> {
   try {
-    // bible-api.com solo usa RVR1960, ignoramos el parámetro translation
+    const results: BibleVerseResult[] = []
+    
+    // Buscar en datos locales
+    for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
+      const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
+      for (const [chapterStr, verses] of Object.entries(chapters)) {
+        const chapter = Number(chapterStr)
+        for (const verse of verses) {
+          if (verse.text.toLowerCase().includes(query.toLowerCase())) {
+            results.push({
+              reference: `${bookName} ${chapter}:${verse.verse}`,
+              text: verse.text,
+              translation: 'RVR1960'
+            })
+          }
+        }
+      }
+    }
+    
+    if (results.length > 0) return results
+    
+    // Si no hay resultados locales, intentar API remota
     const url = `https://bible-api.com/${encodeURIComponent(query)}`
-    const res = await fetch(url)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+    
+    const res = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeoutId)
+    
     if (!res.ok) return []
     const data = await res.json()
     if (data.verses) {
       return data.verses.map((v: any) => ({
         reference: v.book_name ? `${v.book_name} ${v.chapter}:${v.verse}` : data.reference,
         text: v.text.trim(),
-        translation: 'RVR1960'  // Siempre RVR1960
+        translation: 'RVR1960'
       }))
     }
     return []
-  } catch {
+  } catch (error) {
+    console.error('Error searching verses:', error)
     return []
   }
 }
