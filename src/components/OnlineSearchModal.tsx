@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Search, Download, X, Loader, Music2 } from 'lucide-react'
-import { searchLyricsOvh, fetchLyrics } from '@/services/genius'
+import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
 import type { GeniusSong } from '@/services/genius'
@@ -18,7 +18,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     setLoading(true)
     setError('')
     try {
-      const res = await searchLyricsOvh(query)
+      const res = await searchSongs(query)
       setResults(res)
       if (res.length === 0) setError('No se encontraron resultados. Prueba con otro término.')
     } catch {
