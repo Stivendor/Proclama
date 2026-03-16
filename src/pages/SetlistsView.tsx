@@ -95,12 +95,7 @@ export default function SetlistsView() {
     <div className="setlists-view">
       <div className="view-header">
         <h1>Setlists</h1>
-        <button 
-          className="btn-primary" 
-          onClick={() => setShowNew(true)}
-          disabled={!user}
-          title={!user ? "Inicia sesión para crear setlists" : ""}
-        >
+        <button className="btn-primary" onClick={() => setShowNew(true)}>
           <Plus size={15} /> Nuevo Setlist
         </button>
       </div>

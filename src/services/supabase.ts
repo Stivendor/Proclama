@@ -12,6 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 type SupabaseSongRow = {
   id: number
+  church_id: string
   title: string
   artist: string | null
   lyrics: string | null
@@ -196,12 +197,14 @@ export async function fetchSettings() {
 }
 
 export async function updateSettings(updates: any) {
-  const { data, error } = await supabase
-    .from('app_settings')
-    .update(updates)
-    .eq('id', 1)
-    .select()
+  const { data: existing } = await supabase.from('app_settings').select('id').single()
+  let result
+  if (existing) {
+    result = await supabase.from('app_settings').update(updates).eq('id', existing.id).select()
+  } else {
+    result = await supabase.from('app_settings').insert(updates).select()
+  }
   
-  if (error) console.error('Error updating settings:', error)
-  return data?.[0] || null
+  if (result.error) console.error('Error updating settings:', result.error)
+  return result.data?.[0] || null
 }

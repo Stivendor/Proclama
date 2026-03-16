@@ -10,7 +10,8 @@ const INITIAL_STATE: ProjectionState = {
   currentSlide: 0,
   isBlack: false,
   isLogo: false,
-  theme: DEFAULT_THEME
+  theme: DEFAULT_THEME,
+  media: null
 }
 
 export default function ProjectionWindow() {
@@ -62,17 +63,46 @@ export default function ProjectionWindow() {
     textShadow: theme.textShadow
       ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
       : 'none',
-    lineHeight: 1.4
+    lineHeight: 1.4,
+    position: 'relative',
+    zIndex: 10
   }
 
   return (
     <div className="projection-root" style={bgStyle}>
+      {/* Fondo de Video */}
+      {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
+        <video 
+          key={theme.backgroundVideoUrl}
+          autoPlay 
+          muted 
+          loop 
+          playsInline
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+        >
+          <source src={theme.backgroundVideoUrl} type="video/mp4" />
+        </video>
+      )}
+
+      {/* Proyección de Media (Anuncios) */}
+      {state.media && (
+        <div className="projection-media-layer" style={{ position: 'absolute', inset: 0, zIndex: 20, background: '#000' }}>
+          {state.media.type === 'video' ? (
+            <video autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'contain' }}>
+              <source src={state.media.url} />
+            </video>
+          ) : (
+            <img src={state.media.url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          )}
+        </div>
+      )}
+
       {/* Negro total */}
-      <div className={`projection-black ${isBlack ? 'visible' : ''}`} />
+      <div className={`projection-black ${isBlack ? 'visible' : ''}`} style={{ zIndex: 30 }} />
 
       {/* Logo */}
       {isLogo && (
-        <div className="projection-logo">
+        <div className="projection-logo" style={{ zIndex: 15 }}>
           <div className="logo-placeholder">✝</div>
         </div>
       )}

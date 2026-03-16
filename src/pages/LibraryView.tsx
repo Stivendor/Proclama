@@ -137,19 +137,14 @@ export default function LibraryView() {
           <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
             <Search size={15} /> Buscar online
           </button>
-          <label className={`btn-ghost ${!user ? 'disabled' : ''}`} title={!user ? "Inicia sesión para importar" : "Importar JSON"}>
+          <label className="btn-ghost" title="Importar JSON">
             <Upload size={15} /> Importar
-            <input type="file" accept=".json" onChange={handleImport} style={{ display: !user ? 'none' : '' }} disabled={!user} />
+            <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
           </label>
           <button className="btn-ghost" onClick={handleExport}>
             <Download size={15} /> Exportar
           </button>
-          <button 
-            className="btn-primary" 
-            onClick={() => { setEditingSong(null); setActiveView('editor') }}
-            disabled={!user}
-            title={!user ? "Inicia sesión para añadir canciones" : ""}
-          >
+          <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
             <Plus size={15} /> Nueva
           </button>
         </div>
