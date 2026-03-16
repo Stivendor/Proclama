@@ -579,7 +579,31 @@ a:hover { text-decoration: underline; }
 }
 .result-info { flex: 1; min-width: 0; }
 .result-title { font-weight: 500; font-size: 14px; }
-.result-artist { font-size: 12px; color: var(--text-secondary); }
+.result-artist { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+.result-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600;
+  background: var(--gold-dim); color: var(--gold);
+  padding: 1px 7px; border-radius: 99px;
+}
+.search-mode-toggle {
+  display: flex; gap: 4px; margin-bottom: 4px;
+}
+.mode-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 12px; font-size: 12px; font-weight: 500;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  flex: 1; justify-content: center;
+}
+.mode-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.mode-btn.active {
+  background: var(--gold-dim); border-color: var(--gold);
+  color: var(--gold); font-weight: 600;
+}
 .lyrics-preview { display: flex; flex-direction: column; gap: 8px; }
 .lyrics-preview h3 { font-size: 16px; font-weight: 600; }
 .lyrics-preview .dim { font-size: 13px; color: var(--text-muted); }
