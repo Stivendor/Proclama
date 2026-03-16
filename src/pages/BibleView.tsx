@@ -220,7 +220,7 @@ export default function BibleView() {
               <Search size={14} />
               <input
                 type="text"
-                placeholder="Buscar en toda la Biblia..."
+                placeholder="Busca por texto, libro o referencia (ej: Juan 3:16)..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -246,12 +246,9 @@ export default function BibleView() {
               </div>
               <div className="search-results-scroll">
                 {searchResults.map((v, i) => (
-                  <div key={i} className="verse-result">
+                  <div key={i} className="verse-result" onClick={() => projectVerse(v)} style={{ cursor: 'pointer' }}>
                     <div className="verse-reference">{v.reference}</div>
                     <div className="verse-text">{v.text}</div>
-                    <button className="btn-ghost small" onClick={() => projectVerse(v)}>
-                      <Tv2 size={12} /> Proyectar
-                    </button>
                   </div>
                 ))}
               </div>
@@ -268,17 +265,13 @@ export default function BibleView() {
                 <div
                   key={i}
                   className={`verse-item ${selectedVerses.has(i) ? 'selected' : ''}`}
-                  onClick={() => toggleVerse(i)}
+                  onClick={() => {
+                    toggleVerse(i);
+                    projectVerse(verse);
+                  }}
                 >
                   <span className="verse-number">{i + 1}</span>
                   <span className="verse-text-body">{verse.text}</span>
-                  <button
-                    className="verse-project-btn"
-                    onClick={e => { e.stopPropagation(); projectVerse(verse) }}
-                    title="Proyectar este versículo"
-                  >
-                    <Tv2 size={13} />
-                  </button>
                 </div>
               ))}
             </div>
@@ -307,9 +300,8 @@ export default function BibleView() {
             )}
           </div>
           <div className="bible-hint">
-            Haz clic en un versículo para seleccionarlo.<br />
-            Selecciona varios y usa "Proyectar X vers."<br />
-            O haz clic en <Tv2 size={11} style={{display:'inline'}}/> para proyectar uno solo.
+            Haz clic en un versículo para proyectarlo de inmediato.<br />
+            Puedes seleccionar varios y usar "Proyectar X vers." para mostrar un rango.
           </div>
         </div>
       </div>
