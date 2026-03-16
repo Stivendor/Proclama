@@ -8,7 +8,7 @@ import OnlineSearchModal from '@/components/OnlineSearchModal'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong } = useAppStore()
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user } = useAppStore()
   const { loadSong } = useProjectionStore()
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
@@ -137,14 +137,19 @@ export default function LibraryView() {
           <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
             <Search size={15} /> Buscar online
           </button>
-          <label className="btn-ghost" title="Importar JSON">
+          <label className={`btn-ghost ${!user ? 'disabled' : ''}`} title={!user ? "Inicia sesión para importar" : "Importar JSON"}>
             <Upload size={15} /> Importar
-            <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+            <input type="file" accept=".json" onChange={handleImport} style={{ display: !user ? 'none' : '' }} disabled={!user} />
           </label>
           <button className="btn-ghost" onClick={handleExport}>
             <Download size={15} /> Exportar
           </button>
-          <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
+          <button 
+            className="btn-primary" 
+            onClick={() => { setEditingSong(null); setActiveView('editor') }}
+            disabled={!user}
+            title={!user ? "Inicia sesión para añadir canciones" : ""}
+          >
             <Plus size={15} /> Nueva
           </button>
         </div>
@@ -197,6 +202,7 @@ export default function LibraryView() {
 
 function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
+  const user = useAppStore(s => s.user)
   const isActive = activeTitle === song.title
 
   return (
@@ -208,11 +214,13 @@ function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) 
         <div className="song-card-title">{song.title}</div>
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
-      <div className="song-card-actions-mini">
-        <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} title="Editar">
-          <Edit2 size={12} />
-        </button>
-      </div>
+      {user && (
+        <div className="song-card-actions-mini">
+          <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} title="Editar">
+            <Edit2 size={12} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
