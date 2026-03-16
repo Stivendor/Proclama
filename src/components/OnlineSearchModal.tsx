@@ -3,10 +3,12 @@ import { Search, Download, X, Loader, Music2 } from 'lucide-react'
 import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
+import { useAppStore } from '@/stores'
 import { createSong } from '@/services/supabase'
 import type { GeniusSong } from '@/services/genius'
 
 export default function OnlineSearchModal({ onClose }: { onClose: () => void }) {
+  const { church } = useAppStore()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeniusSong[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,6 +52,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     const { song, lyrics } = importedLyrics
     const now = new Date()
     const payload = {
+      churchId: church!.id,
       title: song.title,
       artist: song.artist,
       lyrics,

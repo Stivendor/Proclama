@@ -12,6 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 type SupabaseSongRow = {
   id: number
+  church_id: string
   title: string
   artist: string | null
   lyrics: string | null
@@ -27,6 +28,7 @@ type SupabaseSongRow = {
 function mapRowToSong(row: SupabaseSongRow): Song {
   return {
     id: row.id,
+    churchId: row.church_id,
     title: row.title,
     artist: row.artist ?? '',
     lyrics: row.lyrics ?? '',
@@ -42,6 +44,7 @@ function mapRowToSong(row: SupabaseSongRow): Song {
 
 function mapSongToPayload(song: Omit<Song, 'id'>) {
   return {
+    church_id: song.churchId,
     title: song.title,
     artist: song.artist,
     lyrics: song.lyrics,
@@ -54,11 +57,29 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
   }
 }
 
+// ─── Funciones para Iglesias (Churches) ────────────────────────────────────
+export async function fetchChurchByCode(code: string) {
+  const { data, error } = await supabase
+    .from('churches')
+    .select('id, code, name, created_at')
+    .eq('code', code.toUpperCase())
+    .single()
+  
+  if (error) {
+    if (error.code !== 'PGRST116') {
+      console.error('Error fetching church:', error)
+    }
+    return null
+  }
+  return data
+}
+
 // ─── Funciones para Songs ──────────────────────────────────────────────────
-export async function fetchSongs(): Promise<Song[]> {
+export async function fetchSongs(churchId: string): Promise<Song[]> {
   const { data, error } = await supabase
     .from('songs')
     .select('*')
+    .eq('church_id', churchId)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -72,13 +93,14 @@ export async function fetchSongs(): Promise<Song[]> {
  * Busca canciones por texto en título, artista o letra.
  * Utiliza búsqueda de texto completo para mayor precisión.
  */
-export async function searchSongs(query: string): Promise<Song[]> {
-  if (!query) return fetchSongs()
+export async function searchSongs(query: string, churchId: string): Promise<Song[]> {
+  if (!query) return fetchSongs(churchId)
 
   // Búsqueda simple por ILIKE en título/artista y Full Text Search en lyrics
   const { data, error } = await supabase
     .from('songs')
     .select('*')
+    .eq('church_id', churchId)
     .or(`title.ilike.%${query}%,artist.ilike.%${query}%,lyrics.fts.${query}`)
     .order('usage_count', { ascending: false })
 
@@ -106,7 +128,7 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
   return mapRowToSong(data as SupabaseSongRow)
 }
 
-export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>): Promise<Song | null> {
+export async function updateSong(id: number, churchId: string, updates: Partial<Omit<Song, 'id'>>): Promise<Song | null> {
   const currentUpdatedAt = updates.updatedAt ?? new Date()
   const payload = {
     ...(updates.title !== undefined && { title: updates.title }),
@@ -124,6 +146,7 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     .from('songs')
     .update(payload)
     .eq('id', id)
+    .eq('church_id', churchId)
     .select()
     .single()
 
@@ -134,20 +157,22 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
   return mapRowToSong(data as SupabaseSongRow)
 }
 
-export async function deleteSong(id: number) {
+export async function deleteSong(id: number, churchId: string) {
   const { error } = await supabase
     .from('songs')
     .delete()
     .eq('id', id)
+    .eq('church_id', churchId)
 
   if (error) console.error('Error deleting song:', error)
 }
 
 // ─── Funciones para Setlists ──────────────────────────────────────────────
-export async function fetchSetlists() {
+export async function fetchSetlists(churchId: string) {
   const { data, error } = await supabase
     .from('setlists')
     .select('*')
+    .eq('church_id', churchId)
     .order('date', { ascending: false })
   
   if (error) console.error('Error fetching setlists:', error)
@@ -164,42 +189,45 @@ export async function createSetlist(setlist: any) {
   return data?.[0] || null
 }
 
-export async function updateSetlist(id: number, updates: any) {
+export async function updateSetlist(id: number, churchId: string, updates: any) {
   const { data, error } = await supabase
     .from('setlists')
     .update(updates)
     .eq('id', id)
+    .eq('church_id', churchId)
     .select()
   
   if (error) console.error('Error updating setlist:', error)
   return data?.[0] || null
 }
 
-export async function deleteSetlist(id: number) {
+export async function deleteSetlist(id: number, churchId: string) {
   const { error } = await supabase
     .from('setlists')
     .delete()
     .eq('id', id)
+    .eq('church_id', churchId)
   
   if (error) console.error('Error deleting setlist:', error)
 }
 
 // ─── Funciones para Settings ──────────────────────────────────────────────
-export async function fetchSettings() {
+export async function fetchSettings(churchId: string) {
   const { data, error } = await supabase
     .from('app_settings')
     .select('*')
+    .eq('church_id', churchId)
     .single()
   
   if (error) console.warn('No settings found:', error)
   return data || null
 }
 
-export async function updateSettings(updates: any) {
+export async function updateSettings(churchId: string, updates: any) {
   const { data, error } = await supabase
     .from('app_settings')
     .update(updates)
-    .eq('id', 1)
+    .eq('church_id', churchId)
     .select()
   
   if (error) console.error('Error updating settings:', error)

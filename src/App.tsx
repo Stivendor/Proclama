@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { seedDatabase } from '@/db'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -12,16 +11,15 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
+import ChurchLogin from '@/pages/ChurchLogin'
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
 
 export default function App() {
-  const { setUser } = useAppStore()
+  const { setUser, church } = useAppStore()
 
   useEffect(() => {
-    seedDatabase()
-    
     // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -37,6 +35,10 @@ export default function App() {
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
+  }
+
+  if (!church) {
+    return <ChurchLogin />
   }
 
   return <MainApp />

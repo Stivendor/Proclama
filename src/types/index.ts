@@ -1,6 +1,15 @@
+// ─── Church (Sede IPUC) ───────────────────────────────────────────────────────
+export interface Church {
+  id: string
+  code: string
+  name: string
+  createdAt: Date
+}
+
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
+  churchId?: string
   title: string
   artist: string
   lyrics: string          // Estrofas separadas por línea en blanco. Etiquetas opcionales: [Coro], [Verso 1], etc.
@@ -16,6 +25,7 @@ export interface Song {
 // ─── Setlist ───────────────────────────────────────────────────────────────────
 export interface Setlist {
   id?: number
+  churchId?: string
   name: string
   date: Date
   songIds: number[]
