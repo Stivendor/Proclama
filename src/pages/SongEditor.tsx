@@ -17,7 +17,7 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditor() {
-  const { editingSong, setEditingSong, setActiveView, church } = useAppStore()
+  const { editingSong, setEditingSong, setActiveView } = useAppStore()
   const { loadSong } = useProjectionStore()
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
@@ -66,11 +66,11 @@ export default function SongEditor() {
       const now = new Date()
       if (editingSong?.id) {
         // Actualizar en Supabase
-        const updated = await updateSong(editingSong.id, church!.id, { ...form, updatedAt: now })
+        const updated = await updateSong(editingSong.id, { ...form, updatedAt: now })
         // Reflejar en Dexie (si falla Supabase, dejamos los datos locales tal cual)
         await db.songs.update(editingSong.id, { ...(updated ?? { ...form, updatedAt: now }) })
       } else {
-        const payload: Omit<Song, 'id'> = { ...form, churchId: church!.id, createdAt: now, updatedAt: now }
+        const payload: Omit<Song, 'id'> = { ...form, createdAt: now, updatedAt: now }
         const created = await createSong(payload)
         if (created) {
           await db.songs.add(created)

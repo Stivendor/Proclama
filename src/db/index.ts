@@ -8,10 +8,10 @@ export class ProclamaDB extends Dexie {
 
   constructor() {
     super('ProclamaDB')
-    this.version(2).stores({
-      songs:    '++id, churchId, title, artist, language, usageCount, createdAt',
-      setlists: '++id, churchId, name, date, createdAt',
-      settings: '++id, churchId'
+    this.version(3).stores({
+      songs:    '++id, title, artist, language, usageCount, createdAt',
+      setlists: '++id, name, date, createdAt',
+      settings: '++id'
     })
   }
 }

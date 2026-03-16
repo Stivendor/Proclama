@@ -6,7 +6,7 @@ import { db } from '@/db'
 import { updateSong } from '@/services/supabase'
 
 export default function RecognitionPanel() {
-  const { settings, recognitionStatus, detectedSong, setDetectedSong, setRecognitionStatus, church } = useAppStore()
+  const { settings, recognitionStatus, detectedSong, setDetectedSong, setRecognitionStatus } = useAppStore()
   const { loadSong } = useProjectionStore()
   const { startListening, stopListening } = useAudioRecognition()
 
@@ -38,7 +38,7 @@ export default function RecognitionPanel() {
       loadSong(song)
       if (song.id != null) {
         const newUsage = (song.usageCount || 0) + 1
-        await updateSong(song.id, church!.id, { usageCount: newUsage })
+        await updateSong(song.id, { usageCount: newUsage })
         await db.songs.update(song.id, { usageCount: newUsage })
       }
     }
