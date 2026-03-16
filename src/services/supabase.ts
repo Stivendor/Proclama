@@ -50,8 +50,6 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
     language: song.language,
     source_url: song.sourceUrl ?? null,
     usage_count: song.usageCount,
-    // created_at y updated_at pueden ser gestionados por triggers,
-    // pero enviamos updated_at por claridad
     updated_at: song.updatedAt.toISOString()
   }
 }
@@ -67,6 +65,28 @@ export async function fetchSongs(): Promise<Song[]> {
     console.error('Error fetching songs:', error)
     return []
   }
+  return (data as SupabaseSongRow[]).map(mapRowToSong)
+}
+
+/**
+ * Busca canciones por texto en título, artista o letra.
+ * Utiliza búsqueda de texto completo para mayor precisión.
+ */
+export async function searchSongs(query: string): Promise<Song[]> {
+  if (!query) return fetchSongs()
+
+  // Búsqueda simple por ILIKE en título/artista y Full Text Search en lyrics
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .or(`title.ilike.%${query}%,artist.ilike.%${query}%,lyrics.fts.${query}`)
+    .order('usage_count', { ascending: false })
+
+  if (error) {
+    console.error('Error searching songs:', error)
+    return []
+  }
+
   return (data as SupabaseSongRow[]).map(mapRowToSong)
 }
 
