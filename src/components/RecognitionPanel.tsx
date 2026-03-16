@@ -3,6 +3,7 @@ import { Mic, MicOff, Radio, CheckCircle, XCircle, AlertCircle } from 'lucide-re
 import { useAudioRecognition, getAudioInputDevices } from '@/hooks/useAudioRecognition'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { db } from '@/db'
+import { updateSong } from '@/services/supabase'
 
 export default function RecognitionPanel() {
   const { settings, recognitionStatus, detectedSong, setDetectedSong, setRecognitionStatus } = useAppStore()
@@ -33,8 +34,13 @@ export default function RecognitionPanel() {
       .filter(s => s.title.toLowerCase().includes(detectedSong.title.toLowerCase()))
       .toArray()
     if (matches.length > 0) {
-      loadSong(matches[0])
-      await db.songs.update(matches[0].id!, { usageCount: (matches[0].usageCount || 0) + 1 })
+      const song = matches[0]
+      loadSong(song)
+      if (song.id != null) {
+        const newUsage = (song.usageCount || 0) + 1
+        await updateSong(song.id, { usageCount: newUsage })
+        await db.songs.update(song.id, { usageCount: newUsage })
+      }
     }
     setDetectedSong(null)
     setRecognitionStatus('listening')
