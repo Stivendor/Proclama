@@ -739,14 +739,7 @@ a:hover { text-decoration: underline; }
   min-width: 20px; padding-top: 2px; flex-shrink: 0;
 }
 .verse-text-body { flex: 1; font-size: 13px; line-height: 1.6; color: var(--text-primary); }
-.verse-project-btn {
-  opacity: 0; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: var(--radius-sm);
-  color: var(--blue); transition: all 0.12s;
-}
-.verse-item:hover .verse-project-btn { opacity: 1; }
-.verse-project-btn:hover { background: var(--bg-base); }
+.verse-text-body { flex: 1; font-size: 13px; line-height: 1.6; color: var(--text-primary); }
 
 .search-results-bible {
   border-bottom: 1px solid var(--border);

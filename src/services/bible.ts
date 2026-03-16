@@ -184,14 +184,69 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
   }
 }
 
-// Búsqueda global de texto en toda la Biblia
+// Búsqueda global de texto en toda la Biblia (con soporte para referencias)
 export async function searchGlobal(query: string, translation = 'RVR1960'): Promise<BibleVerseResult[]> {
   if (!query.trim()) return []
   
   const results: BibleVerseResult[] = []
-  const queryLower = query.toLowerCase()
+  const queryLower = query.toLowerCase().trim()
   
-  // Buscar en todos los datos locales
+  // 1. Intentar parsear como referencia (ej: "Juan 3:16" o "Génesis 1")
+  // Regex simple para: [Nombre Libro] [Capítulo](:[Versículo])?
+  const refMatch = queryLower.match(/^(.+?)\s+(\d+)(?::(\d+))?$/)
+  
+  if (refMatch) {
+    const bookQuery = refMatch[1]
+    const chapter = Number(refMatch[2])
+    const verseNum = refMatch[3] ? Number(refMatch[3]) : null
+    
+    // Buscar el libro por nombre o id
+    const book = BIBLE_BOOKS.find(b => 
+      b.name.toLowerCase() === bookQuery || 
+      b.id.toLowerCase() === bookQuery ||
+      b.name.toLowerCase().startsWith(bookQuery)
+    )
+    
+    if (book && BIBLE_DATA[book.id]) {
+      if (verseNum) {
+        // Referencia exacta: Libro C:V
+        const v = BIBLE_DATA[book.id][chapter]?.find(v => v.verse === verseNum)
+        if (v) {
+          return [{
+            reference: `${book.name} ${chapter}:${v.verse}`,
+            text: v.text,
+            translation: 'RVR1960'
+          }]
+        }
+      } else {
+        // Capítulo completo: Libro C
+        const chapterVerses = BIBLE_DATA[book.id][chapter]
+        if (chapterVerses) {
+          return chapterVerses.map(v => ({
+            reference: `${book.name} ${chapter}:${v.verse}`,
+            text: v.text,
+            translation: 'RVR1960'
+          }))
+        }
+      }
+    }
+  }
+
+  // 2. Intentar buscar si es solo el nombre de un libro
+  const bookOnly = BIBLE_BOOKS.find(b => b.name.toLowerCase() === queryLower)
+  if (bookOnly && BIBLE_DATA[bookOnly.id]) {
+    // Si buscó solo el libro, mostrar los primeros versículos del cap 1
+    return (BIBLE_DATA[bookOnly.id][1] || []).slice(0, 20).map(v => ({
+      reference: `${bookOnly.name} 1:${v.verse}`,
+      text: v.text,
+      translation: 'RVR1960'
+    }))
+  }
+
+  // 3. Búsqueda por contenido de texto (Fallback)
+  let count = 0
+  const MAX_RESULTS = 50 // Limitar resultados por rendimiento
+
   for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
     const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
     for (const [chapterStr, verses] of Object.entries(chapters)) {
@@ -203,9 +258,13 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
             text: verse.text,
             translation: 'RVR1960'
           })
+          count++
+          if (count >= MAX_RESULTS) break
         }
       }
+      if (count >= MAX_RESULTS) break
     }
+    if (count >= MAX_RESULTS) break
   }
   
   return results
