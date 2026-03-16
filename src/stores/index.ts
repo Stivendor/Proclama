@@ -62,44 +62,52 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   loadSong: (song) => {
     const slides = parseLyrics(song.lyrics)
-    const newState: ProjectionState = {
-      ...get().state,
-      songId: song.id ?? null,
-      songTitle: song.title,
-      slides,
-      currentSlide: 0,
-      isBlack: false,
-      isLogo: false
-    }
-    set({ state: newState })
-    sendProjectionUpdate(newState)
+    set(s => {
+      const newState: ProjectionState = {
+        ...s.state,
+        songId: song.id ?? null,
+        songTitle: song.title,
+        slides,
+        currentSlide: 0,
+        isBlack: false,
+        isLogo: false
+      }
+      sendProjectionUpdate(newState)
+      return { state: newState }
+    })
   },
 
   nextSlide: () => {
-    const { state } = get()
-    if (state.currentSlide < state.slides.length - 1) {
-      const newState = { ...state, currentSlide: state.currentSlide + 1 }
-      set({ state: newState })
-      sendProjectionUpdate(newState)
-    }
+    set(s => {
+      if (s.state.currentSlide < s.state.slides.length - 1) {
+        const newState = { ...s.state, currentSlide: s.state.currentSlide + 1 }
+        sendProjectionUpdate(newState)
+        return { state: newState }
+      }
+      return s
+    })
   },
 
   prevSlide: () => {
-    const { state } = get()
-    if (state.currentSlide > 0) {
-      const newState = { ...state, currentSlide: state.currentSlide - 1 }
-      set({ state: newState })
-      sendProjectionUpdate(newState)
-    }
+    set(s => {
+      if (s.state.currentSlide > 0) {
+        const newState = { ...s.state, currentSlide: s.state.currentSlide - 1 }
+        sendProjectionUpdate(newState)
+        return { state: newState }
+      }
+      return s
+    })
   },
 
   goToSlide: (index) => {
-    const { state } = get()
-    if (index >= 0 && index < state.slides.length) {
-      const newState = { ...state, currentSlide: index }
-      set({ state: newState })
-      sendProjectionUpdate(newState)
-    }
+    set(s => {
+      if (index >= 0 && index < s.state.slides.length) {
+        const newState = { ...s.state, currentSlide: index }
+        sendProjectionUpdate(newState)
+        return { state: newState }
+      }
+      return s
+    })
   },
 
   setBlack: (v) => {
