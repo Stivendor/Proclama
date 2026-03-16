@@ -57,16 +57,29 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
 
 // ─── Funciones para Songs ──────────────────────────────────────────────────
 export async function fetchSongs(): Promise<Song[]> {
-  const { data, error } = await supabase
-    .from('songs')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const allData: SupabaseSongRow[] = []
+  let from = 0
+  const step = 1000
 
-  if (error) {
-    console.error('Error fetching songs:', error)
-    return []
+  while (true) {
+    const { data, error } = await supabase
+      .from('songs')
+      .select('*')
+      .range(from, from + step - 1)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching songs:', error)
+      break
+    }
+    if (!data || data.length === 0) break
+    
+    allData.push(...(data as SupabaseSongRow[]))
+    if (data.length < step) break
+    from += step
   }
-  return (data as SupabaseSongRow[]).map(mapRowToSong)
+  
+  return allData.map(mapRowToSong)
 }
 
 /**
