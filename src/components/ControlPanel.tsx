@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2 } from 'lucide-react'
 import { useProjectionStore } from '@/stores'
+import MediaPanel from './MediaPanel'
 
 export default function ControlPanel() {
   const { state, nextSlide, prevSlide, goToSlide, setBlack, setLogo, clearSong } = useProjectionStore()
@@ -13,12 +14,20 @@ export default function ControlPanel() {
           <p>Ninguna canción activa</p>
           <span>Selecciona una canción de la biblioteca</span>
         </div>
+        <MediaPanel />
       </div>
     )
   }
 
   return (
     <div className="control-panel compact-sidebar">
+      <div className="control-song-header">
+        <div className="control-song-title">{songTitle}</div>
+        <button className="btn-icon danger" onClick={clearSong} title="Cerrar canción">
+          <Trash2 size={16} />
+        </button>
+      </div>
+
       {/* Controles de navegación */}
       <div className="control-nav">
         <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>
@@ -49,6 +58,23 @@ export default function ControlPanel() {
           Logo
         </button>
       </div>
+
+      <div className="slides-list">
+        {slides.map((slide, i) => (
+          <button
+            key={i}
+            className={`slide-item ${i === currentSlide ? 'active' : ''}`}
+            onClick={() => goToSlide(i)}
+          >
+            {slide.label && <span className="slide-label">{slide.label}</span>}
+            <div className="slide-preview">
+               {slide.lines.slice(0, 2).join(' / ')}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <MediaPanel />
     </div>
   )
 }

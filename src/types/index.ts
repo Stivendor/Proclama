@@ -50,6 +50,10 @@ export interface ProjectionState {
   isBlack: boolean
   isLogo: boolean
   theme: ProjectionTheme
+  media?: {
+    url: string
+    type: 'image' | 'video'
+  } | null
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────
@@ -63,6 +67,8 @@ export interface ProjectionTheme {
   transition: 'fade' | 'slide' | 'instant'
   showTitle: boolean
   showVerseLabel: boolean
+  backgroundType?: 'color' | 'video' | 'gradient'
+  backgroundVideoUrl?: string
 }
 
 // ─── Reconocimiento de audio ──────────────────────────────────────────────────
