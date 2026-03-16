@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { seedDatabase } from '@/db'
 import { useAppStore } from '@/stores'
+import { supabase } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import Sidebar from '@/components/Sidebar'
 import LibraryView from '@/pages/LibraryView'
@@ -16,7 +17,23 @@ import BibleView from '@/pages/BibleView'
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
 
 export default function App() {
-  useEffect(() => { seedDatabase() }, [])
+  const { setUser } = useAppStore()
+
+  useEffect(() => {
+    seedDatabase()
+    
+    // Check initial auth state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    // Listen to changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
