@@ -196,9 +196,6 @@ export default function LibraryView() {
                   {song.key && <span className="song-key">{song.key}</span>}
                   {song.tags.map(t => <span key={t} className="tag">{t}</span>)}
                 </div>
-                {song.usageCount > 0 && (
-                  <div className="usage-count">Usada {song.usageCount} {song.usageCount === 1 ? 'vez' : 'veces'}</div>
-                )}
               </div>
               <div className="song-card-actions">
                 <button className="btn-icon" onClick={() => handleLoad(song)} title="Proyectar">
