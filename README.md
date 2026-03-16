@@ -5,34 +5,46 @@ Inspirado por soluciones como HolyLyrics y EasyWorship, pero diseñado para ser 
 
 ---
 
-## ✨ Características Principales
+## ✨ Características Pro
 
-### 📚 Biblioteca de Alabanzas 
-- **Vista de Doble Columna:** Panel izquierdo para búsqueda rápida y panel central para gestión de estrofas en vivo.
-- **Proyección Instantánea:** Haz clic en cualquier estrofa para mostrarla inmediatamente en la pantalla secundaria.
-- **Búsqueda Inteligente (FTS):** Motor de búsqueda potente que busca no solo por título, sino dentro de toda la letra de las canciones.
-- **Base de Datos Masiva:** Soporta miles de canciones (incluye importación base de ~3000 temas cristianos).
+### 🔐 Cuentas y Seguridad (Supabase Auth)
+- **Acceso Privado:** Sistema de inicio de sesión seguro para gestionar tu biblioteca.
+- **Permisos de Escritura:** Solo usuarios autenticados pueden añadir, editar o borrar canciones.
+- **Listas Personales:** Tus Setlists y Ajustes se guardan de forma privada vinculados a tu cuenta.
+
+### 🎬 Fondos Dinámicos (Motion Backgrounds)
+- **Soporte de Video:** Proyecta letras sobre videos en bucle (MP4) para una estética moderna.
+- **Gradientes e Imágenes:** Cambia instantáneamente entre colores sólidos, imágenes de fondo o videos cinematográficos.
+- **Ajustes en Vivo:** Controla la tipografía, sombras y colores directamente desde el panel de ajustes.
+
+### 🖼️ Anuncios y Galería de Media Local
+- **Proyección Efímera:** Carga imágenes o videos para anuncios temporales sin llenar tu base de datos cloud.
+- **Galería Integrada:** Panel lateral para gestionar múltiples archivos de media listos para proyectar con un clic.
+- **Privacidad Total:** Los archivos locales solo existen en tu sesión, garantizando rapidez y seguridad.
+
+### 📚 Biblioteca de Alabanzas Avanzada
+- **Búsqueda Online (Genius API):** Encuentra e importa letras de internet directamente a tu base de datos local.
+- **Búsqueda Inteligente (FTS):** Motor de búsqueda potente que busca dentro de toda la letra de las canciones.
+- **Importación Masiva:** Soporta miles de canciones (incluye base de ~3000 temas cristianos).
 
 ### 📖 Biblia Integrada (Omni-Search)
-- **Búsqueda Unificada:** Encuentra pasajes por texto (*"En el principio"*), libro (*"Génesis"*) o referencia directa (*"Juan 3:16"*).
-- **Navegación con Contexto:** Al buscar un versículo, el lector te lleva automáticamente al capítulo correspondiente para que tengas toda la lectura a mano.
-- **Proyección Directa:** Un solo clic en el versículo lo envía al proyector.
+- **Búsqueda Unificada:** Encuentra pasajes por texto, libro o referencia directa (*Juan 3:16*).
+- **Navegación Fluida:** Salto automático al capítulo correspondiente al buscar un versículo.
+- **Proyección Directa:** Un solo clic envía la Palabra al proyector.
 
-### 🎛️ Control de Proyección
-- **Ventana Independiente:** Abre una ventana secundaria que puedes mover a tu proyector o TV.
-- **Comandos Especiales:** Botones de acceso rápido para Pantalla Negra (B) y Logo de la Iglesia.
-- **Personalización Visual:** Ajusta fuentes, colores y fondos desde el panel de ajustes.
+---
 
-### ☁️ Tecnología Híbrida
-- **Sincronización Cloud:** Usa **Supabase** para mantener tus canciones y listas de reproducción seguras en la nube.
-- **Funcionamiento Offline:** Gracias a **Dexie.js (IndexedDB)**, la aplicación sigue funcionando aunque se pierda el internet durante el culto.
-- **Reconocimiento de Audio (Opcional):** Integración con **ACRCloud** para proyectar automáticamente lo que la iglesia está cantando.
+## 🎛️ Control de Proyección
+
+- **Ventana Independiente:** Abre una ventana secundaria optimizada para proyectores o TVs.
+- **Comandos Especiales:** Accesos rápidos para Pantalla Negra (B) y Logo de la Iglesia.
+- **Capas Inteligentes:** Sistema de Z-index que maneja Video > Texto > Logo > Negro de forma fluida.
 
 ---
 
 ## 🚀 Instalación y Configuración
 
-### 1. Reclona e Instala
+### 1. Clona e Instala
 ```bash
 git clone https://github.com/tu-usuario/proclama.git
 cd proclama
@@ -50,13 +62,6 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 ```bash
 npm run dev
 ```
-La aplicación estará disponible en `http://localhost:5173`.
-
----
-
-## 🌐 Despliegue (Vercel)
-
-Proclama está listo para ser desplegado en **Vercel** con un solo clic. Asegúrate de configurar las variables de entorno (`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`) en el panel de control de Vercel para que la base de datos funcione en producción.
 
 ---
 
@@ -71,28 +76,19 @@ Proclama está listo para ser desplegado en **Vercel** con un solo clic. Asegúr
 
 ---
 
-## 📁 Estructura del Proyecto
-
-- `src/pages`: Vistas principales (Biblioteca, Biblia, Editor, Ajustes).
-- `src/stores`: Estado global con **Zustand** (Proyección y App).
-- `src/services`: Lógica de Supabase, Biblia, Reconocimiento y Proyección.
-- `src/data`: Contenido precargado (Biblia RVR1960).
-- `src/components`: Componentes reutilizables (Sidebar, Panel de Control, Modales).
-
----
-
 ## 🛠️ Tecnologías Utilizadas
 
 - **Frontend:** React 18, Vite, TypeScript, Lucide React.
-- **Base de Datos:** Supabase (Cloud) + Dexie (Local Persistence).
-- **Comunicación:** BroadcastChannel API (Control entre ventanas).
-- **Estilos:** Vanilla CSS (Moderno y responsivo).
-- **PWA:** vite-plugin-pwa (Instalable en PC/Tablet).
+- **Autenticación:** Supabase Auth.
+- **Base de Datos:** Supabase (Cloud) + Dexie (Offline Persistence).
+- **Comunicación:** BroadcastChannel API.
+- **Estilos:** Vanilla CSS con personalización de Scrollbars Premium.
+- **PWA:** Instalable en PC/Tablet para uso sin navegador visible.
 
 ---
 
 ## ✝️ Propósito
 
-Este software ha sido creado para facilitar el servicio de proyección en las iglesias de habla hispana, eliminando barreras de costos y ofreciendo una herramienta profesional de código abierto.
+Proclama ha sido creado para facilitar el servicio de proyección en las iglesias, eliminando barreras de costos y ofreciendo una herramienta profesional de código abierto.
 
 **Hecho con amor para el Reino de Dios.**
