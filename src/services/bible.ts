@@ -76,6 +76,8 @@ export interface BibleVerseResult {
   reference: string
   text: string
   translation: string
+  bookId?: string
+  chapter?: number
 }
 
 export interface BibleChapterResult {
@@ -98,7 +100,9 @@ export async function fetchChapter(
       return BIBLE_DATA[bookId][chapter].map(v => ({
         reference: `${bookName} ${chapter}:${v.verse}`,
         text: v.text,
-        translation: 'RVR1960'
+        translation: 'RVR1960',
+        bookId,
+        chapter
       }))
     }
     
@@ -215,7 +219,9 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
           return [{
             reference: `${book.name} ${chapter}:${v.verse}`,
             text: v.text,
-            translation: 'RVR1960'
+            translation: 'RVR1960',
+            bookId: book.id,
+            chapter
           }]
         }
       } else {
@@ -225,7 +231,9 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
           return chapterVerses.map(v => ({
             reference: `${book.name} ${chapter}:${v.verse}`,
             text: v.text,
-            translation: 'RVR1960'
+            translation: 'RVR1960',
+            bookId: book.id,
+            chapter
           }))
         }
       }
@@ -239,7 +247,9 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
     return (BIBLE_DATA[bookOnly.id][1] || []).slice(0, 20).map(v => ({
       reference: `${bookOnly.name} 1:${v.verse}`,
       text: v.text,
-      translation: 'RVR1960'
+      translation: 'RVR1960',
+      bookId: bookOnly.id,
+      chapter: 1
     }))
   }
 
@@ -256,7 +266,9 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
           results.push({
             reference: `${bookName} ${chapter}:${verse.verse}`,
             text: verse.text,
-            translation: 'RVR1960'
+            translation: 'RVR1960',
+            bookId,
+            chapter
           })
           count++
           if (count >= MAX_RESULTS) break
