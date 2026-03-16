@@ -18,57 +18,7 @@ export default function ControlPanel() {
   }
 
   return (
-    <div className="control-panel">
-      {/* Canción activa */}
-      <div className="control-song-header">
-        <div>
-          <div className="control-song-title">{songTitle}</div>
-          <div className="control-song-progress">
-            Estrofa {currentSlide + 1} / {slides.length}
-          </div>
-        </div>
-        <button className="btn-icon danger" onClick={clearSong} title="Cerrar canción">
-          <X size={14} />
-        </button>
-      </div>
-
-      {/* Barra de progreso */}
-      <div className="progress-bar">
-        <div
-          className="progress-fill"
-          style={{ width: `${slides.length > 0 ? ((currentSlide + 1) / slides.length) * 100 : 0}%` }}
-        />
-      </div>
-
-      {/* Tamaño de texto de estrofas */}
-      <div className="slides-size-control">
-        <span>Tamaño</span>
-        <input
-          type="range" min="11" max="22" step="1"
-          defaultValue={13}
-          onChange={e => {
-            document.documentElement.style.setProperty(
-              '--slide-preview-size', `${e.target.value}px`
-            )
-          }}
-        />
-      </div>
-      
-      {/* Lista de estrofas */}
-      <div className="slides-list">
-        {slides.map((slide, i) => (
-          <button
-            key={i}
-            className={`slide-item ${i === currentSlide ? 'active' : ''}`}
-            onClick={() => goToSlide(i)}
-          >
-            {slide.label && <span className="slide-label">{slide.label}</span>}
-            <span className="slide-preview">{slide.lines[0]}</span>
-            {slide.lines[1] && <span className="slide-preview dim">{slide.lines[1]}</span>}
-          </button>
-        ))}
-      </div>
-
+    <div className="control-panel compact-sidebar">
       {/* Controles de navegación */}
       <div className="control-nav">
         <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>

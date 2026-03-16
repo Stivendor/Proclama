@@ -41,7 +41,6 @@ function MainApp() {
       </main>
       <aside className="right-panel">
         <ControlPanel />
-        <RecognitionPanel />
       </aside>
     </div>
   )

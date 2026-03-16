@@ -878,10 +878,10 @@ a:hover { text-decoration: underline; }
 }
 
 .live-slides-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
   overflow-y: auto;
   background: #090c12;
   flex: 1;
@@ -890,36 +890,35 @@ a:hover { text-decoration: underline; }
 .live-slide-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px 16px;
-  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  text-align: left;
   position: relative;
-  min-height: 120px;
+  min-height: 60px;
   display: flex; flex-direction: column; justify-content: center;
-  transition: all 0.15s ease-out;
+  transition: all 0.1s ease-out;
   cursor: pointer;
 }
 
 .live-slide-card:hover {
   border-color: var(--gold-dim);
   background: var(--bg-hover);
-  transform: translateY(-2px);
 }
 
 .live-slide-card.active {
-  background: #000;
+  background: #1a1f2e;
   border-color: var(--gold);
-  box-shadow: 0 8px 24px rgba(212, 168, 67, 0.15);
+  border-left: 4px solid var(--gold);
 }
 
 .live-slide-number {
-  position: absolute; top: 8px; left: 10px;
-  font-size: 10px; color: var(--text-muted);
+  position: absolute; top: 6px; left: 8px;
+  font-size: 9px; color: var(--text-muted);
   font-weight: 700;
 }
 
 .live-slide-label {
-  position: absolute; top: 8px; right: 10px;
+  position: absolute; top: 6px; right: 10px;
   font-size: 9px; text-transform: uppercase;
   color: var(--gold); font-weight: 700;
   letter-spacing: 1px;
@@ -927,7 +926,7 @@ a:hover { text-decoration: underline; }
 
 .live-slide-line {
   font-family: 'Lora', serif;
-  font-size: 14px; line-height: 1.5;
+  font-size: 15px; line-height: 1.4;
   color: var(--text-primary);
 }
 
@@ -940,6 +939,21 @@ a:hover { text-decoration: underline; }
   background: var(--bg-base);
   border-top: 1px solid var(--border);
   display: flex; gap: 8px;
+}
+
+/* Compact Sidebar Adjustments */
+.control-panel.compact-sidebar {
+  padding: 12px;
+  gap: 12px;
+}
+
+.control-panel.compact-sidebar .control-nav {
+  grid-template-columns: 1fr;
+}
+
+.control-panel.compact-sidebar .btn-nav {
+  padding: 12px;
+  font-size: 14px;
 }
 
 .btn-icon-xs {

@@ -259,11 +259,6 @@ function LiveSelection() {
           </button>
         ))}
       </div>
-      
-      <div className="live-controls-footer">
-        <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>Anterior</button>
-        <button className="btn-nav primary" onClick={nextSlide} disabled={currentSlide === slides.length - 1}>Siguiente</button>
-      </div>
     </div>
   )
 }
