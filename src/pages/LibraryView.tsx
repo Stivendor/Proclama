@@ -150,70 +150,120 @@ export default function LibraryView() {
         </div>
       </div>
 
-      {/* Search + filters */}
-      <div className="library-filters">
-        <div className="search-box">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Buscar por título, artista, letra o etiqueta..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
+      <div className="library-grid">
+        {/* Lado Izquierdo: Lista y Filtros */}
+        <div className="library-sidebar-list">
+          <div className="library-filters-compact">
+            <div className="search-box">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="song-list-scroll">
+            {songs.length === 0 ? (
+              <div className="library-empty">
+                <Music2 size={32} opacity={0.2} />
+                <p>No hay canciones</p>
+              </div>
+            ) : (
+              songs.map(song => (
+                <SongListItem 
+                  key={song.id} 
+                  song={song} 
+                  onEdit={handleEdit} 
+                  onLoad={handleLoad} 
+                />
+              ))
+            )}
+          </div>
         </div>
-        <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)} className="filter-select">
-          <option value="">Todas las etiquetas</option>
-          {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={selectedLang} onChange={e => setSelectedLang(e.target.value)} className="filter-select">
-          <option value="">Todos los idiomas</option>
-          {allLangs.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
+
+        {/* Lado Derecho: Selector de Estrofas (Control en Vivo) */}
+        <div className="library-preview-pane">
+          <LiveSelection />
+        </div>
       </div>
 
-      {loadingRemote && (
-        <div className="sync-status">Sincronizando con Supabase…</div>
-      )}
-      {remoteError && (
-        <div className="sync-error">{remoteError}</div>
-      )}
-
-      {/* Song list */}
-      {songs.length === 0 ? (
-        <div className="library-empty">
-          <Music2 size={48} opacity={0.2} />
-          <p>No se encontraron canciones</p>
-          {searchQuery && <span>Prueba con otro término de búsqueda</span>}
-        </div>
-      ) : (
-        <div className="song-list">
-          {songs.map(song => (
-            <div key={song.id} className="song-card">
-              <div className="song-card-info" onClick={() => handleLoad(song)}>
-                <div className="song-card-title">{song.title}</div>
-                <div className="song-card-meta">
-                  {song.artist && <span>{song.artist}</span>}
-                  {song.key && <span className="song-key">{song.key}</span>}
-                  {song.tags.map(t => <span key={t} className="tag">{t}</span>)}
-                </div>
-              </div>
-              <div className="song-card-actions">
-                <button className="btn-icon" onClick={() => handleLoad(song)} title="Proyectar">
-                  <Play size={15} />
-                </button>
-                <button className="btn-icon" onClick={() => handleEdit(song)} title="Editar">
-                  <Edit2 size={15} />
-                </button>
-                <button className="btn-icon danger" onClick={() => handleDelete(song)} title="Eliminar">
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
+    </div>
+  )
+}
+
+function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void }) {
+  const activeTitle = useProjectionStore(s => s.state.songTitle)
+  const isActive = activeTitle === song.title
+
+  return (
+    <div 
+      className={`song-card-compact ${isActive ? 'active' : ''}`}
+      onClick={() => onLoad(song)}
+    >
+      <div className="song-card-info">
+        <div className="song-card-title">{song.title}</div>
+        <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
+      </div>
+      <div className="song-card-actions-mini">
+        <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} title="Editar">
+          <Edit2 size={12} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LiveSelection() {
+  const { state, goToSlide, nextSlide, prevSlide, clearSong } = useProjectionStore()
+  const { slides, currentSlide, songTitle } = state
+
+  if (!songTitle) {
+    return (
+      <div className="live-selection-empty">
+        <Play size={48} opacity={0.1} />
+        <p>Selecciona una canción para proyectar</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="live-selection">
+      <div className="live-selection-header">
+        <div>
+          <h2>{songTitle}</h2>
+          <div className="live-meta">Estrofas: {slides.length}</div>
+        </div>
+        <button className="btn-icon danger" onClick={clearSong} title="Cerrar">
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div className="live-slides-grid">
+        {slides.map((slide, i) => (
+          <button
+            key={i}
+            className={`live-slide-card ${i === currentSlide ? 'active' : ''}`}
+            onClick={() => goToSlide(i)}
+          >
+            <span className="live-slide-number">{i + 1}</span>
+            <div className="live-slide-content">
+              {slide.lines.map((line, li) => (
+                <div key={li} className="live-slide-line">{line}</div>
+              ))}
+            </div>
+            {slide.label && <span className="live-slide-label">{slide.label}</span>}
+          </button>
+        ))}
+      </div>
+      
+      <div className="live-controls-footer">
+        <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>Anterior</button>
+        <button className="btn-nav primary" onClick={nextSlide} disabled={currentSlide === slides.length - 1}>Siguiente</button>
+      </div>
     </div>
   )
 }
