@@ -16,7 +16,6 @@ export default function BibleView() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<BibleVerseResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set())
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
 
@@ -43,7 +42,6 @@ export default function BibleView() {
   const loadChapter = async () => {
     try {
       setLoading(true)
-      setSelectedVerses(new Set())
       const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
       console.log('Loaded verses:', result.length)
       setVerses(result)
@@ -59,7 +57,20 @@ export default function BibleView() {
     if (!searchQuery.trim()) return
     setSearching(true)
     const results = await searchGlobal(searchQuery, selectedTranslation)
-    setSearchResults(results)
+    
+    if (results.length === 1) {
+      const v = results[0]
+      projectVerse(v)
+      if (v.bookId && v.chapter) {
+        handleSelectBook(v.bookId)
+        setSelectedChapter(v.chapter)
+        setSearchQuery('')
+        setSearchResults([])
+      }
+    } else {
+      setSearchResults(results)
+    }
+    
     setSearching(false)
   }
 
@@ -75,17 +86,6 @@ export default function BibleView() {
     }
   }
 
-  const toggleVerse = (index: number) => {
-    setSelectedVerses(prev => {
-      const next = new Set(prev)
-      if (next.has(index)) {
-        next.delete(index)
-      } else {
-        next.add(index)
-      }
-      return next
-    })
-  }
 
   const projectVerses = (versesToProject: BibleVerseResult[]) => {
     if (versesToProject.length === 0) return
@@ -105,10 +105,6 @@ export default function BibleView() {
     })
   }
 
-  const projectSelected = () => {
-    const toProject = verses.filter((_, i) => selectedVerses.has(i))
-    projectVerses(toProject)
-  }
 
   const projectVerse = (verse: BibleVerseResult) => {
     projectVerses([verse])
@@ -132,11 +128,6 @@ export default function BibleView() {
           >
             {TRANSLATIONS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          {selectedVerses.size > 0 && (
-            <button className="btn-primary" onClick={projectSelected}>
-              <Tv2 size={14} /> Proyectar {selectedVerses.size} vers.
-            </button>
-          )}
         </div>
       </div>
 
@@ -246,7 +237,20 @@ export default function BibleView() {
               </div>
               <div className="search-results-scroll">
                 {searchResults.map((v, i) => (
-                  <div key={i} className="verse-result" onClick={() => projectVerse(v)} style={{ cursor: 'pointer' }}>
+                  <div
+                    key={i}
+                    className="verse-result"
+                    onClick={() => {
+                      projectVerse(v)
+                      if (v.bookId && v.chapter) {
+                        handleSelectBook(v.bookId)
+                        setSelectedChapter(v.chapter)
+                        setSearchResults([])
+                        setSearchQuery('')
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="verse-reference">{v.reference}</div>
                     <div className="verse-text">{v.text}</div>
                   </div>
@@ -264,11 +268,8 @@ export default function BibleView() {
               {verses.map((verse, i) => (
                 <div
                   key={i}
-                  className={`verse-item ${selectedVerses.has(i) ? 'selected' : ''}`}
-                  onClick={() => {
-                    toggleVerse(i);
-                    projectVerse(verse);
-                  }}
+                  className="verse-item"
+                  onClick={() => projectVerse(verse)}
                 >
                   <span className="verse-number">{i + 1}</span>
                   <span className="verse-text-body">{verse.text}</span>
@@ -300,8 +301,7 @@ export default function BibleView() {
             )}
           </div>
           <div className="bible-hint">
-            Haz clic en un versículo para proyectarlo de inmediato.<br />
-            Puedes seleccionar varios y usar "Proyectar X vers." para mostrar un rango.
+            Haz clic en un versículo para proyectarlo de inmediato.
           </div>
         </div>
       </div>
