@@ -11,13 +11,12 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
-import ChurchLogin from '@/pages/ChurchLogin'
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
 
 export default function App() {
-  const { setUser, church } = useAppStore()
+  const { setUser } = useAppStore()
 
   useEffect(() => {
     // Check initial auth state
@@ -35,10 +34,6 @@ export default function App() {
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
-  }
-
-  if (!church) {
-    return <ChurchLogin />
   }
 
   return <MainApp />

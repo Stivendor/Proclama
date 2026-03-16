@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ProjectionState, ProjectionTheme, RecognitionStatus, AppSettings, Song, Setlist, Church } from '@/types'
+import type { ProjectionState, ProjectionTheme, RecognitionStatus, AppSettings, Song, Setlist } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendBlack, sendLogo } from '@/services/projection'
 
@@ -160,9 +160,7 @@ interface AppStore {
   searchQuery: string
   setSearchQuery: (q: string) => void
 
-  // Auth & Church (Multi-tenancy)
-  church: Church | null
-  setChurch: (c: Church | null) => void
+  // Auth
   user: any | null
   setUser: (u: any | null) => void
 }
@@ -190,15 +188,12 @@ export const useAppStore = create<AppStore>()(
       searchQuery: '',
       setSearchQuery: (q) => set({ searchQuery: q }),
 
-      church: null,
-      setChurch: (c) => set({ church: c }),
-
       user: null,
       setUser: (u) => set({ user: u })
     }),
     {
       name: 'proclama-app',
-      partialize: (state) => ({ settings: state.settings, church: state.church })
+      partialize: (state) => ({ settings: state.settings })
     }
   )
 )

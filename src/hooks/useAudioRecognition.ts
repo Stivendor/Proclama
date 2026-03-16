@@ -14,7 +14,7 @@ export function useAudioRecognition() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isCapturingRef = useRef(false)
 
-  const { settings, recognitionStatus, setRecognitionStatus, setDetectedSong, church } = useAppStore()
+  const { settings, recognitionStatus, setRecognitionStatus, setDetectedSong } = useAppStore()
   const { loadSong } = useProjectionStore()
 
   const stopListening = useCallback(() => {
@@ -66,8 +66,8 @@ export function useAudioRecognition() {
         if (settings.recognitionMode === 'automatic') {
           loadSong(song)
           const newUsage = (song.usageCount || 0) + 1
-          if (song.id != null && church) {
-            await updateSong(song.id, church.id, { usageCount: newUsage })
+          if (song.id != null) {
+            await updateSong(song.id, { usageCount: newUsage })
             await db.songs.update(song.id, { usageCount: newUsage })
           }
         }
@@ -83,7 +83,6 @@ export function useAudioRecognition() {
         const lyrics = cleanLyricsText(rawLyrics)
         const now = new Date()
         const payload = {
-          churchId: church!.id,
           title: result.title,
           artist: result.artist,
           lyrics,
