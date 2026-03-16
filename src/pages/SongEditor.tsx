@@ -17,7 +17,7 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditor() {
-  const { editingSong, setEditingSong, setActiveView } = useAppStore()
+  const { editingSong, setEditingSong, setActiveView, user } = useAppStore()
   const { loadSong } = useProjectionStore()
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
@@ -103,7 +103,12 @@ export default function SongEditor() {
           <button className="btn-ghost" onClick={handleProjectNow} disabled={!form.title}>
             <Play size={15} /> Proyectar ahora
           </button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving}>
+          <button 
+            className="btn-primary" 
+            onClick={handleSave} 
+            disabled={saving || !user}
+            title={!user ? "Inicia sesión en Ajustes para editar" : ""}
+          >
             <Save size={15} /> {saving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>

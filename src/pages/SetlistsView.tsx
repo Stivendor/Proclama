@@ -27,7 +27,7 @@ function SortableSongItem({ songId, onRemove }: { songId: number; onRemove: () =
 
 export default function SetlistsView() {
   const { loadSong } = useProjectionStore()
-  const { setActiveSetlist, activeSetlist } = useAppStore()
+  const { setActiveSetlist, activeSetlist, user } = useAppStore()
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
@@ -95,7 +95,12 @@ export default function SetlistsView() {
     <div className="setlists-view">
       <div className="view-header">
         <h1>Setlists</h1>
-        <button className="btn-primary" onClick={() => setShowNew(true)}>
+        <button 
+          className="btn-primary" 
+          onClick={() => setShowNew(true)}
+          disabled={!user}
+          title={!user ? "Inicia sesión para crear setlists" : ""}
+        >
           <Plus size={15} /> Nuevo Setlist
         </button>
       </div>
@@ -136,12 +141,16 @@ export default function SetlistsView() {
                 <button className="btn-icon" onClick={() => activateSetlist(sl)} title="Activar en vivo">
                   <Play size={14} />
                 </button>
-                <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
-                  <Edit2 size={14} />
-                </button>
-                <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
-                  <Trash2 size={14} />
-                </button>
+                {user && (
+                  <>
+                    <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
+                      <Edit2 size={14} />
+                    </button>
+                    <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle } from 'lucide-react'
 import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
+import { supabase } from '@/services/supabase'
 
 export default function SettingsView() {
   const { settings, updateSettings } = useAppStore()
@@ -8,6 +9,13 @@ export default function SettingsView() {
   const [showSecret, setShowSecret] = useState(false)
   const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Auth states
+  const { user } = useAppStore()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [loadingAuth, setLoadingAuth] = useState(false)
 
   const set = (key: string, value: any) => updateSettings({ [key]: value } as any)
 
@@ -43,6 +51,55 @@ export default function SettingsView() {
       </div>
 
       <div className="settings-body">
+        {/* Cuenta y Seguridad */}
+        <section className="settings-section">
+          <h2>Cuenta y Base de Datos (Seguridad)</h2>
+          {!user ? (
+            <div className="auth-card">
+              <div className="settings-info" style={{ marginBottom: 16 }}>
+                Inicia sesión para poder editar, añadir o borrar canciones (Permisos de Escritura).
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Correo Electrónico</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
+                </div>
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+                </div>
+              </div>
+              {authError && <div style={{ color: '#ff4d4f', fontSize: 13, marginBottom: 12 }}>{authError}</div>}
+              <button 
+                className="btn-primary" 
+                disabled={loadingAuth || !email || !password}
+                onClick={async () => {
+                  setLoadingAuth(true)
+                  setAuthError('')
+                  const { error } = await supabase.auth.signInWithPassword({ email, password })
+                  if (error) setAuthError(error.message)
+                  setLoadingAuth(false)
+                }}
+              >
+                <LogIn size={15} /> {loadingAuth ? 'Iniciando...' : 'Iniciar Sesión'}
+              </button>
+            </div>
+          ) : (
+            <div className="auth-card success">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <CheckCircle color="var(--gold)" size={20} />
+                <div>
+                  <div style={{ fontWeight: 600 }}>Autenticado como:</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{user.email} (Escritura habilitada)</div>
+                </div>
+              </div>
+              <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
+                <LogOut size={15} /> Cerrar Sesión
+              </button>
+            </div>
+          )}
+        </section>
+
         {/* Iglesia */}
         <section className="settings-section">
           <h2>Información de la Iglesia</h2>

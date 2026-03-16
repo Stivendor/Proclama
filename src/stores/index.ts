@@ -159,6 +159,10 @@ interface AppStore {
   // Search
   searchQuery: string
   setSearchQuery: (q: string) => void
+
+  // Auth
+  user: any | null
+  setUser: (u: any | null) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -182,7 +186,10 @@ export const useAppStore = create<AppStore>()(
       setDetectedSong: (s) => set({ detectedSong: s }),
 
       searchQuery: '',
-      setSearchQuery: (q) => set({ searchQuery: q })
+      setSearchQuery: (q) => set({ searchQuery: q }),
+
+      user: null,
+      setUser: (u) => set({ user: u })
     }),
     {
       name: 'proclama-app',
