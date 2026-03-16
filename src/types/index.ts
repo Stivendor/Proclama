@@ -1,6 +1,15 @@
+// ─── Church (Sede IPUC) ───────────────────────────────────────────────────────
+export interface Church {
+  id: string
+  code: string
+  name: string
+  createdAt: Date
+}
+
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
+  churchId?: string
   title: string
   artist: string
   lyrics: string          // Estrofas separadas por línea en blanco. Etiquetas opcionales: [Coro], [Verso 1], etc.
@@ -16,6 +25,7 @@ export interface Song {
 // ─── Setlist ───────────────────────────────────────────────────────────────────
 export interface Setlist {
   id?: number
+  churchId?: string
   name: string
   date: Date
   songIds: number[]
@@ -40,6 +50,10 @@ export interface ProjectionState {
   isBlack: boolean
   isLogo: boolean
   theme: ProjectionTheme
+  media?: {
+    url: string
+    type: 'image' | 'video'
+  } | null
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────
@@ -53,6 +67,8 @@ export interface ProjectionTheme {
   transition: 'fade' | 'slide' | 'instant'
   showTitle: boolean
   showVerseLabel: boolean
+  backgroundType?: 'color' | 'video' | 'gradient'
+  backgroundVideoUrl?: string
 }
 
 // ─── Reconocimiento de audio ──────────────────────────────────────────────────

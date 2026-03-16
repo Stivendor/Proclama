@@ -13,7 +13,9 @@ export const DEFAULT_THEME: ProjectionTheme = {
   textShadow: true,
   transition: 'fade',
   showTitle: true,
-  showVerseLabel: true
+  showVerseLabel: true,
+  backgroundType: 'color',
+  backgroundVideoUrl: ''
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
@@ -42,6 +44,7 @@ interface ProjectionStore {
   setLogo: (v: boolean) => void
   updateTheme: (theme: Partial<ProjectionTheme>) => void
   clearSong: () => void
+  setMedia: (media: ProjectionState['media']) => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -51,7 +54,8 @@ const initialProjectionState: ProjectionState = {
   currentSlide: 0,
   isBlack: false,
   isLogo: false,
-  theme: DEFAULT_THEME
+  theme: DEFAULT_THEME,
+  media: null
 }
 
 export const useProjectionStore = create<ProjectionStore>((set, get) => ({
@@ -70,7 +74,8 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
         slides,
         currentSlide: 0,
         isBlack: false,
-        isLogo: false
+        isLogo: false,
+        media: null
       }
       sendProjectionUpdate(newState)
       return { state: newState }
@@ -132,6 +137,14 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     const newState = { ...initialProjectionState, theme: get().state.theme }
     set({ state: newState })
     sendProjectionUpdate(newState)
+  },
+
+  setMedia: (media) => {
+    set(s => {
+      const newState = { ...s.state, media }
+      sendProjectionUpdate(newState)
+      return { state: newState }
+    })
   }
 }))
 
@@ -140,7 +153,12 @@ interface AppStore {
   settings: AppSettings
   updateSettings: (s: Partial<AppSettings>) => void
 
-  // UI
+  // Auth
+  user: any | null
+  setUser: (u: any | null) => void
+  authStatus: 'loading' | 'authenticated' | 'unauthenticated'
+  setAuthStatus: (s: 'loading' | 'authenticated' | 'unauthenticated') => void
+  
   activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible'
   setActiveView: (v: AppStore['activeView']) => void
 
@@ -159,10 +177,6 @@ interface AppStore {
   // Search
   searchQuery: string
   setSearchQuery: (q: string) => void
-
-  // Auth
-  user: any | null
-  setUser: (u: any | null) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -170,6 +184,11 @@ export const useAppStore = create<AppStore>()(
     (set) => ({
       settings: DEFAULT_SETTINGS,
       updateSettings: (s) => set(state => ({ settings: { ...state.settings, ...s } })),
+
+      user: null,
+      setUser: (u) => set({ user: u }),
+      authStatus: 'loading',
+      setAuthStatus: (s) => set({ authStatus: s }),
 
       activeView: 'library',
       setActiveView: (v) => set({ activeView: v }),
@@ -186,10 +205,7 @@ export const useAppStore = create<AppStore>()(
       setDetectedSong: (s) => set({ detectedSong: s }),
 
       searchQuery: '',
-      setSearchQuery: (q) => set({ searchQuery: q }),
-
-      user: null,
-      setUser: (u) => set({ user: u })
+      setSearchQuery: (q) => set({ searchQuery: q })
     }),
     {
       name: 'proclama-app',
