@@ -67,9 +67,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     } else {
       await db.songs.add(payload)
     }
-    alert(`✅ "${song.title}" agregada a tu biblioteca`)
     setImportedLyrics(null)
-    onClose()
   }
 
   return (
