@@ -8,7 +8,7 @@ import OnlineSearchModal from '@/components/OnlineSearchModal'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user } = useAppStore()
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, church } = useAppStore()
   const { loadSong } = useProjectionStore()
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
@@ -23,7 +23,7 @@ export default function LibraryView() {
       setLoadingRemote(true)
       setRemoteError(null)
       try {
-        const remoteSongs = await fetchSongs()
+        const remoteSongs = await fetchSongs(church!.id)
         if (cancelled) return
         await db.songs.clear()
         await db.songs.bulkAdd(remoteSongs)
@@ -79,7 +79,7 @@ export default function LibraryView() {
     if (confirm(`¿Eliminar "${song.title}"?`)) {
       // Primero remoto, luego local
       if (song.id != null) {
-        await deleteSongRemote(song.id)
+        await deleteSongRemote(song.id, church!.id)
         await db.songs.delete(song.id)
       }
     }
@@ -89,7 +89,7 @@ export default function LibraryView() {
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
-      await updateSongRemote(song.id, { usageCount: newUsage })
+      await updateSongRemote(song.id, church!.id, { usageCount: newUsage })
       await db.songs.update(song.id, { usageCount: newUsage })
     }
   }

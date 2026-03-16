@@ -4,7 +4,7 @@ import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
 import { supabase } from '@/services/supabase'
 
 export default function SettingsView() {
-  const { settings, updateSettings } = useAppStore()
+  const { settings, updateSettings, church, setChurch } = useAppStore()
   const { updateTheme, state } = useProjectionStore()
   const [showSecret, setShowSecret] = useState(false)
   const [showGeniusToken, setShowGeniusToken] = useState(false)
@@ -100,15 +100,26 @@ export default function SettingsView() {
           )}
         </section>
 
-        {/* Iglesia */}
+        {/* Sede Conectada */}
         <section className="settings-section">
-          <h2>Información de la Iglesia</h2>
-          <div className="form-group">
-            <label>Nombre de la Iglesia</label>
-            <input type="text" value={settings.churchName} onChange={e => set('churchName', e.target.value)} />
+          <h2>Congregación Conectada</h2>
+          <div className="auth-card" style={{ padding: '1.25rem' }}>
+            {church ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gold)' }}>{church.name}</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Código: {church.code}</div>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <button className="btn-secondary" onClick={() => { if(confirm('¿Desconectar este dispositivo de la iglesia?')) setChurch(null) }}>
+                    Desconectar de {church.name}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>No hay iglesia conectada</div>
+            )}
           </div>
-          <div className="form-group">
-            <label>URL del Logo (imagen)</label>
+          <div className="form-group" style={{ marginTop: '1rem' }}>
+            <label>URL del Logo (imagen para proyección)</label>
             <input type="text" placeholder="https://..." value={settings.churchLogoUrl ?? ''} onChange={e => set('churchLogoUrl', e.target.value)} />
           </div>
         </section>
