@@ -137,7 +137,7 @@ a:hover { text-decoration: underline; }
 
 /* ─── Main Content ────────────────────────────────────────────────────────────── */
 .main-content {
-  overflow-y: auto;
+  overflow: hidden; /* Prevent double scrollbars */
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -665,10 +665,14 @@ a:hover { text-decoration: underline; }
 }
 
 /* ─── Scrollbars ──────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { 
+  background: var(--border-light); 
+  border-radius: 99px;
+  border: 2px solid var(--bg-surface);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
 
 /* ─── Utilities ───────────────────────────────────────────────────────────────── */
 .dim { color: var(--text-muted); }

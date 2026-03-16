@@ -11,22 +11,26 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
+import AuthView from '@/pages/AuthView'
+import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
 
 export default function App() {
-  const { setUser } = useAppStore()
+  const { setUser, authStatus, setAuthStatus } = useAppStore()
 
   useEffect(() => {
     // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
     return () => subscription.unsubscribe()
@@ -34,6 +38,18 @@ export default function App() {
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
+  }
+
+  if (authStatus === 'loading') {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#060810' }}>
+        <Loader2 className="spin" size={48} color="var(--gold)" />
+      </div>
+    )
+  }
+
+  if (authStatus === 'unauthenticated') {
+    return <AuthView />
   }
 
   return <MainApp />
