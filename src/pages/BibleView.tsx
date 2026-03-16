@@ -239,7 +239,7 @@ export default function BibleView() {
                 {searchResults.map((v, i) => (
                   <div
                     key={i}
-                    className="verse-result"
+                    className={`verse-result ${state.songTitle === v.reference ? 'projected' : ''}`}
                     onClick={() => {
                       projectVerse(v)
                       if (v.bookId && v.chapter) {
@@ -268,7 +268,7 @@ export default function BibleView() {
               {verses.map((verse, i) => (
                 <div
                   key={i}
-                  className="verse-item"
+                  className={`verse-item ${state.songTitle === verse.reference ? 'projected' : ''}`}
                   onClick={() => projectVerse(verse)}
                 >
                   <span className="verse-number">{i + 1}</span>
