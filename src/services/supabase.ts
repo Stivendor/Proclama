@@ -1,4 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 import type { Song } from '@/types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
@@ -92,6 +92,7 @@ export async function searchSongs(query: string): Promise<Song[]> {
 
 export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
   const payload = mapSongToPayload(song)
+  
   const { data, error } = await supabase
     .from('songs')
     .insert([payload])
@@ -99,7 +100,7 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
     .single()
 
   if (error) {
-    console.error('Error creating song:', error)
+    console.error('Error creating song in Supabase:', error.message, error.details)
     return null
   }
   return mapRowToSong(data as SupabaseSongRow)
@@ -127,7 +128,7 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     .single()
 
   if (error) {
-    console.error('Error updating song:', error)
+    console.error('Error updating song in Supabase:', error.message)
     return null
   }
   return mapRowToSong(data as SupabaseSongRow)
