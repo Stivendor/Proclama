@@ -4,6 +4,7 @@ import { captureAudioSample, recognizeAudio } from '@/services/acrcloud'
 import { fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
+import { createSong, updateSong } from '@/services/supabase'
 
 const CAPTURE_DURATION_MS = 10_000
 const AUTO_INTERVAL_MS = 15_000
@@ -64,7 +65,11 @@ export function useAudioRecognition() {
         const song = matches[0]
         if (settings.recognitionMode === 'automatic') {
           loadSong(song)
-          await db.songs.update(song.id!, { usageCount: (song.usageCount || 0) + 1 })
+          const newUsage = (song.usageCount || 0) + 1
+          if (song.id != null) {
+            await updateSong(song.id, { usageCount: newUsage })
+            await db.songs.update(song.id, { usageCount: newUsage })
+          }
         }
         // En modo 'assisted' el usuario confirma en la UI
         return
@@ -77,8 +82,7 @@ export function useAudioRecognition() {
       if (rawLyrics) {
         const lyrics = cleanLyricsText(rawLyrics)
         const now = new Date()
-        // Guardar en BD para la próxima vez
-        const newId = await db.songs.add({
+        const payload = {
           title: result.title,
           artist: result.artist,
           lyrics,
@@ -88,8 +92,10 @@ export function useAudioRecognition() {
           usageCount: 1,
           createdAt: now,
           updatedAt: now
-        })
-        const newSong = await db.songs.get(newId)
+        }
+        const created = await createSong(payload)
+        const newSongId = created ? await db.songs.add(created) : await db.songs.add(payload)
+        const newSong = await db.songs.get(newSongId)
         if (newSong) {
           if (settings.recognitionMode === 'automatic') {
             loadSong(newSong)

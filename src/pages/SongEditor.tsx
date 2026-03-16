@@ -4,6 +4,7 @@ import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import type { Song } from '@/types'
+import { createSong, updateSong } from '@/services/supabase'
 
 const VERSE_LABELS = ['[Verso 1]', '[Verso 2]', '[Coro]', '[Pre-Coro]', '[Puente]', '[Final]', '[Intro]']
 const LANGUAGES = ['Español', 'Inglés', 'Portugués', 'Otro']
@@ -64,9 +65,19 @@ export default function SongEditor() {
     try {
       const now = new Date()
       if (editingSong?.id) {
-        await db.songs.update(editingSong.id, { ...form, updatedAt: now })
+        // Actualizar en Supabase
+        const updated = await updateSong(editingSong.id, { ...form, updatedAt: now })
+        // Reflejar en Dexie (si falla Supabase, dejamos los datos locales tal cual)
+        await db.songs.update(editingSong.id, { ...(updated ?? { ...form, updatedAt: now }) })
       } else {
-        await db.songs.add({ ...form, createdAt: now, updatedAt: now })
+        const payload: Omit<Song, 'id'> = { ...form, createdAt: now, updatedAt: now }
+        const created = await createSong(payload)
+        if (created) {
+          await db.songs.add(created)
+        } else {
+          // Si por alguna razón no se pudo crear en Supabase, al menos persistimos localmente
+          await db.songs.add(payload)
+        }
       }
       setEditingSong(null)
       setActiveView('library')

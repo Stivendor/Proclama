@@ -3,6 +3,7 @@ import { Search, Download, X, Loader, Music2 } from 'lucide-react'
 import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
+import { createSong } from '@/services/supabase'
 import type { GeniusSong } from '@/services/genius'
 
 export default function OnlineSearchModal({ onClose }: { onClose: () => void }) {
@@ -48,7 +49,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     if (!importedLyrics) return
     const { song, lyrics } = importedLyrics
     const now = new Date()
-    await db.songs.add({
+    const payload = {
       title: song.title,
       artist: song.artist,
       lyrics,
@@ -59,7 +60,13 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       createdAt: now,
       updatedAt: now,
       sourceUrl: song.url
-    })
+    }
+    const created = await createSong(payload)
+    if (created) {
+      await db.songs.add(created)
+    } else {
+      await db.songs.add(payload)
+    }
     alert(`✅ "${song.title}" agregada a tu biblioteca`)
     setImportedLyrics(null)
     onClose()

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
+import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, setActiveView, setEditingSong } = useAppStore()
@@ -12,6 +13,33 @@ export default function LibraryView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
+  const [loadingRemote, setLoadingRemote] = useState(false)
+  const [remoteError, setRemoteError] = useState<string | null>(null)
+
+  // Sincronizar Supabase -> Dexie al montar y cuando cambie el filtro de búsqueda principal
+  useEffect(() => {
+    let cancelled = false
+    const sync = async () => {
+      setLoadingRemote(true)
+      setRemoteError(null)
+      try {
+        const remoteSongs = await fetchSongs()
+        if (cancelled) return
+        await db.songs.clear()
+        await db.songs.bulkAdd(remoteSongs)
+      } catch (err) {
+        console.error('Error syncing songs from Supabase:', err)
+        if (!cancelled) setRemoteError('No se pudo sincronizar con Supabase. Usando datos locales.')
+      } finally {
+        if (!cancelled) setLoadingRemote(false)
+      }
+    }
+    sync()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const songs = useLiveQuery(async () => {
     let query = db.songs.orderBy('title')
@@ -49,13 +77,21 @@ export default function LibraryView() {
 
   const handleDelete = async (song: Song) => {
     if (confirm(`¿Eliminar "${song.title}"?`)) {
-      await db.songs.delete(song.id!)
+      // Primero remoto, luego local
+      if (song.id != null) {
+        await deleteSongRemote(song.id)
+        await db.songs.delete(song.id)
+      }
     }
   }
 
   const handleLoad = async (song: Song) => {
     loadSong(song)
-    await db.songs.update(song.id!, { usageCount: (song.usageCount || 0) + 1 })
+    if (song.id != null) {
+      const newUsage = (song.usageCount || 0) + 1
+      await updateSongRemote(song.id, { usageCount: newUsage })
+      await db.songs.update(song.id, { usageCount: newUsage })
+    }
   }
 
   const handleExport = async () => {
@@ -134,6 +170,13 @@ export default function LibraryView() {
           {allLangs.map(l => <option key={l} value={l}>{l}</option>)}
         </select>
       </div>
+
+      {loadingRemote && (
+        <div className="sync-status">Sincronizando con Supabase…</div>
+      )}
+      {remoteError && (
+        <div className="sync-error">{remoteError}</div>
+      )}
 
       {/* Song list */}
       {songs.length === 0 ? (
