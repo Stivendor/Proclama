@@ -177,6 +177,11 @@ interface AppStore {
   // Search
   searchQuery: string
   setSearchQuery: (q: string) => void
+
+  // Layout
+  isSidebarOpen: boolean
+  toggleSidebar: () => void
+  setIsSidebarOpen: (o: boolean) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -205,11 +210,15 @@ export const useAppStore = create<AppStore>()(
       setDetectedSong: (s) => set({ detectedSong: s }),
 
       searchQuery: '',
-      setSearchQuery: (q) => set({ searchQuery: q })
+      setSearchQuery: (q) => set({ searchQuery: q }),
+
+      isSidebarOpen: true,
+      toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
+      setIsSidebarOpen: (o) => set({ isSidebarOpen: o })
     }),
     {
       name: 'proclama-app',
-      partialize: (state) => ({ settings: state.settings })
+      partialize: (state) => ({ settings: state.settings, isSidebarOpen: state.isSidebarOpen })
     }
   )
 )

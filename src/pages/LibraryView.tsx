@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus, Menu } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
@@ -8,7 +8,7 @@ import OnlineSearchModal from '@/components/OnlineSearchModal'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user } = useAppStore()
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, isSidebarOpen, toggleSidebar } = useAppStore()
   const { loadSong } = useProjectionStore()
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
@@ -129,9 +129,16 @@ export default function LibraryView() {
     <div className="library-view">
       {/* Header */}
       <div className="view-header">
-        <div>
-          <h1>Biblioteca</h1>
-          <span className="song-count">{songs.length} canciones</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!isSidebarOpen && (
+            <button className="btn-icon" onClick={toggleSidebar}>
+              <Menu size={20} />
+            </button>
+          )}
+          <div>
+            <h1>Biblioteca</h1>
+            <span className="song-count">{songs.length} canciones</span>
+          </div>
         </div>
         <div className="header-actions">
           <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
