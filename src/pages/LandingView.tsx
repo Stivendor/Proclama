@@ -61,17 +61,7 @@ export default function LandingView() {
           </div>
           <div className="hero-visual">
             <div className="mockup-container">
-              <div className="mockup-screen">
-                <div className="mockup-header">
-                  <div className="dot"></div><div className="dot"></div><div className="dot"></div>
-                </div>
-                <div className="mockup-content">
-                  <div className="mockup-sidebar"></div>
-                  <div className="mockup-main">
-                    <div className="mockup-verse">"Cuan grande es Él"</div>
-                  </div>
-                </div>
-              </div>
+              <img src="/og-image.png" alt="Proclama Preview" className="hero-image" />
             </div>
           </div>
         </section>
@@ -205,23 +195,14 @@ export default function LandingView() {
         .hero-visual { position: relative; }
         .mockup-container {
           background: linear-gradient(135deg, rgba(212,168,67,0.2) 0%, rgba(74,144,217,0.1) 100%);
-          padding: 2px; border-radius: 24px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+          padding: 6px; border-radius: 24px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+          overflow: hidden;
         }
-        .mockup-screen {
-          background: #0d1117; border-radius: 22px; height: 360px; overflow: hidden;
-          display: flex; flex-direction: column;
+        .hero-image {
+          width: 100%; height: auto; display: block; border-radius: 18px;
+          transition: transform 0.5s;
         }
-        .mockup-header {
-          height: 30px; background: #161b22; display: flex; align-items: center; gap: 6px; padding: 0 15px;
-        }
-        .mockup-header .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.1); }
-        .mockup-content { flex: 1; display: flex; }
-        .mockup-sidebar { width: 80px; background: #161b22; border-right: 1px solid rgba(255,255,255,0.05); }
-        .mockup-main {
-          flex: 1; display: flex; align-items: center; justify-content: center;
-          background: radial-gradient(circle, #1a1f2e 0%, #0d1117 100%);
-        }
-        .mockup-verse { font-family: 'Lora', serif; font-size: 24px; color: white; opacity: 0.8; }
+        .mockup-container:hover .hero-image { transform: scale(1.02); }
 
         .features { padding: 120px 60px; max-width: 1400px; margin: 0 auto; }
         .section-header { text-align: center; margin-bottom: 80px; }
