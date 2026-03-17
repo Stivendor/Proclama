@@ -59,6 +59,37 @@ export default function LandingView() {
               <a href="#features" className="btn-hero-secondary">Ver funciones</a>
             </div>
           </div>
+
+          <div className="hero-visual">
+            <div className="mockup-container">
+              <div className="mockup-browser-bar">
+                <div className="dots"><span></span><span></span><span></span></div>
+                <div className="address-bar">proclama.church/app</div>
+              </div>
+              <div className="mockup-content">
+                <aside className="mockup-sidebar">
+                  <div className="mockup-nav-item active"><Music2 size={18} /></div>
+                  <div className="mockup-nav-item"><BookOpen size={18} /></div>
+                  <div className="mockup-nav-item"><Monitor size={18} /></div>
+                  <div className="mockup-nav-item"><Zap size={18} /></div>
+                </aside>
+                <div className="mockup-main">
+                  <div className="mockup-projection-preview">
+                    <div className="projection-bg-sim"></div>
+                    <div className="projection-text-sim">
+                      <p>Cuán grande es Él</p>
+                    </div>
+                  </div>
+                  <div className="mockup-floating-ui">
+                    <div className="floating-card bible-card">
+                      <BookOpen size={14} color="var(--gold)" />
+                      <span>Salmos 23:1</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section id="features" className="features">
@@ -189,10 +220,64 @@ export default function LandingView() {
 
         .hero-visual { position: relative; }
         .mockup-container {
-          background: linear-gradient(135deg, rgba(212,168,67,0.2) 0%, rgba(74,144,217,0.1) 100%);
-          padding: 6px; border-radius: 24px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+          background: #1a1f2e;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.6);
           overflow: hidden;
+          width: 100%;
+          aspect-ratio: 16/10;
+          display: flex;
+          flex-direction: column;
+          animation: float 6s ease-in-out infinite;
         }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        .mockup-browser-bar {
+          height: 32px; background: #0f121a; display: flex; align-items: center; padding: 0 16px; gap: 12px;
+        }
+        .mockup-browser-bar .dots { display: flex; gap: 6px; }
+        .mockup-browser-bar .dots span { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+        .mockup-browser-bar .address-bar { 
+          flex: 1; background: #1a1f2e; border-radius: 4px; height: 18px; 
+          font-size: 10px; color: #4a5568; display: flex; align-items: center; padding-left: 8px;
+        }
+        .mockup-content { flex: 1; display: flex; }
+        .mockup-sidebar {
+          width: 50px; background: #0b0e14; display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 20px;
+        }
+        .mockup-nav-item { color: #4a5568; cursor: pointer; }
+        .mockup-nav-item.active { color: var(--gold); }
+        .mockup-main { flex: 1; padding: 12px; position: relative; background: #060810; display: flex; flex-direction: column; }
+        .mockup-projection-preview {
+          flex: 1; border-radius: 8px; overflow: hidden; position: relative;
+          display: flex; align-items: center; justify-content: center; text-align: center;
+        }
+        .projection-bg-sim {
+          position: absolute; inset: 0;
+          background: linear-gradient(45deg, #1a365d, #060810);
+          opacity: 0.8;
+        }
+        .projection-text-sim {
+          position: relative; z-index: 1; color: white; font-weight: 700; font-size: 1.2rem; line-height: 1.4;
+          text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .mockup-floating-ui {
+          position: absolute; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .floating-card {
+          background: rgba(26, 31, 46, 0.9); backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+          padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 11px;
+          animation: slideIn 0.5s ease-out forwards;
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(20px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        .bg-thumb { width: 14px; height: 14px; border-radius: 2px; background: var(--gold); }
         .hero-image {
           width: 100%; height: auto; display: block; border-radius: 18px;
           transition: transform 0.5s;
