@@ -12,6 +12,7 @@ import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
 import AuthView from '@/pages/AuthView'
+import LandingView from '@/pages/LandingView'
 import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
@@ -49,7 +50,7 @@ export default function App() {
   }
 
   if (authStatus === 'unauthenticated') {
-    return <AuthView />
+    return <LandingView />
   }
 
   return <MainApp />
