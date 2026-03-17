@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu } from 'lucide-react'
 import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
 import { supabase } from '@/services/supabase'
 
 export default function SettingsView() {
-  const { settings, updateSettings } = useAppStore()
+  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user } = useAppStore()
   const { updateTheme, state } = useProjectionStore()
   const [showSecret, setShowSecret] = useState(false)
   const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
 
   // Auth states
-  const { user } = useAppStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
@@ -44,7 +43,14 @@ export default function SettingsView() {
   return (
     <div className="settings-view">
       <div className="view-header">
-        <h1>Ajustes</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!isSidebarOpen && (
+            <button className="btn-icon" onClick={toggleSidebar}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h1>Ajustes</h1>
+        </div>
         <button className="btn-primary" onClick={handleSave}>
           <Save size={15} /> {saved ? '¡Guardado!' : 'Guardar'}
         </button>

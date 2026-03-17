@@ -6,7 +6,7 @@ import { openProjectionWindow } from '@/services/projection';
 
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, settings } = useAppStore()
+  const { activeView, setActiveView, setEditingSong, settings, toggleSidebar } = useAppStore()
   const { setProjectionWindow } = useProjectionStore()
 
   const handleNewSong = () => {
@@ -30,8 +30,13 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <Music2 size={28} />
-        <span>Proclama</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+          <Music2 size={24} />
+          <span>Proclama</span>
+        </div>
+        <button className="btn-icon" onClick={toggleSidebar} title="Cerrar Panel">
+          <List size={18} />
+        </button>
       </div>
 
       {/* Church name */}

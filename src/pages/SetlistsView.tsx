@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -27,7 +27,7 @@ function SortableSongItem({ songId, onRemove }: { songId: number; onRemove: () =
 
 export default function SetlistsView() {
   const { loadSong } = useProjectionStore()
-  const { setActiveSetlist, activeSetlist, user } = useAppStore()
+  const { setActiveSetlist, activeSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore()
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
@@ -94,7 +94,14 @@ export default function SetlistsView() {
   return (
     <div className="setlists-view">
       <div className="view-header">
-        <h1>Setlists</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!isSidebarOpen && (
+            <button className="btn-icon" onClick={toggleSidebar}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h1>Setlists</h1>
+        </div>
         <button className="btn-primary" onClick={() => setShowNew(true)}>
           <Plus size={15} /> Nuevo Setlist
         </button>

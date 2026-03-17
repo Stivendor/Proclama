@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X } from 'lucide-react'
+import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X, Menu } from 'lucide-react'
 import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
-import { useProjectionStore } from '@/stores'
+import { useProjectionStore, useAppStore } from '@/stores'
 
 const TRANSLATIONS = ['RVR1960']
 
 export default function BibleView() {
+  const { isSidebarOpen, toggleSidebar } = useAppStore()
   const [selectedBook, setSelectedBook] = useState('jhn')
   const [selectedChapter, setSelectedChapter] = useState(3)
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
@@ -117,8 +118,15 @@ export default function BibleView() {
   return (
     <div className="bible-view">
       <div className="view-header">
-        <div>
-          <h1><BookOpen size={18} style={{ display: 'inline', marginRight: 8 }} />Biblia</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!isSidebarOpen && (
+            <button className="btn-icon" onClick={toggleSidebar}>
+              <Menu size={20} />
+            </button>
+          )}
+          <div>
+            <h1><BookOpen size={18} style={{ display: 'inline', marginRight: 8 }} />Biblia</h1>
+          </div>
         </div>
         <div className="header-actions">
           <select

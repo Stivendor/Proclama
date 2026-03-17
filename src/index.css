@@ -65,6 +65,53 @@ a:hover { text-decoration: underline; }
   grid-template-columns: var(--sidebar-w) 1fr var(--right-w);
   height: 100vh;
   overflow: hidden;
+  transition: grid-template-columns 0.3s ease;
+}
+
+.app-shell.sidebar-hidden {
+  grid-template-columns: 0 1fr var(--right-w);
+}
+
+@media (max-width: 1200px) {
+  .app-shell {
+    grid-template-columns: var(--sidebar-w) 1fr 240px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr var(--right-w);
+  }
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 100;
+    width: var(--sidebar-w);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    background: var(--bg-surface);
+    transform: translateX(-100%);
+  }
+  .app-shell:not(.sidebar-hidden) .sidebar {
+    transform: translateX(0);
+    width: var(--sidebar-w);
+    padding: 16px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+  }
+  .right-panel {
+    height: 40vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+  .main-content {
+    flex: 1;
+    min-height: 0;
+  }
 }
 
 /* ─── Sidebar ─────────────────────────────────────────────────────────────────── */
@@ -76,6 +123,14 @@ a:hover { text-decoration: underline; }
   padding: 16px 12px;
   gap: 4px;
   overflow: hidden;
+  transition: transform 0.3s ease, width 0.3s ease;
+}
+
+.app-shell.sidebar-hidden .sidebar {
+  transform: translateX(-100%);
+  width: 0;
+  padding: 0;
+  border: none;
 }
 .sidebar-logo {
   display: flex;
@@ -419,7 +474,22 @@ a:hover { text-decoration: underline; }
 
 /* ─── Song Editor ─────────────────────────────────────────────────────────────── */
 .song-editor { display: flex; flex-direction: column; height: 100%; }
-.editor-body { display: grid; grid-template-columns: 1fr 340px; flex: 1; overflow: hidden; gap: 0; }
+.editor-body {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+@media (max-width: 1000px) {
+  .editor-body {
+    grid-template-columns: 1fr;
+  }
+  .editor-preview {
+    display: none;
+  }
+}
 .editor-form { padding: 16px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -481,7 +551,23 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--border);
 }
 .new-setlist-form input { flex: 1; }
-.setlists-body { display: grid; grid-template-columns: 280px 1fr; flex: 1; overflow: hidden; }
+.setlists-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .setlists-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1.5fr;
+  }
+  .setlists-list {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
 .setlists-list { overflow-y: auto; border-right: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 4px; }
 .setlist-card {
   display: flex; align-items: center; justify-content: space-between;
@@ -679,7 +765,33 @@ a:hover { text-decoration: underline; }
 
 /* ─── Bible View ──────────────────────────────────────────────────────────────── */
 .bible-view { display: flex; flex-direction: column; height: 100%; }
-.bible-body { display: grid; grid-template-columns: 200px 1fr 260px; flex: 1; overflow: hidden; }
+.bible-body {
+  display: grid;
+  grid-template-columns: 200px 1fr 260px;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .bible-body {
+    grid-template-columns: 180px 1fr;
+  }
+  .bible-preview {
+    display: none;
+  }
+}
+
+@media (max-width: 850px) {
+  .bible-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .bible-sidebar {
+    height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
 
 .bible-sidebar {
   border-right: 1px solid var(--border);
@@ -812,6 +924,17 @@ a:hover { text-decoration: underline; }
   grid-template-columns: 320px 1fr;
   flex: 1;
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .library-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .library-sidebar-list {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
 }
 
 .library-sidebar-list {
