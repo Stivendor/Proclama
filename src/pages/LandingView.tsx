@@ -59,11 +59,6 @@ export default function LandingView() {
               <a href="#features" className="btn-hero-secondary">Ver funciones</a>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="mockup-container">
-              <img src="/og-image.png" alt="Proclama Preview" className="hero-image" />
-            </div>
-          </div>
         </section>
 
         <section id="features" className="features">
