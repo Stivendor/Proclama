@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Play, Eye, Tag, Plus } from 'lucide-react'
+import { Save, X, Play, Eye, Tag, Plus, Menu } from 'lucide-react'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
@@ -17,7 +17,7 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditor() {
-  const { editingSong, setEditingSong, setActiveView } = useAppStore()
+  const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar } = useAppStore()
   const { loadSong } = useProjectionStore()
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
@@ -95,7 +95,14 @@ export default function SongEditor() {
     <div className="song-editor">
       {/* Header */}
       <div className="view-header">
-        <h1>{editingSong ? 'Editar Canción' : 'Nueva Canción'}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!isSidebarOpen && (
+            <button className="btn-icon" onClick={toggleSidebar}>
+              <Menu size={20} />
+            </button>
+          )}
+          <h1>{editingSong ? 'Editar Canción' : 'Nueva Canción'}</h1>
+        </div>
         <div className="header-actions">
           <button className="btn-ghost" onClick={() => { setEditingSong(null); setActiveView('library') }}>
             <X size={15} /> Cancelar
