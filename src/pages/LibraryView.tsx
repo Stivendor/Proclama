@@ -28,8 +28,7 @@ export default function LibraryView() {
       try {
         const remoteSongs = await fetchSongs()
         if (cancelled) return
-        await db.songs.clear()
-        await db.songs.bulkAdd(remoteSongs)
+        await db.songs.bulkPut(remoteSongs)
       } catch (err) {
         console.error('Error syncing songs from Supabase:', err)
         if (!cancelled) setRemoteError('No se pudo sincronizar con Supabase. Usando datos locales.')
