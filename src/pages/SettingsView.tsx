@@ -106,18 +106,6 @@ export default function SettingsView() {
           )}
         </section>
 
-        {/* Iglesia */}
-        <section className="settings-section">
-          <h2>Información de la Iglesia</h2>
-          <div className="form-group">
-            <label>Nombre de la Iglesia</label>
-            <input type="text" value={settings.churchName} onChange={e => set('churchName', e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>URL del Logo (imagen)</label>
-            <input type="text" placeholder="https://..." value={settings.churchLogoUrl ?? ''} onChange={e => set('churchLogoUrl', e.target.value)} />
-          </div>
-        </section>
 
 
         {/* Genius */}
@@ -237,7 +225,7 @@ export default function SettingsView() {
               <div>El firmamento</div>
               <div>y las estrellas mil</div>
             </div>
-          </div>
+      </div>
         </section>
 
         <button className="btn-primary large" onClick={handleSave}>

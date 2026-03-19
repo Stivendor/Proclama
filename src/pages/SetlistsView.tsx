@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -7,33 +7,87 @@ import { CSS } from '@dnd-kit/utilities'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
+import * as supabaseService from '@/services/supabase'
+import OnlineSearchModal from '@/components/OnlineSearchModal'
 
-function SortableSongItem({ songId, onRemove }: { songId: number; onRemove: () => void }) {
+function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; onRemove: () => void; onActivate: (s: Song) => void }) {
   const song = useLiveQuery(() => db.songs.get(songId), [songId])
+  const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
+  const isActive = song?.title === activeTitle
 
   return (
-    <div ref={setNodeRef} style={style} className="setlist-song-item">
-      <span className="drag-handle" {...attributes} {...listeners}><GripVertical size={14} /></span>
-      <span className="setlist-song-name">{song?.title ?? '...'}</span>
-      {song?.artist && <span className="setlist-song-artist">{song.artist}</span>}
-      {song?.key && <span className="song-key">{song.key}</span>}
-      <button className="btn-icon danger" onClick={onRemove}><Trash2 size={12} /></button>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`setlist-song-item ${isActive ? 'active' : ''}`}
+      onClick={() => song && onActivate(song)}
+    >
+      <span className="drag-handle" {...attributes} {...listeners} title="Reordenar"><GripVertical size={14} /></span>
+      <div className="setlist-song-info">
+        <span className="setlist-song-name">{song?.title ?? '...'}</span>
+        {song?.artist && <span className="setlist-song-artist">{song.artist}</span>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {song?.key && <span className="song-key-sm">{song.key}</span>}
+        <button 
+          className="btn-icon danger sm" 
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          title="Quitar de la lista"
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
     </div>
   )
 }
 
 export default function SetlistsView() {
   const { loadSong } = useProjectionStore()
-  const { setActiveSetlist, activeSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore()
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore()
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
+  const [cloudSetlists, setCloudSetlists] = useState<Setlist[]>([])
+  const [songSearch, setSongSearch] = useState('')
+  const [selectedTag, setSelectedTag] = useState('')
+  const [selectedLang, setSelectedLang] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showOnlineSearch, setShowOnlineSearch] = useState(false)
 
-  const setlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
+  const localSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
   const allSongs = useLiveQuery(() => db.songs.orderBy('title').toArray()) ?? []
+
+  // Extraer tags y lenguajes únicos para los filtros
+  const allTags = useMemo(() => {
+    const tags = new Set<string>()
+    allSongs.forEach(s => s.tags?.forEach(t => tags.add(t)))
+    return Array.from(tags).sort()
+  }, [allSongs])
+
+  const allLangs = useMemo(() => {
+    const langs = new Set<string>()
+    allSongs.forEach(s => s.language && langs.add(s.language))
+    return Array.from(langs).sort()
+  }, [allSongs])
+
+  // Cargar setlists de Supabase si hay usuario
+  useEffect(() => {
+    setCloudSetlists([]) // Limpiar siempre al cambiar de usuario para evitar fugas visuals
+    if (user) {
+      setLoading(true)
+      supabaseService.fetchSetlists().then(data => {
+        setCloudSetlists(data)
+        setLoading(false)
+      })
+    } else {
+      setLoading(false)
+    }
+  }, [user])
+
+  const setlists = user ? cloudSetlists : localSetlists
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -43,31 +97,63 @@ export default function SetlistsView() {
   const createSetlist = async () => {
     if (!newName.trim()) return
     const now = new Date()
-    await db.setlists.add({ name: newName, date: now, songIds: [], createdAt: now, updatedAt: now })
+    const newSl: Omit<Setlist, 'id'> = { 
+      name: newName, 
+      date: now, 
+      songIds: [], 
+      createdAt: now, 
+      updatedAt: now,
+      userId: user?.id 
+    }
+
+    if (user) {
+      const created = await supabaseService.createSetlist(newSl)
+      if (created) setCloudSetlists([created, ...cloudSetlists])
+    } else {
+      await db.setlists.add(newSl as Setlist)
+    }
+
     setNewName('')
     setShowNew(false)
   }
 
   const deleteSetlist = async (sl: Setlist) => {
-    if (confirm(`¿Eliminar "${sl.name}"?`)) {
-      await db.setlists.delete(sl.id!)
-      if (editingSetlist?.id === sl.id) setEditingSetlist(null)
+    if (!confirm(`¿Eliminar "${sl.name}"?`)) return
+
+    if (user && sl.id) {
+      await supabaseService.deleteSetlist(sl.id)
+      setCloudSetlists(cloudSetlists.filter(s => s.id !== sl.id))
+    } else if (sl.id) {
+      await db.setlists.delete(sl.id)
+    }
+    
+    if (editingSetlist?.id === sl.id) setEditingSetlist(null)
+  }
+
+  const updateSetlistInState = async (id: number, updates: Partial<Setlist>) => {
+    if (user) {
+      const updated = await supabaseService.updateSetlist(id, updates)
+      if (updated) {
+        setCloudSetlists(cloudSetlists.map(s => s.id === id ? updated : s))
+        if (editingSetlist?.id === id) setEditingSetlist(updated)
+      }
+    } else {
+      await db.setlists.update(id, updates)
+      if (editingSetlist?.id === id) setEditingSetlist({ ...editingSetlist, ...updates })
     }
   }
 
   const addSongToSetlist = async (songId: number) => {
     if (!editingSetlist?.id) return
     if (editingSetlist.songIds.includes(songId)) return
-    const updated = [...editingSetlist.songIds, songId]
-    await db.setlists.update(editingSetlist.id, { songIds: updated, updatedAt: new Date() })
-    setEditingSetlist(s => s ? { ...s, songIds: updated } : s)
+    const updatedIds = [...editingSetlist.songIds, songId]
+    await updateSetlistInState(editingSetlist.id, { songIds: updatedIds, updatedAt: new Date() })
   }
 
   const removeSongFromSetlist = async (songId: number) => {
     if (!editingSetlist?.id) return
-    const updated = editingSetlist.songIds.filter(id => id !== songId)
-    await db.setlists.update(editingSetlist.id, { songIds: updated, updatedAt: new Date() })
-    setEditingSetlist(s => s ? { ...s, songIds: updated } : s)
+    const updatedIds = editingSetlist.songIds.filter(id => id !== songId)
+    await updateSetlistInState(editingSetlist.id, { songIds: updatedIds, updatedAt: new Date() })
   }
 
   const handleDragEnd = async (event: any) => {
@@ -77,19 +163,36 @@ export default function SetlistsView() {
       const oldIndex = editingSetlist.songIds.indexOf(active.id)
       const newIndex = editingSetlist.songIds.indexOf(over.id)
       const newOrder = arrayMove(editingSetlist.songIds, oldIndex, newIndex)
-      await db.setlists.update(editingSetlist.id, { songIds: newOrder, updatedAt: new Date() })
-      setEditingSetlist(s => s ? { ...s, songIds: newOrder } : s)
+      await updateSetlistInState(editingSetlist.id, { songIds: newOrder, updatedAt: new Date() })
     }
   }
 
   const activateSetlist = async (sl: Setlist) => {
     setActiveSetlist(sl)
-    // Cargar primera canción del setlist
     if (sl.songIds.length > 0) {
       const song = await db.songs.get(sl.songIds[0])
       if (song) loadSong(song)
     }
   }
+
+  const filteredSongs = useMemo(() => {
+    if (!editingSetlist) return []
+    return allSongs
+      .filter(s => !editingSetlist.songIds.includes(s.id!))
+      .filter(s => {
+        const search = songSearch.toLowerCase()
+        const matchSearch = !search || 
+          s.title.toLowerCase().includes(search) || 
+          (s.artist?.toLowerCase() || '').includes(search) ||
+          s.tags?.some(t => t.toLowerCase().includes(search))
+        
+        const matchTag = !selectedTag || s.tags?.includes(selectedTag)
+        const matchLang = !selectedLang || s.language === selectedLang
+        
+        return matchSearch && matchTag && matchLang
+      })
+      .slice(0, 50)
+  }, [allSongs, editingSetlist, songSearch, selectedTag, selectedLang])
 
   return (
     <div className="setlists-view">
@@ -100,7 +203,7 @@ export default function SetlistsView() {
               <Menu size={20} />
             </button>
           )}
-          <h1>Setlists</h1>
+          <h1>Setlists {user && <span className="badge">Nube</span>}</h1>
         </div>
         <button className="btn-primary" onClick={() => setShowNew(true)}>
           <Plus size={15} /> Nuevo Setlist
@@ -123,7 +226,8 @@ export default function SetlistsView() {
       <div className="setlists-body">
         {/* Lista de setlists */}
         <div className="setlists-list">
-          {setlists.length === 0 && (
+          {loading && <p className="loading-hint">Cargando setlists...</p>}
+          {!loading && setlists.length === 0 && (
             <div className="library-empty">
               <List size={40} opacity={0.2} />
               <p>No hay setlists</p>
@@ -143,16 +247,12 @@ export default function SetlistsView() {
                 <button className="btn-icon" onClick={() => activateSetlist(sl)} title="Activar en vivo">
                   <Play size={14} />
                 </button>
-                {user && (
-                  <>
-                    <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
-                      <Edit2 size={14} />
-                    </button>
-                    <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </>
-                )}
+                <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
+                  <Edit2 size={14} />
+                </button>
+                <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           ))}
@@ -161,18 +261,28 @@ export default function SetlistsView() {
         {/* Editor de setlist */}
         {editingSetlist && (
           <div className="setlist-editor">
-            <h3>{editingSetlist.name}</h3>
+            <div className="editor-header-row">
+              <h3>{editingSetlist.name}</h3>
+              <button className="btn-icon sm" onClick={() => setEditingSetlist(null)} title="Cerrar editor">
+                <X size={16} />
+              </button>
+            </div>
 
             {/* Orden de canciones con drag & drop */}
             <div className="setlist-songs-section">
               <h4>Orden del servicio</h4>
               {editingSetlist.songIds.length === 0 ? (
-                <p className="empty-hint">Agrega canciones desde la lista de abajo</p>
+                <p className="empty-hint">Agrega canciones buscando abajo</p>
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
                     {editingSetlist.songIds.map(id => (
-                      <SortableSongItem key={id} songId={id} onRemove={() => removeSongFromSetlist(id)} />
+                      <SortableSongItem 
+                        key={id} 
+                        songId={id} 
+                        onRemove={() => removeSongFromSetlist(id)} 
+                        onActivate={loadSong}
+                      />
                     ))}
                   </SortableContext>
                 </DndContext>
@@ -181,21 +291,63 @@ export default function SetlistsView() {
 
             {/* Agregar canciones */}
             <div className="setlist-add-section">
-              <h4>Agregar canciones</h4>
-              <div className="add-songs-list">
-                {allSongs
-                  .filter(s => !editingSetlist.songIds.includes(s.id!))
-                  .map(s => (
-                    <button key={s.id} className="add-song-btn" onClick={() => addSongToSetlist(s.id!)}>
-                      <Plus size={12} /> {s.title}
-                      {s.artist && <span className="dim"> — {s.artist}</span>}
+              <div className="section-header-row">
+                <h4>Agregar cualquier canción</h4>
+                <div className="add-section-toolbar">
+                  <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)}>
+                    <Globe size={14} /> Buscar online
+                  </button>
+                  <div className="search-box sm">
+                    <Search size={14} className="search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por título, artista o etiqueta..."
+                      value={songSearch}
+                      onChange={e => setSongSearch(e.target.value)}
+                    />
+                    {songSearch && (
+                      <button className="clear-search" onClick={() => setSongSearch('')}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="filters-row-compact">
+                <select className="filter-select-sm" value={selectedTag} onChange={e => setSelectedTag(e.target.value)}>
+                  <option value="">Todas las etiquetas</option>
+                  {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <select className="filter-select-sm" value={selectedLang} onChange={e => setSelectedLang(e.target.value)}>
+                  <option value="">Todos los idiomas</option>
+                  {allLangs.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              
+              <div className="add-songs-list highlight">
+                {filteredSongs.length === 0 ? (
+                  <p className="empty-hint">No se encontraron canciones con esos filtros</p>
+                ) : (
+                  filteredSongs.map(s => (
+                    <button key={s.id} className="add-song-btn-large" onClick={() => addSongToSetlist(s.id!)}>
+                      <div className="add-song-btn-main">
+                        <Plus size={14} className="add-icon" />
+                        <div className="song-info">
+                          <span className="title">{s.title}</span>
+                          <span className="artist">{s.artist || 'Sin artista'}</span>
+                        </div>
+                      </div>
+                      {s.key && <span className="song-key-sm">{s.key}</span>}
                     </button>
-                  ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+      {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
     </div>
   )
 }
