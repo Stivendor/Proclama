@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   geniusToken: '',
   recognitionMode: 'assisted',
   recognitionConfidenceThreshold: 70,
-  churchName: 'Mi Iglesia',
+  churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME
 }
