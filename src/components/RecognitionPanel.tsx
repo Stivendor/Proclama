@@ -88,7 +88,7 @@ export default function RecognitionPanel() {
 
       {/* Visualizador de estado */}
       {isListening && (
-        <div className={`recognition-status status-${recognitionStatus}`}>
+        <div className={`recognition-status status-${recognitionStatus}`} aria-live="polite">
           {recognitionStatus === 'listening' && (
             <><div className="pulse-dot" /> Escuchando...</>
           )}

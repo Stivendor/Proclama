@@ -9,6 +9,7 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
 import * as supabaseService from '@/services/supabase'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; onRemove: () => void; onActivate: (s: Song) => void }) {
   const song = useLiveQuery(() => db.songs.get(songId), [songId])
@@ -56,6 +57,7 @@ export default function SetlistsView() {
   const [selectedLang, setSelectedLang] = useState('')
   const [loading, setLoading] = useState(false)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
+  const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
 
   const localSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
   const allSongs = useLiveQuery(() => db.songs.orderBy('title').toArray()) ?? []
@@ -118,15 +120,19 @@ export default function SetlistsView() {
   }
 
   const deleteSetlist = async (sl: Setlist) => {
-    if (!confirm(`¿Eliminar "${sl.name}"?`)) return
+    setConfirmDeleteSl(sl)
+  }
 
+  const confirmDeleteSetlist = async () => {
+    const sl = confirmDeleteSl
+    if (!sl) return
+    setConfirmDeleteSl(null)
     if (user && sl.id) {
       await supabaseService.deleteSetlist(sl.id)
       setCloudSetlists(cloudSetlists.filter(s => s.id !== sl.id))
     } else if (sl.id) {
       await db.setlists.delete(sl.id)
     }
-    
     if (editingSetlist?.id === sl.id) setEditingSetlist(null)
   }
 
@@ -359,6 +365,13 @@ export default function SetlistsView() {
         )}
       </div>
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
+      {confirmDeleteSl && (
+        <ConfirmDialog
+          message={`¿Eliminar "${confirmDeleteSl.name}"?`}
+          onConfirm={confirmDeleteSetlist}
+          onCancel={() => setConfirmDeleteSl(null)}
+        />
+      )}
 
       <style>{`
         .sync-banner {

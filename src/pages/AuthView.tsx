@@ -62,7 +62,7 @@ export default function AuthView() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label><Mail size={14} /> Correo Electrónico</label>
+            <label><Mail size={14} aria-hidden="true" /> Correo Electrónico</label>
             <input 
               type="email" 
               required 
@@ -73,7 +73,7 @@ export default function AuthView() {
           </div>
 
           <div className="form-group">
-            <label><Lock size={14} /> Contraseña</label>
+            <label><Lock size={14} aria-hidden="true" /> Contraseña</label>
             <input 
               type="password" 
               required 
