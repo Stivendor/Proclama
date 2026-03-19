@@ -791,11 +791,13 @@ a:hover { text-decoration: underline; }
 }
 @keyframes fadeIn { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
 .projection-song-title {
-  font-size: 1.2rem; text-transform: uppercase; letter-spacing: 3px;
-  margin-bottom: 8px;
+  font-size: 1.4rem; text-transform: uppercase; letter-spacing: 3px;
+  font-weight: 800;
+  margin-bottom: 12px;
 }
 .projection-verse-label {
-  font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6;
+  font-size: 1rem; text-transform: uppercase; letter-spacing: 2px;
+  font-weight: 700;
 }
 .projection-lines { display: flex; flex-direction: column; gap: 0.2em; }
 .projection-line { white-space: pre-wrap; }
@@ -965,7 +967,7 @@ a:hover { text-decoration: underline; }
 }
 .bible-preview-reference {
   font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
-  opacity: 0.5; font-weight: 600;
+  font-weight: 800;
 }
 .bible-preview-text {
   font-size: 15px; line-height: 1.6;
