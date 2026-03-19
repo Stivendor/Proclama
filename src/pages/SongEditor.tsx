@@ -24,6 +24,7 @@ export default function SongEditor() {
   const [tagInput, setTagInput] = useState('')
   const [previewSlide, setPreviewSlide] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [titleError, setTitleError] = useState('')
 
   const slides = parseLyrics(form.lyrics)
 
@@ -60,7 +61,8 @@ export default function SongEditor() {
   }
 
   const handleSave = async () => {
-    if (!form.title.trim()) { alert('El título es requerido'); return }
+    if (!form.title.trim()) { setTitleError('El título es requerido'); return }
+    setTitleError('')
     setSaving(true)
     try {
       const now = new Date()
@@ -122,11 +124,14 @@ export default function SongEditor() {
           {/* Metadata */}
           <div className="form-row">
             <div className="form-group">
-              <label>Título *</label>
+              <label htmlFor="song-title">Título *</label>
               <input
+                id="song-title"
                 type="text" placeholder="Título de la canción"
-                value={form.title} onChange={e => set('title', e.target.value)}
+                value={form.title} onChange={e => { set('title', e.target.value); if (e.target.value.trim()) setTitleError('') }}
+                required aria-required="true" aria-describedby={titleError ? 'title-error' : undefined}
               />
+              {titleError && <span id="title-error" role="alert" style={{ fontSize: 12, color: 'var(--red)', marginTop: 2 }}>{titleError}</span>}
             </div>
             <div className="form-group">
               <label>Artista / Autor</label>
@@ -227,7 +232,7 @@ export default function SongEditor() {
                 onClick={() => setPreviewSlide(i)}
               >
                 {slide.label && <span className="slide-label-mini">{slide.label}</span>}
-                <span>{slide.lines[0]?.slice(0, 30)}{(slide.lines[0]?.length ?? 0) > 30 ? '...' : ''}</span>
+                <span>{slide.lines[0]?.slice(0, 30)}{(slide.lines[0]?.length ?? 0) > 30 ? '…' : ''}</span>
               </button>
             ))}
           </div>

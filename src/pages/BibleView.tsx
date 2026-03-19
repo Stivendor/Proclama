@@ -190,6 +190,7 @@ export default function BibleView() {
               className="btn-icon"
               onClick={() => setSelectedChapter(c => Math.max(1, c - 1))}
               disabled={selectedChapter === 1}
+              aria-label="Capítulo anterior"
             >
               <ChevronLeft size={18} />
             </button>
@@ -209,6 +210,7 @@ export default function BibleView() {
               className="btn-icon"
               onClick={() => setSelectedChapter(c => Math.min(book.chapters, c + 1))}
               disabled={selectedChapter === book.chapters}
+              aria-label="Capítulo siguiente"
             >
               <ChevronRight size={18} />
             </button>
@@ -225,7 +227,7 @@ export default function BibleView() {
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
               />
               {searchQuery && (
-                <button className="btn-icon" onClick={() => { setSearchQuery(''); setSearchResults([]) }}>
+                <button className="btn-icon" onClick={() => { setSearchQuery(''); setSearchResults([]) }} aria-label="Limpiar búsqueda">
                   <X size={12} />
                 </button>
               )}
@@ -239,7 +241,7 @@ export default function BibleView() {
             <div className="search-results-bible">
               <div className="search-results-header">
                 {searchResults.length} resultado{searchResults.length !== 1 ? 's' : ''} en toda la Biblia
-                <button className="btn-icon" onClick={() => setSearchResults([])}>
+                <button className="btn-icon" onClick={() => setSearchResults([])} aria-label="Cerrar resultados">
                   <X size={12} />
                 </button>
               </div>

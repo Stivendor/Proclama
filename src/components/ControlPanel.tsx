@@ -23,7 +23,7 @@ export default function ControlPanel() {
     <div className="control-panel compact-sidebar">
       <div className="control-song-header">
         <div className="control-song-title">{songTitle}</div>
-        <button className="btn-icon danger" onClick={clearSong} title="Cerrar canción">
+        <button className="btn-icon danger" onClick={clearSong} aria-label="Cerrar canción" title="Cerrar canción">
           <Trash2 size={16} />
         </button>
       </div>
@@ -45,6 +45,7 @@ export default function ControlPanel() {
         <button
           className={`btn-special ${isBlack ? 'active-black' : ''}`}
           onClick={() => setBlack(!isBlack)}
+          aria-label={isBlack ? 'Mostrar pantalla' : 'Pantalla negra'}
           title="Tecla B"
         >
           {isBlack ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -53,6 +54,7 @@ export default function ControlPanel() {
         <button
           className={`btn-special ${isLogo ? 'active-logo' : ''}`}
           onClick={() => setLogo(!isLogo)}
+          aria-label="Mostrar logo"
         >
           <Image size={16} />
           Logo
