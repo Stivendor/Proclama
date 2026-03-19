@@ -197,6 +197,10 @@ interface AppStore {
   // Backgrounds
   backgrounds: BackgroundAsset[]
   fetchBackgrounds: () => Promise<void>
+
+  // Onboarding
+  onboardingDone: boolean
+  setOnboardingDone: (v: boolean) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -235,11 +239,14 @@ export const useAppStore = create<AppStore>()(
       fetchBackgrounds: async () => {
         const { data } = await supabase.from('backgrounds').select('*').order('created_at', { ascending: false })
         if (data) set({ backgrounds: data })
-      }
+      },
+
+      onboardingDone: false,
+      setOnboardingDone: (v) => set({ onboardingDone: v }),
     }),
     {
       name: 'proclama-app',
-      partialize: (state) => ({ settings: state.settings, isSidebarOpen: state.isSidebarOpen })
+      partialize: (state) => ({ settings: state.settings, isSidebarOpen: state.isSidebarOpen, onboardingDone: state.onboardingDone })
     }
   )
 )
