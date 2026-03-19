@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2 } from 'lucide-react'
 import { useProjectionStore } from '@/stores'
+import VideoControls from './VideoControls'
 
 interface LocalMedia {
   id: string
@@ -72,6 +73,8 @@ export default function MediaPanel() {
         multiple
         style={{ display: 'none' }} 
       />
+
+      {state.media?.type === 'video' && <VideoControls />}
 
       {mediaList.length === 0 ? (
         <div className="media-upload-zone" onClick={() => fileInputRef.current?.click()}>

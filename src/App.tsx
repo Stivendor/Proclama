@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useAppStore } from '@/stores'
+import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { onMessage } from '@/services/projection'
 import Sidebar from '@/components/Sidebar'
 import LibraryView from '@/pages/LibraryView'
 import SongEditor from '@/pages/SongEditor'
@@ -34,7 +35,17 @@ export default function App() {
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
-    return () => subscription.unsubscribe()
+    // Listen to media status from projection window
+    const offMedia = onMessage((msg) => {
+      if (msg.type === 'MEDIA_STATUS') {
+        useProjectionStore.getState().setMediaStatus(msg.payload)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      offMedia()
+    }
   }, [])
 
   if (IS_PROJECTION) {

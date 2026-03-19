@@ -25,6 +25,7 @@ export interface Song {
 // ─── Setlist ───────────────────────────────────────────────────────────────────
 export interface Setlist {
   id?: number
+  userId?: string     // UUID del usuario (Supabase)
   churchId?: string
   name: string
   date: Date
@@ -49,11 +50,17 @@ export interface ProjectionState {
   currentSlide: number
   isBlack: boolean
   isLogo: boolean
+  isBible?: boolean
   theme: ProjectionTheme
   media?: {
     url: string
     type: 'image' | 'video'
   } | null
+  mediaStatus?: {
+    currentTime: number
+    duration: number
+    isPlaying: boolean
+  }
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────
@@ -67,8 +74,19 @@ export interface ProjectionTheme {
   transition: 'fade' | 'slide' | 'instant'
   showTitle: boolean
   showVerseLabel: boolean
-  backgroundType?: 'color' | 'video' | 'gradient'
+  backgroundType?: 'color' | 'video' | 'image' | 'gradient'
   backgroundVideoUrl?: string
+  backgroundImageUrl?: string
+  backgroundThumbnail?: string
+  backgroundBlur?: number
+  backgroundOverlayOpacity?: number
+}
+
+export interface BackgroundAsset {
+  id: string
+  url: string
+  thumbnailUrl: string
+  type: 'image' | 'video'
 }
 
 // ─── Reconocimiento de audio ──────────────────────────────────────────────────
@@ -97,6 +115,8 @@ export type BroadcastMessage =
   | { type: 'SET_LOGO'; payload: boolean }
   | { type: 'PING' }
   | { type: 'PONG' }
+  | { type: 'MEDIA_COMMAND'; payload: { action: 'play' | 'pause' | 'seek'; value?: number } }
+  | { type: 'MEDIA_STATUS'; payload: { currentTime: number; duration: number; isPlaying: boolean } }
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {

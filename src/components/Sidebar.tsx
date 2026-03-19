@@ -39,9 +39,6 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Church name */}
-      <div className="sidebar-church">{settings.churchName}</div>
-
       {/* Nueva canción */}
       <button className="btn-new-song" onClick={handleNewSong}>
         <Plus size={16} />
