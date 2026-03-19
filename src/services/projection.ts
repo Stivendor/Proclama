@@ -29,6 +29,14 @@ export function sendLogo(value: boolean) {
   getChannel().postMessage({ type: 'SET_LOGO', payload: value } satisfies BroadcastMessage)
 }
 
+export function sendMediaCommand(action: 'play' | 'pause' | 'seek', value?: number) {
+  getChannel().postMessage({ type: 'MEDIA_COMMAND', payload: { action, value } } satisfies BroadcastMessage)
+}
+
+export function sendMediaStatus(currentTime: number, duration: number, isPlaying: boolean) {
+  getChannel().postMessage({ type: 'MEDIA_STATUS', payload: { currentTime, duration, isPlaying } } satisfies BroadcastMessage)
+}
+
 export function onMessage(handler: (msg: BroadcastMessage) => void): () => void {
   const ch = getChannel()
   const listener = (e: MessageEvent) => handler(e.data as BroadcastMessage)
