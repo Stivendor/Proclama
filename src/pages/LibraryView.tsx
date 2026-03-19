@@ -5,6 +5,7 @@ import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
@@ -15,6 +16,8 @@ export default function LibraryView() {
   const [selectedLang, setSelectedLang] = useState<string>('')
   const [loadingRemote, setLoadingRemote] = useState(false)
   const [remoteError, setRemoteError] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
 
   // Sincronizar Supabase -> Dexie al montar y cuando cambie el filtro de búsqueda principal
   useEffect(() => {
@@ -76,12 +79,16 @@ export default function LibraryView() {
   }
 
   const handleDelete = async (song: Song) => {
-    if (confirm(`¿Eliminar "${song.title}"?`)) {
-      // Primero remoto, luego local
-      if (song.id != null) {
-        await deleteSongRemote(song.id)
-        await db.songs.delete(song.id)
-      }
+    setConfirmDelete(song)
+  }
+
+  const confirmDeleteSong = async () => {
+    const song = confirmDelete
+    if (!song) return
+    setConfirmDelete(null)
+    if (song.id != null) {
+      await deleteSongRemote(song.id)
+      await db.songs.delete(song.id)
     }
   }
 
@@ -118,9 +125,11 @@ export default function LibraryView() {
         updatedAt: new Date()
       }))
       await db.songs.bulkAdd(toAdd)
-      alert(`✅ ${toAdd.length} canciones importadas`)
+      setImportStatus(`✅ ${toAdd.length} canciones importadas`)
+      setTimeout(() => setImportStatus(null), 4000)
     } catch {
-      alert('Error al importar. Verifica el formato del archivo.')
+      setImportStatus('Error al importar. Verifica el formato del archivo.')
+      setTimeout(() => setImportStatus(null), 4000)
     }
     e.target.value = ''
   }
@@ -198,6 +207,23 @@ export default function LibraryView() {
       </div>
 
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`¿Eliminar "${confirmDelete.title}"?`}
+          onConfirm={confirmDeleteSong}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {importStatus && (
+        <div role="status" aria-live="polite" style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)', padding: '10px 20px', fontSize: 13,
+          zIndex: 2000, boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+        }}>
+          {importStatus}
+        </div>
+      )}
     </div>
   )
 }
@@ -218,7 +244,7 @@ function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) 
       </div>
       {user && (
         <div className="song-card-actions-mini">
-          <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} title="Editar">
+          <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />
           </button>
         </div>

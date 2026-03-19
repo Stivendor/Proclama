@@ -141,7 +141,7 @@ export default function LandingView() {
 
       <style>{`
         .landing-root {
-          background: #060810;
+          background: var(--bg-base);
           color: white;
           height: 100vh;
           overflow-y: auto;
@@ -195,6 +195,7 @@ export default function LandingView() {
         .hero-content h1 {
           font-family: 'Cinzel', serif; font-size: 64px; font-weight: 700;
           line-height: 1.1; margin: 24px 0;
+          text-wrap: balance;
         }
         .hero-content h1 span { color: var(--gold); }
         .hero-content p {
@@ -234,6 +235,10 @@ export default function LandingView() {
         @keyframes float {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-20px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mockup-container { animation: none; }
+          .floating-card { animation: none; opacity: 1; transform: none; }
         }
         .mockup-browser-bar {
           height: 32px; background: #0f121a; display: flex; align-items: center; padding: 0 16px; gap: 12px;
@@ -284,7 +289,7 @@ export default function LandingView() {
         }
         .mockup-container:hover .hero-image { transform: scale(1.02); }
 
-        .features { padding: 120px 60px; max-width: 1400px; margin: 0 auto; }
+        .features { padding: 120px 60px; max-width: 1400px; margin: 0 auto; scroll-margin-top: 80px; }
         .section-header { text-align: center; margin-bottom: 80px; }
         .section-header h2 { font-family: 'Cinzel', serif; font-size: 40px; margin-bottom: 16px; }
         .section-header p { color: #8b98b0; font-size: 18px; }

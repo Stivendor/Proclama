@@ -76,7 +76,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       <div className="modal">
         <div className="modal-header">
           <h2><Search size={18} /> Buscar letras online</h2>
-          <button className="btn-icon" onClick={onClose}><X size={16} /></button>
+          <button className="btn-icon" onClick={onClose} aria-label="Cerrar modal"><X size={16} /></button>
         </div>
 
         <div className="modal-body">
@@ -95,7 +95,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 </button>
               </div>
 
-              {error && <div className="search-error">{error}</div>}
+              {error && <div className="search-error" role="alert" aria-live="polite">{error}</div>}
 
               <div className="search-results">
                 {results.map(song => (

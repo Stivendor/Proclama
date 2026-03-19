@@ -34,7 +34,7 @@ export default function Sidebar() {
           <Music2 size={24} />
           <span>Proclama</span>
         </div>
-        <button className="btn-icon" onClick={toggleSidebar} title="Cerrar Panel">
+        <button className="btn-icon" onClick={toggleSidebar} aria-label="Cerrar panel" title="Cerrar Panel">
           <List size={18} />
         </button>
       </div>
@@ -52,6 +52,7 @@ export default function Sidebar() {
             key={id}
             className={`nav-item ${activeView === id ? 'active' : ''}`}
             onClick={() => setActiveView(id)}
+            aria-current={activeView === id ? 'page' : undefined}
           >
             <Icon size={18} />
             {label}

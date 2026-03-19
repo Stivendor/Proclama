@@ -55,6 +55,10 @@ input, select, textarea {
   transition: border-color 0.15s;
 }
 input:focus, select:focus, textarea:focus { border-color: var(--blue); }
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
 textarea { resize: vertical; }
 a { color: var(--blue); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -300,13 +304,32 @@ a:hover { text-decoration: underline; }
 .btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
 .btn-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
+  min-width: 44px; min-height: 44px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   transition: all 0.12s;
 }
 .btn-icon:hover { background: var(--bg-hover); color: var(--text-primary); }
 .btn-icon.danger:hover { background: var(--red-dim); color: var(--red); }
+.btn-icon:focus-visible,
+.btn-icon-xs:focus-visible,
+.btn-nav:focus-visible,
+.btn-special:focus-visible,
+.nav-item:focus-visible,
+.btn-ghost:focus-visible,
+.btn-primary:focus-visible,
+.btn-projection:focus-visible,
+.btn-new-song:focus-visible,
+.slide-item:focus-visible,
+.song-card-compact:focus-visible,
+.verse-item:focus-visible,
+.book-item:focus-visible,
+.testament-tab:focus-visible,
+.preview-slide-btn:focus-visible,
+.live-slide-card:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
 
 /* ─── Library ─────────────────────────────────────────────────────────────────── */
 .library-view { display: flex; flex-direction: column; height: 100%; }
@@ -1199,4 +1222,14 @@ a:hover { text-decoration: underline; }
 
 .btn-icon-xs:hover {
   background: var(--bg-hover); color: var(--text-primary);
-}
+}
+
+/* ─── Reduced Motion ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .mockup-container { animation: none; }
+  .floating-card { animation: none; }
+  .pulse-dot { animation: none; }
+  .spin-dot { animation: none; }
+  .spin { animation: none; }
+}
