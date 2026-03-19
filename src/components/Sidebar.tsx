@@ -1,4 +1,4 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2 } from 'lucide-react';
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, Cloud, CloudOff } from 'lucide-react';
 import { useAppStore } from '@/stores';
 import { useProjectionStore } from '@/stores';
 import { openProjectionWindow } from '@/services/projection';
@@ -6,7 +6,7 @@ import { openProjectionWindow } from '@/services/projection';
 
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, settings, toggleSidebar } = useAppStore()
+  const { activeView, setActiveView, setEditingSong, settings, toggleSidebar, user } = useAppStore()
   const { setProjectionWindow } = useProjectionStore()
 
   const handleNewSong = () => {
@@ -58,6 +58,24 @@ export default function Sidebar() {
           </button>
         ))}
       </nav>
+
+      {/* Estado de sincronización */}
+      <div className="sidebar-sync-status">
+        {user ? (
+          <div className="sync-indicator synced">
+            <Cloud size={14} />
+            <span>Sincronizado</span>
+          </div>
+        ) : (
+          <button 
+            className="sync-login-btn"
+            onClick={() => setActiveView('settings')}
+          >
+            <CloudOff size={14} />
+            <span>Modo local</span>
+          </button>
+        )}
+      </div>
 
       {/* Abrir ventana de proyección */}
       <div className="sidebar-footer">
