@@ -12,6 +12,7 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
+import OnboardingFlow from '@/components/OnboardingFlow'
 import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
@@ -63,10 +64,11 @@ export default function App() {
 
 function MainApp() {
   useKeyboardShortcuts()
-  const { activeView, isSidebarOpen } = useAppStore()
+  const { activeView, isSidebarOpen, onboardingDone } = useAppStore()
 
   return (
     <div className={`app-shell ${!isSidebarOpen ? 'sidebar-hidden' : ''}`}>
+      {!onboardingDone && <OnboardingFlow />}
       <Sidebar />
       <main className="main-content">
         {activeView === 'library' && <LibraryView />}
