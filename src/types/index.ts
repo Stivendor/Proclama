@@ -25,6 +25,7 @@ export interface Song {
 // ─── Setlist ───────────────────────────────────────────────────────────────────
 export interface Setlist {
   id?: number
+  userId?: string     // UUID del usuario (Supabase)
   churchId?: string
   name: string
   date: Date
