@@ -12,8 +12,6 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
-import AuthView from '@/pages/AuthView'
-import LandingView from '@/pages/LandingView'
 import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
@@ -58,10 +56,6 @@ export default function App() {
         <Loader2 className="spin" size={48} color="var(--gold)" />
       </div>
     )
-  }
-
-  if (authStatus === 'unauthenticated') {
-    return <LandingView />
   }
 
   return <MainApp />
