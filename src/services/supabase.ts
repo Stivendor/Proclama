@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Song } from '@/types'
+import type { Song, Setlist } from '@/types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -158,35 +158,79 @@ export async function deleteSong(id: number) {
 }
 
 // ─── Funciones para Setlists ──────────────────────────────────────────────
-export async function fetchSetlists() {
+/**
+ * Mapea una fila de Supabase (con underscore) al objeto Setlist del frontend (camelCase)
+ */
+function mapRowToSetlist(row: any): Setlist {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    date: new Date(row.date),
+    songIds: row.song_ids || [],
+    notes: row.notes || '',
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at)
+  }
+}
+
+export async function fetchSetlists(): Promise<Setlist[]> {
   const { data, error } = await supabase
     .from('setlists')
     .select('*')
     .order('date', { ascending: false })
   
-  if (error) console.error('Error fetching setlists:', error)
-  return data || []
+  if (error) {
+    console.error('Error fetching setlists:', error)
+    return []
+  }
+  return (data || []).map(mapRowToSetlist)
 }
 
-export async function createSetlist(setlist: any) {
+export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setlist | null> {
+  const payload = {
+    name: setlist.name,
+    date: setlist.date.toISOString().split('T')[0], // solo fecha YYYY-MM-DD
+    user_id: setlist.userId,
+    song_ids: setlist.songIds,
+    notes: setlist.notes || '',
+    updated_at: new Date().toISOString()
+  }
+
   const { data, error } = await supabase
     .from('setlists')
-    .insert([setlist])
+    .insert([payload])
     .select()
+    .single()
   
-  if (error) console.error('Error creating setlist:', error)
-  return data?.[0] || null
+  if (error) {
+    console.error('Error creating setlist:', error)
+    return null
+  }
+  return mapRowToSetlist(data)
 }
 
-export async function updateSetlist(id: number, updates: any) {
+export async function updateSetlist(id: number, updates: Partial<Setlist>): Promise<Setlist | null> {
+  const payload: any = {
+    updated_at: new Date().toISOString()
+  }
+  if (updates.name !== undefined) payload.name = updates.name
+  if (updates.date !== undefined) payload.date = updates.date.toISOString().split('T')[0]
+  if (updates.songIds !== undefined) payload.song_ids = updates.songIds
+  if (updates.notes !== undefined) payload.notes = updates.notes
+
   const { data, error } = await supabase
     .from('setlists')
-    .update(updates)
+    .update(payload)
     .eq('id', id)
     .select()
+    .single()
   
-  if (error) console.error('Error updating setlist:', error)
-  return data?.[0] || null
+  if (error) {
+    console.error('Error updating setlist:', error)
+    return null
+  }
+  return mapRowToSetlist(data)
 }
 
 export async function deleteSetlist(id: number) {

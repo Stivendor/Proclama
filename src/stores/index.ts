@@ -2,7 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ProjectionState, ProjectionTheme, RecognitionStatus, AppSettings, Song, Setlist } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
-import { sendProjectionUpdate, sendBlack, sendLogo } from '@/services/projection'
+import { sendProjectionUpdate, sendBlack, sendLogo, sendMediaCommand } from '@/services/projection'
+import { supabase } from '@/services/supabase'
+import type { BackgroundAsset } from '@/types'
 
 // ─── Default theme ─────────────────────────────────────────────────────────────
 export const DEFAULT_THEME: ProjectionTheme = {
@@ -15,6 +17,8 @@ export const DEFAULT_THEME: ProjectionTheme = {
   showTitle: true,
   showVerseLabel: true,
   backgroundType: 'color',
+  backgroundBlur: 0,
+  backgroundOverlayOpacity: 0.3,
   backgroundVideoUrl: ''
 }
 
@@ -26,7 +30,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   geniusToken: '',
   recognitionMode: 'assisted',
   recognitionConfidenceThreshold: 70,
-  churchName: 'Mi Iglesia',
+  churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME
 }
@@ -36,7 +40,7 @@ interface ProjectionStore {
   state: ProjectionState
   projectionWindow: Window | null
   setProjectionWindow: (w: Window | null) => void
-  loadSong: (song: Song) => void
+  loadSong: (song: Song, isBible?: boolean) => void
   nextSlide: () => void
   prevSlide: () => void
   goToSlide: (index: number) => void
@@ -45,6 +49,8 @@ interface ProjectionStore {
   updateTheme: (theme: Partial<ProjectionTheme>) => void
   clearSong: () => void
   setMedia: (media: ProjectionState['media']) => void
+  setMediaStatus: (status: ProjectionState['mediaStatus']) => void
+  sendMediaCommand: (action: 'play' | 'pause' | 'seek', value?: number) => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -64,22 +70,19 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   setProjectionWindow: (w) => set({ projectionWindow: w }),
 
-  loadSong: (song) => {
-    const slides = parseLyrics(song.lyrics)
-    set(s => {
-      const newState: ProjectionState = {
-        ...s.state,
-        songId: song.id ?? null,
-        songTitle: song.title,
-        slides,
-        currentSlide: 0,
-        isBlack: false,
-        isLogo: false,
-        media: null
-      }
-      sendProjectionUpdate(newState)
-      return { state: newState }
-    })
+  loadSong: (song, isBible = false) => {
+    const newState: ProjectionState = {
+      ...get().state,
+      songId: song.id || null,
+      songTitle: song.title,
+      isBible,
+      slides: parseLyrics(song.lyrics),
+      currentSlide: 0,
+      isBlack: false,
+      isLogo: false,
+    }
+    set({ state: newState })
+    sendProjectionUpdate(newState)
   },
 
   nextSlide: () => {
@@ -141,10 +144,18 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   setMedia: (media) => {
     set(s => {
-      const newState = { ...s.state, media }
+      const newState = { ...s.state, media, mediaStatus: undefined }
       sendProjectionUpdate(newState)
       return { state: newState }
     })
+  },
+
+  setMediaStatus: (mediaStatus) => {
+    set(s => ({ state: { ...s.state, mediaStatus } }))
+  },
+
+  sendMediaCommand: (action, value) => {
+    sendMediaCommand(action, value)
   }
 }))
 
@@ -182,6 +193,10 @@ interface AppStore {
   isSidebarOpen: boolean
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
+
+  // Backgrounds
+  backgrounds: BackgroundAsset[]
+  fetchBackgrounds: () => Promise<void>
 }
 
 export const useAppStore = create<AppStore>()(
@@ -214,7 +229,13 @@ export const useAppStore = create<AppStore>()(
 
       isSidebarOpen: true,
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
-      setIsSidebarOpen: (o) => set({ isSidebarOpen: o })
+      setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
+
+      backgrounds: [],
+      fetchBackgrounds: async () => {
+        const { data } = await supabase.from('backgrounds').select('*').order('created_at', { ascending: false })
+        if (data) set({ backgrounds: data })
+      }
     }),
     {
       name: 'proclama-app',
