@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -46,7 +46,7 @@ function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; on
 
 export default function SetlistsView() {
   const { loadSong } = useProjectionStore()
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore()
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView } = useAppStore()
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
@@ -210,6 +210,17 @@ export default function SetlistsView() {
         </button>
       </div>
 
+      {/* Banner de sincronización para usuarios no autenticados */}
+      {!user && (
+        <div className="sync-banner">
+          <CloudOff size={18} />
+          <span>Modo local activo — tus setlists se guardan en este dispositivo</span>
+          <button className="sync-banner-btn" onClick={() => setActiveView('settings')}>
+            <Cloud size={14} /> Sincronizar en la nube
+          </button>
+        </div>
+      )}
+
       {showNew && (
         <div className="new-setlist-form">
           <input
@@ -348,6 +359,41 @@ export default function SetlistsView() {
         )}
       </div>
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
+
+      <style>{`
+        .sync-banner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px dashed var(--border);
+          border-radius: 8px;
+          margin: 0 20px 16px;
+          font-size: 13px;
+          color: var(--text-muted);
+        }
+        .sync-banner svg:first-child { color: var(--text-muted); }
+        .sync-banner-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: var(--gold);
+          color: black;
+          border: none;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-left: auto;
+          transition: all 0.15s;
+        }
+        .sync-banner-btn:hover {
+          background: var(--gold-hover);
+          transform: translateY(-1px);
+        }
+      `}</style>
     </div>
   )
 }

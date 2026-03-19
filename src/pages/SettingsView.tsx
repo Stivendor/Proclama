@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, CloudOff } from 'lucide-react'
 import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
 import { supabase } from '@/services/supabase'
 
@@ -19,6 +19,7 @@ export default function SettingsView() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [loadingAuth, setLoadingAuth] = useState(false)
+  const [isLoginMode, setIsLoginMode] = useState(true)
 
   const set = (key: string, value: any) => updateSettings({ [key]: value } as any)
 
@@ -61,14 +62,41 @@ export default function SettingsView() {
       </div>
 
       <div className="settings-body">
-        {/* Cuenta y Seguridad */}
+        {/* Cuenta y Sincronización */}
         <section className="settings-section">
-          <h2>Cuenta y Base de Datos (Seguridad)</h2>
+          <h2>Sincronización en la Nube</h2>
           {!user ? (
             <div className="auth-card">
-              <div className="settings-info" style={{ marginBottom: 16 }}>
-                Inicia sesión para poder editar, añadir o borrar canciones (Permisos de Escritura).
+              <div className="sync-benefits">
+                <div className="sync-benefit-item">
+                  <Cloud size={16} />
+                  <span>Sincroniza tus setlists en todos tus dispositivos</span>
+                </div>
+                <div className="sync-benefit-item">
+                  <Cloud size={16} />
+                  <span>Respaldo automático de tu biblioteca de canciones</span>
+                </div>
+                <div className="sync-benefit-item">
+                  <Cloud size={16} />
+                  <span>Comparte y accede desde cualquier lugar</span>
+                </div>
               </div>
+              
+              <div className="auth-toggle">
+                <button 
+                  className={`toggle-btn ${isLoginMode ? 'active' : ''}`}
+                  onClick={() => setIsLoginMode(true)}
+                >
+                  Iniciar Sesión
+                </button>
+                <button 
+                  className={`toggle-btn ${!isLoginMode ? 'active' : ''}`}
+                  onClick={() => setIsLoginMode(false)}
+                >
+                  Crear Cuenta
+                </button>
+              </div>
+              
               <div className="form-row">
                 <div className="form-group">
                   <label>Correo Electrónico</label>
@@ -76,7 +104,7 @@ export default function SettingsView() {
                 </div>
                 <div className="form-group">
                   <label>Contraseña</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={isLoginMode ? '••••••••' : 'Mínimo 6 caracteres'} />
                 </div>
               </div>
               {authError && <div style={{ color: '#ff4d4f', fontSize: 13, marginBottom: 12 }}>{authError}</div>}
@@ -86,13 +114,35 @@ export default function SettingsView() {
                 onClick={async () => {
                   setLoadingAuth(true)
                   setAuthError('')
-                  const { error } = await supabase.auth.signInWithPassword({ email, password })
-                  if (error) setAuthError(error.message)
+                  
+                  if (isLoginMode) {
+                    const { error } = await supabase.auth.signInWithPassword({ email, password })
+                    if (error) setAuthError(error.message)
+                  } else {
+                    const { error } = await supabase.auth.signUp({ 
+                      email, 
+                      password,
+                      options: {
+                        data: { email }
+                      }
+                    })
+                    if (error) {
+                      setAuthError(error.message)
+                    } else {
+                      setAuthError('')
+                    }
+                  }
                   setLoadingAuth(false)
                 }}
               >
-                <LogIn size={15} /> {loadingAuth ? 'Iniciando...' : 'Iniciar Sesión'}
+                {isLoginMode ? <LogIn size={15} /> : <UserPlus size={15} />}
+                {loadingAuth ? 'Cargando...' : (isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta')}
               </button>
+              <p className="auth-hint">
+                {isLoginMode 
+                  ? '¿No tienes cuenta? Usa "Crear Cuenta" para registrarte.' 
+                  : '¡Gratis! Solo necesitas un correo y contraseña.'}
+              </p>
             </div>
           ) : (
             <div className="auth-card success">
@@ -413,6 +463,53 @@ export default function SettingsView() {
           display: flex; align-items: center; justify-content: center; color: var(--gold);
         }
         .input-tip { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
+        .sync-benefits {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
+          padding: 16px;
+          background: rgba(212, 175, 55, 0.05);
+          border-radius: 8px;
+          border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        .sync-benefit-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .sync-benefit-item svg { color: var(--gold); flex-shrink: 0; }
+        .auth-toggle {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .toggle-btn {
+          flex: 1;
+          padding: 10px 16px;
+          border: 1px solid var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .toggle-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .toggle-btn.active {
+          background: var(--gold);
+          border-color: var(--gold);
+          color: black;
+        }
+        .auth-hint {
+          text-align: center;
+          margin-top: 12px;
+          font-size: 12px;
+          color: var(--text-muted);
+        }
       `}</style>
     </div>
   )
