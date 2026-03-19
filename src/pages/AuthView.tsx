@@ -134,6 +134,53 @@ export default function AuthView() {
         .auth-footer { text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 13px; }
         .auth-footer button { color: var(--gold); font-weight: 600; margin-left: 5px; }
         .auth-footer button:hover { text-decoration: underline; }
+        .sync-benefits {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
+          padding: 16px;
+          background: rgba(212, 175, 55, 0.05);
+          border-radius: 8px;
+          border: 1px solid rgba(212, 175, 55, 0.15);
+        }
+        .sync-benefit-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+        .sync-benefit-item svg { color: var(--gold); flex-shrink: 0; }
+        .auth-toggle {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 20px;
+        }
+        .toggle-btn {
+          flex: 1;
+          padding: 10px 16px;
+          border: 1px solid var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .toggle-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .toggle-btn.active {
+          background: var(--gold);
+          border-color: var(--gold);
+          color: black;
+        }
+        .auth-hint {
+          text-align: center;
+          margin-top: 12px;
+          font-size: 12px;
+          color: var(--text-muted);
+        }
       `}</style>
     </div>
   )
