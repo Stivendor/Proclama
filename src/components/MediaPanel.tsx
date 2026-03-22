@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2 } from 'lucide-react'
+import { useRef, useState, DragEvent } from 'react'
+import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from 'lucide-react'
 import { useProjectionStore } from '@/stores'
 import VideoControls from './VideoControls'
 
@@ -10,16 +10,39 @@ interface LocalMedia {
   name: string
 }
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
 export default function MediaPanel() {
   const { state, setMedia } = useProjectionStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [mediaList, setMediaList] = useState<LocalMedia[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length === 0) return
+  const processFiles = (files: File[]) => {
+    setError(null)
+    const validFiles: File[] = []
+    const rejectedFiles: string[] = []
 
-    const newItems: LocalMedia[] = files.map(file => ({
+    files.forEach(file => {
+      const isTypeValid = file.type.startsWith('image/') || file.type.startsWith('video/')
+      const isSizeValid = file.size <= MAX_FILE_SIZE
+
+      if (isTypeValid && isSizeValid) {
+        validFiles.push(file)
+      } else {
+        rejectedFiles.push(file.name + (!isTypeValid ? ' (Tipo no válido)' : ' (Demasiado grande)'))
+      }
+    })
+
+    if (rejectedFiles.length > 0) {
+      setError(`No se pudieron cargar ${rejectedFiles.length} archivo(s): ${rejectedFiles.slice(0, 2).join(', ')}${rejectedFiles.length > 2 ? '...' : ''}`)
+      setTimeout(() => setError(null), 5000)
+    }
+
+    if (validFiles.length === 0) return
+
+    const newItems: LocalMedia[] = validFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       url: URL.createObjectURL(file),
       type: file.type.startsWith('video/') ? 'video' : 'image',
@@ -27,11 +50,36 @@ export default function MediaPanel() {
     }))
 
     setMediaList(prev => [...prev, ...newItems])
+  }
+
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    processFiles(files)
     e.target.value = ''
   }
 
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    
+    const files = Array.from(e.dataTransfer.files)
+    processFiles(files)
+  }
+
   const toggleProjection = (item: LocalMedia) => {
-    // Si ya es el mismo URL el que está proyectándose, lo quitamos
     if (state.media?.url === item.url) {
       setMedia(null)
     } else {
@@ -53,13 +101,18 @@ export default function MediaPanel() {
   }
 
   return (
-    <div className="media-panel">
+    <div 
+      className={`media-panel ${isDragging ? 'is-dragging' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="recognition-header" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <MonitorPlay size={14} /> Anuncios / Media Local
         </div>
         {mediaList.length > 0 && (
-          <button className="btn-add-mini" onClick={() => fileInputRef.current?.click()}>
+          <button className="btn-add-mini" onClick={() => fileInputRef.current?.click()} title="Añadir más">
             <Plus size={14} />
           </button>
         )}
@@ -74,13 +127,23 @@ export default function MediaPanel() {
         style={{ display: 'none' }} 
       />
 
+      {error && (
+        <div className="media-error">
+          <AlertCircle size={14} />
+          <span>{error}</span>
+        </div>
+      )}
+
       {state.media?.type === 'video' && <VideoControls />}
 
       {mediaList.length === 0 ? (
-        <div className="media-upload-zone" onClick={() => fileInputRef.current?.click()}>
-          <Upload size={24} opacity={0.3} />
-          <p>Cargar Imágenes o Videos</p>
-          <span>Solo local (no se guarda en la nube)</span>
+        <div 
+          className={`media-upload-zone ${isDragging ? 'dragging' : ''}`} 
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={24} opacity={isDragging ? 0.8 : 0.3} className={isDragging ? 'bounce' : ''} />
+          <p>{isDragging ? '¡Suelta para cargar!' : 'Cargar Anuncios (PNG, JPG, MP4)'}</p>
+          <span>{isDragging ? 'Formatos soportados' : 'Arrastra aquí o haz clic para buscar'}</span>
         </div>
       ) : (
         <div className="media-gallery">
@@ -103,7 +166,7 @@ export default function MediaPanel() {
                       <Zap size={10} fill="currentColor" /> EN VIVO
                     </div>
                   )}
-                  <button className="media-item-delete" onClick={(e) => removeMedia(item.id, e)}>
+                  <button className="media-item-delete" onClick={(e) => removeMedia(item.id, e)} title="Eliminar">
                     <X size={12} />
                   </button>
                 </div>
@@ -111,14 +174,55 @@ export default function MediaPanel() {
             )
           })}
           
-          <div className="media-item-add" onClick={() => fileInputRef.current?.click()}>
+          <div 
+            className={`media-item-add ${isDragging ? 'dragging' : ''}`} 
+            onClick={() => fileInputRef.current?.click()}
+            title="Añadir anuncios (PNG, JPG, MP4)"
+          >
             <Plus size={20} opacity={0.5} />
           </div>
         </div>
       )}
 
+      {isDragging && mediaList.length > 0 && (
+        <div className="drag-overlay">
+          <Upload size={32} />
+          <p>Suelta para añadir archivos</p>
+        </div>
+      )}
+
       <style>{`
-        .media-panel { padding: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px; }
+        .media-panel { 
+          padding: 16px; 
+          border-top: 1px solid var(--border); 
+          display: flex; 
+          flex-direction: column; 
+          gap: 12px; 
+          position: relative;
+          transition: background 0.2s;
+        }
+        .media-panel.is-dragging {
+          background: rgba(59, 130, 246, 0.03);
+        }
+
+        .media-error {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: rgba(224, 85, 85, 0.1);
+          border: 1px solid var(--red-dim);
+          border-radius: 6px;
+          color: var(--red);
+          font-size: 11px;
+          animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         .btn-add-mini {
           background: var(--bg-elevated); border: 1px solid var(--border);
           color: var(--text-muted); border-radius: 4px; padding: 2px 6px;
@@ -132,11 +236,17 @@ export default function MediaPanel() {
           padding: 32px 16px;
           text-align: center;
           cursor: pointer;
-          transition: all 0.15s;
+          transition: all 0.2s;
           display: flex; flex-direction: column; align-items: center; gap: 8px;
           background: rgba(255,255,255,0.02);
         }
-        .media-upload-zone:hover { border-color: var(--blue); background: rgba(59, 130, 246, 0.05); }
+        .media-upload-zone:hover, .media-upload-zone.dragging { 
+          border-color: var(--blue); 
+          background: rgba(59, 130, 246, 0.08); 
+          color: var(--blue);
+        }
+        .media-upload-zone.dragging span { color: var(--blue); opacity: 0.8; }
+        
         .media-upload-zone p { font-size: 13px; font-weight: 500; margin: 0; }
         .media-upload-zone span { font-size: 11px; color: var(--text-muted); }
 
@@ -178,7 +288,7 @@ export default function MediaPanel() {
           opacity: 0; transition: opacity 0.2s;
         }
         .media-item-card:hover .media-item-delete { opacity: 1; }
-        .media-item-delete:hover { background: #ff4d4f; border-color: #ff4d4f; }
+        .media-item-delete:hover { background: var(--red); border-color: var(--red); }
 
         .media-item-add {
           aspect-ratio: 16/10;
@@ -188,7 +298,43 @@ export default function MediaPanel() {
           cursor: pointer; color: var(--text-muted);
           transition: all 0.2s;
         }
-        .media-item-add:hover { border-color: var(--blue); color: var(--blue); background: rgba(59, 130, 246, 0.05); }
+        .media-item-add:hover, .media-item-add.dragging { 
+          border-color: var(--blue); 
+          color: var(--blue); 
+          background: rgba(59, 130, 246, 0.05); 
+        }
+
+        .drag-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(9, 12, 18, 0.85);
+          backdrop-filter: blur(2px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          z-index: 10;
+          border-radius: var(--radius-sm);
+          color: var(--blue);
+          border: 2px dashed var(--blue);
+          margin: 12px;
+          pointer-events: none;
+          animation: fadeIn 0.15s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .bounce {
+          animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
       `}</style>
     </div>
   )
