@@ -22,9 +22,39 @@
     <meta property="twitter:title" content="Proclama — Proyección Profesional para Iglesias" />
     <meta property="twitter:description" content="Sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
     <meta property="twitter:image" content="https://proclama.vercel.app/og-image.png" />
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Proclama",
+      "description": "Sistema profesional y gratuito para la proyección de alabanzas y Biblia en iglesias. Incluye búsqueda inteligente, sincronización en la nube y fondos dinámicos.",
+      "applicationCategory": "ReligiousApp",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "url": "https://proclama.vercel.app/"
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static SEO Injection (Pre-rendering) -->
+      <section style="display: none;">
+        <h1>Proclama — Proyección Profesional para Iglesias</h1>
+        <p>Proclama es la mejor alternativa gratuita a EasyWorship para la proyección de letras y Biblia en iglesias. Sin instalación, directo en el navegador.</p>
+        <h2>Características principales</h2>
+        <ul>
+          <li>Biblia integrada con búsqueda rápida</li>
+          <li>Fondos dinámicos y Motion Backgrounds</li>
+          <li>Sincronización en la nube (Cloud Sync)</li>
+          <li>Gestión de setlists y canciones</li>
+        </ul>
+      </section>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
