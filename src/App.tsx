@@ -13,15 +13,19 @@ import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
 import OnboardingFlow from '@/components/OnboardingFlow'
+import LandingView from '@/pages/LandingView'
 import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
-const IS_PROJECTION = window.name === 'proclama-projection' || window.location.pathname === '/projection'
+const IS_PROJECTION = typeof window !== 'undefined' && (window.name === 'proclama-projection' || window.location.pathname === '/projection')
 
 export default function App() {
-  const { setUser, authStatus, setAuthStatus } = useAppStore()
+  const { setUser, authStatus, setAuthStatus, guestMode } = useAppStore()
+  const isServer = typeof window === 'undefined'
 
   useEffect(() => {
+    if (isServer) return
+
     // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -49,6 +53,10 @@ export default function App() {
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
+  }
+
+  if (isServer || (authStatus === 'unauthenticated' && !guestMode)) {
+    return <LandingView />
   }
 
   if (authStatus === 'loading') {
