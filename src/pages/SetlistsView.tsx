@@ -246,8 +246,14 @@ export default function SetlistsView() {
           {loading && <p className="loading-hint">Cargando setlists...</p>}
           {!loading && setlists.length === 0 && (
             <div className="library-empty">
-              <List size={40} opacity={0.2} />
-              <p>No hay setlists</p>
+              <List size={48} opacity={0.2} style={{ marginBottom: 12 }} />
+              <h3>Aún no tienes Setlists</h3>
+              <p>Agrupa canciones para tu próximo servicio o evento, manteniendo un orden listo para proyectar.</p>
+              <div style={{ marginTop: '16px' }}>
+                <button className="btn-primary" onClick={() => setShowNew(true)}>
+                  <Plus size={16} /> Crear Setlist
+                </button>
+              </div>
             </div>
           )}
           {setlists.map(sl => (
