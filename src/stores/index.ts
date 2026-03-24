@@ -170,6 +170,9 @@ interface AppStore {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated'
   setAuthStatus: (s: 'loading' | 'authenticated' | 'unauthenticated') => void
   
+  guestMode: boolean
+  setGuestMode: (v: boolean) => void
+  
   activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible'
   setActiveView: (v: AppStore['activeView']) => void
 
@@ -214,6 +217,9 @@ export const useAppStore = create<AppStore>()(
       authStatus: 'loading',
       setAuthStatus: (s) => set({ authStatus: s }),
 
+      guestMode: false,
+      setGuestMode: (v) => set({ guestMode: v }),
+
       activeView: 'library',
       setActiveView: (v) => set({ activeView: v }),
 
@@ -246,7 +252,12 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'proclama-app',
-      partialize: (state) => ({ settings: state.settings, isSidebarOpen: state.isSidebarOpen, onboardingDone: state.onboardingDone })
+      partialize: (state) => ({ 
+        settings: state.settings, 
+        isSidebarOpen: state.isSidebarOpen, 
+        onboardingDone: state.onboardingDone,
+        guestMode: state.guestMode
+      })
     }
   )
 )
