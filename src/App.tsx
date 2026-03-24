@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -20,6 +22,16 @@ import { Loader2 } from 'lucide-react'
 const IS_PROJECTION = typeof window !== 'undefined' && (window.name === 'proclama-projection' || window.location.pathname === '/projection')
 
 export default function App() {
+  return (
+    <>
+      <AppContent />
+      <Analytics />
+      <SpeedInsights />
+    </>
+  )
+}
+
+function AppContent() {
   const { setUser, authStatus, setAuthStatus, guestMode } = useAppStore()
   const isServer = typeof window === 'undefined'
 
