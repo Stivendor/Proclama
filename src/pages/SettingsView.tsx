@@ -153,7 +153,10 @@ export default function SettingsView() {
                   <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{user.email} (Escritura habilitada)</div>
                 </div>
               </div>
-              <button className="btn-secondary" onClick={() => supabase.auth.signOut()}>
+              <button className="btn-secondary" onClick={() => {
+                supabase.auth.signOut()
+                useAppStore.getState().setGuestMode(false)
+              }}>
                 <LogOut size={15} /> Cerrar Sesión
               </button>
             </div>

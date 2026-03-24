@@ -26,11 +26,20 @@ export default function Sidebar() {
     { id: 'bible', icon: BookIcon, label: 'Biblia' }
   ] as const
 
+  const handleLogoClick = () => {
+    useAppStore.getState().setGuestMode(false)
+    import('@/services/supabase').then(m => m.supabase.auth.signOut())
+  }
+
   return (
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+        <div 
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, cursor: 'pointer' }}
+          onClick={handleLogoClick}
+          title="Volver a la página de inicio"
+        >
           <Music2 size={24} />
           <span>Proclama</span>
         </div>
