@@ -183,8 +183,17 @@ export default function LibraryView() {
           <div className="song-list-scroll">
             {songs.length === 0 ? (
               <div className="library-empty">
-                <Music2 size={32} opacity={0.2} />
-                <p>No hay canciones</p>
+                <Music2 size={48} opacity={0.2} style={{ marginBottom: 12 }} />
+                <h3>Tu biblioteca está vacía</h3>
+                <p>Agrega canciones manualmente o búscalas en nuestra base de datos online.</p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
+                    <Plus size={16} /> Crear canción
+                  </button>
+                  <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
+                    <Search size={16} /> Buscar online
+                  </button>
+                </div>
               </div>
             ) : (
               songs.map(song => (
@@ -258,9 +267,10 @@ function LiveSelection() {
 
   if (!songTitle) {
     return (
-      <div className="live-selection-empty">
-        <Play size={48} opacity={0.1} />
-        <p>Selecciona una canción para proyectar</p>
+      <div className="live-selection-empty" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', gap: '12px', textAlign: 'center', padding: '24px' }}>
+        <Play size={48} opacity={0.1} style={{ marginBottom: 12 }} />
+        <h3 style={{ color: 'var(--text-primary)', fontSize: '18px', margin: 0 }}>Proyección inactiva</h3>
+        <p style={{ fontSize: '14px', maxWidth: '300px' }}>Selecciona una canción de la lista a la izquierda para comenzar a proyectarla en vivo.</p>
       </div>
     )
   }
