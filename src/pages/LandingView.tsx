@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Layout, Monitor } from 'lucide-react'
 import AuthView from './AuthView'
+import { useAppStore } from '@/stores'
 
 export default function LandingView() {
+  const { setGuestMode } = useAppStore()
   const [showAuth, setShowAuth] = useState(false)
 
   if (showAuth) {
@@ -47,14 +49,14 @@ export default function LandingView() {
         <section className="hero">
           <div className="hero-content">
             <div className="badge">Software Gratuito para Iglesias</div>
-            <h1>Proclama — El Software de <br /><span>Proyección que mereces</span></h1>
+            <h1>La Proyección que <br /><span>tu Iglesia merece</span></h1>
             <p>
-              Proclama es la mejor <strong>alternativa gratuita a EasyWorship</strong> para la proyección de letras y Biblia. 
-              Disfruta de una proyección de letras para iglesias sin instalación, directo en tu navegador con sincronización en la nube.
+              Simplifica tu servicio con el sistema más moderno de letras y Biblia. 
+              Sincronización en la nube, fondos de video y control profesional en el navegador.
             </p>
             <div className="hero-actions">
-              <button className="btn-hero-primary" onClick={() => setShowAuth(true)}>
-                Empezar ahora <ChevronRight size={18} />
+              <button className="btn-hero-primary" onClick={() => setGuestMode(true)}>
+                Usar gratis ahora <ChevronRight size={18} />
               </button>
               <a href="#features" className="btn-hero-secondary">Ver funciones</a>
             </div>
@@ -106,42 +108,22 @@ export default function LandingView() {
             <FeatureCard 
               icon={<BookOpen size={24} />} 
               title="Biblia Integrada" 
-              desc="Busca y proyecta versículos al instante. Soporta múltiples versiones y referencias rápidas." 
+              desc="Busca y proyecta versículos al instante. Soporta referencias directas como 'Juan 3:16'." 
             />
             <FeatureCard 
               icon={<Video size={24} />} 
               title="Fondos de Video" 
-              desc="Transforma la atmósfera con Motion Backgrounds de alta calidad directamente desde la web." 
+              desc="Transforma la atmósfera con Motion Backgrounds impactantes directamente desde la web." 
             />
             <FeatureCard 
               icon={<Cloud size={24} />} 
-              title="Sincronización Cloud" 
-              desc="Accede a tus canciones y setlists desde cualquier PC. Tus cambios se guardan al instante." 
+              title="Cloud Sync" 
+              desc="Gestiona tus canciones y setlists desde cualquier PC. Todo se guarda automáticamente." 
             />
             <FeatureCard 
               icon={<Zap size={24} />} 
-              title="Sin Instalación" 
-              desc="Optimizado para funcionar en cualquier navegador. Olvídate de instalaciones pesadas y costosas." 
-            />
-            <FeatureCard 
-              icon={<Layout size={24} />} 
-              title="Control Profesional" 
-              desc="Interfaz intuitiva para el operador con previsualización en tiempo real y modo oscuro." 
-            />
-            <FeatureCard 
-              icon={<Monitor size={24} />} 
-              title="Salida Dual" 
-              desc="Gestiona la proyección en una pantalla externa mientras mantienes el control en tu monitor." 
-            />
-            <FeatureCard 
-              icon={<Zap size={24} />} 
-              title="Búsqueda Inteligente" 
-              desc="Encuentra canciones por título, letra o etiquetas en milisegundos. Eficiencia total." 
-            />
-            <FeatureCard 
-              icon={<Cloud size={24} />} 
-              title="Multi-dispositivo" 
-              desc="Prepara tu servicio en casa y proyéctalo en la iglesia sin necesidad de memorias USB." 
+              title="Ultra Rápido" 
+              desc="Optimizado para ser ligero, sin instalaciones pesadas. Funciona en cualquier navegador." 
             />
           </div>
         </section>
@@ -150,7 +132,7 @@ export default function LandingView() {
           <div className="cta-card">
             <h2>¿Listo para elevar la calidad de tu proyección?</h2>
             <p>Únete a las iglesias que ya confían en Proclama como su software de proyección principal.</p>
-            <button className="btn-hero-primary" onClick={() => setShowAuth(true)}>Usar gratis ahora</button>
+            <button className="btn-hero-primary" onClick={() => setGuestMode(true)}>Usar gratis ahora</button>
           </div>
         </section>
       </main>

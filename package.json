@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite-react-ssg build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -28,6 +28,7 @@
     "jest": "^29.7.0",
     "typescript": "^5.0.2",
     "vite": "^6.0.0",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.1",
+    "vite-react-ssg": "^0.9.1-beta.1"
   }
 }
