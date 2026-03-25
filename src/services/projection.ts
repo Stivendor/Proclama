@@ -1,4 +1,4 @@
-import type { BroadcastMessage, ProjectionState } from '@/types'
+import type { BroadcastMessage, ProjectionState, CountdownState } from '@/types'
 
 export const CHANNEL_NAME = 'proclama-projection'
 
@@ -13,6 +13,10 @@ export function sendProjectionUpdate(state: ProjectionState) {
   getChannel().postMessage({ type: 'PROJECTION_UPDATE', payload: state } satisfies BroadcastMessage)
 }
 
+export function sendCountdownUpdate(state: CountdownState) {
+  getChannel().postMessage({ type: 'COUNTDOWN_UPDATE', payload: state } satisfies BroadcastMessage)
+}
+
 export function sendSlideCommand(cmd: 'NEXT_SLIDE' | 'PREV_SLIDE') {
   getChannel().postMessage({ type: cmd } satisfies BroadcastMessage)
 }
@@ -21,13 +25,7 @@ export function sendGoToSlide(index: number) {
   getChannel().postMessage({ type: 'GO_TO_SLIDE', payload: index } satisfies BroadcastMessage)
 }
 
-export function sendBlack(value: boolean) {
-  getChannel().postMessage({ type: 'SET_BLACK', payload: value } satisfies BroadcastMessage)
-}
 
-export function sendLogo(value: boolean) {
-  getChannel().postMessage({ type: 'SET_LOGO', payload: value } satisfies BroadcastMessage)
-}
 
 export function sendMediaCommand(action: 'play' | 'pause' | 'seek', value?: number) {
   getChannel().postMessage({ type: 'MEDIA_COMMAND', payload: { action, value } } satisfies BroadcastMessage)
