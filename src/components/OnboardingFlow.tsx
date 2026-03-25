@@ -25,7 +25,7 @@ const TOUR_STEPS = [
   {
     selector: '.right-panel',
     title: 'Panel de control en vivo',
-    desc: 'Desde aquí controlas qué se proyecta: cambia estrofas, activa pantalla negra o muestra el logo.',
+    desc: 'Desde aquí controlas la proyección: cambia estrofas, oculta el texto para ver solo el fondo o proyecta la Biblia.',
     position: 'left' as const,
   },
 ] as const
