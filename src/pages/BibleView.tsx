@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X, Menu } from 'lucide-react'
-import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion } from '@/services/bible'
+import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useProjectionStore, useAppStore } from '@/stores'
 
-const TRANSLATIONS = ['RVR1960']
+const TRANSLATIONS = SUPPORTED_TRANSLATIONS
 
 export default function BibleView() {
   const { isSidebarOpen, toggleSidebar } = useAppStore()
@@ -134,7 +134,7 @@ export default function BibleView() {
             value={selectedTranslation}
             onChange={e => setSelectedTranslation(e.target.value)}
           >
-            {TRANSLATIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            {TRANSLATIONS.map(t => <option key={t.id} value={t.id}>{t.name} ({t.id})</option>)}
           </select>
         </div>
       </div>

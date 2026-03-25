@@ -72,6 +72,23 @@ export const BIBLE_BOOKS: { id: string; name: string; chapters: number; testamen
   { id: 'rev', name: 'Apocalipsis', chapters: 22, testament: 'NT' },
 ]
 
+// Mapeo de IDs de libros a IDs numéricos de Bolls Life (1-66)
+const BOLLS_BOOK_MAP: Record<string, number> = {
+  gen: 1, exo: 2, lev: 3, num: 4, deu: 5, jos: 6, jdg: 7, rut: 8, '1sa': 9, '2sa': 10,
+  '1ki': 11, '2ki': 12, '1ch': 13, '2ch': 14, ezr: 15, neh: 16, est: 17, job: 18, psa: 19, pro: 20,
+  ecc: 21, sng: 22, isa: 23, jer: 24, lam: 25, ezk: 26, dan: 27, hos: 28, jol: 29, amo: 30,
+  oba: 31, jon: 32, mic: 33, nam: 34, hab: 35, zep: 36, hag: 37, zec: 38, mal: 39,
+  mat: 40, mrk: 41, luk: 42, jhn: 43, act: 44, rom: 45, '1co': 46, '2co': 47, gal: 48, eph: 49,
+  php: 50, col: 51, '1th': 52, '2th': 53, '1ti': 54, '2ti': 55, tit: 56, phm: 57, heb: 58, jas: 59,
+  '1pe': 60, '2pe': 61, '1jn': 62, '2jn': 63, '3jn': 64, jud: 65, rev: 66
+}
+
+export const SUPPORTED_TRANSLATIONS = [
+  { id: 'RVR1960', name: 'Reina Valera 1960' },
+  { id: 'NVI', name: 'Nueva Versión Internacional' },
+  { id: 'PDT', name: 'Palabra de Dios para Todos' }
+]
+
 export interface BibleVerseResult {
   reference: string
   text: string
@@ -95,8 +112,8 @@ export async function fetchChapter(
   try {
     const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
     
-    // Primero intentar datos locales
-    if (BIBLE_DATA[bookId]?.[chapter]) {
+    // Primero intentar datos locales si es RVR1960
+    if (translation === 'RVR1960' && BIBLE_DATA[bookId]?.[chapter]) {
       return BIBLE_DATA[bookId][chapter].map(v => ({
         reference: `${bookName} ${chapter}:${v.verse}`,
         text: v.text,
@@ -106,20 +123,25 @@ export async function fetchChapter(
       }))
     }
     
-    // Si no hay datos locales, intentar API remota
-    const url = `https://bible-api.com/${encodeURIComponent(bookName)}+${chapter}`
+    // Si no hay datos locales o es otra versión, usar Bolls Life API
+    const bollsId = BOLLS_BOOK_MAP[bookId] || 1
+    const url = `https://bolls.life/get-text/${translation}/${bollsId}/${chapter}/`
+    
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 segundos timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
     
     const res = await fetch(url, { signal: controller.signal })
     clearTimeout(timeoutId)
     
     if (!res.ok) return []
     const data = await res.json()
-    return (data.verses ?? []).map((v: any) => ({
+    
+    return (data ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
-      text: v.text.trim(),
-      translation: 'RVR1960'
+      text: v.text.replace(/<[^>]*>?/gm, '').trim(), // Limpiar HTML si lo hay
+      translation,
+      bookId,
+      chapter
     }))
   } catch (error) {
     console.error('Error fetching chapter:', error)
@@ -278,8 +300,37 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
     }
     if (count >= MAX_RESULTS) break
   }
+
+  // 4. Si no hay suficientes resultados o es otra versión, usar Bolls Life Search API
+  if (results.length < 5 || translation !== 'RVR1960') {
+    try {
+      const searchUrl = `https://bolls.life/search/${translation}/?search=${encodeURIComponent(query)}`
+      const res = await fetch(searchUrl)
+      if (res.ok) {
+        const apiResults = await res.json()
+        apiResults.forEach((v: any) => {
+          // Evitar duplicados
+          const bookId = Object.keys(BOLLS_BOOK_MAP).find(key => BOLLS_BOOK_MAP[key] === v.book) || ''
+          const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name || `Libro ${v.book}`
+          const ref = `${bookName} ${v.chapter}:${v.verse}`
+          
+          if (!results.find(r => r.reference === ref)) {
+            results.push({
+              reference: ref,
+              text: v.text.replace(/<[^>]*>?/gm, '').trim(),
+              translation,
+              bookId,
+              chapter: v.chapter
+            })
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Error in Bolls Life search:', e)
+    }
+  }
   
-  return results
+  return results.slice(0, MAX_RESULTS)
 }
 
 // Autocompletado de libros - devuelve el libro solo si la búsqueda es suficientemente específica
