@@ -62,6 +62,7 @@ export default function SettingsView() {
       </div>
 
       <div className="settings-body">
+        <div className="settings-config-col">
         {/* Cuenta y Sincronización */}
         <section className="settings-section">
           <h2>Sincronización en la Nube</h2>
@@ -231,7 +232,16 @@ export default function SettingsView() {
                         backgroundThumbnail: bg.thumbnailUrl 
                       })}
                     >
-                      <img src={bg.thumbnailUrl} alt="background" />
+                      <img 
+                        src={bg.thumbnailUrl || bg.url} 
+                        alt="background" 
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src !== bg.url) {
+                            target.src = bg.url;
+                          }
+                        }}
+                      />
                       {state.theme.backgroundImageUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
                     </div>
                   ))}
@@ -335,8 +345,12 @@ export default function SettingsView() {
             </div>
           </div>
 
-          {/* Preview del tema */}
-          <div className="theme-preview-container">
+        </section>
+        </div>
+
+        {/* Columna Derecha de Preview */}
+        <div className="settings-preview-col">
+          <section className="settings-section preview-section">
             <div className="theme-preview-header">Vista Previa de Proyección</div>
             <div className="theme-preview">
               <div className="preview-background-layer" style={{ 
@@ -382,15 +396,61 @@ export default function SettingsView() {
                 <div>y las estrellas mil</div>
               </div>
             </div>
-          </div>
-        </section>
-
-        <button className="btn-primary large" onClick={handleSave}>
-          <Save size={16} /> {saved ? '¡Cambios guardados!' : 'Guardar todos los ajustes'}
-        </button>
+            
+            <div style={{ marginTop: '24px' }}>
+              <button className="btn-primary large" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSave}>
+                <Save size={16} /> {saved ? '¡Cambios guardados!' : 'Guardar todos los ajustes'}
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
 
       <style>{`
+        .settings-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px 32px;
+          display: grid;
+          grid-template-columns: 1fr 450px;
+          gap: 40px;
+          align-items: start;
+          padding-bottom: 60px;
+        }
+
+        @media (max-width: 1024px) {
+          .settings-body {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .settings-config-col {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .settings-preview-col {
+          position: sticky;
+          top: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .preview-section {
+          padding: 0;
+          background: var(--bg-default);
+          border: none;
+          position: sticky;
+          top: -24px;
+          z-index: 50;
+          padding-top: 24px;
+          margin-top: -24px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid var(--border);
+        }
+
         .segmented-control {
           display: flex;
           background: rgba(255,255,255,0.05);

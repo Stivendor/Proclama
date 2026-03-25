@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
-import type { ProjectionState, BroadcastMessage } from '@/types'
+import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { DEFAULT_THEME } from '@/stores'
 
 const INITIAL_STATE: ProjectionState = {
@@ -8,14 +8,13 @@ const INITIAL_STATE: ProjectionState = {
   songTitle: '',
   slides: [],
   currentSlide: 0,
-  isBlack: false,
-  isLogo: false,
   theme: DEFAULT_THEME,
   media: null
 }
 
 export default function ProjectionWindow() {
   const [state, setState] = useState<ProjectionState>(INITIAL_STATE)
+  const [countdown, setCountdown] = useState<CountdownState | null>(null)
   const [visible, setVisible] = useState(true)
   const prevSlideRef = useRef(0)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -26,10 +25,6 @@ export default function ProjectionWindow() {
       if (msg.type === 'PROJECTION_UPDATE') {
         prevSlideRef.current = state.currentSlide
         setState(msg.payload)
-      } else if (msg.type === 'SET_BLACK') {
-        setState(s => ({ ...s, isBlack: msg.payload, isLogo: false }))
-      } else if (msg.type === 'SET_LOGO') {
-        setState(s => ({ ...s, isLogo: msg.payload, isBlack: false }))
       } else if (msg.type === 'MEDIA_COMMAND') {
         const { action, value } = msg.payload
         if (videoRef.current) {
@@ -40,6 +35,8 @@ export default function ProjectionWindow() {
       } else if (msg.type === 'PING') {
         // Responder para que la ventana principal sepa que estamos vivos
         getChannel().postMessage({ type: 'PONG' })
+      } else if (msg.type === 'COUNTDOWN_UPDATE') {
+        setCountdown(msg.payload)
       }
     })
     return off
@@ -69,22 +66,26 @@ export default function ProjectionWindow() {
     document.documentElement.requestFullscreen?.().catch(() => null)
   }, [])
 
-  const { slides, currentSlide, isBlack, isLogo, theme, songTitle, isBible } = state
+  const { slides, currentSlide, theme, songTitle, isBible, hideText } = state
   const slide = slides[currentSlide]
 
+  const isCountdownActive = countdown && countdown.status !== 'idle'
+
+  const activeTheme = isCountdownActive ? countdown.config.theme : theme
+
   const bgStyle: React.CSSProperties = {
-    background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-      ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-      : theme.backgroundType === 'color' || !theme.backgroundType
-        ? theme.background
+    background: activeTheme.backgroundType === 'image' && activeTheme.backgroundImageUrl
+      ? `url(${activeTheme.backgroundImageUrl}) center/cover no-repeat`
+      : activeTheme.backgroundType === 'color' || !activeTheme.backgroundType
+        ? activeTheme.background
         : '#000',
   }
 
   const textStyle: React.CSSProperties = {
-    fontFamily: theme.fontFamily,
-    fontSize: `${theme.fontSize}px`,
-    color: theme.textColor,
-    textShadow: theme.textShadow
+    fontFamily: activeTheme.fontFamily,
+    fontSize: `${activeTheme.fontSize}px`,
+    color: activeTheme.textColor,
+    textShadow: activeTheme.textShadow
       ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
       : 'none',
     lineHeight: 1.4,
@@ -92,24 +93,36 @@ export default function ProjectionWindow() {
     zIndex: 10
   }
 
+  const formatTime = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60)
+    const s = totalSeconds % 60
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
   return (
-    <div className="projection-root" style={{ background: '#000', overflow: 'hidden' }}>
+    <div className="projection-root" style={{ 
+      position: 'relative', 
+      width: '100vw', 
+      height: '100vh', 
+      background: '#000', 
+      overflow: 'hidden' 
+    }}>
       {/* Capa de Fondo (Imagen/Color) con Blur */}
       <div 
         className="projection-background-base" 
         style={{ 
           position: 'absolute', inset: 0, 
-          filter: `blur(${theme.backgroundBlur || 0}px)`,
-          transform: `scale(${theme.backgroundBlur ? 1.1 : 1})`,
+          filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
+          transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`,
           zIndex: 0,
           ...bgStyle
         }} 
       />
 
       {/* Fondo de Video */}
-      {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
+      {activeTheme.backgroundType === 'video' && activeTheme.backgroundVideoUrl && (
         <video 
-          key={theme.backgroundVideoUrl}
+          key={activeTheme.backgroundVideoUrl}
           autoPlay 
           muted 
           loop 
@@ -117,11 +130,11 @@ export default function ProjectionWindow() {
           style={{ 
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', 
             zIndex: 1,
-            filter: `blur(${theme.backgroundBlur || 0}px)`,
-            transform: `scale(${theme.backgroundBlur ? 1.1 : 1})`
+            filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
+            transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`
           }}
         >
-          <source src={theme.backgroundVideoUrl} type="video/mp4" />
+          <source src={activeTheme.backgroundVideoUrl} type="video/mp4" />
         </video>
       )}
 
@@ -129,37 +142,85 @@ export default function ProjectionWindow() {
       <div 
         style={{ 
           position: 'absolute', inset: 0, 
-          backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})`,
+          backgroundColor: `rgba(0,0,0,${activeTheme.backgroundOverlayOpacity ?? 0.3})`,
           zIndex: 5 
         }} 
       />
 
       {/* Proyección de Media (Anuncios) */}
       {state.media && (
-        <div className="projection-media-layer" style={{ position: 'absolute', inset: 0, zIndex: 20, background: '#000' }}>
+        <div 
+          className="projection-media-layer" 
+          style={{ 
+            position: 'absolute', inset: 0, 
+            zIndex: state.media.isBackgroundMode ? 2 : 20, 
+            background: state.media.isBackgroundMode ? 'transparent' : '#000',
+            filter: state.media.isBackgroundMode ? `blur(${activeTheme.backgroundBlur || 0}px)` : 'none',
+            transform: state.media.isBackgroundMode && activeTheme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
+          }}
+        >
           {state.media.type === 'video' ? (
-            <video ref={videoRef} autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'contain' }}>
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              loop 
+              style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+            >
               <source src={state.media.url} />
             </video>
           ) : (
-            <img src={state.media.url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img 
+              src={state.media.url} 
+              style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
+            />
           )}
         </div>
       )}
 
-      {/* Negro total */}
-      <div className={`projection-black ${isBlack ? 'visible' : ''}`} style={{ zIndex: 30 }} />
+      {/* Negro total y Logo eliminados por el usuario */}
 
-      {/* Logo */}
-      {isLogo && (
-        <div className="projection-logo" style={{ zIndex: 15 }}>
-          <div className="logo-placeholder">✝</div>
+
+      {/* Contenido principal Countdown */}
+      {isCountdownActive && !hideText && (
+        <div className="projection-content countdown-projection" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10
+        }}>
+          {countdown.config.title && (
+            <div style={{
+              fontFamily: activeTheme.fontFamily,
+              color: activeTheme.textColor,
+              opacity: 0.8,
+              fontSize: `${Math.round(activeTheme.fontSize * 0.35)}px`,
+              marginBottom: '3vh',
+              textTransform: 'uppercase',
+              letterSpacing: '4px',
+              textShadow: activeTheme.textShadow ? '0 4px 30px rgba(0,0,0,0.9)' : 'none'
+            }}>
+              {countdown.config.title}
+            </div>
+          )}
+          <div style={{
+            fontFamily: activeTheme.fontFamily,
+            color: (activeTheme as any).timerColor || activeTheme.textColor,
+            fontSize: `${activeTheme.fontSize}px`,
+            fontVariantNumeric: 'tabular-nums',
+            fontWeight: 'bold',
+            textShadow: activeTheme.textShadow ? '0 8px 40px rgba(0,0,0,0.9)' : 'none',
+            lineHeight: 1
+          }}>
+            {formatTime(countdown.remainingTime)}
+          </div>
         </div>
       )}
 
-      {/* Contenido principal */}
-      {!isBlack && !isLogo && slide && (
-        <div className="projection-content" key={currentSlide}>
+      {/* Contenido principal Slides */}
+      {!isCountdownActive && !hideText && slide && (
+        <div className="projection-content" key={currentSlide} style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center'
+        }}>
           {(theme.showTitle || isBible) && songTitle && (
             <div className="projection-song-title" style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.8 }}>
               {songTitle}
@@ -181,7 +242,7 @@ export default function ProjectionWindow() {
       )}
 
       {/* Pantalla en espera (sin canción) */}
-      {!isBlack && !isLogo && !slide && (
+      {!isCountdownActive && !hideText && !slide && (
         <div className="projection-waiting">
           <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '4rem' }}>
             ✝
@@ -190,7 +251,7 @@ export default function ProjectionWindow() {
       )}
 
       {/* Indicador de número de estrofa (discreto, esquina) */}
-      {slide && !isBlack && (
+      {!isCountdownActive && slide && (
         <div className="projection-counter">
           {currentSlide + 1} / {slides.length}
         </div>

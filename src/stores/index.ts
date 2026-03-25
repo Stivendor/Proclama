@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ProjectionState, ProjectionTheme, RecognitionStatus, AppSettings, Song, Setlist } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
-import { sendProjectionUpdate, sendBlack, sendLogo, sendMediaCommand } from '@/services/projection'
+import { sendProjectionUpdate, sendMediaCommand } from '@/services/projection'
 import { supabase } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
 
@@ -44,13 +44,13 @@ interface ProjectionStore {
   nextSlide: () => void
   prevSlide: () => void
   goToSlide: (index: number) => void
-  setBlack: (v: boolean) => void
-  setLogo: (v: boolean) => void
   updateTheme: (theme: Partial<ProjectionTheme>) => void
   clearSong: () => void
   setMedia: (media: ProjectionState['media']) => void
+  setHideText: (v: boolean) => void
   setMediaStatus: (status: ProjectionState['mediaStatus']) => void
   sendMediaCommand: (action: 'play' | 'pause' | 'seek', value?: number) => void
+  toggleMediaBackground: () => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -58,10 +58,9 @@ const initialProjectionState: ProjectionState = {
   songTitle: '',
   slides: [],
   currentSlide: 0,
-  isBlack: false,
-  isLogo: false,
   theme: DEFAULT_THEME,
-  media: null
+  media: null,
+  hideText: false
 }
 
 export const useProjectionStore = create<ProjectionStore>((set, get) => ({
@@ -78,8 +77,6 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       isBible,
       slides: parseLyrics(song.lyrics),
       currentSlide: 0,
-      isBlack: false,
-      isLogo: false,
     }
     set({ state: newState })
     sendProjectionUpdate(newState)
@@ -118,18 +115,6 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     })
   },
 
-  setBlack: (v) => {
-    const newState = { ...get().state, isBlack: v, isLogo: false }
-    set({ state: newState })
-    sendBlack(v)
-  },
-
-  setLogo: (v) => {
-    const newState = { ...get().state, isLogo: v, isBlack: false }
-    set({ state: newState })
-    sendLogo(v)
-  },
-
   updateTheme: (theme) => {
     const newState = { ...get().state, theme: { ...get().state.theme, ...theme } }
     set({ state: newState })
@@ -145,6 +130,24 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   setMedia: (media) => {
     set(s => {
       const newState = { ...s.state, media, mediaStatus: undefined }
+      sendProjectionUpdate(newState)
+      return { state: newState }
+    })
+  },
+
+  setHideText: (v) => {
+    const newState = { ...get().state, hideText: v }
+    set({ state: newState })
+    sendProjectionUpdate(newState)
+  },
+
+  toggleMediaBackground: () => {
+    set(s => {
+      if (!s.state.media) return s
+      const newState = { 
+        ...s.state, 
+        media: { ...s.state.media, isBackgroundMode: !s.state.media.isBackgroundMode } 
+      }
       sendProjectionUpdate(newState)
       return { state: newState }
     })
@@ -173,7 +176,7 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible'
+  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown'
   setActiveView: (v: AppStore['activeView']) => void
 
   editingSong: Song | null
