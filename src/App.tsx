@@ -14,6 +14,7 @@ import ControlPanel from '@/components/ControlPanel'
 import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
+import CountdownView from '@/pages/CountdownView'
 import OnboardingFlow from '@/components/OnboardingFlow'
 import LandingView from '@/pages/LandingView'
 import { Loader2 } from 'lucide-react'
@@ -96,6 +97,7 @@ function MainApp() {
         {activeView === 'setlists' && <SetlistsView />}
         {activeView === 'settings' && <SettingsView />}
         {activeView === 'bible' && <BibleView />}
+        {activeView === 'countdown' && <CountdownView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />

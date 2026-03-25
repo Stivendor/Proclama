@@ -1,4 +1,4 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, Cloud, CloudOff } from 'lucide-react';
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, Cloud, CloudOff, Timer } from 'lucide-react';
 import { useAppStore } from '@/stores';
 import { useProjectionStore } from '@/stores';
 import { openProjectionWindow } from '@/services/projection';
@@ -22,8 +22,9 @@ export default function Sidebar() {
   const nav = [
     { id: 'library', icon: BookIcon, label: 'Biblioteca' },
     { id: 'setlists', icon: List, label: 'Setlists' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' },
-    { id: 'bible', icon: BookIcon, label: 'Biblia' }
+    { id: 'bible', icon: BookIcon, label: 'Biblia' },
+    { id: 'countdown', icon: Timer, label: 'Contador' },
+    { id: 'settings', icon: Settings, label: 'Ajustes' }
   ] as const
 
   const handleLogoClick = () => {
