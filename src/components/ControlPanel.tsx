@@ -1,10 +1,10 @@
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2, Type } from 'lucide-react'
 import { useProjectionStore } from '@/stores'
 import MediaPanel from './MediaPanel'
 
 export default function ControlPanel() {
-  const { state, nextSlide, prevSlide, goToSlide, setBlack, setLogo, clearSong } = useProjectionStore()
-  const { slides, currentSlide, isBlack, isLogo, songTitle } = state
+  const { state, nextSlide, prevSlide, goToSlide, setHideText, clearSong } = useProjectionStore()
+  const { slides, currentSlide, hideText, songTitle } = state
 
   if (!songTitle && slides.length === 0) {
     return (
@@ -40,26 +40,25 @@ export default function ControlPanel() {
         </button>
       </div>
 
-      {/* Botones Negro / Logo */}
       <div className="control-special">
         <button
-          className={`btn-special ${isBlack ? 'active-black' : ''}`}
-          onClick={() => setBlack(!isBlack)}
-          aria-label={isBlack ? 'Mostrar pantalla' : 'Pantalla negra'}
-          title="Tecla B"
+          className={`btn-special ${hideText ? 'active-hide' : ''}`}
+          onClick={() => setHideText(!hideText)}
+          style={{ width: '100%' }}
+          title="Ocultar solo el texto (Mantener fondo)"
         >
-          {isBlack ? <EyeOff size={16} /> : <Eye size={16} />}
-          {isBlack ? 'Mostrar' : 'Negro'}
-        </button>
-        <button
-          className={`btn-special ${isLogo ? 'active-logo' : ''}`}
-          onClick={() => setLogo(!isLogo)}
-          aria-label="Mostrar logo"
-        >
-          <Image size={16} />
-          Logo
+          {hideText ? <Type size={16} opacity={0.5} /> : <Type size={16} />}
+          {hideText ? 'Mostrar Texto' : 'Ocultar Texto'}
         </button>
       </div>
+
+      <style>{`
+        .active-hide {
+          background: rgba(59, 130, 246, 0.2) !important;
+          border-color: var(--blue) !important;
+          color: var(--blue) !important;
+        }
+      `}</style>
 
       <div className="slides-list">
         {slides.map((slide, i) => (

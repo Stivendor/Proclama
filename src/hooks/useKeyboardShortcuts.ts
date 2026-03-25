@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useProjectionStore } from '@/stores'
 
 export function useKeyboardShortcuts() {
-  const { nextSlide, prevSlide, setBlack, state } = useProjectionStore()
+  const { nextSlide, prevSlide, setHideText, state } = useProjectionStore()
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -24,17 +24,17 @@ export function useKeyboardShortcuts() {
           e.preventDefault()
           prevSlide()
           break
-        case 'b':
-        case 'B':
-          setBlack(!state.isBlack)
+        case 't':
+        case 'T':
+          setHideText(!state.hideText)
           break
         case 'Escape':
-          setBlack(false)
+          setHideText(false)
           break
       }
     }
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [nextSlide, prevSlide, setBlack, state.isBlack])
+  }, [nextSlide, prevSlide, setHideText, state.hideText])
 }

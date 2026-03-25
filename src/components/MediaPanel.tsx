@@ -13,7 +13,7 @@ interface LocalMedia {
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
 export default function MediaPanel() {
-  const { state, setMedia } = useProjectionStore()
+  const { state, setMedia, toggleMediaBackground } = useProjectionStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [mediaList, setMediaList] = useState<LocalMedia[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -83,7 +83,13 @@ export default function MediaPanel() {
     if (state.media?.url === item.url) {
       setMedia(null)
     } else {
-      setMedia({ url: item.url, type: item.type })
+      // Default to background mode if a song or Bible passage is being projected
+      const isSongActive = state.songId || state.isBible
+      setMedia({ 
+        url: item.url, 
+        type: item.type, 
+        isBackgroundMode: !!isSongActive 
+      })
     }
   }
 
@@ -131,6 +137,19 @@ export default function MediaPanel() {
         <div className="media-error">
           <AlertCircle size={14} />
           <span>{error}</span>
+        </div>
+      )}
+
+      {state.media && (
+        <div className="media-controls-row">
+          <button 
+            className={`btn-media-toggle ${state.media.isBackgroundMode ? 'active' : ''}`}
+            onClick={toggleMediaBackground}
+            title={state.media.isBackgroundMode ? 'Cambiar a modo Presentación (Pantalla completa)' : 'Cambiar a modo Fondo (Debajo del texto)'}
+          >
+            {state.media.isBackgroundMode ? <Zap size={14} /> : <MonitorPlay size={14} />}
+            {state.media.isBackgroundMode ? 'Fondo Dinámico Activo' : 'Usar como Fondo'}
+          </button>
         </div>
       )}
 
@@ -203,6 +222,41 @@ export default function MediaPanel() {
         }
         .media-panel.is-dragging {
           background: rgba(59, 130, 246, 0.03);
+        }
+
+        .media-controls-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .btn-media-toggle {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 8px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          border: 1px solid var(--border);
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          transition: all 0.2s;
+        }
+
+        .btn-media-toggle:hover {
+          border-color: var(--gold);
+          color: var(--text-primary);
+        }
+
+        .btn-media-toggle.active {
+          background: var(--gold);
+          border-color: var(--gold);
+          color: black;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
         }
 
         .media-error {

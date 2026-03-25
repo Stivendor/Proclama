@@ -48,14 +48,14 @@ export interface ProjectionState {
   songTitle: string
   slides: Slide[]
   currentSlide: number
-  isBlack: boolean
-  isLogo: boolean
   isBible?: boolean
   theme: ProjectionTheme
   media?: {
     url: string
     type: 'image' | 'video'
+    isBackgroundMode?: boolean
   } | null
+  hideText?: boolean
   mediaStatus?: {
     currentTime: number
     duration: number
@@ -89,6 +89,35 @@ export interface BackgroundAsset {
   type: 'image' | 'video'
 }
 
+// ─── Contador Regresivo (Countdown) ───────────────────────────────────────────
+export interface CountdownTheme {
+  background: string
+  backgroundType: 'color' | 'image' | 'video'
+  backgroundImageUrl?: string
+  backgroundThumbnail?: string
+  backgroundVideoUrl?: string
+  backgroundBlur?: number
+  backgroundOverlayOpacity?: number
+  fontFamily: string
+  fontSize: number
+  textColor: string
+  timerColor?: string
+  textShadow: boolean
+}
+
+export interface CountdownConfig {
+  title: string
+  durationMinutes: number
+  durationSeconds: number
+  theme: CountdownTheme
+}
+
+export interface CountdownState {
+  config: CountdownConfig
+  status: 'idle' | 'running' | 'paused' | 'finished'
+  remainingTime: number
+}
+
 // ─── Reconocimiento de audio ──────────────────────────────────────────────────
 export interface RecognitionResult {
   title: string
@@ -111,12 +140,11 @@ export type BroadcastMessage =
   | { type: 'NEXT_SLIDE' }
   | { type: 'PREV_SLIDE' }
   | { type: 'GO_TO_SLIDE'; payload: number }
-  | { type: 'SET_BLACK'; payload: boolean }
-  | { type: 'SET_LOGO'; payload: boolean }
   | { type: 'PING' }
   | { type: 'PONG' }
   | { type: 'MEDIA_COMMAND'; payload: { action: 'play' | 'pause' | 'seek'; value?: number } }
   | { type: 'MEDIA_STATUS'; payload: { currentTime: number; duration: number; isPlaying: boolean } }
+  | { type: 'COUNTDOWN_UPDATE'; payload: CountdownState }
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {
