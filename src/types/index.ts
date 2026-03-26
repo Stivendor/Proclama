@@ -9,6 +9,7 @@ export interface Church {
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
+  userId?: string         // UUID del usuario propietario (Supabase)
   churchId?: string
   title: string
   artist: string
@@ -18,6 +19,8 @@ export interface Song {
   language: string
   sourceUrl?: string
   usageCount: number
+  isPublic: boolean      // Indica si la canción es visible para todos
+  isVerified: boolean     // Solo las canciones verificadas aparecen públicamente
   createdAt: Date
   updatedAt: Date
 }

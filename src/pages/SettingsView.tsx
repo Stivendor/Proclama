@@ -56,9 +56,9 @@ export default function SettingsView() {
           )}
           <h1>Ajustes</h1>
         </div>
-        <button className="btn-primary" onClick={handleSave}>
-          <Save size={15} /> {saved ? '¡Guardado!' : 'Guardar'}
-        </button>
+          <button className="btn-primary" onClick={handleSave} aria-label="Guardar todos los ajustes">
+            <Save size={15} /> {saved ? '¡Guardado!' : 'Guardar'}
+          </button>
       </div>
 
       <div className="settings-body">
@@ -101,11 +101,11 @@ export default function SettingsView() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Correo Electrónico</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" autoComplete="email" />
                 </div>
                 <div className="form-group">
                   <label>Contraseña</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={isLoginMode ? '••••••••' : 'Mínimo 6 caracteres'} />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={isLoginMode ? '••••••••' : 'Mínimo 6 caracteres'} autoComplete={isLoginMode ? 'current-password' : 'new-password'} />
                 </div>
               </div>
               {authError && <div style={{ color: '#ff4d4f', fontSize: 13, marginBottom: 12 }}>{authError}</div>}
@@ -137,7 +137,7 @@ export default function SettingsView() {
                 }}
               >
                 {isLoginMode ? <LogIn size={15} /> : <UserPlus size={15} />}
-                {loadingAuth ? 'Cargando...' : (isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta')}
+                {loadingAuth ? 'Cargando…' : (isLoginMode ? 'Iniciar Sesión' : 'Crear Cuenta')}
               </button>
               <p className="auth-hint">
                 {isLoginMode 

@@ -33,21 +33,33 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, authStatus, setAuthStatus, guestMode } = useAppStore()
+  const { setUser, setUserRole, authStatus, setAuthStatus, guestMode } = useAppStore()
   const isServer = typeof window === 'undefined'
 
   useEffect(() => {
     if (isServer) return
 
+    const loadProfile = async (userId: string) => {
+      const { fetchProfile } = await import('@/services/supabase')
+      const profile = await fetchProfile(userId)
+      setUserRole(profile?.role ?? 'user')
+    }
+
     // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+      const user = session?.user ?? null
+      setUser(user)
+      if (user) loadProfile(user.id)
+      else setUserRole(null)
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const user = session?.user ?? null
+      setUser(user)
+      if (user) loadProfile(user.id)
+      else setUserRole(null)
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 

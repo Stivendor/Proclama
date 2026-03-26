@@ -42,7 +42,7 @@ export default function LandingView() {
           <Music2 size={32} color="var(--gold)" />
           <span>Proclama <span>Pro</span></span>
         </div>
-        <button className="btn-login-nav" onClick={() => setShowAuth(true)}>Acceder</button>
+        <button className="btn-login-nav" onClick={() => setShowAuth(true)} aria-label="Acceder a mi cuenta">Acceder</button>
       </nav>
 
       <main className="landing-main">
