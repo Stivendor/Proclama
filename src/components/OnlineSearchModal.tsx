@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Download, X, Loader, Music2 } from 'lucide-react'
+import { Search, Download, X, Loader, Music2, Cloud, CloudOff } from 'lucide-react'
 import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
@@ -46,29 +46,45 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     }
   }
 
+  const { user, userRole, setActiveView } = useAppStore()
+  const [isPublic, setIsPublic] = useState(true)
+  const [saving, setSaving] = useState(false)
+  
   const handleSave = async () => {
     if (!importedLyrics) return
     const { song, lyrics } = importedLyrics
-    const now = new Date()
-    const payload = {
-      title: song.title,
-      artist: song.artist,
-      lyrics,
-      key: '',
-      tags: [],
-      language: 'Español',
-      usageCount: 0,
-      createdAt: now,
-      updatedAt: now,
-      sourceUrl: song.url
+    setSaving(true)
+    try {
+      const now = new Date()
+      const payload = {
+        userId: user?.id,
+        title: song.title,
+        artist: song.artist,
+        lyrics,
+        key: '',
+        tags: [],
+        language: 'Español',
+        usageCount: 0,
+        isPublic: user ? isPublic : false,
+        isVerified: userRole === 'admin' ? isPublic : false,
+        createdAt: now,
+        updatedAt: now,
+        sourceUrl: song.url
+      }
+      const created = await createSong(payload)
+      if (created) {
+        await db.songs.add(created)
+      } else {
+        await db.songs.add(payload as any)
+      }
+      onClose()
+    } catch (err) {
+      console.error(err)
+      setError('Error al guardar la canción.')
+    } finally {
+      setSaving(false)
+      setImportedLyrics(null)
     }
-    const created = await createSong(payload)
-    if (created) {
-      await db.songs.add(created)
-    } else {
-      await db.songs.add(payload)
-    }
-    setImportedLyrics(null)
   }
 
   return (
@@ -85,9 +101,12 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
               <div className="search-box">
                 <Search size={16} />
                 <input
-                  type="text" placeholder="Buscar canción..."
-                  value={query} onChange={e => setQuery(e.target.value)}
+                  type="search"
+                  placeholder="Nombre de la canción o artista…"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  aria-label="Buscar canciones online"
                   autoFocus
                 />
                 <button className="btn-primary" onClick={handleSearch} disabled={loading}>
@@ -124,18 +143,57 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
           ) : (
             <div className="lyrics-preview">
               <h3>{importedLyrics.song.title}</h3>
-              <p className="dim">{importedLyrics.song.artist}</p>
+              <p className="dim" style={{ marginBottom: 12 }}>{importedLyrics.song.artist}</p>
+              
               <textarea
                 className="lyrics-textarea"
                 value={importedLyrics.lyrics}
                 onChange={e => setImportedLyrics(p => p ? { ...p, lyrics: e.target.value } : p)}
-                rows={16}
+                rows={12}
+                style={{ marginBottom: 20 }}
               />
-              <div className="modal-actions">
-                <button className="btn-ghost" onClick={() => setImportedLyrics(null)}>← Volver</button>
-                <button className="btn-primary" onClick={handleSave}>
-                  <Download size={14} /> Guardar en biblioteca
-                </button>
+
+              <div className="modal-actions-wrapper">
+                {user ? (
+                  <div className="privacy-selector-group">
+                    <label className="privacy-label">Visibilidad en la biblioteca</label>
+                    <div className="privacy-buttons">
+                      <button 
+                        type="button"
+                        className={`privacy-btn ${isPublic ? 'active public' : ''}`} 
+                        onClick={() => setIsPublic(true)}
+                      >
+                        <Cloud size={14} /> Pública
+                      </button>
+                      <button 
+                        type="button"
+                        className={`privacy-btn ${!isPublic ? 'active private' : ''}`} 
+                        onClick={() => setIsPublic(false)}
+                      >
+                        <CloudOff size={14} /> Privada
+                      </button>
+                    </div>
+                    <p className="privacy-hint">
+                      {isPublic 
+                        ? (userRole === 'admin' 
+                            ? '🌐 Visible para toda la congregación.' 
+                            : '⏳ Se enviará a moderación.') 
+                        : '🔒 Solo tú podrás verla.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="local-only-hint" style={{ padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <CloudOff size={16} color="var(--text-muted)" />
+                    <span>Estás en <b>modo local</b>. <button className="btn-link" style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: 0, cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }} onClick={() => { setActiveView('settings'); onClose(); }}>Inicia sesión</button> para compartir canciones.</span>
+                  </div>
+                )}
+
+                <div className="modal-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button className="btn-ghost" onClick={() => setImportedLyrics(null)}>Atrás</button>
+                  <button className="btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader size={14} className="spin" /> : 'Guardar canción'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
