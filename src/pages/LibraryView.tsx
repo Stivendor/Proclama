@@ -242,6 +242,7 @@ export default function LibraryView() {
                   song={song} 
                   onEdit={handleEdit} 
                   onLoad={handleLoad} 
+                  onDelete={handleDelete}
                 />
               ))
             )}
@@ -276,7 +277,7 @@ export default function LibraryView() {
   )
 }
 
-function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void }) {
+function SongListItem({ song, onEdit, onLoad, onDelete }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void, onDelete: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { user, userRole } = useAppStore()
   const isActive = activeTitle === song.title
@@ -305,6 +306,11 @@ function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) 
           <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />
           </button>
+          {userRole === 'admin' && (
+            <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar">
+              <Trash2 size={12} />
+            </button>
+          )}
         </div>
       )}
     </div>
