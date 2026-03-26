@@ -92,6 +92,7 @@ export function useAudioRecognition() {
           language: 'Español',
           usageCount: 1,
           isPublic: false, // Por defecto privada si viene de reconocimiento ambiental
+          isVerified: false,
           createdAt: now,
           updatedAt: now
         }

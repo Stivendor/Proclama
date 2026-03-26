@@ -75,7 +75,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       if (created) {
         await db.songs.add(created)
       } else {
-        await db.songs.add(payload as any)
+        await db.songs.add(payload)
       }
       onClose()
     } catch (err) {

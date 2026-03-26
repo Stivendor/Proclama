@@ -93,7 +93,7 @@ export default function SongEditor() {
         if (created) {
           await db.songs.add(created)
         } else {
-          await db.songs.add(payload as any)
+          await db.songs.add(payload)
         }
       }
       setEditingSong(null)
