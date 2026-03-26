@@ -855,6 +855,8 @@ a:hover { text-decoration: underline; }
   display: flex; flex-direction: column; align-items: center; gap: 16px;
   animation: fadeIn 0.4s ease;
   max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 @keyframes fadeIn { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
 .projection-song-title {

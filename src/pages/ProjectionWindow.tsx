@@ -184,7 +184,8 @@ export default function ProjectionWindow() {
       {isCountdownActive && !hideText && (
         <div className="projection-content countdown-projection" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10
+          width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10,
+          margin: '0 auto'
         }}>
           {countdown.config.title && (
             <div style={{
@@ -219,7 +220,7 @@ export default function ProjectionWindow() {
         <div className="projection-content" key={currentSlide} style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center'
+          textAlign: 'center', margin: '0 auto', width: '100%'
         }}>
           {(theme.showTitle || isBible) && songTitle && (
             <div className="projection-song-title" style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.8 }}>
