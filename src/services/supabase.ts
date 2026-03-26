@@ -12,13 +12,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 type SupabaseSongRow = {
   id: number
-  church_id: string
+  user_id: string | null
+  church_id: string | null
   title: string
   artist: string | null
   lyrics: string | null
   key: string | null
   tags: string[] | null
   language: string | null
+  is_public: boolean
+  is_verified: boolean
   source_url?: string | null
   usage_count: number | null
   created_at: string | null
@@ -28,12 +31,15 @@ type SupabaseSongRow = {
 function mapRowToSong(row: SupabaseSongRow): Song {
   return {
     id: row.id,
+    userId: row.user_id ?? undefined,
     title: row.title,
     artist: row.artist ?? '',
     lyrics: row.lyrics ?? '',
     key: row.key ?? '',
     tags: row.tags ?? [],
     language: row.language ?? 'Español',
+    isPublic: row.is_public,
+    isVerified: row.is_verified,
     sourceUrl: row.source_url ?? undefined,
     usageCount: row.usage_count ?? 0,
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
@@ -49,9 +55,12 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
     key: song.key,
     tags: song.tags,
     language: song.language,
+    is_public: song.isPublic,
+    is_verified: song.isVerified,
     source_url: song.sourceUrl ?? null,
     usage_count: song.usageCount,
-    updated_at: song.updatedAt.toISOString()
+    updated_at: song.updatedAt.toISOString(),
+    ...(song.userId && { user_id: song.userId })
   }
 }
 
@@ -129,8 +138,11 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     ...(updates.key !== undefined && { key: updates.key }),
     ...(updates.tags !== undefined && { tags: updates.tags }),
     ...(updates.language !== undefined && { language: updates.language }),
+    ...(updates.isPublic !== undefined && { is_public: updates.isPublic }),
+    ...(updates.isVerified !== undefined && { is_verified: updates.isVerified }),
     ...(updates.sourceUrl !== undefined && { source_url: updates.sourceUrl }),
     ...(updates.usageCount !== undefined && { usage_count: updates.usageCount }),
+    ...(updates.userId !== undefined && { user_id: updates.userId }),
     updated_at: currentUpdatedAt.toISOString()
   }
 
@@ -264,4 +276,18 @@ export async function updateSettings(updates: any) {
   
   if (result.error) console.error('Error updating settings:', result.error)
   return result.data?.[0] || null
+}
+
+export async function fetchProfile(userId: string) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single()
+  
+  if (error) {
+    console.warn('Error fetching profile:', error.message)
+    return null
+  }
+  return data as { role: 'admin' | 'user' }
 }

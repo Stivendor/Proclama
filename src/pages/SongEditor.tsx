@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Play, Eye, Tag, Plus, Menu } from 'lucide-react'
+import { Save, X, Play, Eye, Tag, Plus, Menu, Cloud, CloudOff } from 'lucide-react'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
@@ -13,11 +13,13 @@ const KEYS = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 
 
 const EMPTY_SONG: Omit<Song, 'id'> = {
   title: '', artist: '', lyrics: '', key: '', tags: [],
-  language: 'Español', usageCount: 0, createdAt: new Date(), updatedAt: new Date()
+  language: 'Español', usageCount: 0, isPublic: true,
+  isVerified: false,
+  createdAt: new Date(), updatedAt: new Date()
 }
 
 export default function SongEditor() {
-  const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar } = useAppStore()
+  const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar, user, userRole } = useAppStore()
   const { loadSong } = useProjectionStore()
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
@@ -66,19 +68,32 @@ export default function SongEditor() {
     setSaving(true)
     try {
       const now = new Date()
+      const isVerified = userRole === 'admin' ? form.isPublic : false
+
       if (editingSong?.id) {
         // Actualizar en Supabase
-        const updated = await updateSong(editingSong.id, { ...form, updatedAt: now })
-        // Reflejar en Dexie (si falla Supabase, dejamos los datos locales tal cual)
-        await db.songs.update(editingSong.id, { ...(updated ?? { ...form, updatedAt: now }) })
+        const updates = { 
+          ...form, 
+          isVerified: userRole === 'admin' ? form.isPublic : (editingSong.isVerified ?? false),
+          updatedAt: now, 
+          userId: user?.id 
+        }
+        const updated = await updateSong(editingSong.id, updates)
+        // Reflejar en Dexie
+        await db.songs.update(editingSong.id, { ...(updated ?? { ...updates, id: editingSong.id }) })
       } else {
-        const payload: Omit<Song, 'id'> = { ...form, createdAt: now, updatedAt: now }
+        const payload: Omit<Song, 'id'> = { 
+          ...form, 
+          isVerified,
+          createdAt: now, 
+          updatedAt: now, 
+          userId: user?.id 
+        }
         const created = await createSong(payload)
         if (created) {
           await db.songs.add(created)
         } else {
-          // Si por alguna razón no se pudo crear en Supabase, al menos persistimos localmente
-          await db.songs.add(payload)
+          await db.songs.add(payload as any)
         }
       }
       setEditingSong(null)
@@ -127,17 +142,24 @@ export default function SongEditor() {
               <label htmlFor="song-title">Título *</label>
               <input
                 id="song-title"
-                type="text" placeholder="Título de la canción"
-                value={form.title} onChange={e => { set('title', e.target.value); if (e.target.value.trim()) setTitleError('') }}
+                type="text"
+                placeholder="Título de la canción"
+                value={form.title}
+                onChange={e => { set('title', e.target.value); if (e.target.value.trim()) setTitleError('') }}
                 required aria-required="true" aria-describedby={titleError ? 'title-error' : undefined}
+                className={titleError ? 'error' : ''}
+                autoComplete="off"
               />
               {titleError && <span id="title-error" role="alert" style={{ fontSize: 12, color: 'var(--red)', marginTop: 2 }}>{titleError}</span>}
             </div>
             <div className="form-group">
               <label>Artista / Autor</label>
               <input
-                type="text" placeholder="Artista o compositor"
-                value={form.artist} onChange={e => set('artist', e.target.value)}
+                type="text"
+                placeholder="Nombre del artista / autor"
+                value={form.artist}
+                onChange={e => set('artist', e.target.value)}
+                autoComplete="organization"
               />
             </div>
           </div>
@@ -155,6 +177,41 @@ export default function SongEditor() {
               <select value={form.language} onChange={e => set('language', e.target.value)}>
                 {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
+            </div>
+            <div className="form-group">
+              <label className="privacy-label">Visibilidad</label>
+              {user ? (
+                <>
+                  <div className="privacy-buttons">
+                    <button 
+                      type="button"
+                      className={`privacy-btn ${form.isPublic ? 'active public' : ''}`} 
+                      onClick={() => set('isPublic', true)}
+                    >
+                      <Cloud size={14} /> Pública
+                    </button>
+                    <button 
+                      type="button"
+                      className={`privacy-btn ${!form.isPublic ? 'active private' : ''}`} 
+                      onClick={() => set('isPublic', false)}
+                    >
+                      <CloudOff size={14} /> Solo yo
+                    </button>
+                  </div>
+                  <p className="privacy-hint">
+                    {form.isPublic 
+                      ? (userRole === 'admin' 
+                          ? '🌐 Visible para todos (Verificada).' 
+                          : '⏳ Requiere verificación de un administrador.') 
+                      : '🔒 Solo tú podrás ver esta canción.'}
+                  </p>
+                </>
+              ) : (
+                <div className="local-only-hint" style={{ padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'center', lineHeight: '1.4' }}>
+                  <CloudOff size={12} color="var(--text-muted)" />
+                  <span>Modo local. Inicia sesión para compartir.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -192,9 +249,10 @@ export default function SongEditor() {
             <textarea
               id="lyrics-textarea"
               className="lyrics-textarea"
-              placeholder={`[Verso 1]\nSeñor mi Dios, al contemplar los cielos...\n\n[Coro]\nEntonces canto mi alma...\n\n(Separa estrofas con una línea en blanco)`}
+              placeholder="Escribe o pega la letra aquí…&#10;&#10;Usa líneas en blanco para separar estrofas.&#10;Puedes usar etiquetas como [Coro] o [Verso 1]."
               value={form.lyrics}
               onChange={e => set('lyrics', e.target.value)}
+              spellCheck={false}
               rows={18}
             />
           </div>

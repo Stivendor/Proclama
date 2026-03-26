@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus, Menu } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus, Menu, ShieldCheck, Clock, Lock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, isSidebarOpen, toggleSidebar } = useAppStore()
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar } = useAppStore()
   const { loadSong } = useProjectionStore()
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
@@ -28,6 +28,9 @@ export default function LibraryView() {
       try {
         const remoteSongs = await fetchSongs()
         if (cancelled) return
+        
+        // Limpiar Dexie y poner lo nuevo de Supabase para asegurar coherencia (especialmente al cambiar de usuario)
+        await db.songs.clear()
         await db.songs.bulkPut(remoteSongs)
       } catch (err) {
         console.error('Error syncing songs from Supabase:', err)
@@ -41,24 +44,40 @@ export default function LibraryView() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [user])
+
+  const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
   const songs = useLiveQuery(async () => {
     let query = db.songs.orderBy('title')
-    const all = await query.toArray()
-
-    return all.filter(s => {
+    
+    // Aplicar filtros manuales
+    let results = await query.toArray()
+    
+    if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      const matchSearch = !q ||
-        s.title.toLowerCase().includes(q) ||
+      results = results.filter(s => 
+        s.title.toLowerCase().includes(q) || 
         s.artist.toLowerCase().includes(q) ||
         s.lyrics.toLowerCase().includes(q) ||
         s.tags.some(t => t.toLowerCase().includes(q))
-      const matchTag = !selectedTag || s.tags.includes(selectedTag)
-      const matchLang = !selectedLang || s.language === selectedLang
-      return matchSearch && matchTag && matchLang
-    })
-  }, [searchQuery, selectedTag, selectedLang]) ?? []
+      )
+    }
+
+    if (selectedTag) {
+      results = results.filter(s => s.tags.includes(selectedTag))
+    }
+
+    if (selectedLang) {
+      results = results.filter(s => s.language === selectedLang)
+    }
+
+    if (filter === 'pending') {
+      results = results.filter(s => s.isPublic && !s.isVerified)
+    }
+    
+    return results
+  }, [searchQuery, selectedTag, selectedLang, filter]) ?? []
 
   const allTags = useLiveQuery(async () => {
     const all = await db.songs.toArray()
@@ -139,7 +158,7 @@ export default function LibraryView() {
       <div className="view-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {!isSidebarOpen && (
-            <button className="btn-icon" onClick={toggleSidebar}>
+            <button className="btn-icon" onClick={toggleSidebar} aria-label="Abrir menú lateral">
               <Menu size={20} />
             </button>
           )}
@@ -159,7 +178,7 @@ export default function LibraryView() {
           <button className="btn-ghost" onClick={handleExport}>
             <Download size={15} /> Exportar
           </button>
-          <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
+          <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }} aria-label="Crear nueva canción">
             <Plus size={15} /> Nueva
           </button>
         </div>
@@ -172,13 +191,34 @@ export default function LibraryView() {
             <div className="search-box">
               <Search size={14} />
               <input
-                type="text"
-                placeholder="Buscar..."
+                type="search"
+                placeholder="Buscar…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                aria-label="Buscar canciones"
               />
             </div>
           </div>
+
+          {userRole === 'admin' && (
+            <div className="moderation-tab-selector">
+              <button 
+                type="button"
+                className={`tab-btn ${filter === 'all' ? 'active' : ''}`}
+                onClick={() => setFilter('all')}
+              >
+                Catálogo
+              </button>
+              <button 
+                type="button"
+                className={`tab-btn ${filter === 'pending' ? 'active' : ''}`}
+                onClick={() => setFilter('pending')}
+                aria-label="Ver canciones pendientes de moderación"
+              >
+                Pendientes {songs.filter(s => s.isPublic && !s.isVerified).length > 0 && <span className="notifier"></span>}
+              </button>
+            </div>
+          )}
 
           <div className="song-list-scroll">
             {songs.length === 0 ? (
@@ -238,8 +278,15 @@ export default function LibraryView() {
 
 function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
-  const user = useAppStore(s => s.user)
+  const { user, userRole } = useAppStore()
   const isActive = activeTitle === song.title
+
+  const getStatusIcon = () => {
+    if (!song.isPublic) return <span title="Solo visible para ti"><Lock size={12} className="status-icon-private" /></span>
+    if (song.isPublic && !song.isVerified) return <span title="Pendiente de verificación"><Clock size={12} className="status-icon-pending" /></span>
+    if (song.isPublic && song.isVerified) return <span title="Canción verificada"><ShieldCheck size={12} className="status-icon-verified" /></span>
+    return null
+  }
 
   return (
     <div 
@@ -247,10 +294,13 @@ function SongListItem({ song, onEdit, onLoad }: { song: Song, onEdit: (s: Song) 
       onClick={() => onLoad(song)}
     >
       <div className="song-card-info">
-        <div className="song-card-title">{song.title}</div>
+        <div className="song-card-title-row">
+          <div className="song-card-title">{song.title}</div>
+          {getStatusIcon()}
+        </div>
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
-      {user && (
+      {(userRole === 'admin' || user?.id === song.userId) && (
         <div className="song-card-actions-mini">
           <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />

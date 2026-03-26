@@ -101,6 +101,8 @@ export default function BibleView() {
       tags: ['Biblia'],
       language: 'Español',
       usageCount: 0,
+      isPublic: true,
+      isVerified: true,
       createdAt: new Date(),
       updatedAt: new Date()
     }, true)
@@ -144,11 +146,12 @@ export default function BibleView() {
           {/* Búsqueda rápida de libros */}
           <div className="book-search">
             <input
-              type="text"
-              placeholder="Buscar libro..."
+              type="search"
+              placeholder="Buscar libro…"
               value={bookSearchQuery}
               onChange={e => setBookSearchQuery(e.target.value)}
               className="book-search-input"
+              aria-label="Buscar libro de la Biblia"
             />
             {bookSuggestion && (
               <div className="book-suggestion">
@@ -220,11 +223,12 @@ export default function BibleView() {
             <div className="search-box">
               <Search size={14} />
               <input
-                type="text"
-                placeholder="Busca por texto, libro o referencia (ej: Juan 3:16)..."
+                type="search"
+                placeholder="Busca por texto, libro o referencia (ej: Juan 3:16)…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                aria-label="Buscar en la Biblia"
               />
               {searchQuery && (
                 <button className="btn-icon" onClick={() => { setSearchQuery(''); setSearchResults([]) }} aria-label="Limpiar búsqueda">
@@ -270,7 +274,7 @@ export default function BibleView() {
           )}
 
           {loading ? (
-            <div className="bible-loading">Cargando...</div>
+            <div className="bible-loading">Cargando…</div>
           ) : verses.length === 0 ? (
             <div className="bible-loading">No hay versículos disponibles para este capítulo</div>
           ) : (
