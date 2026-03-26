@@ -83,6 +83,7 @@ export function useAudioRecognition() {
         const lyrics = cleanLyricsText(rawLyrics)
         const now = new Date()
         const payload = {
+          userId: useAppStore.getState().user?.id,
           title: result.title,
           artist: result.artist,
           lyrics,
@@ -90,6 +91,8 @@ export function useAudioRecognition() {
           tags: [],
           language: 'Español',
           usageCount: 1,
+          isPublic: false, // Por defecto privada si viene de reconocimiento ambiental
+          isVerified: false,
           createdAt: now,
           updatedAt: now
         }
