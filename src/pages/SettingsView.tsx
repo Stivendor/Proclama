@@ -437,7 +437,7 @@ export default function SettingsView() {
 
               <div className="preview-content" style={{
                 fontFamily: state.theme.fontFamily,
-                fontSize: state.theme.fontSizeMax ? '28px' : `${Math.round(state.theme.fontSize * 0.15)}px`,
+                fontSize: state.theme.fontSizeMax ? '26px' : `${Math.min(32, Math.round(state.theme.fontSize * 0.15))}px`,
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
                 textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 2,
