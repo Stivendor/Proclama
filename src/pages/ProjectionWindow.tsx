@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { DEFAULT_THEME } from '@/stores'
@@ -71,53 +71,64 @@ export default function ProjectionWindow() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const [autoFontSize, setAutoFontSize] = useState(theme.fontSize)
+  const [maxFitFontSize, setMaxFitFontSize] = useState(theme.fontSize)
 
-  // Calcule auto font size
-  useEffect(() => {
-    if (!theme.fontSizeMax || !containerRef.current || !contentRef.current || !slide) return
+  // Use useLayoutEffect to measure before painting and avoid flickering
+  useLayoutEffect(() => {
+    if (!containerRef.current || !contentRef.current || !slide) return
 
-    const container = containerRef.current
-    const content = contentRef.current
+    const calculateMaxFit = () => {
+      const container = containerRef.current
+      const content = contentRef.current
+      if (!container || !content) return
 
-    let min = 20
-    let max = 300 // Max sensible font size
-    let best = min
+      let min = 10
+      let max = 400
+      let best = min
 
-    // We need to measure with the actual font family
-    content.style.fontFamily = theme.fontFamily
-    content.style.visibility = 'hidden'
-    content.style.position = 'absolute'
-    content.style.left = '0'
-    content.style.top = '0'
-    content.style.width = '90vw' // Match the 90% width in the real render
-    
-    while (min <= max) {
-      let mid = Math.floor((min + max) / 2)
-      content.style.fontSize = `${mid}px`
-      
-      // Check if it fits vertically and horizontally
-      // We use 0.85 of height to leave room for some padding and better aesthetics
-      const fitsHeight = content.scrollHeight <= container.clientHeight * 0.85
-      // Horizontal check: if scrollWidth is > width of container, it's overflowing (even if wrapping)
-      const fitsWidth = content.scrollWidth <= container.clientWidth * 0.95
-
-      if (fitsHeight && fitsWidth) {
-        best = mid
-        min = mid + 1
-      } else {
-        max = mid - 1
+      // Measurement styles
+      const originalStyle = {
+        fontFamily: content.style.fontFamily,
+        fontSize: content.style.fontSize,
+        visibility: content.style.visibility,
+        position: content.style.position,
+        width: content.style.width,
+        left: content.style.left,
+        top: content.style.top
       }
+
+      content.style.fontFamily = theme.fontFamily
+      content.style.visibility = 'hidden'
+      content.style.position = 'absolute'
+      content.style.left = '0'
+      content.style.top = '0'
+      content.style.width = '90vw'
+      
+      while (min <= max) {
+        let mid = Math.floor((min + max) / 2)
+        content.style.fontSize = `${mid}px`
+        
+        // Slightly more conservative margins (0.8 of height, 0.9 of width)
+        if (content.scrollHeight <= container.clientHeight * 0.8 && 
+            content.scrollWidth <= container.clientWidth * 0.95) {
+          best = mid
+          min = mid + 1
+        } else {
+          max = mid - 1
+        }
+      }
+
+      // Restore original styles
+      Object.assign(content.style, originalStyle)
+      setMaxFitFontSize(best)
     }
 
-    setAutoFontSize(best)
-    content.style.visibility = ''
-    content.style.position = ''
-    content.style.width = ''
-    content.style.fontSize = ''
-    content.style.left = ''
-    content.style.top = ''
-  }, [slide, theme.fontSizeMax, theme.fontFamily, theme.titlePosition, theme.verseReferencePosition, songTitle])
+    calculateMaxFit()
+    
+    // Also recalculate on window resize
+    window.addEventListener('resize', calculateMaxFit)
+    return () => window.removeEventListener('resize', calculateMaxFit)
+  }, [slide, theme.fontFamily, theme.titlePosition, theme.verseReferencePosition, songTitle])
 
   const isCountdownActive = countdown && countdown.status !== 'idle'
 
@@ -131,7 +142,11 @@ export default function ProjectionWindow() {
         : '#000',
   }
 
-  const finalFontSize = theme.fontSizeMax ? autoFontSize : activeTheme.fontSize
+  // The final font size is the manual one, BUT capped by maxFitFontSize to prevent overflow
+  // This solves the "grave failure" of manual mode overflowing the screen.
+  const finalFontSize = theme.fontSizeMax 
+    ? maxFitFontSize 
+    : Math.min(activeTheme.fontSize, maxFitFontSize)
 
   const textStyle: React.CSSProperties = {
     fontFamily: activeTheme.fontFamily,
@@ -140,7 +155,7 @@ export default function ProjectionWindow() {
     textShadow: activeTheme.textShadow
       ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
       : 'none',
-    lineHeight: 1.3,
+    lineHeight: 1.25,
     position: 'relative',
     zIndex: 10,
     width: '90%',
@@ -278,7 +293,7 @@ export default function ProjectionWindow() {
 
       {/* Contenido principal Slides */}
       {!isCountdownActive && !hideText && slide && (
-        <div className="projection-content" key={currentSlide} style={{
+        <div className="projection-content" key={`${songTitle}-${currentSlide}`} style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           textAlign: 'center', margin: '0 auto', width: '100%'
