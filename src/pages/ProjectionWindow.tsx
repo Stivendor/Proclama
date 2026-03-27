@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { DEFAULT_THEME } from '@/stores'
@@ -69,6 +69,67 @@ export default function ProjectionWindow() {
   const { slides, currentSlide, theme, songTitle, isBible, hideText } = state
   const slide = slides[currentSlide]
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [maxFitFontSize, setMaxFitFontSize] = useState(theme.fontSize)
+
+  // Use useLayoutEffect to measure before painting and avoid flickering
+  useLayoutEffect(() => {
+    if (!containerRef.current || !contentRef.current || !slide) return
+
+    const calculateMaxFit = () => {
+      const container = containerRef.current
+      const content = contentRef.current
+      if (!container || !content) return
+
+      let min = 10
+      let max = 400
+      let best = min
+
+      // Measurement styles
+      const originalStyle = {
+        fontFamily: content.style.fontFamily,
+        fontSize: content.style.fontSize,
+        visibility: content.style.visibility,
+        position: content.style.position,
+        width: content.style.width,
+        left: content.style.left,
+        top: content.style.top
+      }
+
+      content.style.fontFamily = theme.fontFamily
+      content.style.visibility = 'hidden'
+      content.style.position = 'absolute'
+      content.style.left = '0'
+      content.style.top = '0'
+      content.style.width = '90vw'
+      
+      while (min <= max) {
+        let mid = Math.floor((min + max) / 2)
+        content.style.fontSize = `${mid}px`
+        
+        // Slightly more conservative margins (0.8 of height, 0.9 of width)
+        if (content.scrollHeight <= container.clientHeight * 0.8 && 
+            content.scrollWidth <= container.clientWidth * 0.95) {
+          best = mid
+          min = mid + 1
+        } else {
+          max = mid - 1
+        }
+      }
+
+      // Restore original styles
+      Object.assign(content.style, originalStyle)
+      setMaxFitFontSize(best)
+    }
+
+    calculateMaxFit()
+    
+    // Also recalculate on window resize
+    window.addEventListener('resize', calculateMaxFit)
+    return () => window.removeEventListener('resize', calculateMaxFit)
+  }, [slide, theme.fontFamily, theme.titlePosition, theme.verseReferencePosition, songTitle])
+
   const isCountdownActive = countdown && countdown.status !== 'idle'
 
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
@@ -81,16 +142,24 @@ export default function ProjectionWindow() {
         : '#000',
   }
 
+  // The final font size is the manual one, BUT capped by maxFitFontSize to prevent overflow
+  // This solves the "grave failure" of manual mode overflowing the screen.
+  const finalFontSize = theme.fontSizeMax 
+    ? maxFitFontSize 
+    : Math.min(activeTheme.fontSize, maxFitFontSize)
+
   const textStyle: React.CSSProperties = {
     fontFamily: activeTheme.fontFamily,
-    fontSize: `${activeTheme.fontSize}px`,
+    fontSize: `${finalFontSize}px`,
     color: activeTheme.textColor,
     textShadow: activeTheme.textShadow
       ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
       : 'none',
-    lineHeight: 1.4,
+    lineHeight: 1.25,
     position: 'relative',
-    zIndex: 10
+    zIndex: 10,
+    width: '90%',
+    margin: '0 auto'
   }
 
   const formatTime = (totalSeconds: number) => {
@@ -99,13 +168,20 @@ export default function ProjectionWindow() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
+  const showTitle = (theme.showTitle || isBible) && songTitle
+  const titleAtTop = showTitle && (isBible ? (theme.verseReferencePosition !== 'bottom') : (theme.titlePosition === 'top'))
+  const titleAtBottom = showTitle && (isBible ? (theme.verseReferencePosition === 'bottom') : (theme.titlePosition === 'bottom'))
+
   return (
-    <div className="projection-root" style={{ 
+    <div className="projection-root" ref={containerRef} style={{ 
       position: 'relative', 
       width: '100vw', 
       height: '100vh', 
       background: '#000', 
-      overflow: 'hidden' 
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
       {/* Capa de Fondo (Imagen/Color) con Blur */}
       <div 
@@ -192,7 +268,7 @@ export default function ProjectionWindow() {
               fontFamily: activeTheme.fontFamily,
               color: activeTheme.textColor,
               opacity: 0.8,
-              fontSize: `${Math.round(activeTheme.fontSize * 0.35)}px`,
+              fontSize: '0.35em', // Relative to parent
               marginBottom: '3vh',
               textTransform: 'uppercase',
               letterSpacing: '4px',
@@ -204,7 +280,7 @@ export default function ProjectionWindow() {
           <div style={{
             fontFamily: activeTheme.fontFamily,
             color: (activeTheme as any).timerColor || activeTheme.textColor,
-            fontSize: `${activeTheme.fontSize}px`,
+            fontSize: '1em',
             fontVariantNumeric: 'tabular-nums',
             fontWeight: 'bold',
             textShadow: activeTheme.textShadow ? '0 8px 40px rgba(0,0,0,0.9)' : 'none',
@@ -217,27 +293,68 @@ export default function ProjectionWindow() {
 
       {/* Contenido principal Slides */}
       {!isCountdownActive && !hideText && slide && (
-        <div className="projection-content" key={currentSlide} style={{
+        <div className="projection-content" key={`${songTitle}-${currentSlide}`} style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           textAlign: 'center', margin: '0 auto', width: '100%'
         }}>
-          {(theme.showTitle || isBible) && songTitle && (
-            <div className="projection-song-title" style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.8 }}>
-              {songTitle}
-            </div>
-          )}
+          <div ref={contentRef} style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            width: '100%',
+            fontSize: `${finalFontSize}px`, // This is the base font size
+            fontFamily: theme.fontFamily,
+            color: theme.textColor
+          }}>
+            {titleAtTop && (
+              <div className="projection-song-title" style={{ 
+                opacity: 0.8,
+                fontSize: '0.3em',
+                marginBottom: '0.5em',
+                textTransform: 'uppercase',
+                letterSpacing: '2px'
+              }}>
+                {songTitle}
+              </div>
+            )}
 
-          {theme.showVerseLabel && slide.label && (
-            <div className="projection-verse-label" style={{ fontFamily: theme.fontFamily, color: theme.textColor }}>
-              {slide.label}
-            </div>
-          )}
+            {theme.showVerseLabel && slide.label && (
+              <div className="projection-verse-label" style={{ 
+                fontSize: '0.4em',
+                opacity: 0.6,
+                marginBottom: '0.2em'
+              }}>
+                {slide.label}
+              </div>
+            )}
 
-          <div className="projection-lines" style={textStyle}>
-            {slide.lines.map((line, i) => (
-              <div key={i} className="projection-line">{line}</div>
-            ))}
+            <div className="projection-lines" style={{
+              fontSize: '1em', // Base font size
+              textShadow: activeTheme.textShadow
+                ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
+                : 'none',
+              lineHeight: 1.25,
+              width: '90%',
+              margin: '0 auto'
+            }}>
+              {slide.lines.map((line, i) => (
+                <div key={i} className="projection-line">{line}</div>
+              ))}
+            </div>
+
+            {titleAtBottom && (
+              <div className="projection-song-title" style={{ 
+                opacity: 0.8,
+                fontSize: '0.3em',
+                marginTop: '0.5em',
+                textTransform: 'uppercase',
+                letterSpacing: '2px'
+              }}>
+                {songTitle}
+              </div>
+            )}
           </div>
         </div>
       )}
