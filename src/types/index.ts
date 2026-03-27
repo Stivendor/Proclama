@@ -83,6 +83,9 @@ export interface ProjectionTheme {
   backgroundThumbnail?: string
   backgroundBlur?: number
   backgroundOverlayOpacity?: number
+  fontSizeMax?: boolean
+  titlePosition?: 'top' | 'bottom' | 'none'
+  verseReferencePosition?: 'top' | 'bottom'
 }
 
 export interface BackgroundAsset {

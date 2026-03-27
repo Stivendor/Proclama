@@ -285,6 +285,37 @@ export default function SettingsView() {
           </div>
           <div className="form-row">
             <div className="form-group">
+              <label>Tamaño de Letra</label>
+              <div className="segmented-control">
+                <button 
+                  className={!state.theme.fontSizeMax ? 'active' : ''}
+                  onClick={() => updateTheme({ fontSizeMax: false })}
+                >
+                  Manual
+                </button>
+                <button 
+                  className={state.theme.fontSizeMax ? 'active' : ''}
+                  onClick={() => updateTheme({ fontSizeMax: true })}
+                >
+                  Máximo
+                </button>
+              </div>
+            </div>
+            {!state.theme.fontSizeMax && (
+              <div className="form-group">
+                <label>Tamaño ({state.theme.fontSize}px)</label>
+                <input 
+                  type="range" min="20" max="200" step="2"
+                  value={state.theme.fontSize}
+                  onChange={e => updateTheme({ fontSize: parseInt(e.target.value) })}
+                  className="proclama-range"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label>Color de texto</label>
               <div className="color-input-row">
                 <input type="color" value={state.theme.textColor} onChange={e => updateTheme({ textColor: e.target.value })} />
@@ -295,6 +326,30 @@ export default function SettingsView() {
               <label>Fuente</label>
               <select value={state.theme.fontFamily} onChange={e => updateTheme({ fontFamily: e.target.value })}>
                 {FONTS.map(f => <option key={f} value={f}>{f.split(',')[0]}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Posición Título</label>
+              <select 
+                value={state.theme.titlePosition || 'top'} 
+                onChange={e => updateTheme({ titlePosition: e.target.value as any })}
+              >
+                <option value="top">Arriba</option>
+                <option value="bottom">Abajo</option>
+                <option value="none">Oculto</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Posición Cita Bíblica</label>
+              <select 
+                value={state.theme.verseReferencePosition || 'top'} 
+                onChange={e => updateTheme({ verseReferencePosition: e.target.value as any })}
+              >
+                <option value="top">Arriba</option>
+                <option value="bottom">Abajo</option>
               </select>
             </div>
           </div>
@@ -382,18 +437,36 @@ export default function SettingsView() {
 
               <div className="preview-content" style={{
                 fontFamily: state.theme.fontFamily,
-                fontSize: `${Math.round(state.theme.fontSize * 0.35)}px`,
+                fontSize: state.theme.fontSizeMax ? '26px' : `${Math.min(32, Math.round(state.theme.fontSize * 0.15))}px`,
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
-                textAlign: 'center', lineHeight: 1.4, padding: '20px', position: 'relative', zIndex: 2
+                textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 2,
+                display: 'flex', flexDirection: 'column', gap: '2px',
+                width: '100%',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+                justifyContent: 'center'
               }}>
-                <div style={{ opacity: 0.5, fontSize: `${Math.round(state.theme.fontSize * 0.15)}px`, marginBottom: 8 }}>
-                  {state.theme.showTitle ? 'CUÁN GRANDE ES ÉL' : ''}
+                {(state.theme.titlePosition === 'top' && state.theme.showTitle) && (
+                  <div style={{ opacity: 0.5, fontSize: '0.4em', marginBottom: 2 }}>
+                    CUÁN GRANDE ES ÉL
+                  </div>
+                )}
+                
+                <div style={{ width: '100%' }}>
+                  <div>Señor mi Dios</div>
+                  <div>al contemplar los cielos</div>
+                  <div>El firmamento</div>
+                  <div>y las estrellas mil</div>
                 </div>
-                <div>Señor mi Dios</div>
-                <div>al contemplar los cielos</div>
-                <div>El firmamento</div>
-                <div>y las estrellas mil</div>
+
+                {(state.theme.titlePosition === 'bottom' && state.theme.showTitle) && (
+                  <div style={{ opacity: 0.5, fontSize: '0.4em', marginTop: 2 }}>
+                    CUÁN GRANDE ES ÉL
+                  </div>
+                )}
               </div>
             </div>
             

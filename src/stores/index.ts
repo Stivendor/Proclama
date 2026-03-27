@@ -19,7 +19,10 @@ export const DEFAULT_THEME: ProjectionTheme = {
   backgroundType: 'color',
   backgroundBlur: 0,
   backgroundOverlayOpacity: 0.3,
-  backgroundVideoUrl: ''
+  backgroundVideoUrl: '',
+  fontSizeMax: false,
+  titlePosition: 'top',
+  verseReferencePosition: 'top'
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
