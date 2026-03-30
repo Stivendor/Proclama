@@ -34,7 +34,7 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, authStatus, setAuthStatus, guestMode } = useAppStore()
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode } = useAppStore()
   const isServer = typeof window === 'undefined'
 
   useEffect(() => {
@@ -44,6 +44,7 @@ function AppContent() {
       const { fetchProfile } = await import('@/services/supabase')
       const profile = await fetchProfile(userId)
       setUserRole(profile?.role ?? 'user')
+      setUserPlan(profile?.plan ?? 'free')
     }
 
     // Check initial auth state

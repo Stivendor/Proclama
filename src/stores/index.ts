@@ -171,6 +171,8 @@ interface AppStore {
   setUser: (u: any | null) => void
   userRole: 'admin' | 'user' | null
   setUserRole: (r: 'admin' | 'user' | null) => void
+  userPlan: 'free' | 'premium'
+  setUserPlan: (p: 'free' | 'premium') => void
   authStatus: 'loading' | 'authenticated' | 'unauthenticated'
   setAuthStatus: (s: 'loading' | 'authenticated' | 'unauthenticated') => void
   
@@ -214,6 +216,8 @@ export const useAppStore = create<AppStore>()(
       setUser: (u) => set({ user: u }),
       userRole: null,
       setUserRole: (r) => set({ userRole: r }),
+      userPlan: 'free',
+      setUserPlan: (p) => set({ userPlan: p }),
       authStatus: 'loading',
       setAuthStatus: (s) => set({ authStatus: s }),
 
