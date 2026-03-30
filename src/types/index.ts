@@ -87,6 +87,7 @@ export interface ProjectionTheme {
   titlePosition?: 'top' | 'bottom' | 'none'
   verseReferencePosition?: 'top' | 'bottom'
   textUppercase?: boolean
+  maxFontSize?: number  // cap para el auto-fit (px). undefined = sin límite
 }
 
 export interface BackgroundAsset {
@@ -185,4 +186,31 @@ export interface BibleSlide {
   reference: string   // "Juan 3:16"
   text: string
   translation: string
+}
+
+// ─── Church Notes ─────────────────────────────────────────────────────────────
+export interface Notice {
+  id: string          // nanoid() — UUID local
+  text: string
+  createdAt: string   // ISO 8601
+  updatedAt: string   // ISO 8601
+}
+
+export interface AttendanceBreakdown {
+  caballeros: number
+  damas: number
+  amigos: number
+  ninos: number
+}
+
+export interface ChurchNote {
+  id?: number         // Dexie autoincrement (local)
+  remoteId?: string   // UUID de Supabase
+  userId: string      // user.id o 'guest'
+  date: string        // 'YYYY-MM-DD'
+  serviceName?: string // nombre libre del culto (ej. "Culto Dominical", "Vigilia")
+  attendance?: AttendanceBreakdown
+  notices: Notice[]
+  createdAt: string
+  updatedAt: string
 }

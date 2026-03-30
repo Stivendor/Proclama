@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { supabase } from '@/services/supabase'
+import { supabase, upsertChurchNote } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { onMessage } from '@/services/projection'
 import Sidebar from '@/components/Sidebar'
@@ -15,8 +15,10 @@ import RecognitionPanel from '@/components/RecognitionPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
 import CountdownView from '@/pages/CountdownView'
+import NotesView from '@/pages/NotesView'
 import OnboardingFlow from '@/components/OnboardingFlow'
 import LandingView from '@/pages/LandingView'
+import { db } from '@/db'
 import { Loader2 } from 'lucide-react'
 
 // Detectar si somos la ventana de proyección
@@ -54,12 +56,34 @@ function AppContent() {
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
+    // Migrate guest notes to authenticated user
+    const migrateGuestNotes = async (userId: string) => {
+      try {
+        const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
+        for (const note of guestNotes) {
+          const noteToMigrate = { ...note, userId }
+          const result = await upsertChurchNote(noteToMigrate)
+          if (result) {
+            await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
+          }
+        }
+      } catch (err) {
+        console.warn('Guest notes migration failed silently:', err)
+      }
+    }
+
     // Listen to changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const user = session?.user ?? null
       setUser(user)
-      if (user) loadProfile(user.id)
-      else setUserRole(null)
+      if (user) {
+        loadProfile(user.id)
+        if (event === 'SIGNED_IN') {
+          migrateGuestNotes(user.id)
+        }
+      } else {
+        setUserRole(null)
+      }
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
     })
 
@@ -110,6 +134,7 @@ function MainApp() {
         {activeView === 'settings' && <SettingsView />}
         {activeView === 'bible' && <BibleView />}
         {activeView === 'countdown' && <CountdownView />}
+        {activeView === 'notes' && <NotesView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
