@@ -126,22 +126,6 @@ export interface CountdownState {
   remainingTime: number
 }
 
-// ─── Reconocimiento de audio ──────────────────────────────────────────────────
-export interface RecognitionResult {
-  title: string
-  artist: string
-  confidence: number
-  externalId?: string
-}
-
-export type RecognitionStatus =
-  | 'idle'
-  | 'listening'
-  | 'detecting'
-  | 'found'
-  | 'not_found'
-  | 'error'
-
 // ─── Broadcast messages entre ventanas ────────────────────────────────────────
 export type BroadcastMessage =
   | { type: 'PROJECTION_UPDATE'; payload: ProjectionState }
@@ -156,12 +140,7 @@ export type BroadcastMessage =
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {
-  acrcloudHost: string
-  acrcloudAccessKey: string
-  acrcloudAccessSecret: string
   geniusToken: string
-  recognitionMode: 'assisted' | 'automatic'
-  recognitionConfidenceThreshold: number
   churchName: string
   churchLogoUrl?: string
   defaultTheme: ProjectionTheme
