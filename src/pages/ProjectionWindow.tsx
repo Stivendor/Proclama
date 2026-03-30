@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useLayoutEffect } from 'react'
+import { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { DEFAULT_THEME } from '@/stores'
@@ -12,10 +12,13 @@ const INITIAL_STATE: ProjectionState = {
   media: null
 }
 
+// Safe area padding (percentage of viewport) — prevents text from bleeding off TV edges
+const SAFE_PADDING_X = 0.06 // 6% each side
+const SAFE_PADDING_Y = 0.05 // 5% top/bottom
+
 export default function ProjectionWindow() {
   const [state, setState] = useState<ProjectionState>(INITIAL_STATE)
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
-  const [visible, setVisible] = useState(true)
   const prevSlideRef = useRef(0)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -33,7 +36,6 @@ export default function ProjectionWindow() {
           else if (action === 'seek' && value !== undefined) videoRef.current.currentTime = value
         }
       } else if (msg.type === 'PING') {
-        // Responder para que la ventana principal sepa que estamos vivos
         getChannel().postMessage({ type: 'PONG' })
       } else if (msg.type === 'COUNTDOWN_UPDATE') {
         setCountdown(msg.payload)
@@ -62,7 +64,6 @@ export default function ProjectionWindow() {
     document.body.style.margin = '0'
     document.body.style.overflow = 'hidden'
     document.body.style.cursor = 'none'
-    // Intento de fullscreen automático
     document.documentElement.requestFullscreen?.().catch(() => null)
   }, [])
 
@@ -71,67 +72,59 @@ export default function ProjectionWindow() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const [maxFitFontSize, setMaxFitFontSize] = useState(theme.fontSize)
+  const measureRef = useRef<HTMLDivElement>(null)
+  const [fittedFontSize, setFittedFontSize] = useState(48)
 
-  // Use useLayoutEffect to measure before painting and avoid flickering
-  useLayoutEffect(() => {
-    if (!containerRef.current || !contentRef.current || !slide) return
+  const showTitle = (theme.showTitle || isBible) && songTitle
+  const titleAtTop = showTitle && (isBible ? (theme.verseReferencePosition !== 'bottom') : (theme.titlePosition === 'top'))
+  const titleAtBottom = showTitle && (isBible ? (theme.verseReferencePosition === 'bottom') : (theme.titlePosition === 'bottom'))
 
-    const calculateMaxFit = () => {
-      const container = containerRef.current
-      const content = contentRef.current
-      if (!container || !content) return
+  // Robust auto-fit: binary search using actual container pixel dimensions
+  const calculateFit = useCallback(() => {
+    const container = containerRef.current
+    const measure = measureRef.current
+    if (!container || !measure || !slide) return
 
-      let min = 10
-      let max = 400
-      let best = min
+    // Available area = viewport minus safe padding
+    const availW = container.clientWidth * (1 - SAFE_PADDING_X * 2)
+    const availH = container.clientHeight * (1 - SAFE_PADDING_Y * 2)
 
-      // Measurement styles
-      const originalStyle = {
-        fontFamily: content.style.fontFamily,
-        fontSize: content.style.fontSize,
-        visibility: content.style.visibility,
-        position: content.style.position,
-        width: content.style.width,
-        left: content.style.left,
-        top: content.style.top
+    // Cap max to a sensible bound relative to viewport height
+    let lo = 8
+    let hi = Math.min(Math.floor(availH * 0.45), 500)
+    let best = lo
+
+    // Set measurement element width to match available width
+    measure.style.width = `${availW}px`
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2)
+      measure.style.fontSize = `${mid}px`
+
+      // Use 98% of available height as safety margin for sub-pixel rounding
+      const fits = measure.scrollHeight <= availH * 0.98 && measure.scrollWidth <= availW
+      if (fits) {
+        best = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
       }
-
-      content.style.fontFamily = theme.fontFamily
-      content.style.visibility = 'hidden'
-      content.style.position = 'absolute'
-      content.style.left = '0'
-      content.style.top = '0'
-      content.style.width = '90vw'
-      
-      while (min <= max) {
-        let mid = Math.floor((min + max) / 2)
-        content.style.fontSize = `${mid}px`
-        
-        // Slightly more conservative margins (0.8 of height, 0.9 of width)
-        if (content.scrollHeight <= container.clientHeight * 0.8 && 
-            content.scrollWidth <= container.clientWidth * 0.95) {
-          best = mid
-          min = mid + 1
-        } else {
-          max = mid - 1
-        }
-      }
-
-      // Restore original styles
-      Object.assign(content.style, originalStyle)
-      setMaxFitFontSize(best)
     }
 
-    calculateMaxFit()
-    
-    // Also recalculate on window resize
-    window.addEventListener('resize', calculateMaxFit)
-    return () => window.removeEventListener('resize', calculateMaxFit)
-  }, [slide, theme.fontFamily, theme.titlePosition, theme.verseReferencePosition, songTitle])
+    setFittedFontSize(best)
+  }, [slide, theme.fontFamily, theme.textUppercase, isBible, titleAtTop, titleAtBottom, theme.showVerseLabel, songTitle])
+
+  // Recalculate on slide change or window resize
+  useLayoutEffect(() => {
+    if (!slide) return
+    // Small delay to ensure the measurement element has rendered with updated styles
+    requestAnimationFrame(() => calculateFit())
+
+    window.addEventListener('resize', calculateFit)
+    return () => window.removeEventListener('resize', calculateFit)
+  }, [calculateFit])
 
   const isCountdownActive = countdown && countdown.status !== 'idle'
-
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
 
   const bgStyle: React.CSSProperties = {
@@ -142,25 +135,8 @@ export default function ProjectionWindow() {
         : '#000',
   }
 
-  // The final font size is the manual one, BUT capped by maxFitFontSize to prevent overflow
-  // This solves the "grave failure" of manual mode overflowing the screen.
-  const finalFontSize = theme.fontSizeMax 
-    ? maxFitFontSize 
-    : Math.min(activeTheme.fontSize, maxFitFontSize)
-
-  const textStyle: React.CSSProperties = {
-    fontFamily: activeTheme.fontFamily,
-    fontSize: `${finalFontSize}px`,
-    color: activeTheme.textColor,
-    textShadow: activeTheme.textShadow
-      ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
-      : 'none',
-    lineHeight: 1.25,
-    position: 'relative',
-    zIndex: 10,
-    width: '90%',
-    margin: '0 auto'
-  }
+  // Always auto-fit: use the largest font size that fits the screen
+  const finalFontSize = fittedFontSize
 
   const formatTime = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60)
@@ -168,9 +144,12 @@ export default function ProjectionWindow() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-  const showTitle = (theme.showTitle || isBible) && songTitle
-  const titleAtTop = showTitle && (isBible ? (theme.verseReferencePosition !== 'bottom') : (theme.titlePosition === 'top'))
-  const titleAtBottom = showTitle && (isBible ? (theme.verseReferencePosition === 'bottom') : (theme.titlePosition === 'bottom'))
+
+
+  // Shared text shadow for strong TV readability
+  const strongShadow = activeTheme.textShadow
+    ? '1px 1px 3px rgba(0,0,0,1), 0 0 10px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.7), 0 8px 40px rgba(0,0,0,0.5)'
+    : 'none'
 
   return (
     <div className="projection-root" ref={containerRef} style={{ 
@@ -253,26 +232,66 @@ export default function ProjectionWindow() {
         </div>
       )}
 
-      {/* Negro total y Logo eliminados por el usuario */}
-
+      {/* ── Hidden measurement element (off-screen, matches visible rendering exactly) ── */}
+      {slide && (
+        <div
+          ref={measureRef}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '-99999px',
+            top: 0,
+            visibility: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            fontFamily: theme.fontFamily,
+            fontWeight: 700,
+            lineHeight: 1.3,
+            textAlign: 'center',
+            wordBreak: 'break-word',
+            textTransform: theme.textUppercase ? 'uppercase' : 'none',
+          }}
+        >
+          {titleAtTop && (
+            <div style={{ fontSize: isBible ? '1em' : '0.35em', marginBottom: '0.4em', letterSpacing: isBible ? '0' : '2px' }}>
+              {songTitle}
+            </div>
+          )}
+          {theme.showVerseLabel && slide.label && (
+            <div style={{ fontSize: '0.4em', marginBottom: '0.2em' }}>
+              {slide.label}
+            </div>
+          )}
+          {slide.lines.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+          {titleAtBottom && (
+            <div style={{ fontSize: isBible ? '1em' : '0.35em', marginTop: '0.4em', letterSpacing: isBible ? '0' : '2px' }}>
+              {songTitle}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Contenido principal Countdown */}
       {isCountdownActive && !hideText && (
         <div className="projection-content countdown-projection" style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10,
-          margin: '0 auto'
+          padding: `${SAFE_PADDING_Y * 100}vh ${SAFE_PADDING_X * 100}vw`,
+          boxSizing: 'border-box'
         }}>
           {countdown.config.title && (
             <div style={{
               fontFamily: activeTheme.fontFamily,
               color: activeTheme.textColor,
               opacity: 0.8,
-              fontSize: '0.35em', // Relative to parent
+              fontSize: '0.35em',
               marginBottom: '3vh',
               textTransform: 'uppercase',
               letterSpacing: '4px',
-              textShadow: activeTheme.textShadow ? '0 4px 30px rgba(0,0,0,0.9)' : 'none'
+              textShadow: strongShadow
             }}>
               {countdown.config.title}
             </div>
@@ -283,7 +302,7 @@ export default function ProjectionWindow() {
             fontSize: '1em',
             fontVariantNumeric: 'tabular-nums',
             fontWeight: 'bold',
-            textShadow: activeTheme.textShadow ? '0 8px 40px rgba(0,0,0,0.9)' : 'none',
+            textShadow: strongShadow,
             lineHeight: 1
           }}>
             {formatTime(countdown.remainingTime)}
@@ -291,12 +310,14 @@ export default function ProjectionWindow() {
         </div>
       )}
 
-      {/* Contenido principal Slides */}
+      {/* ── Contenido principal Slides ── */}
       {!isCountdownActive && !hideText && slide && (
         <div className="projection-content" key={`${songTitle}-${currentSlide}`} style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', margin: '0 auto', width: '100%'
+          textAlign: 'center',
+          padding: `${SAFE_PADDING_Y * 100}vh ${SAFE_PADDING_X * 100}vw`,
+          boxSizing: 'border-box'
         }}>
           <div ref={contentRef} style={{ 
             display: 'flex', 
@@ -304,17 +325,23 @@ export default function ProjectionWindow() {
             alignItems: 'center', 
             justifyContent: 'center', 
             width: '100%',
-            fontSize: `${finalFontSize}px`, // This is the base font size
+            maxWidth: '100%',
+            fontSize: `${finalFontSize}px`,
             fontFamily: theme.fontFamily,
-            color: theme.textColor
+            fontWeight: 700,
+            color: theme.textColor,
+            lineHeight: 1.3,
+            textTransform: theme.textUppercase ? 'uppercase' : 'none',
           }}>
             {titleAtTop && (
               <div className="projection-song-title" style={{ 
-                opacity: 0.8,
-                fontSize: '0.3em',
-                marginBottom: '0.5em',
-                textTransform: 'uppercase',
-                letterSpacing: '2px'
+                opacity: isBible ? 1 : 0.7,
+                fontSize: isBible ? '1em' : '0.35em',
+                marginBottom: '0.4em',
+                textTransform: 'inherit',
+                letterSpacing: isBible ? '0' : '3px',
+                fontWeight: 700,
+                textShadow: strongShadow
               }}>
                 {songTitle}
               </div>
@@ -324,20 +351,18 @@ export default function ProjectionWindow() {
               <div className="projection-verse-label" style={{ 
                 fontSize: '0.4em',
                 opacity: 0.6,
-                marginBottom: '0.2em'
+                marginBottom: '0.2em',
+                textShadow: strongShadow
               }}>
                 {slide.label}
               </div>
             )}
 
             <div className="projection-lines" style={{
-              fontSize: '1em', // Base font size
-              textShadow: activeTheme.textShadow
-                ? '0 2px 20px rgba(0,0,0,0.9), 0 4px 40px rgba(0,0,0,0.7)'
-                : 'none',
-              lineHeight: 1.25,
-              width: '90%',
-              margin: '0 auto'
+              textShadow: strongShadow,
+              lineHeight: 1.3,
+              width: '100%',
+              wordBreak: 'break-word',
             }}>
               {slide.lines.map((line, i) => (
                 <div key={i} className="projection-line">{line}</div>
@@ -346,11 +371,13 @@ export default function ProjectionWindow() {
 
             {titleAtBottom && (
               <div className="projection-song-title" style={{ 
-                opacity: 0.8,
-                fontSize: '0.3em',
-                marginTop: '0.5em',
-                textTransform: 'uppercase',
-                letterSpacing: '2px'
+                opacity: isBible ? 1 : 0.7,
+                fontSize: isBible ? '1em' : '0.35em',
+                marginTop: '0.4em',
+                textTransform: 'inherit',
+                letterSpacing: isBible ? '0' : '3px',
+                fontWeight: 700,
+                textShadow: strongShadow
               }}>
                 {songTitle}
               </div>

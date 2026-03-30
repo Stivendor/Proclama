@@ -22,7 +22,8 @@ export const DEFAULT_THEME: ProjectionTheme = {
   backgroundVideoUrl: '',
   fontSizeMax: false,
   titlePosition: 'top',
-  verseReferencePosition: 'top'
+  verseReferencePosition: 'top',
+  textUppercase: false
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
