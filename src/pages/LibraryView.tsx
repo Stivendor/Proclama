@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Download, Upload, Plus, Menu, ShieldCheck, Clock, Lock } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
@@ -170,13 +170,6 @@ export default function LibraryView() {
         <div className="header-actions">
           <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
             <Search size={15} /> Buscar online
-          </button>
-          <label className="btn-ghost" title="Importar JSON">
-            <Upload size={15} /> Importar
-            <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
-          </label>
-          <button className="btn-ghost" onClick={handleExport}>
-            <Download size={15} /> Exportar
           </button>
           <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }} aria-label="Crear nueva canción">
             <Plus size={15} /> Nueva
