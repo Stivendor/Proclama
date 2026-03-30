@@ -86,6 +86,7 @@ export interface ProjectionTheme {
   fontSizeMax?: boolean
   titlePosition?: 'top' | 'bottom' | 'none'
   verseReferencePosition?: 'top' | 'bottom'
+  textUppercase?: boolean
 }
 
 export interface BackgroundAsset {
