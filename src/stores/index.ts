@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ProjectionState, ProjectionTheme, RecognitionStatus, AppSettings, Song, Setlist } from '@/types'
+import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendMediaCommand } from '@/services/projection'
 import { supabase } from '@/services/supabase'
@@ -28,12 +28,7 @@ export const DEFAULT_THEME: ProjectionTheme = {
 
 // ─── Default settings ──────────────────────────────────────────────────────────
 export const DEFAULT_SETTINGS: AppSettings = {
-  acrcloudHost: '',
-  acrcloudAccessKey: '',
-  acrcloudAccessSecret: '',
   geniusToken: '',
-  recognitionMode: 'assisted',
-  recognitionConfidenceThreshold: 70,
   churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME
@@ -191,12 +186,6 @@ interface AppStore {
   activeSetlist: Setlist | null
   setActiveSetlist: (s: Setlist | null) => void
 
-  // Recognition state
-  recognitionStatus: RecognitionStatus
-  setRecognitionStatus: (s: RecognitionStatus) => void
-  detectedSong: { title: string; artist: string; confidence: number } | null
-  setDetectedSong: (s: AppStore['detectedSong']) => void
-
   // Search
   searchQuery: string
   setSearchQuery: (q: string) => void
@@ -239,11 +228,6 @@ export const useAppStore = create<AppStore>()(
 
       activeSetlist: null,
       setActiveSetlist: (s) => set({ activeSetlist: s }),
-
-      recognitionStatus: 'idle',
-      setRecognitionStatus: (s) => set({ recognitionStatus: s }),
-      detectedSong: null,
-      setDetectedSong: (s) => set({ detectedSong: s }),
 
       searchQuery: '',
       setSearchQuery: (q) => set({ searchQuery: q }),
