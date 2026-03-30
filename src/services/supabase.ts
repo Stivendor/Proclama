@@ -281,7 +281,7 @@ export async function updateSettings(updates: any) {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, plan')
     .eq('id', userId)
     .single()
   
@@ -289,7 +289,7 @@ export async function fetchProfile(userId: string) {
     console.warn('Error fetching profile:', error.message)
     return null
   }
-  return data as { role: 'admin' | 'user' }
+  return data as { role: 'admin' | 'user'; plan: 'free' | 'premium' }
 }
 
 // ─── Funciones para Attendance Records ────────────────────────────────────────
