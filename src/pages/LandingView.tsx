@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Layout, Monitor } from 'lucide-react'
 import AuthView from './AuthView'
+import FeedbackModal from '@/components/FeedbackModal'
 import { useAppStore } from '@/stores'
 
 export default function LandingView() {
@@ -42,7 +43,10 @@ export default function LandingView() {
           <Music2 size={32} color="var(--gold)" />
           <span>Proclama <span>Pro</span></span>
         </div>
-        <button className="btn-login-nav" onClick={() => setShowAuth(true)} aria-label="Acceder a mi cuenta">Acceder</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FeedbackModal />
+          <button className="btn-login-nav" onClick={() => setShowAuth(true)} aria-label="Acceder a mi cuenta">Acceder</button>
+        </div>
       </nav>
 
       <main className="landing-main">
