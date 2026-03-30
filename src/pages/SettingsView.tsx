@@ -449,6 +449,7 @@ export default function SettingsView() {
                 fontSize: '26px',
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
+                textTransform: state.theme.textUppercase ? 'uppercase' : 'none',
                 textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 2,
                 display: 'flex', flexDirection: 'column', gap: '2px',
                 width: '100%',
@@ -463,6 +464,12 @@ export default function SettingsView() {
                     CUÁN GRANDE ES ÉL
                   </div>
                 )}
+
+                {(state.theme.verseReferencePosition !== 'bottom' && state.theme.showVerseLabel) && (
+                  <div style={{ opacity: 0.7, fontSize: '1em', marginBottom: 2 }}>
+                    Salmos 19:1
+                  </div>
+                )}
                 
                 <div style={{ width: '100%' }}>
                   <div>Señor mi Dios</div>
@@ -470,6 +477,12 @@ export default function SettingsView() {
                   <div>El firmamento</div>
                   <div>y las estrellas mil</div>
                 </div>
+
+                {(state.theme.verseReferencePosition === 'bottom' && state.theme.showVerseLabel) && (
+                  <div style={{ opacity: 0.7, fontSize: '1em', marginTop: 2 }}>
+                    Salmos 19:1
+                  </div>
+                )}
 
                 {(state.theme.titlePosition === 'bottom' && state.theme.showTitle) && (
                   <div style={{ opacity: 0.5, fontSize: '0.4em', marginTop: 2 }}>
