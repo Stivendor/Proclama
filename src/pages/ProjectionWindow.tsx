@@ -91,7 +91,7 @@ export default function ProjectionWindow() {
 
     // Cap max to a sensible bound relative to viewport height
     let lo = 8
-    let hi = Math.min(Math.floor(availH * 0.45), 500)
+    let hi = Math.min(Math.floor(availH * 0.45), theme.maxFontSize ?? 500)
     let best = lo
 
     // Set measurement element width to match available width

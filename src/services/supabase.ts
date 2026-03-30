@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Song, Setlist } from '@/types'
+import type { Song, Setlist, ChurchNote } from '@/types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -290,4 +290,121 @@ export async function fetchProfile(userId: string) {
     return null
   }
   return data as { role: 'admin' | 'user' }
+}
+
+// ─── Funciones para Attendance Records ────────────────────────────────────────
+import type { AttendanceBreakdown } from '@/types'
+
+export async function upsertAttendance(
+  userId: string,
+  date: string,
+  attendance: AttendanceBreakdown,
+  serviceName?: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('attendance_records')
+    .upsert(
+      {
+        user_id: userId,
+        date,
+        service_name: serviceName ?? null,
+        caballeros: attendance.caballeros,
+        damas: attendance.damas,
+        amigos: attendance.amigos,
+        ninos: attendance.ninos,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,date' }
+    )
+
+  if (error) {
+    console.error('Error upserting attendance:', error.message)
+    return false
+  }
+  return true
+}
+
+export async function fetchAllAttendance(userId: string): Promise<Array<{ date: string } & AttendanceBreakdown>> {
+  const { data, error } = await supabase
+    .from('attendance_records')
+    .select('date, caballeros, damas, amigos, ninos')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching attendance:', error.message)
+    return []
+  }
+  return (data ?? []) as Array<{ date: string } & AttendanceBreakdown>
+}
+type SupabaseChurchNoteRow = {
+  id: string
+  user_id: string
+  date: string
+  attendance: AttendanceBreakdown | null
+  notices: ChurchNote['notices']
+  created_at: string
+  updated_at: string
+}
+
+function mapRowToChurchNote(row: SupabaseChurchNoteRow): ChurchNote {
+  return {
+    remoteId: row.id,
+    userId: row.user_id,
+    date: row.date,
+    attendance: row.attendance ?? undefined,
+    notices: row.notices ?? [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+export async function fetchChurchNote(date: string, userId: string): Promise<ChurchNote | null> {
+  const { data, error } = await supabase
+    .from('church_notes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', date)
+    .limit(1)
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') return null // no rows found
+    console.error('Error fetching church note:', error.message)
+    return null
+  }
+  return mapRowToChurchNote(data as SupabaseChurchNoteRow)
+}
+
+export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote | null> {
+  const payload = {
+    ...(note.remoteId && { id: note.remoteId }),
+    user_id: note.userId,
+    date: note.date,
+    attendance: note.attendance ?? null,
+    notices: note.notices,
+    created_at: note.createdAt,
+    updated_at: note.updatedAt
+  }
+
+  const { data, error } = await supabase
+    .from('church_notes')
+    .upsert(payload, { onConflict: 'user_id,date' })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error upserting church note:', error.message)
+    return null
+  }
+  return mapRowToChurchNote(data as SupabaseChurchNoteRow)
+}
+
+export async function deleteChurchNote(remoteId: string): Promise<void> {
+  const { error } = await supabase
+    .from('church_notes')
+    .delete()
+    .eq('id', remoteId)
+
+  if (error) console.error('Error deleting church note:', error.message)
 }
