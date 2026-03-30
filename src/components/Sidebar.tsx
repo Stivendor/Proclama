@@ -2,6 +2,7 @@ import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, C
 import { useAppStore } from '@/stores';
 import { useProjectionStore } from '@/stores';
 import { openProjectionWindow } from '@/services/projection';
+import FeedbackModal from '@/components/FeedbackModal'
 
 
 
@@ -91,6 +92,7 @@ export default function Sidebar() {
 
       {/* Abrir ventana de proyección */}
       <div className="sidebar-footer">
+        <FeedbackModal />
         <button className="btn-projection" onClick={handleOpenProjection}>
           <Tv2 size={16} />
           Abrir Proyección
