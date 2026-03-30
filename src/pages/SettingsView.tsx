@@ -283,36 +283,7 @@ export default function SettingsView() {
               </div>
             )}
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Tamaño de Letra</label>
-              <div className="segmented-control">
-                <button 
-                  className={!state.theme.fontSizeMax ? 'active' : ''}
-                  onClick={() => updateTheme({ fontSizeMax: false })}
-                >
-                  Manual
-                </button>
-                <button 
-                  className={state.theme.fontSizeMax ? 'active' : ''}
-                  onClick={() => updateTheme({ fontSizeMax: true })}
-                >
-                  Máximo
-                </button>
-              </div>
-            </div>
-            {!state.theme.fontSizeMax && (
-              <div className="form-group">
-                <label>Tamaño ({state.theme.fontSize}px)</label>
-                <input 
-                  type="range" min="20" max="200" step="2"
-                  value={state.theme.fontSize}
-                  onChange={e => updateTheme({ fontSize: parseInt(e.target.value) })}
-                  className="proclama-range"
-                />
-              </div>
-            )}
-          </div>
+
 
           <div className="form-row">
             <div className="form-group">
@@ -376,6 +347,11 @@ export default function SettingsView() {
                   onChange={e => updateTheme({ showVerseLabel: e.target.checked })} />
                 Mostrar etiqueta de verso
               </label>
+              <label className="checkbox-label">
+                <input type="checkbox" checked={state.theme.textUppercase || false}
+                  onChange={e => updateTheme({ textUppercase: e.target.checked })} />
+                Texto en mayúsculas
+              </label>
             </div>
           </div>
 
@@ -437,7 +413,7 @@ export default function SettingsView() {
 
               <div className="preview-content" style={{
                 fontFamily: state.theme.fontFamily,
-                fontSize: state.theme.fontSizeMax ? '26px' : `${Math.min(32, Math.round(state.theme.fontSize * 0.15))}px`,
+                fontSize: '26px',
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
                 textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 2,
