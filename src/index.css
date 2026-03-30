@@ -1746,3 +1746,49 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ─── Feedback Modal ─────────────────────────────────────────────────────────── */
+.feedback-modal {
+  width: 480px;
+}
+
+.feedback-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.feedback-success p {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.feedback-success span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.btn-feedback-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(212, 168, 67, 0.08);
+  border: 1px solid rgba(212, 168, 67, 0.2);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.btn-feedback-trigger:hover {
+  background: rgba(212, 168, 67, 0.15);
+  border-color: var(--gold);
+}
