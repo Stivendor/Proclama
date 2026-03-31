@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase, upsertChurchNote } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -34,7 +35,10 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode } = useAppStore()
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode } = useAppStore(useShallow(s => ({
+    setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
+    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode
+  })))
   const isServer = typeof window === 'undefined'
 
   useEffect(() => {
@@ -121,7 +125,9 @@ function AppContent() {
 
 function MainApp() {
   useKeyboardShortcuts()
-  const { activeView, isSidebarOpen, onboardingDone } = useAppStore()
+  const { activeView, isSidebarOpen, onboardingDone } = useAppStore(useShallow(s => ({
+    activeView: s.activeView, isSidebarOpen: s.isSidebarOpen, onboardingDone: s.onboardingDone
+  })))
 
   return (
     <div className={`app-shell ${!isSidebarOpen ? 'sidebar-hidden' : ''}`}>

@@ -1,8 +1,14 @@
 import { useEffect } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 
 export function useKeyboardShortcuts() {
-  const { nextSlide, prevSlide, setHideText, state } = useProjectionStore()
+  const { nextSlide, prevSlide, setHideText, hideText } = useProjectionStore(useShallow(s => ({
+    nextSlide: s.nextSlide,
+    prevSlide: s.prevSlide,
+    setHideText: s.setHideText,
+    hideText: s.state.hideText
+  })))
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -26,7 +32,7 @@ export function useKeyboardShortcuts() {
           break
         case 't':
         case 'T':
-          setHideText(!state.hideText)
+          setHideText(!hideText)
           break
         case 'Escape':
           setHideText(false)
@@ -36,5 +42,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [nextSlide, prevSlide, setHideText, state.hideText])
+  }, [nextSlide, prevSlide, setHideText, hideText])
 }

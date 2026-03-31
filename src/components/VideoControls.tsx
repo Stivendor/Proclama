@@ -1,9 +1,13 @@
 import { Play, Pause, RotateCcw, FastForward } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 
 export default function VideoControls() {
-  const { state, sendMediaCommand } = useProjectionStore()
-  const { media, mediaStatus } = state
+  const { media, mediaStatus, sendMediaCommand } = useProjectionStore(useShallow(s => ({
+    media: s.state.media,
+    mediaStatus: s.state.mediaStatus,
+    sendMediaCommand: s.sendMediaCommand
+  })))
 
   if (!media || media.type !== 'video' || !mediaStatus) return null
 

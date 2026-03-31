@@ -5,6 +5,7 @@ import {
   Check, X, AlertCircle, Tv2, BarChart2
 } from 'lucide-react'
 import { db } from '@/db'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { upsertAttendance } from '@/services/supabase'
 import { parseLyrics } from '@/services/lyricsParser'
@@ -166,8 +167,11 @@ export default function NotesView() {
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
 
-  const { user } = useAppStore()
-  const { loadSong, state: projectionState } = useProjectionStore()
+  const { user } = useAppStore(useShallow(s => ({ user: s.user })))
+  const { loadSong, projectionState } = useProjectionStore(useShallow(s => ({
+    loadSong: s.loadSong,
+    projectionState: { songTitle: s.state.songTitle, slides: s.state.slides }
+  })))
   const userId = user?.id ?? 'guest'
 
   const note = useLiveQuery(
