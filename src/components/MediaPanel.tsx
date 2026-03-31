@@ -1,8 +1,7 @@
 import { useRef, useState, DragEvent } from 'react'
-import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Lock } from 'lucide-react'
+import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
-import { usePlan } from '@/hooks/usePlan'
 import VideoControls from './VideoControls'
 
 interface LocalMedia {
@@ -15,7 +14,6 @@ interface LocalMedia {
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
 export default function MediaPanel() {
-  const { canUseMediaBackgrounds } = usePlan()
   const { media, songId, isBible, setMedia, toggleMediaBackground } = useProjectionStore(useShallow(s => ({
     media: s.state.media,
     songId: s.state.songId,
@@ -30,12 +28,6 @@ export default function MediaPanel() {
   const [error, setError] = useState<string | null>(null)
 
   const processFiles = (files: File[]) => {
-    if (!canUseMediaBackgrounds) {
-      setError('Los fondos multimedia son una función premium. Actualiza tu plan para acceder.')
-      setTimeout(() => setError(null), 5000)
-      return
-    }
-
     setError(null)
     const validFiles: File[] = []
     const rejectedFiles: string[] = []
@@ -132,7 +124,6 @@ export default function MediaPanel() {
       <div className="recognition-header" style={{ justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <MonitorPlay size={14} /> Anuncios / Media Local
-          {!canUseMediaBackgrounds && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
         </div>
         {mediaList.length > 0 && (
           <button className="btn-add-mini" onClick={() => fileInputRef.current?.click()} title="Añadir más">
@@ -172,14 +163,7 @@ export default function MediaPanel() {
 
       {state.media?.type === 'video' && <VideoControls />}
 
-      {!canUseMediaBackgrounds ? (
-        <div className="premium-feature-notice">
-          <Lock size={24} color="var(--gold)" style={{ opacity: 0.7 }} />
-          <h3>Función Premium</h3>
-          <p>Los fondos multimedia (videos e imágenes) están disponibles en el plan Premium.</p>
-          <p className="hint">Puedes usar fondos de color sólido y gradientes en el panel de temas.</p>
-        </div>
-      ) : mediaList.length === 0 ? (
+      {mediaList.length === 0 ? (
         <div 
           className={`media-upload-zone ${isDragging ? 'dragging' : ''}`} 
           onClick={() => fileInputRef.current?.click()}
@@ -412,39 +396,6 @@ export default function MediaPanel() {
         @keyframes bounce {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-5px); }
-        }
-
-        .premium-feature-notice {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          padding: 32px 16px;
-          text-align: center;
-          border: 2px dashed var(--border);
-          border-radius: var(--radius-sm);
-          background: rgba(212, 175, 55, 0.03);
-        }
-
-        .premium-feature-notice h3 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .premium-feature-notice p {
-          margin: 0;
-          font-size: 12px;
-          color: var(--text-muted);
-          max-width: 280px;
-        }
-
-        .premium-feature-notice .hint {
-          font-size: 11px;
-          opacity: 0.7;
-          font-style: italic;
         }
       `}</style>
     </div>

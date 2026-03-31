@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, X, AlertCircle, Tv2, BarChart2
+  Check, X, AlertCircle, Tv2, BarChart2, Download, Lock
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
@@ -12,6 +12,7 @@ import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate } from '@/services/projection'
 import type { ChurchNote, Notice, AttendanceBreakdown } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { usePlan } from '@/hooks/usePlan'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,24 +64,93 @@ function buildAttendanceLyrics(a: AttendanceBreakdown, date: string, name?: stri
 // ─── Mini bar chart (CSS only, no lib) ────────────────────────────────────────
 
 function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
-  const sorted = [...notes]
-    .filter(n => n.attendance)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-12)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [selectedMonth, setSelectedMonth] = useState<string>('all')
+  const RECORDS_PER_PAGE = 7
 
-  if (sorted.length === 0) return (
-    <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
-      Registra asistencia en varios cultos para ver el historial
-    </p>
-  )
+  // Obtener lista de meses disponibles
+  const availableMonths = Array.from(
+    new Set(
+      notes
+        .filter(n => n.attendance)
+        .map(n => n.date.slice(0, 7)) // YYYY-MM
+    )
+  ).sort((a, b) => b.localeCompare(a)) // Más recientes primero
 
-  const maxTotal = Math.max(...sorted.map(n => totalAttendance(n.attendance)), 1)
+  // Filtrar por mes seleccionado
+  let filtered = notes.filter(n => n.attendance)
+  if (selectedMonth !== 'all') {
+    filtered = filtered.filter(n => n.date.startsWith(selectedMonth))
+  }
+
+  const sorted = filtered.sort((a, b) => b.date.localeCompare(a.date)) // Más recientes primero
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [selectedMonth])
+
+  if (sorted.length === 0) {
+    if (selectedMonth !== 'all') {
+      return (
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+          No hay registros de asistencia para este mes
+        </p>
+      )
+    }
+    return (
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+        Registra asistencia en varios cultos para ver el historial
+      </p>
+    )
+  }
+
+  const totalPages = Math.ceil(sorted.length / RECORDS_PER_PAGE)
+  const startIdx = currentPage * RECORDS_PER_PAGE
+  const endIdx = startIdx + RECORDS_PER_PAGE
+  const currentRecords = sorted.slice(startIdx, endIdx)
+
+  // Calcular max para los registros actuales (para el gráfico)
+  const maxTotal = Math.max(...currentRecords.map(n => totalAttendance(n.attendance)), 1)
+
+  // Formatear mes para mostrar
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-')
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+    return `${monthNames[parseInt(month) - 1]} ${year}`
+  }
 
   return (
     <div className="attendance-chart">
-      {/* Bar chart */}
+      {/* Month filter */}
+      {availableMonths.length > 1 && (
+        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label htmlFor="month-filter" style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Filtrar por mes:
+          </label>
+          <select
+            id="month-filter"
+            className="input"
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(e.target.value)}
+            style={{ width: 'auto', minWidth: 180 }}
+          >
+            <option value="all">Todos los meses ({notes.filter(n => n.attendance).length})</option>
+            {availableMonths.map(month => {
+              const count = notes.filter(n => n.attendance && n.date.startsWith(month)).length
+              return (
+                <option key={month} value={month}>
+                  {formatMonth(month)} ({count})
+                </option>
+              )
+            })}
+          </select>
+        </div>
+      )}
+
+      {/* Bar chart - sincronizado con la página actual */}
       <div className="chart-bars-row">
-        {sorted.map(n => {
+        {currentRecords.map(n => {
           const t = totalAttendance(n.attendance)
           const pct = Math.round((t / maxTotal) * 100)
           const a = n.attendance!
@@ -121,7 +191,7 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
           <span>Niños</span>
           <span>Total</span>
         </div>
-        {[...sorted].reverse().map(n => {
+        {currentRecords.map(n => {
           const a = n.attendance!
           return (
             <div key={n.date} className="chart-table-row">
@@ -140,6 +210,31 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
           )
         })}
       </div>
+      
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          <button
+            className="btn-ghost"
+            onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+            disabled={currentPage === 0}
+            style={{ minWidth: 80 }}
+          >
+            Anterior
+          </button>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            Página {currentPage + 1} de {totalPages}
+          </span>
+          <button
+            className="btn-ghost"
+            onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={currentPage === totalPages - 1}
+            style={{ minWidth: 80 }}
+          >
+            Siguiente
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -147,10 +242,12 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NotesView() {
+  const { canExportReports } = usePlan()
   const [selectedDate, setSelectedDate] = useState<string>(todayISO())
   const [syncError, setSyncError] = useState(false)
   const [syncOk, setSyncOk] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
 
   // Service name
   const [serviceName, setServiceName] = useState('')
@@ -335,6 +432,86 @@ export default function NotesView() {
 
   const isToday = selectedDate === todayISO()
 
+  // ─── Export Report ───────────────────────────────────────────────────────────
+
+  function handleExportClick() {
+    if (!canExportReports) {
+      setShowExportModal(true)
+      return
+    }
+    exportAttendanceReport()
+  }
+
+  function exportAttendanceReport() {
+    if (!canExportReports) return
+
+    const notes = allNotes ?? []
+    const attendanceNotes = notes.filter(n => n.attendance).sort((a, b) => a.date.localeCompare(b.date))
+
+    if (attendanceNotes.length === 0) {
+      alert('No hay datos de asistencia para exportar')
+      return
+    }
+
+    // Calcular estadísticas
+    const totals = attendanceNotes.map(n => totalAttendance(n.attendance))
+    const avgTotal = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length)
+    const maxTotal = Math.max(...totals)
+    const minTotal = Math.min(...totals)
+
+    const allCab = attendanceNotes.map(n => n.attendance!.caballeros || 0)
+    const allDam = attendanceNotes.map(n => n.attendance!.damas || 0)
+    const allAmi = attendanceNotes.map(n => n.attendance!.amigos || 0)
+    const allNin = attendanceNotes.map(n => n.attendance!.ninos || 0)
+
+    const avgCab = Math.round(allCab.reduce((a, b) => a + b, 0) / allCab.length)
+    const avgDam = Math.round(allDam.reduce((a, b) => a + b, 0) / allDam.length)
+    const avgAmi = Math.round(allAmi.reduce((a, b) => a + b, 0) / allAmi.length)
+    const avgNin = Math.round(allNin.reduce((a, b) => a + b, 0) / allNin.length)
+
+    // Generar CSV
+    const rows = [
+      ['Reporte de Asistencia - Proclama'],
+      ['Generado:', new Date().toLocaleString('es-ES')],
+      [''],
+      ['ESTADÍSTICAS GENERALES'],
+      ['Total de registros:', attendanceNotes.length],
+      ['Promedio total:', avgTotal],
+      ['Máximo total:', maxTotal],
+      ['Mínimo total:', minTotal],
+      [''],
+      ['PROMEDIOS POR CATEGORÍA'],
+      ['Caballeros:', avgCab],
+      ['Damas:', avgDam],
+      ['Amigos:', avgAmi],
+      ['Niños:', avgNin],
+      [''],
+      ['DETALLE DE ASISTENCIA'],
+      ['Fecha', 'Nombre del Culto', 'Caballeros', 'Damas', 'Amigos', 'Niños', 'Total'],
+      ...attendanceNotes.map(n => {
+        const a = n.attendance!
+        return [
+          formatDate(n.date),
+          n.serviceName || '-',
+          a.caballeros || 0,
+          a.damas || 0,
+          a.amigos || 0,
+          a.ninos || 0,
+          totalAttendance(a)
+        ]
+      })
+    ]
+
+    const csv = rows.map(row => row.join(',')).join('\n')
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `reporte-asistencia-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="notes-view">
       <div className="view-header">
@@ -373,6 +550,15 @@ export default function NotesView() {
                 <BarChart2 size={15} />
                 <span>Historial de asistencia</span>
               </div>
+              <button
+                className="btn-ghost"
+                onClick={handleExportClick}
+                title={!canExportReports ? 'Función premium — actualiza tu plan' : 'Exportar reporte detallado'}
+              >
+                <Download size={14} />
+                Exportar CSV
+                {!canExportReports && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
+              </button>
             </div>
             <AttendanceChart notes={allNotes ?? []} />
           </section>
@@ -571,6 +757,61 @@ export default function NotesView() {
           confirmLabel="Eliminar"
           danger
         />
+      )}
+
+      {showExportModal && (
+        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Lock size={20} color="var(--gold)" />
+                Función Premium
+              </h2>
+              <button className="btn-icon" onClick={() => setShowExportModal(false)} aria-label="Cerrar">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: 'rgba(212, 175, 55, 0.1)', borderRadius: 8, border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                  <Download size={32} color="var(--gold)" style={{ flexShrink: 0 }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Exportación de Reportes
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      Genera reportes detallados en formato CSV con estadísticas completas
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p style={{ margin: '0 0 12px' }}>Con la exportación de reportes puedes:</p>
+                  <ul style={{ margin: 0, paddingLeft: 20 }}>
+                    <li>Descargar todos tus registros de asistencia en formato CSV</li>
+                    <li>Ver estadísticas generales (promedios, máximos, mínimos)</li>
+                    <li>Analizar tendencias por categoría (Caballeros, Damas, Amigos, Niños)</li>
+                    <li>Importar los datos en Excel, Google Sheets o cualquier herramienta de análisis</li>
+                    <li>Crear gráficos personalizados y presentaciones</li>
+                  </ul>
+                </div>
+
+                <div style={{ padding: 12, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                  💡 Actualiza a Premium para desbloquear esta función y muchas más
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
+                <button className="btn-ghost" onClick={() => setShowExportModal(false)}>
+                  Cerrar
+                </button>
+                <button className="btn-primary" onClick={() => setShowExportModal(false)}>
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
