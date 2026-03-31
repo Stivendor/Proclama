@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2 } from 'lucide-react'
+import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
 import { supabase } from '@/services/supabase'
+import TermsModal from '@/components/TermsModal'
+import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 export default function SettingsView() {
-  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds } = useAppStore(useShallow(s => ({
+  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds, acceptTerms, setActiveView } = useAppStore(useShallow(s => ({
     settings: s.settings, updateSettings: s.updateSettings, isSidebarOpen: s.isSidebarOpen, 
-    toggleSidebar: s.toggleSidebar, user: s.user, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds
+    toggleSidebar: s.toggleSidebar, user: s.user, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds,
+    acceptTerms: s.acceptTerms, setActiveView: s.setActiveView
   })))
   const { updateTheme, theme, media } = useProjectionStore(useShallow(s => ({
     updateTheme: s.updateTheme, theme: s.state.theme, media: s.state.media
@@ -16,6 +19,8 @@ export default function SettingsView() {
   const [showSecret, setShowSecret] = useState(false)
   const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showTermsForSignup, setShowTermsForSignup] = useState(false)
+  const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null)
 
   useEffect(() => {
     fetchBackgrounds()
@@ -160,18 +165,25 @@ export default function SettingsView() {
                     const { error } = await supabase.auth.signInWithPassword({ email, password })
                     if (error) setAuthError(error.message)
                   } else {
-                    const { error } = await supabase.auth.signUp({ 
-                      email, 
-                      password,
-                      options: {
-                        data: { email }
+                    setPendingSignup(() => async () => {
+                      setLoadingAuth(true)
+                      const { error } = await supabase.auth.signUp({ 
+                        email, 
+                        password,
+                        options: {
+                          data: { email }
+                        }
+                      })
+                      if (error) {
+                        setAuthError(error.message)
+                      } else {
+                        setAuthError('')
                       }
+                      setLoadingAuth(false)
                     })
-                    if (error) {
-                      setAuthError(error.message)
-                    } else {
-                      setAuthError('')
-                    }
+                    setShowTermsForSignup(true)
+                    setLoadingAuth(false)
+                    return
                   }
                   setLoadingAuth(false)
                 }}
@@ -182,7 +194,15 @@ export default function SettingsView() {
               <p className="auth-hint">
                 {isLoginMode 
                   ? '¿No tienes cuenta? Usa "Crear Cuenta" para registrarte.' 
-                  : '¡Gratis! Solo necesitas un correo y contraseña.'}
+                  : <>¡Gratis! Al crear una cuenta aceptas nuestros{' '}
+                    <button 
+                      type="button"
+                      style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', padding: 0, fontSize: 'inherit', textDecoration: 'underline' }}
+                      onClick={() => setActiveView('terms')}
+                    >
+                      Términos y Condiciones
+                    </button>.</>
+                }
               </p>
             </div>
           ) : (
@@ -199,6 +219,9 @@ export default function SettingsView() {
                 useAppStore.getState().setGuestMode(false)
               }}>
                 <LogOut size={15} /> Cerrar Sesión
+              </button>
+              <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setActiveView('terms')}>
+                <FileText size={15} /> Términos y Condiciones
               </button>
             </div>
           )}
@@ -537,8 +560,23 @@ export default function SettingsView() {
         </div>
       </div>
 
+      {showTermsForSignup && (
+        <TermsModal
+          mode="optional"
+          onAccept={async () => {
+            await acceptTerms(CURRENT_TERMS_VERSION)
+            setShowTermsForSignup(false)
+            pendingSignup?.()
+            setPendingSignup(null)
+          }}
+          onClose={() => {
+            setShowTermsForSignup(false)
+            setPendingSignup(null)
+          }}
+        />
+      )}
+
       <style>{`
-        .settings-body {
           flex: 1;
           overflow-y: auto;
           padding: 24px 32px;

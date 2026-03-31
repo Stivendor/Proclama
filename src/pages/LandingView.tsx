@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Search, Globe, Layout, ShieldCheck, Cpu } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
+import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
+import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 export default function LandingView() {
-  const { setGuestMode } = useAppStore()
+  const { setGuestMode, acceptTerms } = useAppStore()
+  const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
@@ -81,7 +84,7 @@ export default function LandingView() {
               Búsqueda de letras online, Biblia al instante y proyección impecable.
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.4s' }}>
-              <button className="btn-primary-glow" onClick={() => setGuestMode(true)}>
+              <button className="btn-primary-glow" onClick={() => setShowTermsForGuest(true)}>
                 Probar Gratis <ChevronRight size={18} />
               </button>
               <a href="#funciones" className="btn-secondary-line">Descubrir más</a>
@@ -225,7 +228,7 @@ export default function LandingView() {
           <div className="cta-box">
             <h2>Lleva la excelencia a tus pantallas</h2>
             <p>Hecho para correr fluido hasta en ordenadores con bajos recursos.</p>
-            <button className="btn-primary-glow" onClick={() => setGuestMode(true)}>
+            <button className="btn-primary-glow" onClick={() => setShowTermsForGuest(true)}>
               Iniciar Presentación
             </button>
           </div>
@@ -235,6 +238,17 @@ export default function LandingView() {
       <footer className="landing-footer">
         <p>&copy; 2026 Proclama — Excelencia para Su Reino.</p>
       </footer>
+
+      {showTermsForGuest && (
+        <TermsModal
+          mode="required"
+          onAccept={async () => {
+            await acceptTerms(CURRENT_TERMS_VERSION)
+            setGuestMode(true)
+          }}
+          onClose={() => setShowTermsForGuest(false)}
+        />
+      )}
 
       {/* Estilos estrictamente optimizados (Sin Backdrop Filters excesivos) */}
       <style>{`
