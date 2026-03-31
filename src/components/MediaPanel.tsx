@@ -1,5 +1,6 @@
 import { useRef, useState, DragEvent } from 'react'
 import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 import VideoControls from './VideoControls'
 
@@ -13,7 +14,14 @@ interface LocalMedia {
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
 export default function MediaPanel() {
-  const { state, setMedia, toggleMediaBackground } = useProjectionStore()
+  const { media, songId, isBible, setMedia, toggleMediaBackground } = useProjectionStore(useShallow(s => ({
+    media: s.state.media,
+    songId: s.state.songId,
+    isBible: s.state.isBible,
+    setMedia: s.setMedia,
+    toggleMediaBackground: s.toggleMediaBackground
+  })))
+  const state = { media, songId, isBible }
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [mediaList, setMediaList] = useState<LocalMedia[]>([])
   const [isDragging, setIsDragging] = useState(false)

@@ -1,14 +1,17 @@
 import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, Cloud, CloudOff, Timer, ClipboardEdit } from 'lucide-react';
-import { useAppStore } from '@/stores';
-import { useProjectionStore } from '@/stores';
+import { useShallow } from 'zustand/react/shallow';
+import { useAppStore, useProjectionStore } from '@/stores';
 import { openProjectionWindow } from '@/services/projection';
 import FeedbackModal from '@/components/FeedbackModal'
 
 
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, settings, toggleSidebar, user } = useAppStore()
-  const { setProjectionWindow } = useProjectionStore()
+  const { activeView, setActiveView, setEditingSong, toggleSidebar, user } = useAppStore(useShallow(s => ({
+    activeView: s.activeView, setActiveView: s.setActiveView, setEditingSong: s.setEditingSong, 
+    toggleSidebar: s.toggleSidebar, user: s.user
+  })))
+  const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
 
   const handleNewSong = () => {
     setEditingSong(null)

@@ -1,10 +1,20 @@
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2, Type } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 import MediaPanel from './MediaPanel'
 
 export default function ControlPanel() {
-  const { state, nextSlide, prevSlide, goToSlide, setHideText, clearSong } = useProjectionStore()
-  const { slides, currentSlide, hideText, songTitle } = state
+  const { slides, currentSlide, hideText, songTitle, nextSlide, prevSlide, goToSlide, setHideText, clearSong } = useProjectionStore(useShallow(s => ({
+    slides: s.state.slides,
+    currentSlide: s.state.currentSlide,
+    hideText: s.state.hideText,
+    songTitle: s.state.songTitle,
+    nextSlide: s.nextSlide,
+    prevSlide: s.prevSlide,
+    goToSlide: s.goToSlide,
+    setHideText: s.setHideText,
+    clearSong: s.clearSong
+  })))
 
   if (!songTitle && slides.length === 0) {
     return (

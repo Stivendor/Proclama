@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
@@ -9,8 +10,13 @@ import ConfirmDialog from '@/components/ConfirmDialog'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar } = useAppStore()
-  const { loadSong } = useProjectionStore()
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+    searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery, setActiveView: s.setActiveView, 
+    setEditingSong: s.setEditingSong, user: s.user, userRole: s.userRole, 
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar
+  })))
+  const loadSong = useProjectionStore(s => s.loadSong)
+  const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
@@ -18,6 +24,17 @@ export default function LibraryView() {
   const [remoteError, setRemoteError] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [importStatus, setImportStatus] = useState<string | null>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchQuery(localSearch)
+    }, 250)
+    return () => clearTimeout(t)
+  }, [localSearch, setSearchQuery])
+
+  useEffect(() => {
+    if (!searchQuery && localSearch) setLocalSearch('')
+  }, [searchQuery])
 
   // Sincronizar Supabase -> Dexie al montar y cuando cambie el filtro de búsqueda principal
   useEffect(() => {
@@ -186,8 +203,8 @@ export default function LibraryView() {
               <input
                 type="search"
                 placeholder="Buscar…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                value={localSearch}
+                onChange={e => setLocalSearch(e.target.value)}
                 aria-label="Buscar canciones"
               />
             </div>
@@ -270,9 +287,9 @@ export default function LibraryView() {
   )
 }
 
-function SongListItem({ song, onEdit, onLoad, onDelete }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void, onDelete: (s: Song) => void }) {
+const SongListItem = memo(function SongListItem({ song, onEdit, onLoad, onDelete }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void, onDelete: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
-  const { user, userRole } = useAppStore()
+  const { user, userRole } = useAppStore(useShallow(s => ({ user: s.user, userRole: s.userRole })))
   const isActive = activeTitle === song.title
 
   const getStatusIcon = () => {
@@ -308,11 +325,16 @@ function SongListItem({ song, onEdit, onLoad, onDelete }: { song: Song, onEdit: 
       )}
     </div>
   )
-}
+})
 
-function LiveSelection() {
-  const { state, goToSlide, nextSlide, prevSlide, clearSong } = useProjectionStore()
-  const { slides, currentSlide, songTitle } = state
+const LiveSelection = memo(function LiveSelection() {
+  const { slides, currentSlide, songTitle, goToSlide, clearSong } = useProjectionStore(useShallow(s => ({
+    slides: s.state.slides,
+    currentSlide: s.state.currentSlide,
+    songTitle: s.state.songTitle,
+    goToSlide: s.goToSlide,
+    clearSong: s.clearSong
+  })))
 
   if (!songTitle) {
     return (
@@ -355,4 +377,4 @@ function LiveSelection() {
       </div>
     </div>
   )
-}
+})

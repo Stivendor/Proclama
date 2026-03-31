@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Save, X, Play, Eye, Tag, Plus, Menu, Cloud, CloudOff } from 'lucide-react'
 import { db } from '@/db'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import type { Song } from '@/types'
@@ -19,8 +20,11 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditor() {
-  const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar, user, userRole } = useAppStore()
-  const { loadSong } = useProjectionStore()
+  const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar, user, userRole } = useAppStore(useShallow(s => ({
+    editingSong: s.editingSong, setEditingSong: s.setEditingSong, setActiveView: s.setActiveView, 
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar, user: s.user, userRole: s.userRole
+  })))
+  const loadSong = useProjectionStore(s => s.loadSong)
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
   const [tagInput, setTagInput] = useState('')
