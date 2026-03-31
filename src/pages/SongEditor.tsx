@@ -6,6 +6,7 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import type { Song } from '@/types'
 import { createSong, updateSong } from '@/services/supabase'
+import { usePlan } from '@/hooks/usePlan'
 
 const VERSE_LABELS = ['[Verso 1]', '[Verso 2]', '[Coro]', '[Pre-Coro]', '[Puente]', '[Final]', '[Intro]']
 const LANGUAGES = ['Español', 'Inglés', 'Portugués', 'Otro']
@@ -20,6 +21,7 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditor() {
+  const { canSync } = usePlan()
   const { editingSong, setEditingSong, setActiveView, isSidebarOpen, toggleSidebar, user, userRole } = useAppStore(useShallow(s => ({
     editingSong: s.editingSong, setEditingSong: s.setEditingSong, setActiveView: s.setActiveView, 
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar, user: s.user, userRole: s.userRole
@@ -75,17 +77,23 @@ export default function SongEditor() {
       const isVerified = userRole === 'admin' ? form.isPublic : false
 
       if (editingSong?.id) {
-        // Actualizar en Supabase
+        // Actualizar canción existente
         const updates = { 
           ...form, 
           isVerified: userRole === 'admin' ? form.isPublic : (editingSong.isVerified ?? false),
           updatedAt: now, 
           userId: user?.id 
         }
-        const updated = await updateSong(editingSong.id, updates)
-        // Reflejar en Dexie
-        await db.songs.update(editingSong.id, { ...(updated ?? { ...updates, id: editingSong.id }) })
+        
+        // Siempre actualizar en Dexie
+        await db.songs.update(editingSong.id, { ...updates, id: editingSong.id })
+        
+        // Solo sincronizar con Supabase si el usuario puede
+        if (canSync && user) {
+          await updateSong(editingSong.id, updates)
+        }
       } else {
+        // Crear nueva canción
         const payload: Omit<Song, 'id'> = { 
           ...form, 
           isVerified,
@@ -93,13 +101,21 @@ export default function SongEditor() {
           updatedAt: now, 
           userId: user?.id 
         }
-        const created = await createSong(payload)
-        if (created) {
-          await db.songs.add(created)
+        
+        // Solo sincronizar con Supabase si el usuario puede
+        if (canSync && user) {
+          const created = await createSong(payload)
+          if (created) {
+            await db.songs.add(created)
+          } else {
+            await db.songs.add(payload)
+          }
         } else {
+          // Usuario free: solo guardar localmente
           await db.songs.add(payload)
         }
       }
+      
       setEditingSong(null)
       setActiveView('library')
     } finally {
