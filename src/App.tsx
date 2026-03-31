@@ -93,6 +93,9 @@ function AppContent() {
     // Migrate local songs to authenticated user
     const migrateLocalSongs = async (userId: string, isPremium: boolean) => {
       try {
+        // DESACTIVADO: Ya no hay canciones locales que migrar
+        // Si en el futuro necesitas migrar, descomenta este código
+        /*
         const localSongs = await db.songs.filter(s => !s.userId).toArray()
         if (localSongs.length === 0) return
 
@@ -114,6 +117,7 @@ function AppContent() {
             await db.songs.add(songToMigrate)
           }
         }
+        */
       } catch (err) {
         console.warn('Local songs migration failed silently:', err)
       }
