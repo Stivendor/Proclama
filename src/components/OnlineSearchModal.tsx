@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Search, Download, X, Loader, Music2, Cloud, CloudOff } from 'lucide-react'
+import { Search, Download, X, Loader, Music2, Cloud, CloudOff, Lock } from 'lucide-react'
 import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
 import { useAppStore } from '@/stores'
 import { createSong } from '@/services/supabase'
 import type { GeniusSong } from '@/services/genius'
+import { usePlan } from '@/hooks/usePlan'
 
 export default function OnlineSearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
@@ -14,6 +15,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
   const [importing, setImporting] = useState<number | null>(null)
   const [importedLyrics, setImportedLyrics] = useState<{ song: GeniusSong; lyrics: string } | null>(null)
   const [error, setError] = useState('')
+  const { canUseGenius, canSync } = usePlan()
 
   const handleSearch = async () => {
     if (!query.trim()) return
@@ -71,12 +73,20 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         updatedAt: now,
         sourceUrl: song.url
       }
-      const created = await createSong(payload)
-      if (created) {
-        await db.songs.add(created)
+      
+      // Solo sincronizar con Supabase si el usuario puede
+      if (canSync && user) {
+        const created = await createSong(payload)
+        if (created) {
+          await db.songs.add(created)
+        } else {
+          await db.songs.add(payload)
+        }
       } else {
+        // Usuario free: solo guardar localmente
         await db.songs.add(payload)
       }
+      
       onClose()
     } catch (err) {
       console.error(err)
@@ -96,7 +106,15 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         </div>
 
         <div className="modal-body">
-          {!importedLyrics ? (
+          {!canUseGenius ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '32px 0', textAlign: 'center' }}>
+              <Lock size={40} color="var(--gold)" style={{ opacity: 0.7 }} />
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Función Premium</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 320 }}>
+                La búsqueda online de letras está disponible para usuarios Premium. Actualiza tu plan para acceder a miles de canciones.
+              </div>
+            </div>
+          ) : !importedLyrics ? (
             <>
               <div className="search-box">
                 <Search size={16} />
