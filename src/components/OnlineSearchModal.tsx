@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Download, X, Loader, Music2, Cloud, CloudOff, Lock } from 'lucide-react'
+import { Search, Download, X, Loader, Music2, Cloud, CloudOff } from 'lucide-react'
 import { searchSongs, fetchLyrics } from '@/services/genius'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
@@ -107,11 +107,43 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
 
         <div className="modal-body">
           {!canUseGenius ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '32px 0', textAlign: 'center' }}>
-              <Lock size={40} color="var(--gold)" style={{ opacity: 0.7 }} />
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Función Premium</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 320 }}>
-                La búsqueda online de letras está disponible para usuarios Premium. Actualiza tu plan para acceder a miles de canciones.
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: 'rgba(212, 175, 55, 0.1)', borderRadius: 8, border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                  <Search size={32} color="var(--gold)" style={{ flexShrink: 0 }} />
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Búsqueda Online de Letras
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      Encuentra y descarga letras de canciones desde Genius
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p style={{ margin: '0 0 12px' }}>Con la búsqueda online puedes:</p>
+                  <ul style={{ margin: 0, paddingLeft: 20 }}>
+                    <li>Buscar canciones por título o artista en la base de datos de Genius</li>
+                    <li>Importar letras completas automáticamente</li>
+                    <li>Editar y ajustar las letras antes de guardar</li>
+                    <li>Agregar canciones a tu biblioteca en segundos</li>
+                    <li>Acceder a miles de canciones cristianas y de adoración</li>
+                  </ul>
+                </div>
+
+                <div style={{ padding: 12, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                  💡 Actualiza a Premium para desbloquear esta función y muchas más
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
+                <button className="btn-ghost" onClick={onClose}>
+                  Cerrar
+                </button>
+                <button className="btn-primary" onClick={onClose}>
+                  Entendido
+                </button>
               </div>
             </div>
           ) : !importedLyrics ? (

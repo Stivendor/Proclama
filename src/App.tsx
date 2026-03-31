@@ -61,6 +61,7 @@ function AppContent() {
       const profile = await fetchProfile(userId)
       setUserRole(profile?.role ?? 'user')
       setUserPlan(profile?.plan ?? 'free')
+      return profile
     }
 
     // Check initial auth state
@@ -89,14 +90,46 @@ function AppContent() {
       }
     }
 
+    // Migrate local songs to authenticated user
+    const migrateLocalSongs = async (userId: string, isPremium: boolean) => {
+      try {
+        const localSongs = await db.songs.filter(s => !s.userId).toArray()
+        if (localSongs.length === 0) return
+
+        for (const song of localSongs) {
+          const { id, ...songData } = song
+          const songToMigrate = { ...songData, userId }
+          
+          // Si es premium, sincronizar con Supabase
+          if (isPremium) {
+            const { createSong } = await import('@/services/supabase')
+            const created = await createSong(songToMigrate)
+            if (created) {
+              await db.songs.add(created)
+            } else {
+              await db.songs.add(songToMigrate)
+            }
+          } else {
+            // Si es free, solo guardar localmente
+            await db.songs.add(songToMigrate)
+          }
+        }
+      } catch (err) {
+        console.warn('Local songs migration failed silently:', err)
+      }
+    }
+
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null
       setUser(user)
       if (user) {
-        loadProfile(user.id)
+        const profile = await loadProfile(user.id)
         if (event === 'SIGNED_IN') {
           await migrateGuestNotes(user.id)
+          // Migrar canciones locales (con check de plan premium)
+          const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
+          await migrateLocalSongs(user.id, isPremium)
           // Sincronizar términos desde Supabase
           const { fetchTermsAcceptance } = await import('@/services/supabase')
           const remoteTerms = await fetchTermsAcceptance(user.id)
