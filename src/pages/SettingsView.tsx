@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2 } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
 import { supabase } from '@/services/supabase'
 
 export default function SettingsView() {
-  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds } = useAppStore()
-  const { updateTheme, state } = useProjectionStore()
+  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds } = useAppStore(useShallow(s => ({
+    settings: s.settings, updateSettings: s.updateSettings, isSidebarOpen: s.isSidebarOpen, 
+    toggleSidebar: s.toggleSidebar, user: s.user, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds
+  })))
+  const { updateTheme, theme, media } = useProjectionStore(useShallow(s => ({
+    updateTheme: s.updateTheme, theme: s.state.theme, media: s.state.media
+  })))
+  const state = { theme, media } // Polyfill to avoid modifying all 'state.theme' accesses
   const [showSecret, setShowSecret] = useState(false)
   const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -436,12 +443,41 @@ export default function SettingsView() {
                   />
                 )}
               </div>
+
+              {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
+              {state.media && (
+                <div 
+                  className="preview-media-layer" 
+                  style={{ 
+                    position: 'absolute', inset: 0, 
+                    zIndex: state.media.isBackgroundMode ? 2 : 20, 
+                    background: state.media.isBackgroundMode ? 'transparent' : '#000',
+                    filter: state.media.isBackgroundMode ? `blur(${state.theme.backgroundBlur || 0}px)` : 'none',
+                    transform: state.media.isBackgroundMode && state.theme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
+                  }}
+                >
+                  {state.media.type === 'video' ? (
+                    <video 
+                      autoPlay 
+                      loop 
+                      muted
+                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+                      src={state.media.url}
+                    />
+                  ) : (
+                    <img 
+                      src={state.media.url} 
+                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
+                    />
+                  )}
+                </div>
+              )}
               
               {/* Capa de oscurecimiento */}
               <div style={{ 
                 position: 'absolute', inset: 0, 
                 backgroundColor: `rgba(0,0,0,${state.theme.backgroundOverlayOpacity ?? 0.3})`,
-                zIndex: 1 
+                zIndex: 5 
               }} />
 
               <div className="preview-content" style={{
@@ -450,7 +486,7 @@ export default function SettingsView() {
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
                 textTransform: state.theme.textUppercase ? 'uppercase' : 'none',
-                textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 2,
+                textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 10,
                 display: 'flex', flexDirection: 'column', gap: '2px',
                 width: '100%',
                 maxWidth: '100%',

@@ -169,6 +169,7 @@ export default function ProjectionWindow() {
           position: 'absolute', inset: 0, 
           filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
           transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`,
+          willChange: 'filter, transform',
           zIndex: 0,
           ...bgStyle
         }} 
@@ -186,7 +187,8 @@ export default function ProjectionWindow() {
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', 
             zIndex: 1,
             filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
-            transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`
+            transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`,
+            willChange: 'filter, transform'
           }}
         >
           <source src={activeTheme.backgroundVideoUrl} type="video/mp4" />
@@ -280,7 +282,8 @@ export default function ProjectionWindow() {
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 10,
           padding: `${SAFE_PADDING_Y * 100}vh ${SAFE_PADDING_X * 100}vw`,
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          fontSize: `${((activeTheme as any).fontSize || 160) / 8}vmin`
         }}>
           {countdown.config.title && (
             <div style={{

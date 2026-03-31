@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X, Menu } from 'lucide-react'
 import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
+import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore, useAppStore } from '@/stores'
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
 
 export default function BibleView() {
-  const { isSidebarOpen, toggleSidebar } = useAppStore()
+  const { isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar
+  })))
   const [selectedBook, setSelectedBook] = useState('jhn')
   const [selectedChapter, setSelectedChapter] = useState(3)
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
@@ -20,7 +23,14 @@ export default function BibleView() {
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
 
-  const { state, loadSong } = useProjectionStore()
+  const { loadSong, songTitle, theme, slides, currentSlide } = useProjectionStore(useShallow(s => ({
+    loadSong: s.loadSong,
+    songTitle: s.state.songTitle,
+    theme: s.state.theme,
+    slides: s.state.slides,
+    currentSlide: s.state.currentSlide
+  })))
+  const state = { songTitle, theme, slides, currentSlide }
 
   const book = BIBLE_BOOKS.find(b => b.id === selectedBook)
   const filteredBooks = BIBLE_BOOKS.filter(b => testament === 'ALL' || b.testament === testament)

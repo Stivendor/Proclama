@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Play, Pause, RotateCcw, Menu, Image as ImageIcon, Film, Sliders, CheckCircle } from 'lucide-react'
-import { useAppStore } from '@/stores'
+import { useAppStore, useProjectionStore } from '@/stores'
+import { useShallow } from 'zustand/react/shallow'
 import { useCountdownStore } from '@/stores/countdown'
 
 export default function CountdownView() {
-  const { isSidebarOpen, toggleSidebar, backgrounds, fetchBackgrounds } = useAppStore()
-  const { config, status, remainingTime, updateConfig, updateTheme, start, pause, reset } = useCountdownStore()
+  const { isSidebarOpen, toggleSidebar, backgrounds, fetchBackgrounds } = useAppStore(useShallow(s => ({
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds
+  })))
+  const { config, status, remainingTime, updateConfig, updateTheme, start, pause, reset } = useCountdownStore(useShallow(s => ({
+    config: s.config, status: s.status, remainingTime: s.remainingTime, updateConfig: s.updateConfig, 
+    updateTheme: s.updateTheme, start: s.start, pause: s.pause, reset: s.reset
+  })))
+  const { media } = useProjectionStore(useShallow(s => ({
+    media: s.state.media
+  })))
 
   useEffect(() => {
     fetchBackgrounds()
@@ -277,26 +286,57 @@ export default function CountdownView() {
                   />
                 )}
               </div>
+
+              {/* Proyección de Media (Fondo Dinámico) en la vista previa del contador */}
+              {media && (
+                <div 
+                  className="preview-media-layer" 
+                  style={{ 
+                    position: 'absolute', inset: 0, 
+                    zIndex: media.isBackgroundMode ? 2 : 20, 
+                    background: media.isBackgroundMode ? 'transparent' : '#000',
+                    filter: media.isBackgroundMode ? `blur(${config.theme.backgroundBlur || 0}px)` : 'none',
+                    transform: media.isBackgroundMode && config.theme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
+                  }}
+                >
+                  {media.type === 'video' ? (
+                    <video 
+                      autoPlay 
+                      loop 
+                      muted
+                      style={{ width: '100%', height: '100%', objectFit: media.isBackgroundMode ? 'cover' : 'contain' }}
+                      src={media.url}
+                    />
+                  ) : (
+                    <img 
+                      src={media.url} 
+                      style={{ width: '100%', height: '100%', objectFit: media.isBackgroundMode ? 'cover' : 'contain' }} 
+                    />
+                  )}
+                </div>
+              )}
               
               <div style={{ 
                 position: 'absolute', inset: 0, 
                 backgroundColor: `rgba(0,0,0,${config.theme.backgroundOverlayOpacity ?? 0.3})`,
-                zIndex: 1 
+                zIndex: 5 
               }} />
 
               <div className="preview-content" style={{
                 fontFamily: config.theme.fontFamily,
                 color: config.theme.textColor,
                 textShadow: config.theme.textShadow ? '0 4px 20px rgba(0,0,0,0.8)' : 'none',
-                textAlign: 'center', lineHeight: 1.1, padding: '20px', position: 'relative', zIndex: 2,
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                textAlign: 'center', lineHeight: 1.1, padding: '20px', position: 'relative', zIndex: 10,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                width: '100%', height: '100%',
+                fontSize: `${(config.theme.fontSize || 160) / 8}cqmin`
               }}>
                 {config.title && (
-                  <div style={{ opacity: 0.8, fontSize: `${Math.round(config.theme.fontSize * 0.2)}px`, marginBottom: 16, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 500 }}>
+                  <div style={{ opacity: 0.8, fontSize: '0.35em', marginBottom: '3cqh', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 500 }}>
                     {config.title}
                   </div>
                 )}
-                <div style={{ fontSize: `${Math.round(config.theme.fontSize * 0.45)}px`, fontVariantNumeric: 'tabular-nums', fontWeight: 'bold', color: config.theme.timerColor || config.theme.textColor }}>
+                <div style={{ fontSize: '1em', fontVariantNumeric: 'tabular-nums', fontWeight: 'bold', lineHeight: 1, color: config.theme.timerColor || config.theme.textColor }}>
                   {formatTime(status === 'idle' ? (config.durationMinutes * 60 + config.durationSeconds) : remainingTime)}
                 </div>
               </div>
@@ -373,6 +413,7 @@ export default function CountdownView() {
           position: relative;
           box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
           background: #000;
+          container-type: size;
         }
 
         .status-badge {

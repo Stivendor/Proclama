@@ -1,17 +1,18 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { db } from '@/db'
+import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
 import * as supabaseService from '@/services/supabase'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
-function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; onRemove: () => void; onActivate: (s: Song) => void }) {
+const SortableSongItem = memo(function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; onRemove: () => void; onActivate: (s: Song) => void }) {
   const song = useLiveQuery(() => db.songs.get(songId), [songId])
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
@@ -43,11 +44,14 @@ function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; on
       </div>
     </div>
   )
-}
+})
 
 export default function SetlistsView() {
-  const { loadSong } = useProjectionStore()
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView } = useAppStore()
+  const loadSong = useProjectionStore(s => s.loadSong)
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView } = useAppStore(useShallow(s => ({
+    setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen, 
+    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView
+  })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
