@@ -167,6 +167,12 @@ export interface BibleSlide {
   translation: string
 }
 
+// ─── Terms & Conditions ───────────────────────────────────────────────────────
+export interface TermsAcceptance {
+  version: string      // "1.0"
+  acceptedAt: string   // ISO 8601
+}
+
 // ─── Church Notes ─────────────────────────────────────────────────────────────
 export interface Notice {
   id: string          // nanoid() — UUID local
