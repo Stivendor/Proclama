@@ -408,3 +408,49 @@ export async function deleteChurchNote(remoteId: string): Promise<void> {
 
   if (error) console.error('Error deleting church note:', error.message)
 }
+
+// ─── Funciones para Terms & Conditions ────────────────────────────────────────
+
+/**
+ * Guarda la aceptación de términos en la tabla profiles.
+ * Hace upsert de terms_version y terms_accepted_at para el usuario dado.
+ */
+export async function syncTermsAcceptance(
+  userId: string,
+  version: string,
+  acceptedAt: string
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      terms_version: version,
+      terms_accepted_at: acceptedAt,
+    })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error syncing terms acceptance:', error.message)
+    return false
+  }
+  return true
+}
+
+/**
+ * Recupera la aceptación de términos desde la tabla profiles.
+ */
+export async function fetchTermsAcceptance(
+  userId: string
+): Promise<{ version: string; acceptedAt: string } | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('terms_version, terms_accepted_at')
+    .eq('id', userId)
+    .single()
+
+  if (error) {
+    console.warn('Error fetching terms acceptance:', error.message)
+    return null
+  }
+  if (!data?.terms_version || !data?.terms_accepted_at) return null
+  return { version: data.terms_version, acceptedAt: data.terms_accepted_at }
+}

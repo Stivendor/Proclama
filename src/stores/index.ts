@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist } from '@/types'
+import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendMediaCommand } from '@/services/projection'
 import { supabase } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
+import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 // ─── Default theme ─────────────────────────────────────────────────────────────
 export const DEFAULT_THEME: ProjectionTheme = {
@@ -179,7 +180,7 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes'
+  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms'
   setActiveView: (v: AppStore['activeView']) => void
 
   editingSong: Song | null
@@ -204,11 +205,19 @@ interface AppStore {
   // Onboarding
   onboardingDone: boolean
   setOnboardingDone: (v: boolean) => void
+
+  // Terms & Conditions
+  termsAccepted: TermsAcceptance | null
+  termsSyncPending: boolean
+  acceptTerms: (version: string) => Promise<void>
+  checkTermsVersion: () => boolean
+  setTermsAccepted: (t: TermsAcceptance | null) => void
+  setTermsSyncPending: (v: boolean) => void
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       settings: DEFAULT_SETTINGS,
       updateSettings: (s) => set(state => ({ settings: { ...state.settings, ...s } })),
 
@@ -248,6 +257,34 @@ export const useAppStore = create<AppStore>()(
 
       onboardingDone: false,
       setOnboardingDone: (v) => set({ onboardingDone: v }),
+
+      termsAccepted: null,
+      termsSyncPending: false,
+      setTermsAccepted: (t) => set({ termsAccepted: t }),
+      setTermsSyncPending: (v) => set({ termsSyncPending: v }),
+
+      checkTermsVersion: () => {
+        const { termsAccepted } = get()
+        if (!termsAccepted) return true
+        return termsAccepted.version !== CURRENT_TERMS_VERSION
+      },
+
+      acceptTerms: async (version) => {
+        const acceptedAt = new Date().toISOString()
+        const acceptance: TermsAcceptance = { version, acceptedAt }
+        set({ termsAccepted: acceptance, termsSyncPending: false })
+        // Sync con Supabase si hay usuario autenticado
+        const { user } = get()
+        if (user?.id) {
+          try {
+            const { syncTermsAcceptance } = await import('@/services/supabase')
+            const ok = await syncTermsAcceptance(user.id, version, acceptedAt)
+            if (!ok) set({ termsSyncPending: true })
+          } catch {
+            set({ termsSyncPending: true })
+          }
+        }
+      },
     }),
     {
       name: 'proclama-app',
@@ -255,7 +292,9 @@ export const useAppStore = create<AppStore>()(
         settings: state.settings, 
         isSidebarOpen: state.isSidebarOpen, 
         onboardingDone: state.onboardingDone,
-        guestMode: state.guestMode
+        guestMode: state.guestMode,
+        termsAccepted: state.termsAccepted,
+        termsSyncPending: state.termsSyncPending,
       })
     }
   )

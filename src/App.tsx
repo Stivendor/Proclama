@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useShallow } from 'zustand/react/shallow'
@@ -16,8 +16,11 @@ import ProjectionWindow from '@/pages/ProjectionWindow'
 import BibleView from '@/pages/BibleView'
 import CountdownView from '@/pages/CountdownView'
 import NotesView from '@/pages/NotesView'
+import TermsView from '@/pages/TermsView'
 import OnboardingFlow from '@/components/OnboardingFlow'
 import LandingView from '@/pages/LandingView'
+import TermsModal from '@/components/TermsModal'
+import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { db } from '@/db'
 import { Loader2 } from 'lucide-react'
 
@@ -35,11 +38,20 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode } = useAppStore(useShallow(s => ({
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending } = useAppStore(useShallow(s => ({
     setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
-    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode
+    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode,
+    checkTermsVersion: s.checkTermsVersion, acceptTerms: s.acceptTerms,
+    setTermsAccepted: s.setTermsAccepted, setTermsSyncPending: s.setTermsSyncPending,
+    termsSyncPending: s.termsSyncPending
   })))
+  const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
+
+  const handleAcceptTerms = async () => {
+    await acceptTerms(CURRENT_TERMS_VERSION)
+    setShowTermsGate(false)
+  }
 
   useEffect(() => {
     if (isServer) return
@@ -58,6 +70,7 @@ function AppContent() {
       if (user) loadProfile(user.id)
       else setUserRole(null)
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
+      if (checkTermsVersion()) setShowTermsGate(true)
     })
 
     // Migrate guest notes to authenticated user
@@ -77,18 +90,33 @@ function AppContent() {
     }
 
     // Listen to changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null
       setUser(user)
       if (user) {
         loadProfile(user.id)
         if (event === 'SIGNED_IN') {
-          migrateGuestNotes(user.id)
+          await migrateGuestNotes(user.id)
+          // Sincronizar términos desde Supabase
+          const { fetchTermsAcceptance } = await import('@/services/supabase')
+          const remoteTerms = await fetchTermsAcceptance(user.id)
+          if (remoteTerms) {
+            const { setTermsAccepted } = useAppStore.getState()
+            setTermsAccepted(remoteTerms)
+          }
+          // Reintentar sync pendiente
+          const { termsSyncPending, termsAccepted } = useAppStore.getState()
+          if (termsSyncPending && termsAccepted) {
+            const { syncTermsAcceptance } = await import('@/services/supabase')
+            const ok = await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
+            if (ok) useAppStore.getState().setTermsSyncPending(false)
+          }
         }
       } else {
         setUserRole(null)
       }
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
+      if (checkTermsVersion()) setShowTermsGate(true)
     })
 
     // Listen to media status from projection window
@@ -120,6 +148,10 @@ function AppContent() {
     )
   }
 
+  if (showTermsGate) {
+    return <TermsModal mode="required" onAccept={handleAcceptTerms} onClose={() => {}} />
+  }
+
   return <MainApp />
 }
 
@@ -141,6 +173,7 @@ function MainApp() {
         {activeView === 'bible' && <BibleView />}
         {activeView === 'countdown' && <CountdownView />}
         {activeView === 'notes' && <NotesView />}
+        {activeView === 'terms' && <TermsView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
