@@ -8,6 +8,7 @@ import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
+import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
@@ -16,6 +17,13 @@ export default function LibraryView() {
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
+  const { canCreateSong, canUseGenius } = usePlan()
+
+  // Conteo de canciones propias del usuario (para el límite free)
+  const ownSongCount = useLiveQuery(async () => {
+    if (!user?.id) return 0
+    return db.songs.where('userId').equals(user.id).count()
+  }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
@@ -185,11 +193,24 @@ export default function LibraryView() {
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
+          <button
+            className="btn-ghost"
+            onClick={() => canUseGenius ? setShowOnlineSearch(true) : null}
+            disabled={!canUseGenius}
+            title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
+          >
             <Search size={15} /> Buscar online
+            {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
           </button>
-          <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }} aria-label="Crear nueva canción">
+          <button
+            className="btn-primary"
+            onClick={() => { if (canCreateSong(ownSongCount)) { setEditingSong(null); setActiveView('editor') } }}
+            disabled={!canCreateSong(ownSongCount)}
+            aria-label="Crear nueva canción"
+            title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
+          >
             <Plus size={15} /> Nueva
+            {!canCreateSong(ownSongCount) && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
           </button>
         </div>
       </div>
