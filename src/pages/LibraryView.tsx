@@ -51,24 +51,12 @@ export default function LibraryView() {
       setLoadingRemote(true)
       setRemoteError(null)
       try {
-        // Guardar canciones locales (sin userId o userId undefined) antes de limpiar
-        const localSongs = await db.songs.filter(s => !s.userId).toArray()
-        
         const remoteSongs = await fetchSongs()
         if (cancelled) return
         
         // Limpiar Dexie y poner lo nuevo de Supabase
         await db.songs.clear()
         await db.songs.bulkPut(remoteSongs)
-        
-        // Migrar canciones locales al usuario autenticado
-        if (user && localSongs.length > 0) {
-          for (const song of localSongs) {
-            // Asignar userId y quitar el id para que Dexie genere uno nuevo
-            const { id, ...songData } = song
-            await db.songs.add({ ...songData, userId: user.id })
-          }
-        }
       } catch (err) {
         console.error('Error syncing songs from Supabase:', err)
         if (!cancelled) setRemoteError('No se pudo sincronizar con Supabase. Usando datos locales.')
