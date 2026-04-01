@@ -17,6 +17,7 @@ export default function ProjectionWindow() {
   const stateRef = useRef(state)
   stateRef.current = state
   const aspectRatio = useAppStore(s => s.aspectRatio)
+  const fontScale = useAppStore(s => s.fontScale)
   const canvas = CANVAS_SIZES[aspectRatio]
 
   // Escalar el canvas fijo al viewport actual
@@ -44,13 +45,13 @@ export default function ProjectionWindow() {
     const showTitle = (theme.showTitle || isBible) && songTitle
     const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
     const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
-    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, aspectRatio)
+    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, aspectRatio, fontScale)
     setFontSize(size)
   }, [aspectRatio])
 
   useEffect(() => {
     recalcFont()
-  }, [state.slides, state.currentSlide, state.theme, state.songTitle, recalcFont])
+  }, [state.slides, state.currentSlide, state.theme, state.songTitle, recalcFont, fontScale])
 
   useEffect(() => {
     const off = onMessage((msg: BroadcastMessage) => {

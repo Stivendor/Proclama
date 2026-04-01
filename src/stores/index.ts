@@ -208,6 +208,10 @@ interface AppStore {
   aspectRatio: AspectRatio
   setAspectRatio: (r: AspectRatio) => void
 
+  // Escala de fuente (1.0 = auto-máximo)
+  fontScale: number
+  setFontScale: (s: number) => void
+
   // Backgrounds
   backgrounds: BackgroundAsset[]
   backgroundsLastFetch: number | null
@@ -262,6 +266,9 @@ export const useAppStore = create<AppStore>()(
 
       aspectRatio: '16:9' as AspectRatio,
       setAspectRatio: (r) => set({ aspectRatio: r }),
+
+      fontScale: 1.0,
+      setFontScale: (s) => set({ fontScale: s }),
 
       backgrounds: [],
       backgroundsLastFetch: null,
@@ -319,6 +326,7 @@ export const useAppStore = create<AppStore>()(
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
         aspectRatio: state.aspectRatio,
+        fontScale: state.fontScale,
       })
     }
   )
