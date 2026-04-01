@@ -53,8 +53,8 @@ describe('calcCanvasFontSize', () => {
 
   it('fontScale 0.5 produce aproximadamente la mitad del tamaño base', () => {
     const slide = makeSlide(['Santa es la tierra'])
-    const full = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9', 1.0)
-    const half = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9', 0.5)
+    const full = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9')
+    const half = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9')
     // Tolerancia de ±2px por redondeo de Math.round
     expect(half).toBeGreaterThanOrEqual(Math.floor(full * 0.5) - 2)
     expect(half).toBeLessThanOrEqual(Math.ceil(full * 0.5) + 2)
