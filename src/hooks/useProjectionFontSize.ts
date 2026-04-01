@@ -62,6 +62,5 @@ export function calcCanvasFontSize(
     else hi = mid - 1
   }
 
-  console.log(`[FontSize] best=${best}px scale=${fontScale} rows=${rows.length} isBible=${isBible} maxLen=${Math.max(...rows.map(r => r.text.length))}`)
   return Math.max(10, Math.round(best * fontScale))
 }
