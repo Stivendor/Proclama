@@ -188,7 +188,7 @@ z:30 → pantalla negra
 - NO persiste en localStorage (estado efímero de sesión)
 
 ### `useAppStore` (persiste `settings`, `isSidebarOpen`, `onboardingDone`, `guestMode`, `aspectRatio`, `fontScale`)
-- `settings: AppSettings` — ACRCloud keys, Genius token, churchName, defaultTheme
+- `settings: AppSettings` — churchName, churchLogoUrl, defaultTheme
 - `user / authStatus / userRole` — estado de autenticación Supabase
 - `activeView` — `'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes'`
 - `guestMode` — acceso sin autenticación
@@ -276,7 +276,6 @@ CREATE POLICY "Users manage own attendance"
 | Servicio | Uso | Configuración |
 |---|---|---|
 | Supabase | DB cloud + Auth + Storage | `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` en `.env.local` |
-| ACRCloud | Reconocimiento de audio | host + accessKey + accessSecret en Settings |
 | lrclib.net | Búsqueda de letras (sin API key) | Ninguna |
 | bible-api.com | Fallback bíblico | Ninguna |
 

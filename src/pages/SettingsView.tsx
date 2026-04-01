@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
+import { Save, Eye, EyeOff, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore, DEFAULT_THEME, CANVAS_SIZES, useAppStore as useStore } from '@/stores'
 import type { AspectRatio } from '@/stores'
@@ -19,7 +19,6 @@ export default function SettingsView() {
   })))
   const state = { theme, media } // Polyfill to avoid modifying all 'state.theme' accesses
   const [showSecret, setShowSecret] = useState(false)
-  const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showTermsForSignup, setShowTermsForSignup] = useState(false)
   const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null)
@@ -230,30 +229,6 @@ export default function SettingsView() {
         </section>
 
 
-
-        {/* Genius */}
-        <section className="settings-section">
-          <h2>
-            Genius API — Letras Online
-            <a href="https://genius.com/api-clients" target="_blank" rel="noreferrer" className="settings-link">
-              <ExternalLink size={13} /> Obtener token
-            </a>
-          </h2>
-          <div className="form-group">
-            <label>Token de acceso</label>
-            <div className="input-with-icon">
-              <input
-                type={showGeniusToken ? 'text' : 'password'}
-                placeholder="Client Access Token"
-                value={settings.geniusToken}
-                onChange={e => set('geniusToken', e.target.value)}
-              />
-              <button className="btn-icon" onClick={() => setShowGeniusToken(s => !s)}>
-                {showGeniusToken ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        </section>
 
         {/* Proyección */}
         <section className="settings-section">

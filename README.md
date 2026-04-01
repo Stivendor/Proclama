@@ -222,7 +222,6 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 - Supabase es necesario para autenticación y sincronización en la nube.
 - La app funciona completamente sin login en modo invitado (datos locales).
-- El token de Genius y las credenciales de ACRCloud se configuran desde Ajustes.
 
 ---
 

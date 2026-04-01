@@ -35,7 +35,6 @@ export const DEFAULT_THEME: ProjectionTheme = {
 
 // ─── Default settings ──────────────────────────────────────────────────────────
 export const DEFAULT_SETTINGS: AppSettings = {
-  geniusToken: '',
   churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME
