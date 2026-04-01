@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock, Zap } from 'lucide-react'
+import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock } from 'lucide-react'
 import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useShallow } from 'zustand/react/shallow'
@@ -326,51 +326,6 @@ export default function BibleView() {
 
   const projectVerse = (verse: BibleVerseResult) => {
     projectVerses([verse])
-  }
-
-  // Handle quick search submission
-  const handleQuickSearch = async () => {
-    if (!quickSearch.trim()) return
-
-    // Parse: "libro capitulo:versiculo" or "libro capitulo"
-    const parts = quickSearch.trim().split(/\s+/)
-    if (parts.length < 2) return
-
-    const bookPart = parts[0]
-    const chapterVerse = parts[1]
-
-    const bookSuggestion = getBookSuggestion(bookPart)
-    if (!bookSuggestion) return
-
-    const book = BIBLE_BOOKS.find(b => b.id === bookSuggestion.id)
-    if (!book) return
-
-    // Parse chapter:verse or just chapter
-    const [chapterStr, verseStr] = chapterVerse.split(':')
-    const chapter = parseInt(chapterStr)
-    const verse = verseStr ? parseInt(verseStr) : null
-
-    if (isNaN(chapter) || chapter < 1 || chapter > book.chapters) return
-
-    // Load the chapter
-    setSelectedBook(book.id)
-    setSelectedChapter(chapter)
-    
-    // If verse specified, wait for chapter to load then project that verse
-    if (verse !== null) {
-      try {
-        const result = await fetchChapter(book.id, chapter, selectedTranslation)
-        const targetVerse = result.find(v => v.verse === verse)
-        if (targetVerse) {
-          projectVerse(targetVerse)
-        }
-      } catch (error) {
-        console.error('Error loading verse:', error)
-      }
-    }
-
-    setQuickSearch('')
-    setQuickSearchSuggestion(null)
   }
 
   if (!book) {
