@@ -30,6 +30,13 @@ export default function LibraryView() {
   const [selectedLang, setSelectedLang] = useState<string>('')
   const [loadingRemote, setLoadingRemote] = useState(false)
   const [remoteError, setRemoteError] = useState<string | null>(null)
+  
+  // Auto-dismiss remote error after 10 seconds
+  useEffect(() => {
+    if (!remoteError) return
+    const timer = setTimeout(() => setRemoteError(null), 10000)
+    return () => clearTimeout(timer)
+  }, [remoteError])
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [importStatus, setImportStatus] = useState<string | null>(null)
 
@@ -46,7 +53,9 @@ export default function LibraryView() {
 
   // Sincronizar Supabase -> Dexie al montar y cuando cambie el filtro de búsqueda principal
   useEffect(() => {
+    const abortController = new AbortController()
     let cancelled = false
+    
     const sync = async () => {
       setLoadingRemote(true)
       setRemoteError(null)
@@ -56,6 +65,7 @@ export default function LibraryView() {
         
         // Limpiar Dexie y poner lo nuevo de Supabase
         await db.songs.clear()
+        if (cancelled) return
         await db.songs.bulkPut(remoteSongs)
       } catch (err) {
         console.error('Error syncing songs from Supabase:', err)
@@ -67,6 +77,8 @@ export default function LibraryView() {
     sync()
     return () => {
       cancelled = true
+      abortController.abort()
+      setRemoteError(null) // Clear error on unmount
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
