@@ -13,6 +13,7 @@ import SetlistsView from '@/pages/SetlistsView'
 import SettingsView from '@/pages/SettingsView'
 import ControlPanel from '@/components/ControlPanel'
 import ProjectionWindow from '@/pages/ProjectionWindow'
+import ProjectionPreview from '@/components/ProjectionPreview'
 import BibleView from '@/pages/BibleView'
 import CountdownView from '@/pages/CountdownView'
 import NotesView from '@/pages/NotesView'
@@ -227,6 +228,7 @@ function MainApp() {
       <aside className="right-panel">
         <ControlPanel />
       </aside>
+      <ProjectionPreview />
     </div>
   )
 }

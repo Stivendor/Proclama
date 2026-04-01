@@ -1,11 +1,16 @@
-import { useState, useEffect } from 'react'
-import { BookOpen, Search, ChevronLeft, ChevronRight, Tv2, X, Menu } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock } from 'lucide-react'
 import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore, useAppStore } from '@/stores'
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
+
+interface RecentVerse {
+  verse: BibleVerseResult
+  timestamp: number
+}
 
 export default function BibleView() {
   const { isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
@@ -23,6 +28,20 @@ export default function BibleView() {
   const [searching, setSearching] = useState(false)
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
+  
+  // Recent verses history (session only)
+  const [recentVerses, setRecentVerses] = useState<RecentVerse[]>([])
+  
+  // Quick search (Holyrics-style) - separate fields
+  const [quickSearchBook, setQuickSearchBook] = useState('')
+  const [quickSearchChapter, setQuickSearchChapter] = useState('')
+  const [quickSearchVerse, setQuickSearchVerse] = useState('')
+  const [parsedBook, setParsedBook] = useState<{ name: string; id: string } | null>(null)
+  const [isBookLocked, setIsBookLocked] = useState(false)
+  const quickSearchBookRef = useRef<HTMLInputElement>(null)
+  const quickSearchChapterRef = useRef<HTMLInputElement>(null)
+  const quickSearchVerseRef = useRef<HTMLInputElement>(null)
+  const [showQuickSearch, setShowQuickSearch] = useState(false)
 
   const { loadSong, songTitle, theme, slides, currentSlide } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
@@ -35,6 +54,177 @@ export default function BibleView() {
 
   const book = BIBLE_BOOKS.find(b => b.id === selectedBook)
   const filteredBooks = BIBLE_BOOKS.filter(b => testament === 'ALL' || b.testament === testament)
+
+  // Keyboard shortcut for quick search (any letter key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only trigger if not typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      
+      // Check if it's a letter key
+      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+        e.preventDefault()
+        setQuickSearchBook(e.key.toLowerCase())
+        setQuickSearchChapter('')
+        setQuickSearchVerse('')
+        setParsedBook(null)
+        setIsBookLocked(false)
+        setShowQuickSearch(true)
+        setTimeout(() => quickSearchBookRef.current?.focus(), 50)
+      }
+    }
+
+    window.addEventListener('keypress', handleKeyPress)
+    return () => window.removeEventListener('keypress', handleKeyPress)
+  }, [])
+
+  // Autocomplete book as user types
+  useEffect(() => {
+    if (!quickSearchBook.trim() || isBookLocked) return
+    
+    const suggestion = getBookSuggestion(quickSearchBook.trim())
+    if (suggestion) {
+      setParsedBook({ name: suggestion.name, id: suggestion.id })
+    } else {
+      setParsedBook(null)
+    }
+  }, [quickSearchBook, isBookLocked])
+
+  // Handle book input with auto-lock when number is detected
+  const handleBookChange = (value: string) => {
+    if (isBookLocked) return
+    
+    // Check if user is typing a number - auto-lock the book
+    if (/\d/.test(value) && parsedBook) {
+      setQuickSearchBook(parsedBook.name)
+      setIsBookLocked(true)
+      setQuickSearchChapter(value.match(/\d+/)?.[0] || '')
+      quickSearchChapterRef.current?.focus()
+      return
+    }
+    
+    setQuickSearchBook(value)
+  }
+
+  const handleBookKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && parsedBook) {
+      e.preventDefault()
+      setQuickSearchBook(parsedBook.name)
+      setIsBookLocked(true)
+      quickSearchChapterRef.current?.focus()
+    } else if ((e.key === ' ' || e.key === 'Tab') && parsedBook) {
+      e.preventDefault()
+      setQuickSearchBook(parsedBook.name)
+      setIsBookLocked(true)
+      quickSearchChapterRef.current?.focus()
+    } else if (e.key === 'Escape') {
+      closeQuickSearch()
+    }
+  }
+
+  // Handle chapter input with validation
+  const handleChapterChange = (value: string) => {
+    if (!parsedBook) return
+    const book = BIBLE_BOOKS.find(b => b.id === parsedBook.id)
+    if (!book) return
+    
+    const num = parseInt(value)
+    if (value === '' || (num >= 1 && num <= book.chapters)) {
+      setQuickSearchChapter(value)
+    }
+  }
+
+  const handleChapterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      quickSearchVerseRef.current?.focus()
+    } else if (e.key === 'Enter' && quickSearchChapter) {
+      e.preventDefault()
+      quickSearchVerseRef.current?.focus()
+    } else if (e.key === ' ' && quickSearchChapter) {
+      e.preventDefault()
+      quickSearchVerseRef.current?.focus()
+    } else if (e.key === 'Escape') {
+      closeQuickSearch()
+    } else if (e.key === 'Backspace' && quickSearchChapter === '') {
+      // Go back to book field
+      setIsBookLocked(false)
+      quickSearchBookRef.current?.focus()
+    }
+  }
+
+  // Handle verse input and auto-project when complete
+  const handleVerseChange = (value: string) => {
+    setQuickSearchVerse(value)
+    
+    // Auto-project when all fields are complete
+    if (parsedBook && quickSearchChapter && value) {
+      const chapter = parseInt(quickSearchChapter)
+      const verse = parseInt(value)
+      
+      if (!isNaN(chapter) && !isNaN(verse)) {
+        // Small delay to let user see the complete input
+        setTimeout(() => {
+          handleQuickSearchProject()
+        }, 300)
+      }
+    }
+  }
+
+  const handleVerseKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      // Stay on verse field or project if complete
+      if (parsedBook && quickSearchChapter && quickSearchVerse) {
+        handleQuickSearchProject()
+      }
+    } else if (e.key === 'Enter' && parsedBook && quickSearchChapter && quickSearchVerse) {
+      e.preventDefault()
+      handleQuickSearchProject()
+    } else if (e.key === 'Escape') {
+      closeQuickSearch()
+    } else if (e.key === 'Backspace' && quickSearchVerse === '') {
+      // Go back to chapter field
+      quickSearchChapterRef.current?.focus()
+    }
+  }
+
+  // Project the verse
+  const handleQuickSearchProject = async () => {
+    if (!parsedBook || !quickSearchChapter || !quickSearchVerse) return
+
+    const chapter = parseInt(quickSearchChapter)
+    const verse = parseInt(quickSearchVerse)
+
+    if (isNaN(chapter) || isNaN(verse)) return
+
+    const book = BIBLE_BOOKS.find(b => b.id === parsedBook.id)
+    if (!book || chapter < 1 || chapter > book.chapters) return
+
+    try {
+      const result = await fetchChapter(parsedBook.id, chapter, selectedTranslation)
+      // Find verse by matching the reference pattern "BookName Chapter:Verse"
+      const targetVerse = result.find(v => v.reference.endsWith(`:${verse}`))
+      
+      if (targetVerse) {
+        projectVerse(targetVerse)
+        setSelectedBook(parsedBook.id)
+        setSelectedChapter(chapter)
+        closeQuickSearch()
+      }
+    } catch (error) {
+      console.error('Error loading verse:', error)
+    }
+  }
+
+  const closeQuickSearch = () => {
+    setShowQuickSearch(false)
+    setQuickSearchBook('')
+    setQuickSearchChapter('')
+    setQuickSearchVerse('')
+    setParsedBook(null)
+    setIsBookLocked(false)
+  }
 
   useEffect(() => {
     console.log('Loading chapter:', selectedBook, selectedChapter)
@@ -122,6 +312,15 @@ export default function BibleView() {
       createdAt: new Date(),
       updatedAt: new Date()
     }, true)
+    
+    // Add to recent verses history
+    versesToProject.forEach(verse => {
+      setRecentVerses(prev => {
+        // Remove duplicates and add to beginning
+        const filtered = prev.filter(r => r.verse.reference !== verse.reference)
+        return [{ verse, timestamp: Date.now() }, ...filtered].slice(0, 10) // Keep last 10
+      })
+    })
   }
 
 
@@ -204,6 +403,81 @@ export default function BibleView() {
         </div>
 
         <div className="bible-main">
+          {/* Quick Search (Holyrics-style) - Separate Editable Fields */}
+          {showQuickSearch && (
+            <div className="quick-search-overlay">
+              <div className="quick-search-modal-holyrics">
+                <div className="quick-search-header">
+                  <span>Esc para cancelar</span>
+                  <button 
+                    className="btn-icon" 
+                    onClick={closeQuickSearch}
+                    aria-label="Cerrar"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                
+                <div className="quick-search-sections">
+                  {/* Book Section */}
+                  <div className="quick-search-section">
+                    <div className="section-label">Libro</div>
+                    <input
+                      ref={quickSearchBookRef}
+                      type="text"
+                      value={isBookLocked ? parsedBook?.name || '' : quickSearchBook}
+                      onChange={e => handleBookChange(e.target.value)}
+                      onKeyDown={handleBookKeyDown}
+                      className={`section-input section-input-book ${isBookLocked ? 'locked' : ''}`}
+                      placeholder="Sa_"
+                      readOnly={isBookLocked}
+                      tabIndex={isBookLocked ? -1 : 0}
+                      autoFocus
+                    />
+                    {parsedBook && !isBookLocked && (
+                      <div className="book-autocomplete-hint">
+                        {parsedBook.name} - Presiona TAB para autocompletar
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Chapter Section */}
+                  <div className="quick-search-section">
+                    <div className="section-label">Capítulo</div>
+                    <input
+                      ref={quickSearchChapterRef}
+                      type="number"
+                      min="1"
+                      max={parsedBook ? BIBLE_BOOKS.find(b => b.id === parsedBook.id)?.chapters : undefined}
+                      value={quickSearchChapter}
+                      onChange={e => handleChapterChange(e.target.value)}
+                      onKeyDown={handleChapterKeyDown}
+                      className="section-input section-input-number"
+                      placeholder="_"
+                      disabled={!isBookLocked}
+                    />
+                  </div>
+                  
+                  {/* Verse Section */}
+                  <div className="quick-search-section">
+                    <div className="section-label">Versículo</div>
+                    <input
+                      ref={quickSearchVerseRef}
+                      type="number"
+                      min="1"
+                      value={quickSearchVerse}
+                      onChange={e => handleVerseChange(e.target.value)}
+                      onKeyDown={handleVerseKeyDown}
+                      className="section-input section-input-number"
+                      placeholder="_"
+                      disabled={!quickSearchChapter}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="chapter-nav">
             <button
               className="btn-icon"
@@ -316,29 +590,37 @@ export default function BibleView() {
           )}
         </div>
 
-        <div className="bible-preview">
-          <div className="preview-header"><Tv2 size={14} /> En proyección ahora</div>
-          <div className="bible-projection-preview" style={{ background: state.theme.background }}>
-            {state.songTitle ? (
-              <>
-                <div className="bible-preview-reference" style={{ color: state.theme.textColor }}>
-                  {state.songTitle}
-                </div>
-                {state.slides[state.currentSlide]?.lines.map((line, i) => (
-                  <div key={i} className="bible-preview-text" style={{
-                    color: state.theme.textColor,
-                    fontFamily: state.theme.fontFamily
-                  }}>
-                    {line}
-                  </div>
-                ))}
-              </>
-            ) : (
-              <div className="bible-preview-empty">Ningún versículo proyectado</div>
-            )}
+        {/* Recent Verses History */}
+        <div className="bible-recent">
+          <div className="recent-header">
+            <Clock size={14} /> Recientes
           </div>
-          <div className="bible-hint">
-            Haz clic en un versículo para proyectarlo de inmediato.
+          {recentVerses.length === 0 ? (
+            <div className="recent-empty">
+              Los versículos proyectados aparecerán aquí
+            </div>
+          ) : (
+            <div className="recent-list">
+              {recentVerses.map((item, i) => (
+                <div
+                  key={i}
+                  className={`recent-verse-item ${state.songTitle === item.verse.reference ? 'projected' : ''}`}
+                  onClick={() => {
+                    projectVerse(item.verse)
+                    if (item.verse.bookId && item.verse.chapter) {
+                      handleSelectBook(item.verse.bookId)
+                      setSelectedChapter(item.verse.chapter)
+                    }
+                  }}
+                >
+                  <div className="recent-verse-reference">{item.verse.reference}</div>
+                  <div className="recent-verse-text">{item.verse.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="recent-hint">
+            Historial de esta sesión
           </div>
         </div>
       </div>
