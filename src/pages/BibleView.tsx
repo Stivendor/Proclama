@@ -16,6 +16,7 @@ export default function BibleView() {
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
   const [verses, setVerses] = useState<BibleVerseResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [chapterError, setChapterError] = useState<string | null>(null)
   const [testament, setTestament] = useState<'AT' | 'NT' | 'ALL'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<BibleVerseResult[]>([])
@@ -53,11 +54,16 @@ export default function BibleView() {
   const loadChapter = async () => {
     try {
       setLoading(true)
+      setChapterError(null)
       const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
       console.log('Loaded verses:', result.length)
       setVerses(result)
+      if (result.length === 0) {
+        setChapterError('No se pudieron cargar los versículos de este capítulo')
+      }
     } catch (error) {
       console.error('Error loading chapter:', error)
+      setChapterError('Error al cargar el capítulo. Por favor, intenta de nuevo.')
       setVerses([])
     } finally {
       setLoading(false)
@@ -285,6 +291,13 @@ export default function BibleView() {
 
           {loading ? (
             <div className="bible-loading">Cargando…</div>
+          ) : chapterError ? (
+            <div className="bible-error" style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>{chapterError}</p>
+              <button className="btn-primary" onClick={loadChapter}>
+                Reintentar
+              </button>
+            </div>
           ) : verses.length === 0 ? (
             <div className="bible-loading">No hay versículos disponibles para este capítulo</div>
           ) : (

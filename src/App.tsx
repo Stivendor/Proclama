@@ -38,12 +38,12 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending } = useAppStore(useShallow(s => ({
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, userRole: cachedUserRole } = useAppStore(useShallow(s => ({
     setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
     authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode,
     checkTermsVersion: s.checkTermsVersion, acceptTerms: s.acceptTerms,
     setTermsAccepted: s.setTermsAccepted, setTermsSyncPending: s.setTermsSyncPending,
-    termsSyncPending: s.termsSyncPending
+    termsSyncPending: s.termsSyncPending, userRole: s.userRole
   })))
   const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
@@ -56,7 +56,12 @@ function AppContent() {
   useEffect(() => {
     if (isServer) return
 
-    const loadProfile = async (userId: string) => {
+    const loadProfile = async (userId: string, skipCache = false) => {
+      // Check cache first (unless explicitly skipped)
+      if (!skipCache && cachedUserRole !== null) {
+        return null // Use cached role
+      }
+      
       const { fetchProfile } = await import('@/services/supabase')
       const profile = await fetchProfile(userId)
       setUserRole(profile?.role ?? 'user')
@@ -125,6 +130,13 @@ function AppContent() {
 
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Only process SIGNED_IN and SIGNED_OUT events to prevent redundant syncs
+      // TOKEN_REFRESHED and USER_UPDATED events don't require full data sync
+      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') {
+        // Skip processing for token refresh and user update events
+        return
+      }
+
       const user = session?.user ?? null
       setUser(user)
       if (user) {
