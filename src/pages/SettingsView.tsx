@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react'
-import { Save, Eye, EyeOff, ExternalLink, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
+import { Save, Eye, EyeOff, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { useAppStore, useProjectionStore, DEFAULT_THEME } from '@/stores'
+import { useAppStore, useProjectionStore, DEFAULT_THEME, CANVAS_SIZES, useAppStore as useStore } from '@/stores'
+import type { AspectRatio } from '@/stores'
 import { supabase } from '@/services/supabase'
 import TermsModal from '@/components/TermsModal'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 export default function SettingsView() {
-  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds, acceptTerms, setActiveView } = useAppStore(useShallow(s => ({
+  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds, acceptTerms, setActiveView, aspectRatio, setAspectRatio } = useAppStore(useShallow(s => ({
     settings: s.settings, updateSettings: s.updateSettings, isSidebarOpen: s.isSidebarOpen, 
     toggleSidebar: s.toggleSidebar, user: s.user, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds,
-    acceptTerms: s.acceptTerms, setActiveView: s.setActiveView
+    acceptTerms: s.acceptTerms, setActiveView: s.setActiveView,
+    aspectRatio: s.aspectRatio, setAspectRatio: s.setAspectRatio
   })))
   const { updateTheme, theme, media } = useProjectionStore(useShallow(s => ({
     updateTheme: s.updateTheme, theme: s.state.theme, media: s.state.media
   })))
   const state = { theme, media } // Polyfill to avoid modifying all 'state.theme' accesses
   const [showSecret, setShowSecret] = useState(false)
-  const [showGeniusToken, setShowGeniusToken] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showTermsForSignup, setShowTermsForSignup] = useState(false)
   const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null)
@@ -229,33 +230,22 @@ export default function SettingsView() {
 
 
 
-        {/* Genius */}
-        <section className="settings-section">
-          <h2>
-            Genius API — Letras Online
-            <a href="https://genius.com/api-clients" target="_blank" rel="noreferrer" className="settings-link">
-              <ExternalLink size={13} /> Obtener token
-            </a>
-          </h2>
-          <div className="form-group">
-            <label>Token de acceso</label>
-            <div className="input-with-icon">
-              <input
-                type={showGeniusToken ? 'text' : 'password'}
-                placeholder="Client Access Token"
-                value={settings.geniusToken}
-                onChange={e => set('geniusToken', e.target.value)}
-              />
-              <button className="btn-icon" onClick={() => setShowGeniusToken(s => !s)}>
-                {showGeniusToken ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Proyección */}
         <section className="settings-section">
           <h2><Sliders size={15} /> Proyección — Tema por Defecto</h2>
+          <div className="form-group">
+            <label>Relación de Aspecto del Canvas</label>
+            <div className="segmented-control">
+              {(Object.keys(CANVAS_SIZES) as AspectRatio[]).map(r => (
+                <button key={r} className={aspectRatio === r ? 'active' : ''} onClick={() => setAspectRatio(r)}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+              16:9 para TVs y proyectores modernos · 4:3 para proyectores antiguos
+            </p>
+          </div>
           <div className="form-group">
             <label>Tipo de Fondo</label>
             <div className="segmented-control">

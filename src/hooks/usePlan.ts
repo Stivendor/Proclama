@@ -4,7 +4,7 @@ import { useAppStore } from '@/stores'
  * Flag global: mientras sea true, TODOS los usuarios tienen acceso premium.
  * Cambiar a false cuando se active el modelo freemium.
  */
-const PREMIUM_FOR_EVERYONE = false
+const PREMIUM_FOR_EVERYONE = true  
 
 /** Límite de canciones propias para usuarios free */
 export const FREE_SONG_LIMIT = 10

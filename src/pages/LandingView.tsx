@@ -1,16 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
-import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Search, Globe, Layout, ShieldCheck, Cpu } from 'lucide-react'
+import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Search, Globe, Layout, Cpu, Check, X, Lock, Sparkles, Mail } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
+import { registerPremiumInterest } from '@/services/supabase'
+import { FREE_SONG_LIMIT } from '@/hooks/usePlan'
 
 export default function LandingView() {
   const { setGuestMode, acceptTerms } = useAppStore()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const [interestEmail, setInterestEmail] = useState('')
+  const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
+
+  const handleInterestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!interestEmail) return
+    setInterestStatus('loading')
+    const result = await registerPremiumInterest(interestEmail.trim().toLowerCase())
+    if (!result.success) { setInterestStatus('error'); return }
+    setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
+  }
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -227,6 +240,111 @@ export default function LandingView() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ── Sección Comparativa de Planes ── */}
+        <section id="planes" className="plans-section">
+          <div className="features-header animate-on-scroll">
+            <h2 className="title-serif">Planes</h2>
+            <p style={{ color: '#8b98b0', marginTop: '16px' }}>Durante el lanzamiento, todos los usuarios tienen acceso completo sin costo.</p>
+          </div>
+
+          <div className="launch-banner animate-on-scroll delay-1">
+            <Sparkles size={16} color="#C9A658" />
+            <span>Período de lanzamiento activo — todas las funciones premium disponibles gratis por tiempo limitado</span>
+          </div>
+
+          <div className="plans-grid animate-on-scroll delay-2">
+            {/* Plan Free */}
+            <div className="plan-card">
+              <div className="plan-header">
+                <span className="plan-badge free-badge">Gratis</span>
+                <div className="plan-price">$0 <span>/mes</span></div>
+                <p className="plan-desc">Siempre disponible, sin tarjeta de crédito</p>
+              </div>
+              <ul className="plan-features">
+                <li><Check size={16} className="icon-check" /> Biblioteca pública de 3,000+ canciones</li>
+                <li><Check size={16} className="icon-check" /> Proyección en pantalla completa</li>
+                <li><Check size={16} className="icon-check" /> Biblia integrada</li>
+                <li><Check size={16} className="icon-check" /> Fondos de color sólido</li>
+                <li><Check size={16} className="icon-check" /> Hasta {FREE_SONG_LIMIT} canciones propias</li>
+                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Búsqueda online de letras</li>
+                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Fondos multimedia (video/imagen)</li>
+                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Sincronización en la nube</li>
+                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Canciones propias ilimitadas</li>
+                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Exportar reportes de asistencia</li>
+              </ul>
+              <button className="btn-plan-free" onClick={() => setShowTermsForGuest(true)}>
+                Comenzar gratis
+              </button>
+            </div>
+
+            {/* Plan Premium */}
+            <div className="plan-card plan-card-premium">
+              <div className="plan-glow-ring" />
+              <div className="plan-launch-tag"><Zap size={12} /> Gratis durante el lanzamiento</div>
+              <div className="plan-header">
+                <span className="plan-badge premium-badge"><Sparkles size={12} /> Premium</span>
+                <div className="plan-price">Próximamente <span></span></div>
+                <p className="plan-desc">Hoy gratis. Precio anunciado pronto.</p>
+              </div>
+              <ul className="plan-features">
+                <li><Check size={16} className="icon-check gold" /> Todo lo del plan gratuito</li>
+                <li><Check size={16} className="icon-check gold" /> Búsqueda online de letras (Genius)</li>
+                <li><Check size={16} className="icon-check gold" /> Fondos multimedia (video/imagen)</li>
+                <li><Check size={16} className="icon-check gold" /> Sincronización en la nube</li>
+                <li><Check size={16} className="icon-check gold" /> Canciones propias ilimitadas</li>
+                <li><Check size={16} className="icon-check gold" /> Exportar reportes de asistencia</li>
+                <li><Check size={16} className="icon-check gold" /> Soporte prioritario</li>
+                <li><Check size={16} className="icon-check gold" /> Acceso anticipado a nuevas funciones</li>
+              </ul>
+              <button className="btn-primary-glow" style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => document.getElementById('premium-interest')?.scrollIntoView({ behavior: 'smooth' })}>
+                Reservar mi lugar <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Tarjeta de Interés Premium ── */}
+        <section id="premium-interest" className="interest-section animate-on-scroll">
+          <div className="interest-card">
+            <div className="interest-badge"><Sparkles size={14} color="#C9A658" /> Período de lanzamiento</div>
+            <h2 className="title-serif">Úsalo todo, gratis, ahora mismo</h2>
+            <p>Estamos en fase de lanzamiento y todas las funciones premium están disponibles sin costo. Deja tu correo y te avisamos antes de que el plan de pago entre en vigencia, para que puedas decidir con tiempo.</p>
+
+            {interestStatus === 'success' ? (
+              <div className="interest-success">
+                <Check size={20} color="#27c93f" />
+                <span>¡Listo! Te avisaremos cuando el plan Premium esté disponible.</span>
+              </div>
+            ) : interestStatus === 'duplicate' ? (
+              <div className="interest-success">
+                <Check size={20} color="#C9A658" />
+                <span>Ya tienes tu lugar reservado. Te avisaremos pronto.</span>
+              </div>
+            ) : (
+              <form className="interest-form" onSubmit={handleInterestSubmit}>
+                <div className="interest-input-wrap">
+                  <Mail size={16} color="#8b98b0" />
+                  <input
+                    type="email"
+                    placeholder="tu@correo.com"
+                    value={interestEmail}
+                    onChange={e => setInterestEmail(e.target.value)}
+                    required
+                    disabled={interestStatus === 'loading'}
+                  />
+                </div>
+                <button type="submit" className="btn-primary-glow" disabled={interestStatus === 'loading'}>
+                  {interestStatus === 'loading' ? 'Enviando...' : 'Notificarme'}
+                </button>
+                {interestStatus === 'error' && (
+                  <p className="interest-error">Ocurrió un error. Intenta de nuevo.</p>
+                )}
+              </form>
+            )}
           </div>
         </section>
 
@@ -478,6 +596,93 @@ export default function LandingView() {
         .cta-box p { color: #8b98b0; font-size: 16px; margin-bottom: 32px; }
 
         .landing-footer { text-align: center; padding: 32px; color: #4a5568; font-size: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+        /* ── Plans Section ── */
+        .plans-section { padding: 100px 5%; max-width: 1000px; margin: 0 auto; }
+        .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 60px; }
+        @media (max-width: 768px) { .plans-grid { grid-template-columns: 1fr; } }
+
+        .launch-banner {
+          display: flex; align-items: center; gap: 10px; justify-content: center;
+          margin-top: 24px; padding: 12px 24px; border-radius: 10px;
+          background: rgba(201, 166, 88, 0.08); border: 1px solid rgba(201, 166, 88, 0.2);
+          color: #C9A658; font-size: 14px; font-weight: 500;
+        }
+
+        .plan-launch-tag {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: rgba(201, 166, 88, 0.15); color: #C9A658;
+          font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+          padding: 4px 10px; border-radius: 6px; width: fit-content; margin-bottom: 4px;
+        }
+
+        .plan-card {
+          background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+          border: 1px solid rgba(255,255,255,0.07); border-radius: 20px;
+          padding: 36px; display: flex; flex-direction: column; gap: 28px; position: relative; overflow: hidden;
+        }
+        .plan-card-premium {
+          border-color: rgba(201, 166, 88, 0.3);
+          background: linear-gradient(145deg, rgba(201, 166, 88, 0.05), rgba(255,255,255,0.01));
+        }
+        .plan-glow-ring {
+          position: absolute; top: -60px; right: -60px; width: 200px; height: 200px;
+          border-radius: 50%; background: rgba(201, 166, 88, 0.08); filter: blur(40px); pointer-events: none;
+        }
+        .plan-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; width: fit-content;
+        }
+        .free-badge { background: rgba(255,255,255,0.07); color: #8b98b0; border: 1px solid rgba(255,255,255,0.1); }
+        .premium-badge { background: rgba(201, 166, 88, 0.15); color: #C9A658; border: 1px solid rgba(201, 166, 88, 0.3); }
+        .plan-price { font-size: 36px; font-weight: 700; color: white; margin-top: 12px; }
+        .plan-price span { font-size: 16px; font-weight: 400; color: #8b98b0; }
+        .plan-desc { font-size: 14px; color: #8b98b0; margin-top: 4px; }
+        .plan-features { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+        .plan-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #c8d0dc; }
+        .feature-locked { color: #4a5568 !important; }
+        .icon-check { color: #27c93f; flex-shrink: 0; }
+        .icon-check.gold { color: #C9A658; }
+        .icon-lock { color: #4a5568; flex-shrink: 0; }
+        .btn-plan-free {
+          padding: 14px 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+          background: transparent; color: white; font-weight: 600; font-size: 15px;
+          transition: background 0.2s, border-color 0.2s; cursor: pointer;
+        }
+        .btn-plan-free:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
+
+        /* ── Interest Section ── */
+        .interest-section { padding: 40px 5% 100px; max-width: 700px; margin: 0 auto; }
+        .interest-card {
+          background: linear-gradient(145deg, rgba(201, 166, 88, 0.06), rgba(255,255,255,0.02));
+          border: 1px solid rgba(201, 166, 88, 0.2); border-radius: 24px;
+          padding: 48px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+        .interest-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 6px 16px; border-radius: 99px; border: 1px solid rgba(201, 166, 88, 0.3);
+          background: rgba(201, 166, 88, 0.08); color: #C9A658; font-size: 13px; font-weight: 500;
+        }
+        .interest-card h2 { font-size: 28px; }
+        .interest-card p { color: #8b98b0; font-size: 16px; line-height: 1.6; max-width: 480px; }
+        .interest-form { display: flex; gap: 12px; width: 100%; max-width: 460px; flex-wrap: wrap; justify-content: center; }
+        .interest-input-wrap {
+          flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px;
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px; padding: 0 16px;
+        }
+        .interest-input-wrap input {
+          flex: 1; background: transparent; border: none; outline: none;
+          color: white; font-size: 15px; padding: 14px 0;
+        }
+        .interest-input-wrap input::placeholder { color: #4a5568; }
+        .interest-input-wrap input:disabled { opacity: 0.5; }
+        .interest-success {
+          display: flex; align-items: center; gap: 10px;
+          background: rgba(39, 201, 63, 0.08); border: 1px solid rgba(39, 201, 63, 0.2);
+          border-radius: 10px; padding: 16px 24px; color: #c8d0dc; font-size: 15px;
+        }
+        .interest-error { color: #fc8181; font-size: 13px; width: 100%; text-align: center; margin-top: -4px; }
 
         /* Animations */
         .animate-fade-up { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }

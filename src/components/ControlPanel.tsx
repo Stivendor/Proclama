@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2, Type } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, Type, Eye } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 import MediaPanel from './MediaPanel'
@@ -38,7 +38,6 @@ export default function ControlPanel() {
         </button>
       </div>
 
-      {/* Controles de navegación */}
       <div className="control-nav">
         <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>
           <ChevronLeft size={20} />

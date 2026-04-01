@@ -57,18 +57,23 @@ Proclama reúne en una sola aplicación web:
 ### Biblia integrada
 
 - Navegación por libros y capítulos (AT y NT).
+- Selector de capítulos tipo bento grid — clic directo al capítulo.
 - Búsqueda global por texto o referencia directa (`Juan 3:16`).
 - Proyección inmediata de versículos y pasajes.
+- Historial de versículos proyectados en la sesión actual.
 
 ### Proyección en vivo
 
 - Ventana independiente para proyector o segunda pantalla.
+- Apertura automática en el segundo monitor usando Window Management API (Chrome/Edge).
+- Canvas fijo (1920×1080 para 16:9, 1024×768 para 4:3) escalado con `transform: scale` — inmune a F11 y fullscreen.
 - Navegación entre estrofas desde el panel de control.
 - Pantalla negra y modo ocultar texto.
 - Tema configurable en tiempo real: fuente, tamaño, color, sombra, transición.
 - Fondos por color, imagen y video con blur y overlay.
-- Auto-ajuste de tamaño de fuente (búsqueda binaria) con cap configurable (`maxFontSize`).
+- Auto-ajuste de tamaño de fuente (cálculo matemático puro, sin DOM) con escala manual ajustable.
 - Posición del título y referencia bíblica configurable.
+- Selector de relación de aspecto: 16:9 y 4:3.
 
 ### Contador regresivo
 
@@ -154,35 +159,38 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 ```
 src/
 ├── pages/
-│   ├── LandingView.tsx       # Página de entrada (sin sesión)
+│   ├── LandingView.tsx       # Página de entrada con comparativa de planes e interés premium
 │   ├── AuthView.tsx          # Formulario de autenticación
 │   ├── LibraryView.tsx       # Biblioteca de canciones
 │   ├── SongEditor.tsx        # Editor de canciones
 │   ├── SetlistsView.tsx      # Gestión de setlists
-│   ├── BibleView.tsx         # Biblia integrada
+│   ├── BibleView.tsx         # Biblia integrada con bento de capítulos
 │   ├── CountdownView.tsx     # Contador regresivo
 │   ├── NotesView.tsx         # Notas del culto (asistencia + avisos + historial)
-│   ├── SettingsView.tsx      # Ajustes de la app
-│   └── ProjectionWindow.tsx  # Ventana de proyección
+│   ├── SettingsView.tsx      # Ajustes de la app (tema, aspect ratio, escala)
+│   └── ProjectionWindow.tsx  # Ventana de proyección (canvas fijo + scale)
 ├── components/
 │   ├── Sidebar.tsx           # Navegación lateral
-│   ├── ControlPanel.tsx      # Panel de control en vivo
+│   ├── ControlPanel.tsx      # Panel de control en vivo (slides + escala de fuente)
 │   ├── MediaPanel.tsx        # Panel de media local
+│   ├── ProjectionPreview.tsx # Preview del operador (canvas fijo escalado)
 │   ├── OnboardingFlow.tsx    # Tour guiado de bienvenida
 │   ├── OnlineSearchModal.tsx # Búsqueda online de letras
 │   ├── VideoControls.tsx     # Controles de video
 │   └── ConfirmDialog.tsx     # Diálogo de confirmación
 ├── stores/
-│   ├── index.ts              # AppStore + ProjectionStore
+│   ├── index.ts              # AppStore + ProjectionStore (aspectRatio, fontScale)
 │   └── countdown.ts          # CountdownStore
 ├── services/
-│   ├── supabase.ts           # Cliente Supabase + helpers (songs, setlists, attendance)
-│   ├── projection.ts         # BroadcastChannel y apertura de ventana
+│   ├── supabase.ts           # Cliente Supabase + helpers (songs, setlists, attendance, premium_interest)
+│   ├── projection.ts         # BroadcastChannel + apertura en segundo monitor
 │   ├── bible.ts              # Lógica de búsqueda bíblica
 │   ├── lyricsParser.ts       # Parser de estrofas
 │   └── genius.ts             # Búsqueda de letras
 ├── hooks/
-│   └── useKeyboardShortcuts.ts
+│   ├── useKeyboardShortcuts.ts
+│   ├── usePlan.ts            # Hook freemium: isPremium, canUseGenius, canSync, etc.
+│   └── useProjectionFontSize.ts  # calcCanvasFontSize() — cálculo matemático puro
 ├── db/
 │   └── index.ts              # Dexie v4: songs, setlists, settings, church_notes
 ├── data/
@@ -214,7 +222,6 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 - Supabase es necesario para autenticación y sincronización en la nube.
 - La app funciona completamente sin login en modo invitado (datos locales).
-- El token de Genius y las credenciales de ACRCloud se configuran desde Ajustes.
 
 ---
 

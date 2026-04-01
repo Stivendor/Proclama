@@ -142,7 +142,6 @@ export type BroadcastMessage =
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {
-  geniusToken: string
   churchName: string
   churchLogoUrl?: string
   defaultTheme: ProjectionTheme

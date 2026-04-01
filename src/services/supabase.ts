@@ -454,3 +454,19 @@ export async function fetchTermsAcceptance(
   if (!data?.terms_version || !data?.terms_accepted_at) return null
   return { version: data.terms_version, acceptedAt: data.terms_accepted_at }
 }
+
+// ─── Funciones para Premium Interest ──────────────────────────────────────────
+
+export async function registerPremiumInterest(email: string): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
+  const { error } = await supabase
+    .from('premium_interest')
+    .insert({ email, created_at: new Date().toISOString() })
+
+  if (error) {
+    // Código 23505 = unique violation (email ya registrado)
+    if (error.code === '23505') return { success: true, alreadyRegistered: true }
+    console.error('Error registering premium interest:', error.message)
+    return { success: false }
+  }
+  return { success: true, alreadyRegistered: false }
+}
