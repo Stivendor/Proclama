@@ -227,7 +227,6 @@ export default function BibleView() {
   }
 
   useEffect(() => {
-    console.log('Loading chapter:', selectedBook, selectedChapter)
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
 
@@ -246,7 +245,6 @@ export default function BibleView() {
       setLoading(true)
       setChapterError(null)
       const result = await fetchChapter(selectedBook, selectedChapter, selectedTranslation)
-      console.log('Loaded verses:', result.length)
       setVerses(result)
       if (result.length === 0) {
         setChapterError('No se pudieron cargar los versículos de este capítulo')

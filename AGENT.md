@@ -35,44 +35,44 @@ src/
 ├── index.css                # Estilos globales (variables CSS, layout, componentes)
 │
 ├── types/index.ts           # Todos los tipos TypeScript del dominio
-├── stores/index.ts          # Zustand stores: useProjectionStore + useAppStore
+├── stores/index.ts          # Zustand stores: useProjectionStore + useAppStore (aspectRatio, fontScale, CANVAS_SIZES)
 ├── stores/countdown.ts      # Zustand store: useCountdownStore (persiste config)
 │
 ├── db/index.ts              # Dexie DB v4: songs, setlists, settings, church_notes
 │
 ├── services/
-│   ├── supabase.ts          # Cliente Supabase + CRUD songs/setlists/settings/backgrounds/attendance
-│   ├── projection.ts        # BroadcastChannel: envío/recepción de mensajes entre ventanas
+│   ├── supabase.ts          # Cliente Supabase + CRUD songs/setlists/settings/backgrounds/attendance/premium_interest
+│   ├── projection.ts        # BroadcastChannel + openProjectionWindow() con Window Management API
 │   ├── lyricsParser.ts      # parseLyrics() → Slide[], cleanLyricsText(), slidesToText()
 │   ├── bible.ts             # fetchChapter(), searchGlobal(), getBookSuggestion(), BIBLE_BOOKS
-│   ├── acrcloud.ts          # recognizeAudio() + captureAudioSample() (HMAC-SHA1 via Web Crypto)
 │   └── genius.ts            # searchSongs() + fetchLyrics() via lrclib.net (sin API key)
 │
 ├── hooks/
 │   ├── useKeyboardShortcuts.ts  # →/←/Space/B/Esc para control de proyección
-│   └── useAudioRecognition.ts   # Hook de reconocimiento de audio con ACRCloud
+│   ├── usePlan.ts               # isPremium, canUseGenius, canSync, canCreateSong, FREE_SONG_LIMIT
+│   └── useProjectionFontSize.ts # calcCanvasFontSize() — cálculo matemático puro sin DOM
 │
 ├── components/
 │   ├── Sidebar.tsx          # Nav: Biblioteca, Setlists, Biblia, Contador, Notas, Ajustes
-│   ├── ControlPanel.tsx     # Panel derecho: navegación de slides, Negro, Logo, lista de slides
+│   ├── ControlPanel.tsx     # Panel derecho: slides, ocultar texto, slider de escala de fuente
 │   ├── MediaPanel.tsx       # Panel de media: carga imagen/video para anuncios en proyección
-│   ├── RecognitionPanel.tsx # UI del reconocimiento de audio (ACRCloud)
+│   ├── ProjectionPreview.tsx # Preview del operador con canvas fijo escalado
 │   ├── VideoControls.tsx    # Controles de video proyectado (play/pause/seek)
 │   ├── OnlineSearchModal.tsx # Modal de búsqueda online de letras (lrclib.net)
 │   ├── OnboardingFlow.tsx   # Tour guiado de 4 pasos para nuevos usuarios
 │   └── ConfirmDialog.tsx    # Diálogo de confirmación reutilizable
 │
 ├── pages/
-│   ├── LandingView.tsx      # Pantalla de bienvenida (usuario no autenticado)
+│   ├── LandingView.tsx      # Landing con comparativa de planes freemium + formulario de interés premium
 │   ├── AuthView.tsx         # Vista de autenticación
 │   ├── LibraryView.tsx      # Biblioteca de canciones con búsqueda y filtros
 │   ├── SongEditor.tsx       # Editor de canción (crear/editar, con preview de slides)
 │   ├── SetlistsView.tsx     # Gestión de setlists con drag & drop
-│   ├── BibleView.tsx        # Navegador de Biblia con búsqueda global
+│   ├── BibleView.tsx        # Navegador de Biblia con bento de capítulos y búsqueda global
 │   ├── CountdownView.tsx    # Contador regresivo configurable con proyección
 │   ├── NotesView.tsx        # Notas del culto: asistencia desglosada + avisos + historial
-│   ├── SettingsView.tsx     # Ajustes: auth, tema de proyección, API keys
-│   └── ProjectionWindow.tsx # Ventana de proyección (detectada por window.name)
+│   ├── SettingsView.tsx     # Ajustes: auth, tema, aspect ratio, API keys
+│   └── ProjectionWindow.tsx # Ventana de proyección con canvas fijo + transform:scale
 │
 └── data/
     ├── bible-content.ts     # Biblia RVR1960 completa en JSON local
@@ -104,9 +104,14 @@ PING / PONG        → heartbeat para detectar si la ventana está viva
 ```
 
 ### Auto-fit de fuente en ProjectionWindow
-- Algoritmo de búsqueda binaria que maximiza el tamaño de fuente sin desbordamiento
+- **Canvas fijo**: 1920×1080 (16:9) o 1024×768 (4:3), escalado al viewport con `transform: scale`
+- Inmune a F11, fullscreen API y cualquier tamaño de ventana
+- `calcCanvasFontSize()` en `src/hooks/useProjectionFontSize.ts`: cálculo matemático puro sin DOM
+  - Estima word-wrap para textos largos (versículos bíblicos)
+  - Búsqueda binaria contra dimensiones del canvas fijo
+  - Parámetro `fontScale` (0.4–1.5) para ajuste manual del operador
+- `aspectRatio` y `fontScale` persisten en localStorage via `useAppStore`
 - Cap configurable via `theme.maxFontSize` (usado por NotesView para avisos y asistencia)
-- Recalcula en cada cambio de slide y en resize de ventana
 
 ### Capas Z-index en ProjectionWindow
 ```
@@ -182,13 +187,15 @@ z:30 → pantalla negra
 - `setMedia(media)` — carga imagen/video de anuncios
 - NO persiste en localStorage (estado efímero de sesión)
 
-### `useAppStore` (persiste `settings`, `isSidebarOpen`, `onboardingDone`, `guestMode`)
+### `useAppStore` (persiste `settings`, `isSidebarOpen`, `onboardingDone`, `guestMode`, `aspectRatio`, `fontScale`)
 - `settings: AppSettings` — ACRCloud keys, Genius token, churchName, defaultTheme
 - `user / authStatus / userRole` — estado de autenticación Supabase
 - `activeView` — `'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes'`
 - `guestMode` — acceso sin autenticación
 - `editingSong / activeSetlist` — estado de edición
 - `isSidebarOpen / onboardingDone` — estado de UI
+- `aspectRatio: '16:9' | '4:3'` — relación de aspecto del canvas de proyección
+- `fontScale: number` — escala de fuente (1.0 = auto-máximo)
 
 ### `useCountdownStore` (persiste config)
 - `config: CountdownConfig` — título, duración, tema visual
@@ -236,8 +243,10 @@ Vista en el sidebar entre Contador y Ajustes.
 | `setlists` | Setlists |
 | `backgrounds` | Assets de fondo |
 | `app_settings` | Configuración global |
-| `profiles` | Perfil de usuario con `role` |
+| `profiles` | Perfil de usuario con `role` y `plan` |
 | `attendance_records` | Asistencia por culto y fecha |
+| `church_notes` | Notas del culto (asistencia + avisos) |
+| `premium_interest` | Emails de usuarios interesados en el plan premium |
 
 ### DDL `attendance_records`
 ```sql
