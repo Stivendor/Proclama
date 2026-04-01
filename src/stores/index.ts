@@ -7,7 +7,12 @@ import { supabase } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
-// ─── Default theme ─────────────────────────────────────────────────────────────
+// ─── Canvas sizes por aspect ratio ────────────────────────────────────────────
+export const CANVAS_SIZES = {
+  '16:9': { width: 1920, height: 1080 },
+  '4:3':  { width: 1024, height: 768  },
+} as const
+export type AspectRatio = keyof typeof CANVAS_SIZES
 export const DEFAULT_THEME: ProjectionTheme = {
   background: '#0a0a0f',
   fontFamily: 'Lora, Georgia, serif',
@@ -30,7 +35,6 @@ export const DEFAULT_THEME: ProjectionTheme = {
 
 // ─── Default settings ──────────────────────────────────────────────────────────
 export const DEFAULT_SETTINGS: AppSettings = {
-  geniusToken: '',
   churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME
@@ -199,6 +203,10 @@ interface AppStore {
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
 
+  // Aspect ratio del canvas de proyección
+  aspectRatio: AspectRatio
+  setAspectRatio: (r: AspectRatio) => void
+
   // Backgrounds
   backgrounds: BackgroundAsset[]
   backgroundsLastFetch: number | null
@@ -250,6 +258,9 @@ export const useAppStore = create<AppStore>()(
       isSidebarOpen: true,
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
+
+      aspectRatio: '16:9' as AspectRatio,
+      setAspectRatio: (r) => set({ aspectRatio: r }),
 
       backgrounds: [],
       backgroundsLastFetch: null,
@@ -306,6 +317,7 @@ export const useAppStore = create<AppStore>()(
         guestMode: state.guestMode,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
+        aspectRatio: state.aspectRatio,
       })
     }
   )
