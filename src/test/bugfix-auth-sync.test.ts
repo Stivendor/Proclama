@@ -17,7 +17,7 @@ import { supabase } from '@/services/supabase'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 describe('Bug Fix Verification: Redundant Auth Sync (Issue 1.1)', () => {
-  let fetchSongsSpy: ReturnType<typeof vi.fn>
+  let fetchSongsSpy: ReturnType<typeof vi.fn<() => Promise<any[]>>>
   let authCallbacks: Array<(event: AuthChangeEvent, session: Session | null) => void> = []
   
   beforeEach(() => {
@@ -25,7 +25,7 @@ describe('Bug Fix Verification: Redundant Auth Sync (Issue 1.1)', () => {
     authCallbacks = []
     
     // Mock fetchSongs to track calls
-    fetchSongsSpy = vi.fn().mockResolvedValue([])
+    fetchSongsSpy = vi.fn<() => Promise<any[]>>().mockResolvedValue([])
     
     // Mock supabase.auth.onAuthStateChange to capture callbacks
     vi.spyOn(supabase.auth, 'onAuthStateChange').mockImplementation((callback) => {
@@ -33,6 +33,8 @@ describe('Bug Fix Verification: Redundant Auth Sync (Issue 1.1)', () => {
       return {
         data: {
           subscription: {
+            id: 'mock-subscription-id',
+            callback,
             unsubscribe: vi.fn()
           }
         }
@@ -43,7 +45,7 @@ describe('Bug Fix Verification: Redundant Auth Sync (Issue 1.1)', () => {
     vi.spyOn(supabase.auth, 'getSession').mockResolvedValue({
       data: { session: null },
       error: null
-    })
+    } as any)
   })
   
   afterEach(() => {

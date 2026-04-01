@@ -141,18 +141,24 @@ export default function LandingView() {
 
             {/* Celdas regulares */}
             <div className="bento-cell animate-on-scroll delay-2">
+               <Music2 size={28} color="var(--gold)" />
+               <h3>3,000+ Canciones Precargadas</h3>
+               <p>Base de datos completa de himnos y alabanzas cristianas lista para usar desde el primer día.</p>
+            </div>
+
+            <div className="bento-cell animate-on-scroll delay-3">
                <BookOpen size={28} color="var(--gold)" />
                <h3>Biblia Veloz</h3>
                <p>Ingresa referencias ("Juan 3:16") y lánzalas pantalla al instante en múltiples versiones.</p>
             </div>
 
-            <div className="bento-cell animate-on-scroll delay-3">
+            <div className="bento-cell animate-on-scroll delay-4">
                <Video size={28} color="var(--gold)" />
                <h3>Fondos Dinámicos</h3>
                <p>Monta videos en bucle (MP4) o imágenes de fondo sin atascar tu computadora.</p>
             </div>
 
-            <div className="bento-cell cell-wide animate-on-scroll delay-4">
+            <div className="bento-cell cell-wide animate-on-scroll delay-5">
               <div className="cell-content-row">
                 <div className="icon-box"><Cloud size={24} color="#060810"/></div>
                 <div>
