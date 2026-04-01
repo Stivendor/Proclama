@@ -488,16 +488,7 @@ export default function BibleView() {
               <ChevronLeft size={18} />
             </button>
             <span className="chapter-title">
-              {book.name} — Capítulo
-              <select
-                value={selectedChapter}
-                onChange={e => setSelectedChapter(Number(e.target.value))}
-                className="chapter-select"
-              >
-                {Array.from({ length: book.chapters }, (_, i) => i + 1).map(n => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
+              {book.name} — Capítulo {selectedChapter}
             </span>
             <button
               className="btn-icon"
@@ -507,6 +498,20 @@ export default function BibleView() {
             >
               <ChevronRight size={18} />
             </button>
+          </div>
+
+          {/* Bento de capítulos */}
+          <div className="chapters-bento">
+            {Array.from({ length: book.chapters }, (_, i) => i + 1).map(n => (
+              <button
+                key={n}
+                className={`chapter-cell ${selectedChapter === n ? 'active' : ''}`}
+                onClick={() => setSelectedChapter(n)}
+                aria-label={`Capítulo ${n}`}
+              >
+                {n}
+              </button>
+            ))}
           </div>
 
           <div className="bible-search">

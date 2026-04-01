@@ -983,11 +983,22 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; gap: 8px; justify-content: center;
   padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.chapter-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.chapter-select {
-  width: auto; padding: 4px 6px; font-size: 14px; font-weight: 600;
-  background: var(--bg-elevated); border-color: var(--border);
+.chapter-title { font-size: 14px; font-weight: 600; }
+
+/* Bento de capítulos */
+.chapters-bento {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; max-height: 140px; overflow-y: auto;
 }
+.chapter-cell {
+  width: 36px; height: 36px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chapter-cell:hover { background: rgba(201, 166, 88, 0.15); color: #C9A658; border-color: #C9A658; }
+.chapter-cell.active { background: #C9A658; color: #000; border-color: #C9A658; font-weight: 700; }
 .bible-search {
   display: flex; gap: 6px; padding: 8px 12px;
   border-bottom: 1px solid var(--border); flex-shrink: 0;
