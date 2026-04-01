@@ -12,6 +12,7 @@ export const DEFAULT_COUNTDOWN_THEME: CountdownTheme = {
   timerColor: '#ffffff',
   textShadow: true,
   backgroundBlur: 0,
+  backgroundDarkness: 0,
   backgroundOverlayOpacity: 0.3
 }
 

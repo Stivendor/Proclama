@@ -167,7 +167,7 @@ export default function ProjectionWindow() {
         className="projection-background-base" 
         style={{ 
           position: 'absolute', inset: 0, 
-          filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
+          filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
           transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`,
           willChange: 'filter, transform',
           zIndex: 0,
@@ -186,7 +186,7 @@ export default function ProjectionWindow() {
           style={{ 
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', 
             zIndex: 1,
-            filter: `blur(${activeTheme.backgroundBlur || 0}px)`,
+            filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
             transform: `scale(${activeTheme.backgroundBlur ? 1.1 : 1})`,
             willChange: 'filter, transform'
           }}
@@ -212,7 +212,7 @@ export default function ProjectionWindow() {
             position: 'absolute', inset: 0, 
             zIndex: state.media.isBackgroundMode ? 2 : 20, 
             background: state.media.isBackgroundMode ? 'transparent' : '#000',
-            filter: state.media.isBackgroundMode ? `blur(${activeTheme.backgroundBlur || 0}px)` : 'none',
+            filter: state.media.isBackgroundMode ? `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})` : 'none',
             transform: state.media.isBackgroundMode && activeTheme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
           }}
         >
