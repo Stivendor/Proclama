@@ -12,8 +12,7 @@ import * as supabaseService from '@/services/supabase'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
-const SortableSongItem = memo(function SortableSongItem({ songId, onRemove, onActivate }: { songId: number; onRemove: () => void; onActivate: (s: Song) => void }) {
-  const song = useLiveQuery(() => db.songs.get(songId), [songId])
+const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
 
@@ -65,6 +64,12 @@ export default function SetlistsView() {
 
   const localSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
   const allSongs = useLiveQuery(() => db.songs.orderBy('title').toArray()) ?? []
+  
+  // Batch load all songs for the editing setlist (fixes N+1 query pattern)
+  const setlistSongs = useLiveQuery(
+    () => editingSetlist ? db.songs.bulkGet(editingSetlist.songIds) : Promise.resolve([] as (Song | undefined)[]),
+    [editingSetlist?.songIds]
+  ) ?? []
 
   // Extraer tags y lenguajes únicos para los filtros
   const allTags = useMemo(() => {
@@ -303,14 +308,18 @@ export default function SetlistsView() {
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
-                    {editingSetlist.songIds.map(id => (
-                      <SortableSongItem 
-                        key={id} 
-                        songId={id} 
-                        onRemove={() => removeSongFromSetlist(id)} 
-                        onActivate={loadSong}
-                      />
-                    ))}
+                    {editingSetlist.songIds.map((id, index) => {
+                      const song = setlistSongs[index]
+                      return (
+                        <SortableSongItem 
+                          key={id} 
+                          songId={id}
+                          song={song} 
+                          onRemove={() => removeSongFromSetlist(id)} 
+                          onActivate={loadSong}
+                        />
+                      )
+                    })}
                   </SortableContext>
                 </DndContext>
               )}

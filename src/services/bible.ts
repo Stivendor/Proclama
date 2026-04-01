@@ -104,23 +104,122 @@ export interface BibleChapterResult {
 // Datos locales - Combina BIBLE_CONTENT expandida con datos locales adicionales
 const BIBLE_DATA = BIBLE_CONTENT
 
+// Request deduplication and caching for searchGlobal
+const pendingRequests = new Map<string, Promise<BibleVerseResult[]>>()
+const searchCache = new Map<string, { results: BibleVerseResult[]; timestamp: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+// Chapter caching with LRU eviction
+interface ChapterCacheEntry {
+  verses: BibleVerseResult[]
+  timestamp: number
+}
+
+const chapterCache = new Map<string, ChapterCacheEntry>()
+const MAX_CHAPTER_CACHE_SIZE = 50
+const chapterAccessOrder: string[] = [] // Track access order for LRU
+
+function getCacheKey(bookId: string, chapter: number, translation: string): string {
+  return `${bookId}:${chapter}:${translation}`
+}
+
+function evictLRUChapter(): void {
+  if (chapterAccessOrder.length > 0) {
+    const oldestKey = chapterAccessOrder.shift()
+    if (oldestKey) {
+      chapterCache.delete(oldestKey)
+    }
+  }
+}
+
+function updateChapterAccess(key: string): void {
+  // Remove key from current position if it exists
+  const index = chapterAccessOrder.indexOf(key)
+  if (index > -1) {
+    chapterAccessOrder.splice(index, 1)
+  }
+  // Add to end (most recently used)
+  chapterAccessOrder.push(key)
+}
+
+function getCachedChapter(bookId: string, chapter: number, translation: string): BibleVerseResult[] | null {
+  const key = getCacheKey(bookId, chapter, translation)
+  const cached = chapterCache.get(key)
+  
+  if (cached) {
+    updateChapterAccess(key)
+    return cached.verses
+  }
+  
+  return null
+}
+
+function setCachedChapter(bookId: string, chapter: number, translation: string, verses: BibleVerseResult[]): void {
+  const key = getCacheKey(bookId, chapter, translation)
+  
+  // Evict oldest entry if cache is full
+  if (chapterCache.size >= MAX_CHAPTER_CACHE_SIZE && !chapterCache.has(key)) {
+    evictLRUChapter()
+  }
+  
+  chapterCache.set(key, {
+    verses,
+    timestamp: Date.now()
+  })
+  
+  updateChapterAccess(key)
+}
+
+export function clearChapterCache(): void {
+  chapterCache.clear()
+  chapterAccessOrder.length = 0
+}
+
+export function clearChapterCacheForTranslation(translation: string): void {
+  const keysToDelete: string[] = []
+  
+  for (const key of chapterCache.keys()) {
+    if (key.endsWith(`:${translation}`)) {
+      keysToDelete.push(key)
+    }
+  }
+  
+  keysToDelete.forEach(key => {
+    chapterCache.delete(key)
+    const index = chapterAccessOrder.indexOf(key)
+    if (index > -1) {
+      chapterAccessOrder.splice(index, 1)
+    }
+  })
+}
+
 export async function fetchChapter(
   bookId: string,
   chapter: number,
   translation = 'RVR1960'
 ): Promise<BibleVerseResult[]> {
   try {
+    // Check cache first
+    const cached = getCachedChapter(bookId, chapter, translation)
+    if (cached) {
+      return cached
+    }
+    
     const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
     
     // Primero intentar datos locales si es RVR1960
     if (translation === 'RVR1960' && BIBLE_DATA[bookId]?.[chapter]) {
-      return BIBLE_DATA[bookId][chapter].map(v => ({
+      const verses = BIBLE_DATA[bookId][chapter].map(v => ({
         reference: `${bookName} ${chapter}:${v.verse}`,
         text: v.text,
         translation: 'RVR1960',
         bookId,
         chapter
       }))
+      
+      // Cache the result
+      setCachedChapter(bookId, chapter, translation, verses)
+      return verses
     }
     
     // Si no hay datos locales o es otra versión, usar Bolls Life API
@@ -136,13 +235,17 @@ export async function fetchChapter(
     if (!res.ok) return []
     const data = await res.json()
     
-    return (data ?? []).map((v: any) => ({
+    const verses = (data ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
       text: v.text.replace(/<[^>]*>?/gm, '').trim(), // Limpiar HTML si lo hay
       translation,
       bookId,
       chapter
     }))
+    
+    // Cache the result
+    setCachedChapter(bookId, chapter, translation, verses)
+    return verses
   } catch (error) {
     console.error('Error fetching chapter:', error)
     return []
@@ -214,8 +317,35 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
 export async function searchGlobal(query: string, translation = 'RVR1960'): Promise<BibleVerseResult[]> {
   if (!query.trim()) return []
   
-  const results: BibleVerseResult[] = []
   const queryLower = query.toLowerCase().trim()
+  const cacheKey = `${queryLower}:${translation}`
+  
+  // Check cache first
+  const cached = searchCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.results
+  }
+  
+  // Check if request is already in flight
+  const pending = pendingRequests.get(cacheKey)
+  if (pending) {
+    return pending
+  }
+  
+  // Create new request
+  const requestPromise = performSearch(queryLower, translation, cacheKey)
+  pendingRequests.set(cacheKey, requestPromise)
+  
+  try {
+    const results = await requestPromise
+    return results
+  } finally {
+    pendingRequests.delete(cacheKey)
+  }
+}
+
+async function performSearch(queryLower: string, translation: string, cacheKey: string): Promise<BibleVerseResult[]> {
+  const results: BibleVerseResult[] = []
   
   // 1. Intentar parsear como referencia (ej: "Juan 3:16" o "Génesis 1")
   // Regex simple para: [Nombre Libro] [Capítulo](:[Versículo])?
@@ -304,7 +434,7 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
   // 4. Si no hay suficientes resultados o es otra versión, usar Bolls Life Search API
   if (results.length < 5 || translation !== 'RVR1960') {
     try {
-      const searchUrl = `https://bolls.life/search/${translation}/?search=${encodeURIComponent(query)}`
+      const searchUrl = `https://bolls.life/search/${translation}/?search=${encodeURIComponent(queryLower)}`
       const res = await fetch(searchUrl)
       if (res.ok) {
         const apiResults = await res.json()
@@ -329,6 +459,9 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
       console.error('Error in Bolls Life search:', e)
     }
   }
+  
+  // Cache the results before returning
+  searchCache.set(cacheKey, { results, timestamp: Date.now() })
   
   return results.slice(0, MAX_RESULTS)
 }

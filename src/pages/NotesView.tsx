@@ -255,6 +255,7 @@ export default function NotesView() {
   // Attendance breakdown inputs
   const [att, setAtt] = useState({ caballeros: '', damas: '', amigos: '', ninos: '' })
   const [attError, setAttError] = useState('')
+  const [syncing, setSyncing] = useState(false)
 
   // Notices
   const [newNoticeText, setNewNoticeText] = useState('')
@@ -345,9 +346,12 @@ export default function NotesView() {
     }
     // Save locally
     await persistNote(buildNote({ attendance: breakdown, serviceName: serviceName.trim() || undefined }))
+    
     // Sync attendance to Supabase if authenticated
     if (user) {
+      setSyncing(true)
       const ok = await upsertAttendance(user.id, selectedDate, breakdown, serviceName.trim() || undefined)
+      setSyncing(false)
       if (ok) setSyncOk(true)
       else setSyncError(true)
     }
@@ -628,9 +632,18 @@ export default function NotesView() {
             <span className="attendance-total-value">
               {parseField(att.caballeros) + parseField(att.damas) + parseField(att.amigos) + parseField(att.ninos)}
             </span>
-            <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }}>
-              <Check size={14} />
-              Guardar
+            <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }} disabled={syncing}>
+              {syncing ? (
+                <>
+                  <span className="spinner" style={{ width: 14, height: 14, marginRight: 4 }} />
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  <Check size={14} />
+                  Guardar
+                </>
+              )}
             </button>
           </div>
 
