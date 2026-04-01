@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Eye, EyeOff, Image, Trash2, Type } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { useProjectionStore } from '@/stores'
+import { useProjectionStore, useAppStore } from '@/stores'
 import MediaPanel from './MediaPanel'
 
 export default function ControlPanel() {
@@ -15,6 +15,7 @@ export default function ControlPanel() {
     setHideText: s.setHideText,
     clearSong: s.clearSong
   })))
+  const { fontScale, setFontScale } = useAppStore(useShallow(s => ({ fontScale: s.fontScale, setFontScale: s.setFontScale })))
 
   if (!songTitle && slides.length === 0) {
     return (
@@ -62,11 +63,54 @@ export default function ControlPanel() {
         </button>
       </div>
 
+      {/* Escala de fuente */}
+      <div className="font-scale-control">
+        <div className="font-scale-header">
+          <Type size={13} />
+          <span>Tamaño de letra</span>
+          <span className="font-scale-value">{fontScale === 1 ? 'Auto' : `${Math.round(fontScale * 100)}%`}</span>
+          {fontScale !== 1 && (
+            <button className="font-scale-reset" onClick={() => setFontScale(1)} title="Restablecer al máximo automático">↺</button>
+          )}
+        </div>
+        <input
+          type="range" min="0.4" max="1.5" step="0.05"
+          value={fontScale}
+          onChange={e => setFontScale(Number(e.target.value))}
+          className="font-scale-slider"
+          aria-label="Escala de tamaño de letra"
+        />
+        <div className="font-scale-labels"><span>Pequeño</span><span>Auto</span><span>Grande</span></div>
+      </div>
+
       <style>{`
         .active-hide {
           background: rgba(59, 130, 246, 0.2) !important;
           border-color: var(--blue) !important;
           color: var(--blue) !important;
+        }
+        .font-scale-control {
+          padding: 8px 12px;
+          border-bottom: 1px solid var(--border);
+        }
+        .font-scale-header {
+          display: flex; align-items: center; gap: 6px;
+          font-size: 12px; color: var(--text-muted); margin-bottom: 6px;
+        }
+        .font-scale-header span:first-of-type { flex: 1; }
+        .font-scale-value { color: var(--gold); font-weight: 600; font-size: 11px; }
+        .font-scale-reset {
+          background: none; border: none; color: var(--text-muted); cursor: pointer;
+          font-size: 14px; padding: 0 2px; line-height: 1;
+        }
+        .font-scale-reset:hover { color: var(--gold); }
+        .font-scale-slider {
+          width: 100%; accent-color: var(--gold); cursor: pointer;
+          height: 4px; border-radius: 2px;
+        }
+        .font-scale-labels {
+          display: flex; justify-content: space-between;
+          font-size: 10px; color: var(--text-muted); margin-top: 2px;
         }
       `}</style>
 

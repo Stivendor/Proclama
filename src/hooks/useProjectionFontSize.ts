@@ -20,7 +20,8 @@ export function calcCanvasFontSize(
   isBible: boolean,
   titleAtTop: boolean,
   titleAtBottom: boolean,
-  aspectRatio: AspectRatio = '16:9'
+  aspectRatio: AspectRatio = '16:9',
+  fontScale: number = 1.0  // 1.0 = auto-máximo, <1 reduce, >1 aumenta (con cap)
 ): number {
   const canvas = CANVAS_SIZES[aspectRatio]
   const availW = canvas.width  * (1 - SAFE_PADDING_X * 2)
@@ -54,13 +55,13 @@ export function calcCanvasFontSize(
     return totalH <= availH
   }
 
-  let lo = 10, hi = Math.min(Math.floor(availH * 0.85), theme.maxFontSize ?? 600), best = lo
+  let lo = 10, hi = Math.min(Math.floor(availH * 0.95), theme.maxFontSize ?? 600), best = lo
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2)
     if (fitsAtSize(mid)) { best = mid; lo = mid + 1 }
     else hi = mid - 1
   }
 
-  console.log(`[FontSize] best=${best}px rows=${rows.length} isBible=${isBible} maxLen=${Math.max(...rows.map(r => r.text.length))}`)
-  return best
+  console.log(`[FontSize] best=${best}px scale=${fontScale} rows=${rows.length} isBible=${isBible} maxLen=${Math.max(...rows.map(r => r.text.length))}`)
+  return Math.max(10, Math.round(best * fontScale))
 }
