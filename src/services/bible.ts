@@ -470,11 +470,16 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
 export function getBookSuggestion(query: string): { id: string; name: string } | null {
   if (!query.trim()) return null
   
-  const queryLower = query.toLowerCase()
+  // Helper function to remove accents/diacritics
+  const removeAccents = (str: string) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  }
   
-  // Buscar libros que comiencen con la query
+  const queryLower = removeAccents(query.toLowerCase())
+  
+  // Buscar libros que comiencen con la query (ignorando tildes)
   const matches = BIBLE_BOOKS.filter(b => 
-    b.name.toLowerCase().startsWith(queryLower)
+    removeAccents(b.name.toLowerCase()).startsWith(queryLower)
   )
   
   // Si hay exactamente una coincidencia, devolverla
@@ -485,7 +490,7 @@ export function getBookSuggestion(query: string): { id: string; name: string } |
   // Si hay múltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
   // Por ejemplo: "san" coincide con "Santiago" pero no debería coincidir con "Salmos"
   const wordMatches = BIBLE_BOOKS.filter(b => {
-    const parts = b.name.toLowerCase().split(' ')
+    const parts = removeAccents(b.name.toLowerCase()).split(' ')
     return parts.some(part => part.startsWith(queryLower))
   })
   
