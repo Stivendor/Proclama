@@ -92,13 +92,26 @@ export default function LibraryView() {
     let results = await query.toArray()
     
     if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      results = results.filter(s => 
-        s.title.toLowerCase().includes(q) || 
-        s.artist.toLowerCase().includes(q) ||
-        s.lyrics.toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q))
-      )
+      const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase()
+      const q = normalize(searchQuery)
+      
+      // Prioritize searching in Titles and Artists (faster)
+      const titleMatches = results.filter(s => normalize(s.title).includes(q) || normalize(s.artist).includes(q))
+      
+      if (titleMatches.length >= 50) {
+        results = titleMatches.slice(0, 50)
+      } else {
+        // If not enough title matches, look into lyrics
+        const lyricMatches = results.filter(s => 
+          !titleMatches.includes(s) && (
+            normalize(s.lyrics).includes(q) || 
+            s.tags.some(t => normalize(t).includes(q))
+          )
+        )
+        results = [...titleMatches, ...lyricMatches].slice(0, 50)
+      }
+    } else {
+      results = results.slice(0, 50) // Default view limit
     }
 
     if (selectedTag) {
