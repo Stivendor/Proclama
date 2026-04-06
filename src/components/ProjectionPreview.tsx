@@ -172,6 +172,9 @@ function ProjectionPreview() {
       ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
       : 'none'
 
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
+
     return (
       <>
         <div style={{
@@ -179,10 +182,13 @@ function ProjectionPreview() {
           background: theme.backgroundType === 'image' && theme.backgroundImageUrl
             ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
             : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-          filter: `brightness(${1 - (theme.backgroundDarkness || 0)})`,
+          filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+          <video autoPlay muted loop playsInline style={{ 
+            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+            filter: bgFilter, transform: bgTransform,
+          }}>
             <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}
@@ -213,8 +219,12 @@ function ProjectionPreview() {
           </div>
         )}
         {projectionState.media && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
-            background: projectionState.media.isBackgroundMode ? 'transparent' : '#000' }}>
+          <div style={{ 
+            position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
+            background: projectionState.media.isBackgroundMode ? 'transparent' : '#000',
+            filter: projectionState.media.isBackgroundMode ? bgFilter : 'none',
+            transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
+          }}>
             {projectionState.media.type === 'video' ? (
               <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}>
                 <source src={projectionState.media.url} type="video/mp4" />
@@ -233,6 +243,8 @@ function ProjectionPreview() {
     if (!countdownState) return null
     const theme = countdownState.config.theme
     const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
     return (
       <>
         <div style={{
@@ -240,10 +252,13 @@ function ProjectionPreview() {
           background: theme.backgroundType === 'image' && theme.backgroundImageUrl
             ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
             : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-          filter: `brightness(${1 - (theme.backgroundDarkness || 0)})`,
+          filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+          <video autoPlay muted loop playsInline style={{ 
+            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+            filter: bgFilter, transform: bgTransform,
+          }}>
             <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}

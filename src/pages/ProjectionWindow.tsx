@@ -100,6 +100,9 @@ export default function ProjectionWindow() {
         ? activeTheme.background : '#000',
   }
 
+  const bgFilter = `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - ((activeTheme.backgroundOverlayOpacity ?? 0.3))})`
+  const bgTransform = activeTheme.backgroundBlur ? 'scale(1.05)' : 'none'
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
@@ -141,15 +144,16 @@ export default function ProjectionWindow() {
         {/* Fondo */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 0,
-          filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
-          transform: `scale(${activeTheme.backgroundBlur ? 1.05 : 1})`,
+          filter: bgFilter,
+          transform: bgTransform,
           ...bgStyle
         }} />
 
         {activeTheme.backgroundType === 'video' && activeTheme.backgroundVideoUrl && (
           <video key={activeTheme.backgroundVideoUrl} autoPlay muted loop playsInline style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
-            filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
+            filter: bgFilter,
+            transform: bgTransform,
           }}>
             <source src={activeTheme.backgroundVideoUrl} type="video/mp4" />
           </video>
@@ -159,8 +163,12 @@ export default function ProjectionWindow() {
           backgroundColor: `rgba(0,0,0,${activeTheme.backgroundOverlayOpacity ?? 0.3})` }} />
 
         {state.media && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
-            background: state.media.isBackgroundMode ? 'transparent' : '#000' }}>
+          <div style={{ 
+            position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
+            background: state.media.isBackgroundMode ? 'transparent' : '#000',
+            filter: state.media.isBackgroundMode ? bgFilter : 'none',
+            transform: state.media.isBackgroundMode ? bgTransform : 'none',
+          }}>
             {state.media.type === 'video' ? (
               <video ref={videoRef} autoPlay loop
                 style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}>

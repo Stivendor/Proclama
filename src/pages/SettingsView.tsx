@@ -403,54 +403,63 @@ export default function SettingsView() {
           <section className="settings-section preview-section">
             <div className="theme-preview-header">Vista Previa de Proyección</div>
             <div className="theme-preview">
-              <div className="preview-background-layer" style={{ 
-                position: 'absolute', inset: 0,
-                filter: `blur(${state.theme.backgroundBlur || 0}px)`,
-                transform: 'scale(1.1)', // Evitar bordes blancos al blurear
-                background: state.theme.backgroundType === 'image' && state.theme.backgroundImageUrl
-                  ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
-                  : (state.theme.backgroundType === 'color' || !state.theme.backgroundType)
-                    ? state.theme.background 
-                    : '#000'
-              }}>
-                {state.theme.backgroundType === 'video' && state.theme.backgroundVideoUrl && (
-                  <video 
-                    key={state.theme.backgroundVideoUrl}
-                    src={state.theme.backgroundVideoUrl} 
-                    autoPlay muted loop 
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
-                  />
-                )}
-              </div>
+              {(() => {
+                const bgFilter = `blur(${state.theme.backgroundBlur || 0}px) brightness(${1 - (state.theme.backgroundOverlayOpacity ?? 0.3)})`
+                const bgTransform = state.theme.backgroundBlur ? 'scale(1.1)' : 'none'
+                
+                return (
+                  <>
+                    <div className="preview-background-layer" style={{ 
+                      position: 'absolute', inset: 0,
+                      filter: bgFilter,
+                      transform: bgTransform,
+                      background: state.theme.backgroundType === 'image' && state.theme.backgroundImageUrl
+                        ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
+                        : (state.theme.backgroundType === 'color' || !state.theme.backgroundType)
+                          ? state.theme.background 
+                          : '#000'
+                    }}>
+                      {state.theme.backgroundType === 'video' && state.theme.backgroundVideoUrl && (
+                        <video 
+                          key={state.theme.backgroundVideoUrl}
+                          src={state.theme.backgroundVideoUrl} 
+                          autoPlay muted loop 
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      )}
+                    </div>
 
-              {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
-              {state.media && (
-                <div 
-                  className="preview-media-layer" 
-                  style={{ 
-                    position: 'absolute', inset: 0, 
-                    zIndex: state.media.isBackgroundMode ? 2 : 20, 
-                    background: state.media.isBackgroundMode ? 'transparent' : '#000',
-                    filter: state.media.isBackgroundMode ? `blur(${state.theme.backgroundBlur || 0}px)` : 'none',
-                    transform: state.media.isBackgroundMode && state.theme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
-                  }}
-                >
-                  {state.media.type === 'video' ? (
-                    <video 
-                      autoPlay 
-                      loop 
-                      muted
-                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
-                      src={state.media.url}
-                    />
-                  ) : (
-                    <img 
-                      src={state.media.url} 
-                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
-                    />
-                  )}
-                </div>
-              )}
+                    {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
+                    {state.media && (
+                      <div 
+                        className="preview-media-layer" 
+                        style={{ 
+                          position: 'absolute', inset: 0, 
+                          zIndex: state.media.isBackgroundMode ? 2 : 20, 
+                          background: state.media.isBackgroundMode ? 'transparent' : '#000',
+                          filter: state.media.isBackgroundMode ? bgFilter : 'none',
+                          transform: state.media.isBackgroundMode ? bgTransform : 'none'
+                        }}
+                      >
+                        {state.media.type === 'video' ? (
+                          <video 
+                            autoPlay 
+                            loop 
+                            muted
+                            style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+                            src={state.media.url}
+                          />
+                        ) : (
+                          <img 
+                            src={state.media.url} 
+                            style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
+                          />
+                        )}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               
               {/* Capa de oscurecimiento */}
               <div style={{ 
