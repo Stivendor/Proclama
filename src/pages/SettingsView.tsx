@@ -55,11 +55,13 @@ export default function SettingsView() {
 
   const FONTS = [
     'Montserrat, sans-serif',
-    'Anton, sans-serif',
-    '"Bebas Neue", sans-serif',
-    'Inter, sans-serif',
     'Outfit, sans-serif',
-    'Unbounded, sans-serif',
+    'Rubik, sans-serif',
+    'Lexend, sans-serif',
+    'Kanit, sans-serif',
+    'Urbanist, sans-serif',
+    'Nunito, sans-serif',
+    'Inter, sans-serif',
     'Playfair Display, serif',
     'Lora, serif',
     'Cinzel, serif',
