@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
-import { DEFAULT_THEME, CANVAS_SIZES, useAppStore } from '@/stores'
+import { DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
 const INITIAL_STATE: ProjectionState = {
@@ -16,8 +16,7 @@ export default function ProjectionWindow() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const stateRef = useRef(state)
   stateRef.current = state
-  const aspectRatio = useAppStore(s => s.aspectRatio)
-  const canvas = CANVAS_SIZES[aspectRatio]
+  const canvas = CANVAS_SIZE
 
   // Escalar el canvas fijo al viewport actual
   const updateScale = useCallback(() => {
@@ -44,9 +43,9 @@ export default function ProjectionWindow() {
     const showTitle = (theme.showTitle || isBible) && songTitle
     const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
     const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
-    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, aspectRatio)
+    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom)
     setFontSize(size)
-  }, [aspectRatio])
+  }, [])
 
   useEffect(() => {
     recalcFont()
@@ -85,9 +84,11 @@ export default function ProjectionWindow() {
 
   const { slides, currentSlide, theme, songTitle, isBible, hideText } = state
   const slide = slides[currentSlide]
-  const showTitle = (theme.showTitle || isBible) && songTitle
-  const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
-  const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
+  
+  // Título solo para Biblia (es la cita bibliográfica)
+  const showTitle = isBible && songTitle
+  const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
+  const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
 
   const isCountdownActive = countdown && countdown.status !== 'idle'
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
@@ -99,16 +100,30 @@ export default function ProjectionWindow() {
         ? activeTheme.background : '#000',
   }
 
+  const bgFilter = `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - ((activeTheme.backgroundOverlayOpacity ?? 0.3))})`
+  const bgTransform = activeTheme.backgroundBlur ? 'scale(1.05)' : 'none'
+
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
   const strongShadow = activeTheme.textShadow
-    ? '2px 2px 4px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.9), 0 4px 30px rgba(0,0,0,0.7)'
+    ? `
+      0 0 10px rgba(0,0,0,1), 
+      0 0 20px rgba(0,0,0,0.8),
+      -2px -2px 0px #000,
+       2px -2px 0px #000,
+      -2px  2px 0px #000,
+       2px  2px 0px #000,
+       0px -3px 0px #000,
+       0px  3px 0px #000,
+      -3px  0px 0px #000,
+       3px  0px 0px #000
+    `
     : 'none'
 
   const textStyle: React.CSSProperties = {
-    fontFamily: theme.fontFamily, fontWeight: 700, color: theme.textColor,
-    lineHeight: 1.3, textTransform: theme.textUppercase ? 'uppercase' : 'none',
+    fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
+    lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
     textAlign: 'center', wordBreak: 'break-word', width: '100%',
     fontSize: `${fontSize}px`,
   }
@@ -129,15 +144,16 @@ export default function ProjectionWindow() {
         {/* Fondo */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 0,
-          filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
-          transform: `scale(${activeTheme.backgroundBlur ? 1.05 : 1})`,
+          filter: bgFilter,
+          transform: bgTransform,
           ...bgStyle
         }} />
 
         {activeTheme.backgroundType === 'video' && activeTheme.backgroundVideoUrl && (
           <video key={activeTheme.backgroundVideoUrl} autoPlay muted loop playsInline style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
-            filter: `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - (activeTheme.backgroundDarkness || 0)})`,
+            filter: bgFilter,
+            transform: bgTransform,
           }}>
             <source src={activeTheme.backgroundVideoUrl} type="video/mp4" />
           </video>
@@ -147,8 +163,12 @@ export default function ProjectionWindow() {
           backgroundColor: `rgba(0,0,0,${activeTheme.backgroundOverlayOpacity ?? 0.3})` }} />
 
         {state.media && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
-            background: state.media.isBackgroundMode ? 'transparent' : '#000' }}>
+          <div style={{ 
+            position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
+            background: state.media.isBackgroundMode ? 'transparent' : '#000',
+            filter: state.media.isBackgroundMode ? bgFilter : 'none',
+            transform: state.media.isBackgroundMode ? bgTransform : 'none',
+          }}>
             {state.media.type === 'video' ? (
               <video ref={videoRef} autoPlay loop
                 style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}>
@@ -186,27 +206,22 @@ export default function ProjectionWindow() {
           <div key={`${songTitle}-${currentSlide}`} style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: `${canvas.height * 0.05}px ${canvas.width * 0.06}px`,
+            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
           }}>
             <div style={textStyle}>
               {titleAtTop && (
-                <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em',
-                  marginBottom: '0.4em', letterSpacing: isBible ? '0' : '3px', textShadow: strongShadow }}>
+                <div style={{ opacity: 1, fontSize: '0.85em',
+                  marginBottom: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
                   {songTitle}
-                </div>
-              )}
-              {theme.showVerseLabel && slide.label && (
-                <div style={{ fontSize: '0.4em', opacity: 0.6, marginBottom: '0.2em', textShadow: strongShadow }}>
-                  {slide.label}
                 </div>
               )}
               <div style={{ textShadow: strongShadow }}>
                 {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
               </div>
               {titleAtBottom && (
-                <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em',
-                  marginTop: '0.4em', letterSpacing: isBible ? '0' : '3px', textShadow: strongShadow }}>
+                <div style={{ opacity: 1, fontSize: '0.85em',
+                  marginTop: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
                   {songTitle}
                 </div>
               )}

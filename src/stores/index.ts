@@ -7,21 +7,17 @@ import { supabase } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
-// ─── Canvas sizes por aspect ratio ────────────────────────────────────────────
-export const CANVAS_SIZES = {
-  '16:9': { width: 1920, height: 1080 },
-  '4:3':  { width: 1024, height: 768  },
-} as const
-export type AspectRatio = keyof typeof CANVAS_SIZES
+// ─── Canvas size de referencia (16:9) ──────────────────────────────────────────
+export const CANVAS_SIZE = { width: 1920, height: 1080 } as const
 export const DEFAULT_THEME: ProjectionTheme = {
   background: '#0a0a0f',
-  fontFamily: 'Lora, Georgia, serif',
+  fontFamily: 'Montserrat, sans-serif',
   fontSize: 72,
   textColor: '#ffffff',
   textShadow: true,
   transition: 'fade',
-  showTitle: true,
-  showVerseLabel: true,
+  showTitle: false,
+  showVerseLabel: false,
   backgroundType: 'color',
   backgroundBlur: 0,
   backgroundDarkness: 0,
@@ -29,8 +25,9 @@ export const DEFAULT_THEME: ProjectionTheme = {
   backgroundVideoUrl: '',
   fontSizeMax: false,
   titlePosition: 'top',
-  verseReferencePosition: 'top',
-  textUppercase: false
+  verseReferencePosition: 'bottom',
+  textUppercase: true,
+  fontScale: 1
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
@@ -203,9 +200,6 @@ interface AppStore {
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
 
-  // Aspect ratio del canvas de proyección
-  aspectRatio: AspectRatio
-  setAspectRatio: (r: AspectRatio) => void
 
   // Backgrounds
   backgrounds: BackgroundAsset[]
@@ -259,8 +253,6 @@ export const useAppStore = create<AppStore>()(
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
 
-      aspectRatio: '16:9' as AspectRatio,
-      setAspectRatio: (r) => set({ aspectRatio: r }),
 
       backgrounds: [],
       backgroundsLastFetch: null,
@@ -317,7 +309,6 @@ export const useAppStore = create<AppStore>()(
         guestMode: state.guestMode,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
-        aspectRatio: state.aspectRatio,
       })
     }
   )

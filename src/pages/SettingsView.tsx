@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Save, Eye, EyeOff, Sliders, LogIn, LogOut, CheckCircle, Menu, Image as ImageIcon, Film, UserPlus, Cloud, Loader2, FileText } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { useAppStore, useProjectionStore, DEFAULT_THEME, CANVAS_SIZES, useAppStore as useStore } from '@/stores'
-import type { AspectRatio } from '@/stores'
+import { useAppStore, useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore as useStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import TermsModal from '@/components/TermsModal'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 export default function SettingsView() {
-  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds, acceptTerms, setActiveView, aspectRatio, setAspectRatio } = useAppStore(useShallow(s => ({
+  const { settings, updateSettings, isSidebarOpen, toggleSidebar, user, backgrounds, fetchBackgrounds, acceptTerms, setActiveView } = useAppStore(useShallow(s => ({
     settings: s.settings, updateSettings: s.updateSettings, isSidebarOpen: s.isSidebarOpen, 
     toggleSidebar: s.toggleSidebar, user: s.user, backgrounds: s.backgrounds, fetchBackgrounds: s.fetchBackgrounds,
-    acceptTerms: s.acceptTerms, setActiveView: s.setActiveView,
-    aspectRatio: s.aspectRatio, setAspectRatio: s.setAspectRatio
+    acceptTerms: s.acceptTerms, setActiveView: s.setActiveView
   })))
   const { updateTheme, theme, media } = useProjectionStore(useShallow(s => ({
     updateTheme: s.updateTheme, theme: s.state.theme, media: s.state.media
@@ -56,13 +54,17 @@ export default function SettingsView() {
   }
 
   const FONTS = [
-    'Lora, Georgia, serif',
-    'Playfair Display, Georgia, serif',
-    'Cinzel, Georgia, serif',
     'Montserrat, sans-serif',
-    'Raleway, sans-serif',
-    '"Open Sans", sans-serif',
-    'Georgia, serif',
+    'Outfit, sans-serif',
+    'Rubik, sans-serif',
+    'Lexend, sans-serif',
+    'Kanit, sans-serif',
+    'Urbanist, sans-serif',
+    'Nunito, sans-serif',
+    'Inter, sans-serif',
+    'Playfair Display, serif',
+    'Lora, serif',
+    'Cinzel, serif',
     'Verdana, sans-serif'
   ]
 
@@ -234,19 +236,6 @@ export default function SettingsView() {
         <section className="settings-section">
           <h2><Sliders size={15} /> Proyección — Tema por Defecto</h2>
           <div className="form-group">
-            <label>Relación de Aspecto del Canvas</label>
-            <div className="segmented-control">
-              {(Object.keys(CANVAS_SIZES) as AspectRatio[]).map(r => (
-                <button key={r} className={aspectRatio === r ? 'active' : ''} onClick={() => setAspectRatio(r)}>
-                  {r}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-              16:9 para TVs y proyectores modernos · 4:3 para proyectores antiguos
-            </p>
-          </div>
-          <div className="form-group">
             <label>Tipo de Fondo</label>
             <div className="segmented-control">
               <button 
@@ -356,17 +345,6 @@ export default function SettingsView() {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Posición Título</label>
-              <select 
-                value={state.theme.titlePosition || 'top'} 
-                onChange={e => updateTheme({ titlePosition: e.target.value as any })}
-              >
-                <option value="top">Arriba</option>
-                <option value="bottom">Abajo</option>
-                <option value="none">Oculto</option>
-              </select>
-            </div>
-            <div className="form-group">
               <label>Posición Cita Bíblica</label>
               <select 
                 value={state.theme.verseReferencePosition || 'top'} 
@@ -376,36 +354,25 @@ export default function SettingsView() {
                 <option value="bottom">Abajo</option>
               </select>
             </div>
-          </div>
-          <div className="form-row">
             <div className="form-group">
               <label>Transición</label>
               <select value={state.theme.transition} onChange={e => updateTheme({ transition: e.target.value as any })}>
                 {TRANSITIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
-            <div className="form-group checkboxes">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={state.theme.textShadow}
-                  onChange={e => updateTheme({ textShadow: e.target.checked })} />
-                Sombra en el texto
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" checked={state.theme.showTitle}
-                  onChange={e => updateTheme({ showTitle: e.target.checked })} />
-                Mostrar título de canción
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" checked={state.theme.showVerseLabel}
-                  onChange={e => updateTheme({ showVerseLabel: e.target.checked })} />
-                Mostrar etiqueta de verso
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" checked={state.theme.textUppercase || false}
-                  onChange={e => updateTheme({ textUppercase: e.target.checked })} />
-                Texto en mayúsculas
-              </label>
-            </div>
+          </div>
+
+          <div className="form-group checkboxes">
+            <label className="checkbox-label">
+              <input type="checkbox" checked={state.theme.textShadow}
+                onChange={e => updateTheme({ textShadow: e.target.checked })} />
+              Sombra en el texto
+            </label>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={state.theme.textUppercase || false}
+                onChange={e => updateTheme({ textUppercase: e.target.checked })} />
+              Texto en mayúsculas
+            </label>
           </div>
 
           <div className="form-row" style={{ marginTop: 20 }}>
@@ -428,63 +395,71 @@ export default function SettingsView() {
               />
             </div>
           </div>
-
         </section>
-        </div>
+      </div>
 
         {/* Columna Derecha de Preview */}
         <div className="settings-preview-col">
           <section className="settings-section preview-section">
             <div className="theme-preview-header">Vista Previa de Proyección</div>
             <div className="theme-preview">
-              <div className="preview-background-layer" style={{ 
-                position: 'absolute', inset: 0,
-                filter: `blur(${state.theme.backgroundBlur || 0}px)`,
-                transform: 'scale(1.1)', // Evitar bordes blancos al blurear
-                background: state.theme.backgroundType === 'image' && state.theme.backgroundImageUrl
-                  ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
-                  : (state.theme.backgroundType === 'color' || !state.theme.backgroundType)
-                    ? state.theme.background 
-                    : '#000'
-              }}>
-                {state.theme.backgroundType === 'video' && state.theme.backgroundVideoUrl && (
-                  <video 
-                    key={state.theme.backgroundVideoUrl}
-                    src={state.theme.backgroundVideoUrl} 
-                    autoPlay muted loop 
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
-                  />
-                )}
-              </div>
+              {(() => {
+                const bgFilter = `blur(${state.theme.backgroundBlur || 0}px) brightness(${1 - (state.theme.backgroundOverlayOpacity ?? 0.3)})`
+                const bgTransform = state.theme.backgroundBlur ? 'scale(1.1)' : 'none'
+                
+                return (
+                  <>
+                    <div className="preview-background-layer" style={{ 
+                      position: 'absolute', inset: 0,
+                      filter: bgFilter,
+                      transform: bgTransform,
+                      background: state.theme.backgroundType === 'image' && state.theme.backgroundImageUrl
+                        ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
+                        : (state.theme.backgroundType === 'color' || !state.theme.backgroundType)
+                          ? state.theme.background 
+                          : '#000'
+                    }}>
+                      {state.theme.backgroundType === 'video' && state.theme.backgroundVideoUrl && (
+                        <video 
+                          key={state.theme.backgroundVideoUrl}
+                          src={state.theme.backgroundVideoUrl} 
+                          autoPlay muted loop 
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      )}
+                    </div>
 
-              {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
-              {state.media && (
-                <div 
-                  className="preview-media-layer" 
-                  style={{ 
-                    position: 'absolute', inset: 0, 
-                    zIndex: state.media.isBackgroundMode ? 2 : 20, 
-                    background: state.media.isBackgroundMode ? 'transparent' : '#000',
-                    filter: state.media.isBackgroundMode ? `blur(${state.theme.backgroundBlur || 0}px)` : 'none',
-                    transform: state.media.isBackgroundMode && state.theme.backgroundBlur ? 'scale(1.1)' : 'scale(1)'
-                  }}
-                >
-                  {state.media.type === 'video' ? (
-                    <video 
-                      autoPlay 
-                      loop 
-                      muted
-                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
-                      src={state.media.url}
-                    />
-                  ) : (
-                    <img 
-                      src={state.media.url} 
-                      style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
-                    />
-                  )}
-                </div>
-              )}
+                    {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
+                    {state.media && (
+                      <div 
+                        className="preview-media-layer" 
+                        style={{ 
+                          position: 'absolute', inset: 0, 
+                          zIndex: state.media.isBackgroundMode ? 2 : 20, 
+                          background: state.media.isBackgroundMode ? 'transparent' : '#000',
+                          filter: state.media.isBackgroundMode ? bgFilter : 'none',
+                          transform: state.media.isBackgroundMode ? bgTransform : 'none'
+                        }}
+                      >
+                        {state.media.type === 'video' ? (
+                          <video 
+                            autoPlay 
+                            loop 
+                            muted
+                            style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+                            src={state.media.url}
+                          />
+                        ) : (
+                          <img 
+                            src={state.media.url} 
+                            style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} 
+                          />
+                        )}
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               
               {/* Capa de oscurecimiento */}
               <div style={{ 
@@ -499,23 +474,18 @@ export default function SettingsView() {
                 color: state.theme.textColor,
                 textShadow: state.theme.textShadow ? '0 2px 10px rgba(0,0,0,0.8)' : 'none',
                 textTransform: state.theme.textUppercase ? 'uppercase' : 'none',
-                textAlign: 'center', lineHeight: 1.2, padding: '12px', position: 'relative', zIndex: 10,
+                textAlign: 'center', lineHeight: 1.15, padding: '12px', position: 'relative', zIndex: 10,
                 display: 'flex', flexDirection: 'column', gap: '2px',
                 width: '100%',
+                fontWeight: 900,
                 maxWidth: '100%',
                 maxHeight: '100%',
                 wordBreak: 'break-word',
                 overflow: 'hidden',
                 justifyContent: 'center'
               }}>
-                {(state.theme.titlePosition === 'top' && state.theme.showTitle) && (
-                  <div style={{ opacity: 0.5, fontSize: '0.4em', marginBottom: 2 }}>
-                    CUÁN GRANDE ES ÉL
-                  </div>
-                )}
-
-                {(state.theme.verseReferencePosition !== 'bottom' && state.theme.showVerseLabel) && (
-                  <div style={{ opacity: 0.7, fontSize: '1em', marginBottom: 2 }}>
+                {(state.theme.verseReferencePosition !== 'bottom') && (
+                  <div style={{ opacity: 0.7, fontSize: '0.85em', marginBottom: 2 }}>
                     Salmos 19:1
                   </div>
                 )}
@@ -527,15 +497,9 @@ export default function SettingsView() {
                   <div>y las estrellas mil</div>
                 </div>
 
-                {(state.theme.verseReferencePosition === 'bottom' && state.theme.showVerseLabel) && (
-                  <div style={{ opacity: 0.7, fontSize: '1em', marginTop: 2 }}>
+                {(state.theme.verseReferencePosition === 'bottom') && (
+                  <div style={{ opacity: 0.7, fontSize: '0.85em', marginTop: 2 }}>
                     Salmos 19:1
-                  </div>
-                )}
-
-                {(state.theme.titlePosition === 'bottom' && state.theme.showTitle) && (
-                  <div style={{ opacity: 0.5, fontSize: '0.4em', marginTop: 2 }}>
-                    CUÁN GRANDE ES ÉL
                   </div>
                 )}
               </div>

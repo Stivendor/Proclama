@@ -29,8 +29,11 @@ export default function BibleView() {
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
   
-  // Recent verses history (session only)
-  const [recentVerses, setRecentVerses] = useState<RecentVerse[]>([])
+  // Recent verses history (persistent)
+  const [recentVerses, setRecentVerses] = useState<RecentVerse[]>(() => {
+    const saved = localStorage.getItem('proclama-recent-verses')
+    return saved ? JSON.parse(saved) : []
+  })
   
   // Quick search (Holyrics-style) - separate fields
   const [quickSearchBook, setQuickSearchBook] = useState('')
@@ -227,6 +230,10 @@ export default function BibleView() {
   }
 
   useEffect(() => {
+    localStorage.setItem('proclama-recent-verses', JSON.stringify(recentVerses))
+  }, [recentVerses])
+
+  useEffect(() => {
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
 
@@ -316,7 +323,7 @@ export default function BibleView() {
       setRecentVerses(prev => {
         // Remove duplicates and add to beginning
         const filtered = prev.filter(r => r.verse.reference !== verse.reference)
-        return [{ verse, timestamp: Date.now() }, ...filtered].slice(0, 10) // Keep last 10
+        return [{ verse, timestamp: Date.now() }, ...filtered].slice(0, 50) // Keep last 50
       })
     })
   }
@@ -595,8 +602,25 @@ export default function BibleView() {
 
         {/* Recent Verses History */}
         <div className="bible-recent">
-          <div className="recent-header">
-            <Clock size={14} /> Recientes
+          <div className="recent-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} /> Recientes
+            </div>
+            {recentVerses.length > 0 && (
+              <button 
+                className="btn-icon" 
+                title="Limpiar historial"
+                onClick={() => {
+                  if (confirm('¿Limpiar historial de versículos?')) {
+                    setRecentVerses([])
+                    localStorage.removeItem('proclama-recent-verses')
+                  }
+                }}
+                style={{ width: '24px', height: '24px', opacity: 0.6 }}
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
           {recentVerses.length === 0 ? (
             <div className="recent-empty">
@@ -623,7 +647,7 @@ export default function BibleView() {
             </div>
           )}
           <div className="recent-hint">
-            Historial de esta sesión
+            Historial reciente (persistente)
           </div>
         </div>
       </div>

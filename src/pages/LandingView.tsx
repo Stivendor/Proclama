@@ -75,6 +75,7 @@ export default function LandingView() {
         <div className="nav-links">
           <a href="#funciones">Funciones</a>
           <a href="#diferenciadores">Por qué Proclama</a>
+          <a href="#planes">Planes</a>
         </div>
         <div className="nav-actions">
           <FeedbackModal />
