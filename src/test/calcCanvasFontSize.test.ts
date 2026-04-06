@@ -53,19 +53,14 @@ describe('calcCanvasFontSize', () => {
 
   it('fontScale 0.5 produce aproximadamente la mitad del tamaño base', () => {
     const slide = makeSlide(['Santa es la tierra'])
-    const full = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9')
-    const half = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9')
+    const full = calcCanvasFontSize(slide, baseTheme, '', false, false, false)
+    const themeHalf = { ...baseTheme, fontScale: 0.5 }
+    const half = calcCanvasFontSize(slide, themeHalf, '', false, false, false)
     // Tolerancia de ±2px por redondeo de Math.round
     expect(half).toBeGreaterThanOrEqual(Math.floor(full * 0.5) - 2)
     expect(half).toBeLessThanOrEqual(Math.ceil(full * 0.5) + 2)
   })
 
-  it('4:3 produce font-size diferente a 16:9 para el mismo contenido', () => {
-    const slide = makeSlide(['Aleluya', 'Gloria a Dios'])
-    const size169 = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '16:9')
-    const size43 = calcCanvasFontSize(slide, baseTheme, '', false, false, false, '4:3')
-    expect(size169).not.toBe(size43)
-  })
 
   it('versículo largo (biblia) no devuelve 10 (mínimo)', () => {
     const longVerse = makeSlide([
