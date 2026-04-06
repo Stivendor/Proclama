@@ -21,14 +21,15 @@ export default function CountdownView() {
   }, [])
 
   const FONTS = [
-    'Inter, sans-serif',
-    'Lora, Georgia, serif',
-    'Playfair Display, Georgia, serif',
-    'Cinzel, Georgia, serif',
     'Montserrat, sans-serif',
-    'Raleway, sans-serif',
-    '"Open Sans", sans-serif',
-    'Georgia, serif',
+    'Anton, sans-serif',
+    '"Bebas Neue", sans-serif',
+    'Inter, sans-serif',
+    'Outfit, sans-serif',
+    'Unbounded, sans-serif',
+    'Playfair Display, serif',
+    'Lora, serif',
+    'Cinzel, serif',
     'Verdana, sans-serif'
   ]
 

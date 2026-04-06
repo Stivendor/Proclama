@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { onMessage } from '@/services/projection'
-import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZES, useAppStore } from '@/stores'
+import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { useCountdownStore } from '@/stores/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
@@ -139,8 +139,7 @@ function ProjectionPreview() {
 
   const { isCollapsed, projectionState, countdownState } = state
   const isCountdownActive = countdownState && countdownState.status !== 'idle'
-  const aspectRatio = useAppStore(s => s.aspectRatio)
-  const canvas = CANVAS_SIZES[aspectRatio]
+  const canvas = CANVAS_SIZE
 
   // Helper: Format countdown time as MM:SS
   const formatTime = (totalSeconds: number): string => {
@@ -164,12 +163,14 @@ function ProjectionPreview() {
     const slide = slides[currentSlide]
     if (!slide) return null
 
-    const showTitle = (theme.showTitle || isBible) && songTitle
-    const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
-    const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
+    const showTitle = !!(isBible && songTitle)
+    const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
+    const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
 
-    const fontSize = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, aspectRatio)
-    const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const fontSize = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom)
+    const textShadow = theme.textShadow 
+      ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
+      : 'none'
 
     return (
       <>
@@ -190,16 +191,25 @@ function ProjectionPreview() {
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: `${canvas.height * 0.05}px ${canvas.width * 0.06}px`,
+            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
-            fontFamily: theme.fontFamily, fontWeight: 700, color: theme.textColor,
-            lineHeight: 1.3, textTransform: theme.textUppercase ? 'uppercase' : 'none',
+            fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
+            lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
             fontSize: `${fontSize}px`, wordBreak: 'break-word',
           }}>
-            {titleAtTop && <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em', marginBottom: '0.4em', textShadow }}>{songTitle}</div>}
-            {theme.showVerseLabel && slide.label && <div style={{ fontSize: '0.4em', opacity: 0.6, marginBottom: '0.2em', textShadow }}>{slide.label}</div>}
-            <div style={{ textShadow }}>{slide.lines.map((line, i) => <div key={i}>{line}</div>)}</div>
-            {titleAtBottom && <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em', marginTop: '0.4em', textShadow }}>{songTitle}</div>}
+            {titleAtTop && (
+              <div style={{ opacity: 1, fontSize: '0.85em', marginBottom: '0.4em', textShadow }}>
+                {songTitle}
+              </div>
+            )}
+            <div style={{ textShadow }}>
+              {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
+            </div>
+            {titleAtBottom && (
+              <div style={{ opacity: 1, fontSize: '0.85em', marginTop: '0.4em', textShadow }}>
+                {songTitle}
+              </div>
+            )}
           </div>
         )}
         {projectionState.media && (

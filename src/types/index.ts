@@ -89,6 +89,7 @@ export interface ProjectionTheme {
   verseReferencePosition?: 'top' | 'bottom'
   textUppercase?: boolean
   maxFontSize?: number  // cap para el auto-fit (px). undefined = sin límite
+  fontScale?: number    // multiplicador manual (ej: 0.8 para encoger, 1.2 para agrandar)
 }
 
 export interface BackgroundAsset {
