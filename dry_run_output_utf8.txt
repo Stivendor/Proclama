@@ -1,0 +1,188 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.1.2 [39m[90mC:/Users/Stiven/Documents/Github/Proclama[39m
+
+node.exe : (node:15248) 
+Warning: 
+`--localstorage-file` was 
+provided without a valid 
+path
+En línea: 1 Carácter: 1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: ((  
+  node:15248) Wa...ut a   
+  valid path:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+(Use `node 
+--trace-warnings ...` to 
+show where the warning 
+was created)
+[90mstdout[2m | scripts/dry_run_lyrics_cleanup.test.ts[2m > [22m[2mDRY RUN: Lyrics Cleanup Validation
+[22m[39m
+
+=== RESULTADOS DEL DRY RUN (PRUEBA) ===
+
+Se han encontrado 10 canciones para la prueba.
+
+--- CANCI├ôN: 50 A├æOS (ID: 1) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Con las manos vac├¡as no me presentar├⌐
+Sabiendo que t├║ has hecho todo, todo por mi
+As├¡ oran las mujeres que conocen a Jes├║s
+Sabiendo que hay perdidos que no saben de su luz
+
+MUESTRA DESPU├ëS (Limpia):
+Con las manos vac├¡as no me presentar├⌐
+Sabiendo que t├║ has hecho todo, todo por mi
+As├¡ oran las mujeres que conocen a Jes├║s
+Sabiendo que hay perdidos que no saben de su luz
+...........................................
+
+--- CANCI├ôN: OH SE├æOR TE RUEGO (ID: 2007) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+
+[Coro]
+Oh Se├▒or te ruego
+No me desampares
+
+MUESTRA DESPU├ëS (Limpia):
+Oh Se├▒or te ruego
+No me desampares
+Quiero estar contigo
+All├í en el cielo
+...........................................
+
+--- CANCI├ôN: A EL ALTO Y SUBLIME QUE HABITA LA ETERNIDAD (ID: 14) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+A ├⌐l alto y sublime
+Que habita la eternidad
+Y su nombre es ├⌐l santo de Israel
+Al que habita en las alturas
+
+MUESTRA DESPU├ëS (Limpia):
+A ├⌐l alto y sublime
+Que habita la eternidad
+Y su nombre es ├⌐l santo de Israel
+Al que habita en las alturas
+...........................................
+
+--- CANCI├ôN: A D├ôNDE ME IR├ë (ID: 13) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Todo lo que yo soy, todo lo que hay en m├¡
+Mi mente y mi interior son tu habitaci├│n
+Lo que has hecho en m├¡ todo lo debo a ti
+Pues a tus pies se├▒or, mi camino se hace nuevo
+
+MUESTRA DESPU├ëS (Limpia):
+Todo lo que yo soy, todo lo que hay en m├¡
+Mi mente y mi interior son tu habitaci├│n
+Lo que has hecho en m├¡ todo lo debo a ti
+Pues a tus pies se├▒or, mi camino se hace nuevo
+...........................................
+
+--- CANCI├ôN: TU VIDA CAMBIAR├ü (ID: 2695) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+┬┐Por qu├⌐ pereces de hambre
+[Coro]
+Habiendo panΓÇª
+[Fin Coro]
+
+MUESTRA DESPU├ëS (Limpia):
+┬┐Por qu├⌐ pereces de hambre
+Habiendo panΓÇª
+[Fin Coro]
+Y desfalleces de sed,
+...........................................
+
+--- CANCI├ôN: TU VIENES CONTRA M├ì (ID: 2696) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+
+[Coro]
+Tu vienes contra m├¡
+Con espada y jabalina
+
+MUESTRA DESPU├ëS (Limpia):
+Tu vienes contra m├¡
+Con espada y jabalina
+M├ís yo vengo contra ti
+En el nombre del Se├▒or
+...........................................
+
+--- CANCI├ôN: TUS MORADAS (ID: 2699) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Cuan hermosas son tus moradas
+Oh Jehov├í de los ej├⌐rcitos
+[Coro]
+Las anhela mi alma
+
+MUESTRA DESPU├ëS (Limpia):
+Cuan hermosas son tus moradas
+Oh Jehov├í de los ej├⌐rcitos
+Las anhela mi alma
+Con mucha ansiedad
+...........................................
+
+--- CANCI├ôN: UN PAJARITO (ID: 2754) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Un pajarito vino hoy
+A mi ventana y se pos├│
+Hizo un ruidito y me dijo
+(Silbido)
+
+MUESTRA DESPU├ëS (Limpia):
+Un pajarito vino hoy
+A mi ventana y se pos├│
+Hizo un ruidito y me dijo
+(Silbido)
+...........................................
+
+--- CANCI├ôN: TUYO SOY JES├ÜS (ID: 2705) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Cerca de ti, cerca de ti Se├▒or
+Cerca, cerca de tu amor
+Oh s├¡ Se├▒or,
+[Coro]
+
+MUESTRA DESPU├ëS (Limpia):
+Cerca de ti, cerca de ti Se├▒or
+Cerca, cerca de tu amor
+Oh s├¡ Se├▒or,
+[Fin Coro]cerca
+...........................................
+
+--- CANCI├ôN: T├Ü ERES EL REY (ID: 2709) ---
+MUESTRA ANTES (Primeras 4 l├¡neas):
+Quiero que sepas Dios
+Que cada d├¡a te amo m├ís
+Puedo entender la vida que t├║ me das
+No puedo dudar de tu amor
+
+MUESTRA DESPU├ëS (Limpia):
+Quiero que sepas Dios
+Que cada d├¡a te amo m├ís
+Puedo entender la vida que t├║ me das
+No puedo dudar de tu amor
+...........................................
+
+=== FIN DEL DRY RUN ===
+
+
+
+ [32mΓ£ô[39m scripts/dry_run_lyrics_cleanup.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 376[2mms[22m[39m
+   [33m[2mΓ£ô[22m[39m DRY RUN: Lyrics Cleanup Validation [33m 374[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m   Start at [22m 20:09:15
+[2m   Duration [22m 1.77s[2m (transform 54ms, setup 121ms, import 88ms, tests 376ms, environment 971ms)[22m
+

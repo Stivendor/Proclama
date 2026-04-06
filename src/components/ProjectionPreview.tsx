@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { onMessage } from '@/services/projection'
-import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZES, useAppStore } from '@/stores'
+import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { useCountdownStore } from '@/stores/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
@@ -139,8 +139,7 @@ function ProjectionPreview() {
 
   const { isCollapsed, projectionState, countdownState } = state
   const isCountdownActive = countdownState && countdownState.status !== 'idle'
-  const aspectRatio = useAppStore(s => s.aspectRatio)
-  const canvas = CANVAS_SIZES[aspectRatio]
+  const canvas = CANVAS_SIZE
 
   // Helper: Format countdown time as MM:SS
   const formatTime = (totalSeconds: number): string => {
@@ -164,12 +163,17 @@ function ProjectionPreview() {
     const slide = slides[currentSlide]
     if (!slide) return null
 
-    const showTitle = (theme.showTitle || isBible) && songTitle
-    const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
-    const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
+    const showTitle = !!(isBible && songTitle)
+    const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
+    const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
 
-    const fontSize = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, aspectRatio)
-    const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const fontSize = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom)
+    const textShadow = theme.textShadow 
+      ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
+      : 'none'
+
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
 
     return (
       <>
@@ -178,10 +182,13 @@ function ProjectionPreview() {
           background: theme.backgroundType === 'image' && theme.backgroundImageUrl
             ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
             : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-          filter: `brightness(${1 - (theme.backgroundDarkness || 0)})`,
+          filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+          <video autoPlay muted loop playsInline style={{ 
+            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+            filter: bgFilter, transform: bgTransform,
+          }}>
             <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}
@@ -190,21 +197,34 @@ function ProjectionPreview() {
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: `${canvas.height * 0.05}px ${canvas.width * 0.06}px`,
+            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
-            fontFamily: theme.fontFamily, fontWeight: 700, color: theme.textColor,
-            lineHeight: 1.3, textTransform: theme.textUppercase ? 'uppercase' : 'none',
+            fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
+            lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
             fontSize: `${fontSize}px`, wordBreak: 'break-word',
           }}>
-            {titleAtTop && <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em', marginBottom: '0.4em', textShadow }}>{songTitle}</div>}
-            {theme.showVerseLabel && slide.label && <div style={{ fontSize: '0.4em', opacity: 0.6, marginBottom: '0.2em', textShadow }}>{slide.label}</div>}
-            <div style={{ textShadow }}>{slide.lines.map((line, i) => <div key={i}>{line}</div>)}</div>
-            {titleAtBottom && <div style={{ opacity: isBible ? 1 : 0.7, fontSize: isBible ? '1em' : '0.35em', marginTop: '0.4em', textShadow }}>{songTitle}</div>}
+            {titleAtTop && (
+              <div style={{ opacity: 1, fontSize: '0.85em', marginBottom: '0.4em', textShadow }}>
+                {songTitle}
+              </div>
+            )}
+            <div style={{ textShadow }}>
+              {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
+            </div>
+            {titleAtBottom && (
+              <div style={{ opacity: 1, fontSize: '0.85em', marginTop: '0.4em', textShadow }}>
+                {songTitle}
+              </div>
+            )}
           </div>
         )}
         {projectionState.media && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
-            background: projectionState.media.isBackgroundMode ? 'transparent' : '#000' }}>
+          <div style={{ 
+            position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
+            background: projectionState.media.isBackgroundMode ? 'transparent' : '#000',
+            filter: projectionState.media.isBackgroundMode ? bgFilter : 'none',
+            transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
+          }}>
             {projectionState.media.type === 'video' ? (
               <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}>
                 <source src={projectionState.media.url} type="video/mp4" />
@@ -223,6 +243,8 @@ function ProjectionPreview() {
     if (!countdownState) return null
     const theme = countdownState.config.theme
     const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
     return (
       <>
         <div style={{
@@ -230,10 +252,13 @@ function ProjectionPreview() {
           background: theme.backgroundType === 'image' && theme.backgroundImageUrl
             ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
             : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-          filter: `brightness(${1 - (theme.backgroundDarkness || 0)})`,
+          filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}>
+          <video autoPlay muted loop playsInline style={{ 
+            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+            filter: bgFilter, transform: bgTransform,
+          }}>
             <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}
