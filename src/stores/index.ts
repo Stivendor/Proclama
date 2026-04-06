@@ -25,7 +25,7 @@ export const DEFAULT_THEME: ProjectionTheme = {
   backgroundVideoUrl: '',
   fontSizeMax: false,
   titlePosition: 'top',
-  verseReferencePosition: 'top',
+  verseReferencePosition: 'bottom',
   textUppercase: true,
   fontScale: 1
 }
