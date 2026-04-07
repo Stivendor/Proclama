@@ -22,6 +22,9 @@ export default function AuthView() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [mfaFactorId, setMfaFactorId] = useState<string>('')
+  const [mfaCode, setMfaCode] = useState('')
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -42,13 +45,33 @@ export default function AuthView() {
     setError(null)
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (mfaRequired) {
+        // Verify MFA code
+        const { error } = await supabase.auth.verifyOtp({
+          email,
+          token: mfaCode,
+          type: 'mfa'
+        })
         if (error) throw error
+        setMfaRequired(false)
+        setMfaCode('')
       } else {
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
-        setSuccess(true)
+        if (isLogin) {
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+          if (error) throw error
+          if (data.user && data.session && data.session.access_token) {
+            // Check if MFA is required
+            const factors = data.user.factors || []
+            if (factors.length > 0) {
+              setMfaRequired(true)
+              setMfaFactorId(factors[0].id)
+            }
+          }
+        } else {
+          const { error } = await supabase.auth.signUp({ email, password })
+          if (error) throw error
+          setSuccess(true)
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error')
@@ -122,11 +145,24 @@ export default function AuthView() {
             />
           </div>
 
+          {mfaRequired && (
+            <div className="form-group">
+              <label>Código MFA</label>
+              <input 
+                type="text" 
+                required 
+                placeholder="123456"
+                value={mfaCode}
+                onChange={e => setMfaCode(e.target.value)}
+              />
+            </div>
+          )}
+
           {error && <div className="auth-error">{error}</div>}
 
           <button className="btn-primary large" type="submit" disabled={loading}>
-            {loading ? <Loader2 className="spin" size={20} /> : (isLogin ? <LogIn size={18} /> : <UserPlus size={18} />)}
-            {isLogin ? 'Entrar' : 'Registrarse'}
+            {loading ? <Loader2 className="spin" size={20} /> : (mfaRequired ? <CheckCircle size={18} /> : (isLogin ? <LogIn size={18} /> : <UserPlus size={18} />))}
+            {mfaRequired ? 'Verificar MFA' : (isLogin ? 'Entrar' : 'Registrarse')}
           </button>
         </form>
 

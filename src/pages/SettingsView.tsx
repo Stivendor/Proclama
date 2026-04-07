@@ -232,6 +232,38 @@ export default function SettingsView() {
 
 
 
+        {/* Seguridad */}
+        {user && (
+          <section className="settings-section">
+            <h2>Seguridad</h2>
+            <div className="form-group">
+              <label>Autenticación de Dos Factores (MFA)</label>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                Agrega una capa extra de seguridad a tu cuenta con un código TOTP.
+              </p>
+              <button className="btn-secondary" onClick={async () => {
+                try {
+                  const { data, error } = await supabase.auth.mfa.enroll({
+                    factorType: 'totp'
+                  })
+                  if (error) throw error
+                  if (data.totp) {
+                    // Mostrar QR code y secret
+                    alert(`Escanea este código QR con tu app de autenticación:\n\n${data.totp.uri}\n\nO ingresa manualmente: ${data.totp.secret}`)
+                  }
+                } catch (err: any) {
+                  setAuthError(err.message)
+                }
+              }}>
+                Activar MFA
+              </button>
+              {authError && <div style={{ color: '#ff4d4f', fontSize: 13, marginTop: 8 }}>{authError}</div>}
+            </div>
+          </section>
+        )}
+
+
+
         {/* Proyección */}
         <section className="settings-section">
           <h2><Sliders size={15} /> Proyección — Tema por Defecto</h2>
