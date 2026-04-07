@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useShallow } from 'zustand/react/shallow'
@@ -39,15 +39,63 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, userRole: cachedUserRole } = useAppStore(useShallow(s => ({
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, termsAccepted, userRole: cachedUserRole, user } = useAppStore(useShallow(s => ({
     setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
     authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode,
     checkTermsVersion: s.checkTermsVersion, acceptTerms: s.acceptTerms,
     setTermsAccepted: s.setTermsAccepted, setTermsSyncPending: s.setTermsSyncPending,
-    termsSyncPending: s.termsSyncPending, userRole: s.userRole
+    termsSyncPending: s.termsSyncPending, termsAccepted: s.termsAccepted, userRole: s.userRole, user: s.user
   })))
   const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
+
+  // Migrate guest notes to authenticated user
+  const migrateGuestNotes = useCallback(async (userId: string) => {
+    try {
+      const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
+      for (const note of guestNotes) {
+        const noteToMigrate = { ...note, userId }
+        const result = await upsertChurchNote(noteToMigrate)
+        if (result) {
+          await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
+        }
+      }
+    } catch (err) {
+      console.warn('Guest notes migration failed silently:', err)
+    }
+  }, [])
+
+  // Migrate local songs to authenticated user
+  const migrateLocalSongs = useCallback(async (userId: string, isPremium: boolean) => {
+    try {
+      // DESACTIVADO: Ya no hay canciones locales que migrar
+      // Si en el futuro necesitas migrar, descomenta este código
+      /*
+      const localSongs = await db.songs.filter(s => !s.userId).toArray()
+      if (localSongs.length === 0) return
+
+      for (const song of localSongs) {
+        const songToMigrate = { ...song, userId }
+        
+        // Si es premium, sincronizar con Supabase
+        if (isPremium) {
+          const { createSong } = await import('@/services/supabase')
+          const created = await createSong(songToMigrate)
+          if (created) {
+            await db.songs.add(created)
+          } else {
+            await db.songs.add(songToMigrate)
+          }
+        } else {
+          // Si es free, solo guardar localmente
+          await db.songs.add(songToMigrate)
+        }
+      }
+      */
+    } catch (err) {
+      console.warn('Local songs migration failed silently:', err)
+    }
+  }, [])
 
   const handleAcceptTerms = async () => {
     await acceptTerms(CURRENT_TERMS_VERSION)
@@ -72,65 +120,23 @@ function AppContent() {
 
     // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session)
       const user = session?.user ?? null
       setUser(user)
       if (user) loadProfile(user.id)
       else setUserRole(null)
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
       if (checkTermsVersion()) setShowTermsGate(true)
+      
+      // Limpiar URL después de procesar la sesión
+      if (typeof window !== 'undefined' && window.location.search.includes('code=')) {
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
     })
-
-    // Migrate guest notes to authenticated user
-    const migrateGuestNotes = async (userId: string) => {
-      try {
-        const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
-        for (const note of guestNotes) {
-          const noteToMigrate = { ...note, userId }
-          const result = await upsertChurchNote(noteToMigrate)
-          if (result) {
-            await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
-          }
-        }
-      } catch (err) {
-        console.warn('Guest notes migration failed silently:', err)
-      }
-    }
-
-    // Migrate local songs to authenticated user
-    const migrateLocalSongs = async (userId: string, isPremium: boolean) => {
-      try {
-        // DESACTIVADO: Ya no hay canciones locales que migrar
-        // Si en el futuro necesitas migrar, descomenta este código
-        /*
-        const localSongs = await db.songs.filter(s => !s.userId).toArray()
-        if (localSongs.length === 0) return
-
-        for (const song of localSongs) {
-          const { id, ...songData } = song
-          const songToMigrate = { ...songData, userId }
-          
-          // Si es premium, sincronizar con Supabase
-          if (isPremium) {
-            const { createSong } = await import('@/services/supabase')
-            const created = await createSong(songToMigrate)
-            if (created) {
-              await db.songs.add(created)
-            } else {
-              await db.songs.add(songToMigrate)
-            }
-          } else {
-            // Si es free, solo guardar localmente
-            await db.songs.add(songToMigrate)
-          }
-        }
-        */
-      } catch (err) {
-        console.warn('Local songs migration failed silently:', err)
-      }
-    }
 
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.email)
       // Only process SIGNED_IN and SIGNED_OUT events to prevent redundant syncs
       // TOKEN_REFRESHED and USER_UPDATED events don't require full data sync
       if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') {
@@ -151,15 +157,13 @@ function AppContent() {
           const { fetchTermsAcceptance } = await import('@/services/supabase')
           const remoteTerms = await fetchTermsAcceptance(user.id)
           if (remoteTerms) {
-            const { setTermsAccepted } = useAppStore.getState()
             setTermsAccepted(remoteTerms)
           }
           // Reintentar sync pendiente
-          const { termsSyncPending, termsAccepted } = useAppStore.getState()
           if (termsSyncPending && termsAccepted) {
             const { syncTermsAcceptance } = await import('@/services/supabase')
             const ok = await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
-            if (ok) useAppStore.getState().setTermsSyncPending(false)
+            if (ok) setTermsSyncPending(false)
           }
         }
       } else {
@@ -180,7 +184,7 @@ function AppContent() {
       subscription.unsubscribe()
       offMedia()
     }
-  }, [])
+  }, [migrateGuestNotes, migrateLocalSongs, setTermsAccepted, setTermsSyncPending, termsSyncPending, termsAccepted])
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />

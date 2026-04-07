@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '@/services/supabase'
-import { LogIn, UserPlus, Mail, Lock, Loader2, Music2 } from 'lucide-react'
+import { LogIn, UserPlus, Mail, Lock, Loader2, Music2, CheckCircle } from 'lucide-react'
 
 // Icono SVG de Google (no está en lucide)
 function GoogleIcon() {
@@ -47,10 +47,10 @@ export default function AuthView() {
     try {
       if (mfaRequired) {
         // Verify MFA code
-        const { error } = await supabase.auth.verifyOtp({
-          email,
-          token: mfaCode,
-          type: 'mfa'
+        const { error } = await supabase.auth.mfa.verify({
+          factorId: mfaFactorId,
+          code: mfaCode,
+          challengeId: '' // This might need to be obtained from the challenge
         })
         if (error) throw error
         setMfaRequired(false)
