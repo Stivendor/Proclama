@@ -17,6 +17,9 @@ export class ProclamaDB extends Dexie {
     this.version(4).stores({
       church_notes: '++id, date, userId, [date+userId]'
     })
+    this.version(5).stores({
+      songs: '++id, title, artist, language, usageCount, userId, createdAt'
+    })
   }
 }
 

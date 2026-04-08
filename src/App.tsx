@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useShallow } from 'zustand/react/shallow'
@@ -61,6 +61,54 @@ function AppContent() {
   })))
   const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
+
+  // Migrate guest notes to authenticated user
+  const migrateGuestNotes = useCallback(async (userId: string) => {
+    try {
+      const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
+      for (const note of guestNotes) {
+        const noteToMigrate = { ...note, userId }
+        const result = await upsertChurchNote(noteToMigrate)
+        if (result) {
+          await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
+        }
+      }
+    } catch (err) {
+      console.warn('Guest notes migration failed silently:', err)
+    }
+  }, [])
+
+  // Migrate local songs to authenticated user
+  const migrateLocalSongs = useCallback(async (userId: string, isPremium: boolean) => {
+    try {
+      // DESACTIVADO: Ya no hay canciones locales que migrar
+      // Si en el futuro necesitas migrar, descomenta este código
+      /*
+      const localSongs = await db.songs.filter(s => !s.userId).toArray()
+      if (localSongs.length === 0) return
+
+      for (const song of localSongs) {
+        const songToMigrate = { ...song, userId }
+        
+        // Si es premium, sincronizar con Supabase
+        if (isPremium) {
+          const { createSong } = await import('@/services/supabase')
+          const created = await createSong(songToMigrate)
+          if (created) {
+            await db.songs.add(created)
+          } else {
+            await db.songs.add(songToMigrate)
+          }
+        } else {
+          // Si es free, solo guardar localmente
+          await db.songs.add(songToMigrate)
+        }
+      }
+      */
+    } catch (err) {
+      console.warn('Local songs migration failed silently:', err)
+    }
+  }, [])
 
   const handleAcceptTerms = async () => {
     await acceptTerms(CURRENT_TERMS_VERSION)
@@ -140,7 +188,7 @@ function AppContent() {
       } finally {
         clearTimeout(authTimeout)
       }
-    }
+    })
 
     initAuth()
 
@@ -212,7 +260,7 @@ function AppContent() {
       subscription.unsubscribe()
       offMedia()
     }
-  }, [])
+  }, [migrateGuestNotes, migrateLocalSongs, setTermsAccepted, setTermsSyncPending, termsSyncPending, termsAccepted])
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
