@@ -11,10 +11,11 @@ import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRem
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus } = useAppStore(useShallow(s => ({
     searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery, setActiveView: s.setActiveView, 
     setEditingSong: s.setEditingSong, user: s.user, userRole: s.userRole, 
-    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar,
+    authStatus: s.authStatus
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
   const { canCreateSong, canUseGenius } = usePlan()
@@ -51,19 +52,24 @@ export default function LibraryView() {
     if (!searchQuery && localSearch) setLocalSearch('')
   }, [searchQuery])
 
-  // Sincronizar Supabase -> Dexie al montar y cuando cambie el filtro de búsqueda principal
+  // Sincronizar Supabase -> Dexie al montar y cuando cambie el usuario o el estado de auth.
+  // IMPORTANTE: Se usa user?.id (string primitivo) en lugar del objeto user completo para
+  // garantizar que Google OAuth (que reemplaza el objeto user) siempre dispare el re-sync.
+  const userId = user?.id ?? null
   useEffect(() => {
-    const abortController = new AbortController()
+    // Solo sincronizar cuando la sesión está resuelta (no durante loading)
+    if (authStatus === 'loading') return
+
     let cancelled = false
-    
+
     const sync = async () => {
       setLoadingRemote(true)
       setRemoteError(null)
       try {
         const remoteSongs = await fetchSongs()
         if (cancelled) return
-        
-        // Limpiar Dexie y poner lo nuevo de Supabase
+
+        // Limpiar Dexie y reemplazar con el catálogo actualizado de Supabase
         await db.songs.clear()
         if (cancelled) return
         await db.songs.bulkPut(remoteSongs)
@@ -77,11 +83,11 @@ export default function LibraryView() {
     sync()
     return () => {
       cancelled = true
-      abortController.abort()
-      setRemoteError(null) // Clear error on unmount
+      setRemoteError(null)
     }
+    // userId y authStatus son valores primitivos → comparación estable
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [userId, authStatus])
 
   const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
