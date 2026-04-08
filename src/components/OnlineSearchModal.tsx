@@ -78,16 +78,16 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       if (canSync && user) {
         const created = await createSong(payload)
         if (created) {
-          // Inserción en Supabase exitosa → guardar en Dexie con el id remoto
-          await db.songs.add(created)
+          // Inserción en Supabase exitosa → guardar en Dexie con el id remoto o actualizar si ya existe
+          await db.songs.put(created)
         } else {
           // createSong devolvió null: Supabase rechazó (ej. RLS). Lanzar error
           // para que no quede el spinner colgado ni se haga add(null).
-          throw new Error('No se pudo guardar en la nube. Verifica tu sesión e inténtalo de nuevo.')
+          throw new Error('No se pudo guardar en la nube. Verifica tu sesión o permisos e inténtalo de nuevo.')
         }
       } else {
         // Usuario sin sesión o plan free: guardar solo localmente
-        await db.songs.add(payload)
+        await db.songs.put(payload)
       }
 
       // Solo llegar aquí si todo salió bien
@@ -241,6 +241,8 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                     <span>Estás en <b>modo local</b>. <button className="btn-link" style={{ background: 'none', border: 'none', color: 'var(--primary)', padding: 0, cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }} onClick={() => { setActiveView('settings'); onClose(); }}>Inicia sesión</button> para compartir canciones.</span>
                   </div>
                 )}
+
+                {error && <div className="search-error" style={{ marginBottom: '16px' }} role="alert" aria-live="polite">{error}</div>}
 
                 <div className="modal-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
                   <button className="btn-ghost" onClick={() => setImportedLyrics(null)}>Atrás</button>

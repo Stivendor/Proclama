@@ -124,7 +124,12 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
     .single()
 
   if (error) {
-    console.error('Error creating song in Supabase:', error.message, error.details)
+    console.error('Error creating song in Supabase:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    })
     return null
   }
   return mapRowToSong(data as SupabaseSongRow)
