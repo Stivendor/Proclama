@@ -70,15 +70,13 @@ function AppContent() {
       return profile
     }
 
-    // Check initial auth state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user ?? null
-      setUser(user)
-      if (user) loadProfile(user.id)
-      else setUserRole(null)
-      setAuthStatus(session ? 'authenticated' : 'unauthenticated')
-      if (checkTermsVersion()) setShowTermsGate(true)
-    })
+    // Check initial auth state with a safety timeout
+    const authTimeout = setTimeout(() => {
+      if (useAppStore.getState().authStatus === 'loading') {
+        console.warn('Auth initialization timed out, falling back to unauthenticated.')
+        setAuthStatus('unauthenticated')
+      }
+    }, 6000)
 
     // Migrate guest notes to authenticated user
     const migrateGuestNotes = async (userId: string) => {
@@ -100,74 +98,94 @@ function AppContent() {
     const migrateLocalSongs = async (userId: string, isPremium: boolean) => {
       try {
         // DESACTIVADO: Ya no hay canciones locales que migrar
-        // Si en el futuro necesitas migrar, descomenta este código
-        /*
-        const localSongs = await db.songs.filter(s => !s.userId).toArray()
-        if (localSongs.length === 0) return
-
-        for (const song of localSongs) {
-          const { id, ...songData } = song
-          const songToMigrate = { ...songData, userId }
-          
-          // Si es premium, sincronizar con Supabase
-          if (isPremium) {
-            const { createSong } = await import('@/services/supabase')
-            const created = await createSong(songToMigrate)
-            if (created) {
-              await db.songs.add(created)
-            } else {
-              await db.songs.add(songToMigrate)
-            }
-          } else {
-            // Si es free, solo guardar localmente
-            await db.songs.add(songToMigrate)
-          }
-        }
-        */
       } catch (err) {
         console.warn('Local songs migration failed silently:', err)
       }
     }
 
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user ?? null
+        setUser(user)
+        
+        if (user) {
+          try {
+            await loadProfile(user.id)
+          } catch (e) {
+            console.warn('Profile load failed during init, continuing...', e)
+          }
+        } else {
+          setUserRole(null)
+        }
+        
+        setAuthStatus(session ? 'authenticated' : 'unauthenticated')
+        if (checkTermsVersion()) setShowTermsGate(true)
+      } catch (err) {
+        console.error('Auth init error:', err)
+        setAuthStatus('unauthenticated')
+      } finally {
+        clearTimeout(authTimeout)
+      }
+    }
+
+    initAuth()
+
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Only process SIGNED_IN and SIGNED_OUT events to prevent redundant syncs
-      // TOKEN_REFRESHED and USER_UPDATED events don't require full data sync
-      if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') {
-        // Skip processing for token refresh and user update events
-        return
-      }
+      try {
+        // Only process key events to prevent redundant sync loops
+        if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') {
+          return
+        }
 
-      const user = session?.user ?? null
-      setUser(user)
-      if (user) {
-        const profile = await loadProfile(user.id)
-        if (event === 'SIGNED_IN') {
-          await migrateGuestNotes(user.id)
-          // Migrar canciones locales (con check de plan premium)
-          const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
-          await migrateLocalSongs(user.id, isPremium)
-          // Sincronizar términos desde Supabase
-          const { fetchTermsAcceptance } = await import('@/services/supabase')
-          const remoteTerms = await fetchTermsAcceptance(user.id)
-          if (remoteTerms) {
-            const { setTermsAccepted } = useAppStore.getState()
-            setTermsAccepted(remoteTerms)
+        const user = session?.user ?? null
+        setUser(user)
+
+        if (user) {
+          // Carga de perfil (role, plan)
+          const profile = await loadProfile(user.id).catch(e => {
+            console.warn('Profile sync failed:', e)
+            return null
+          })
+
+          if (event === 'SIGNED_IN') {
+            // Migraciones y sincronización inicial post-login
+            try {
+              await migrateGuestNotes(user.id)
+              
+              const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
+              await migrateLocalSongs(user.id, isPremium)
+              
+              const { fetchTermsAcceptance } = await import('@/services/supabase')
+              const remoteTerms = await fetchTermsAcceptance(user.id)
+              if (remoteTerms) {
+                useAppStore.getState().setTermsAccepted(remoteTerms)
+              }
+              
+              const { termsSyncPending, termsAccepted } = useAppStore.getState()
+              if (termsSyncPending && termsAccepted) {
+                const { syncTermsAcceptance } = await import('@/services/supabase')
+                const ok = await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
+                if (ok) useAppStore.getState().setTermsSyncPending(false)
+              }
+            } catch (err) {
+              console.warn('Post-login sync tasks had issues:', err)
+            }
           }
-          // Reintentar sync pendiente
-          const { termsSyncPending, termsAccepted } = useAppStore.getState()
-          if (termsSyncPending && termsAccepted) {
-            const { syncTermsAcceptance } = await import('@/services/supabase')
-            const ok = await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
-            if (ok) useAppStore.getState().setTermsSyncPending(false)
+        } else {
+          // SIGNED_OUT o sesión vacía inicial
+          if (event === 'SIGNED_OUT') {
+            useAppStore.getState().logout()
           }
         }
-      } else {
-        // SIGNED_OUT: limpiar estado completo usando la acción centralizada
-        useAppStore.getState().logout()
+      } catch (err) {
+        console.error('Auth event processing failed:', err)
+      } finally {
+        // Garantizar que salimos del estado "loading" pase lo que pase
+        setAuthStatus(session ? 'authenticated' : 'unauthenticated')
+        if (checkTermsVersion()) setShowTermsGate(true)
       }
-      setAuthStatus(session ? 'authenticated' : 'unauthenticated')
-      if (checkTermsVersion()) setShowTermsGate(true)
     })
 
     // Listen to media status from projection window
