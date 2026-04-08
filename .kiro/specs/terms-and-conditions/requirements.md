@@ -83,10 +83,10 @@ La sección de Términos y Condiciones es una feature transversal de Proclama qu
 
 #### Acceptance Criteria
 
-1. WHEN el usuario autenticado acepta los términos, THE `App_Store` SHALL enviar la `Terms_Acceptance` (versión, fecha, `user_id`) a la tabla `profiles` o a una tabla dedicada en Supabase.
-2. WHEN el usuario autenticado inicia sesión en un dispositivo nuevo, THE `App_Store` SHALL recuperar la `Terms_Acceptance` desde Supabase y almacenarla en `localStorage`.
-3. IF la `Terms_Acceptance` remota tiene una `Terms_Version` igual a la vigente, THEN THE `Terms_Modal` SHALL no mostrarse al usuario en ese dispositivo.
-4. IF la sincronización con Supabase falla al registrar la aceptación, THEN THE `App_Store` SHALL conservar la `Terms_Acceptance` en `localStorage` y reintentar la sincronización en la próxima sesión.
+1. WHEN el usuario autenticado acepta los términos, THE `App_Store` SHALL enviar la `Terms_Acceptance` (versión y fecha) a la columna `terms_accepted` de la tabla `profiles` en Supabase.
+2. WHEN el usuario autenticado inicia sesión en un dispositivo nuevo, THE `App_Store` SHALL recuperar la `Terms_Acceptance` mediante el servicio `loadProfile` y persistirla en el estado global.
+3. IF existe una aceptación local pendiente de sincronizar (`termsSyncPending: true`), THE `App` SHALL intentar sincronizarla automáticamente al detectar una sesión válida en `App.tsx`.
+4. THE sync process SHALL ser atómico y manejar errores de red silenciosamente, reintentando en la próxima carga de la app si falla.
 
 ---
 
