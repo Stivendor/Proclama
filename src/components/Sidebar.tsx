@@ -41,9 +41,8 @@ export default function Sidebar() {
     try {
       const { supabase } = await import('@/services/supabase')
       await supabase.auth.signOut()
-      // App.tsx onAuthStateChange se encarga de limpiar user y redirigir
-    } catch (err) {
-      console.error('Error al cerrar sesión:', err)
+    } finally {
+      useAppStore.getState().logout()
     }
   }
 

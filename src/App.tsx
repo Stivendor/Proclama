@@ -163,14 +163,8 @@ function AppContent() {
           }
         }
       } else {
-        // SIGNED_OUT: limpiar estado de sesión en el store
-        setUserRole(null)
-        setUserPlan('free')
-        setGuestMode(false)        // ← sin esto la app nunca redirige a landing
-        setTermsAccepted(null)
-        // NO limpiar db.songs aquí: LibraryView se desmonta al ir a LandingView,
-        // y el sync effect lo reemplazará cuando el usuario vuelva a entrar.
-        // Limpiar Dexie async mientras hay useLiveQuery activos causa DexieError2.
+        // SIGNED_OUT: limpiar estado completo usando la acción centralizada
+        useAppStore.getState().logout()
       }
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
       if (checkTermsVersion()) setShowTermsGate(true)
