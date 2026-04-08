@@ -1,4 +1,4 @@
-﻿# Proclama — Agent Context
+# Proclama — Agent Context
 
 ## Propósito
 
@@ -30,7 +30,7 @@ Proclama es un sistema de proyección de alabanzas y Biblia para iglesias, dise�
 
 ```
 src/
-├── App.tsx                  # Raíz: detecta ventana de proyección, maneja auth, migración guest→user
+├── App.tsx                  # Raíz: detecta ventana de proyección, maneja auth estable (initAuth con timeouts), migración guest→user
 ├── main.tsx                 # Entry point React
 ├── index.css                # Estilos globales (variables CSS, layout, componentes)
 │
@@ -189,11 +189,12 @@ z:30 → pantalla negra
 
 ### `useAppStore` (persiste `settings`, `isSidebarOpen`, `onboardingDone`, `guestMode`, `aspectRatio`, `fontScale`)
 - `settings: AppSettings` — churchName, churchLogoUrl, defaultTheme
-- `user / authStatus / userRole` — estado de autenticación Supabase
+- `user / authStatus / userRole` — estado de autenticación Supabase sincronizado
+- `logout()` — acción atómica que limpia la sesión en Supabase y resetea el store local
 - `activeView` — `'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes'`
-- `guestMode` — acceso sin autenticación
-- `editingSong / activeSetlist` — estado de edición
-- `isSidebarOpen / onboardingDone` — estado de UI
+- `guestMode` — acceso sin autenticación manejado con IndexedDB
+- `editingSong / activeSetlist` — estado de edición efímero
+- `isSidebarOpen / onboardingDone` — estado de persistencia de UI
 - `aspectRatio: '16:9' | '4:3'` — relación de aspecto del canvas de proyección
 - `fontScale: number` — escala de fuente (1.0 = auto-máximo)
 
@@ -228,10 +229,11 @@ Vista en el sidebar entre Contador y Ajustes.
 
 ## Autenticación y Permisos
 
-- Sin sesión: modo invitado, datos solo en Dexie local
-- Con sesión: escritura en Supabase
-- `userRole`: `'admin' | 'user' | null` — leído de tabla `profiles`
-- Migración automática `guest → userId` al autenticarse (en `App.tsx`)
+- Sin sesión: modo invitado, datos solo en Dexie local.
+- Con sesión: escritura en Supabase gestionada por RLS.
+- `userRole`: `'admin' | 'user' | null` — leído de tabla `profiles` mediante `loadProfile`.
+- Migración automática `guest → userId` al autenticarse (en `App.tsx`) para canciones y notas.
+- **Estabilidad**: El proceso de autenticación en `App.tsx` tiene un timeout de 6 segundos para evitar bloqueos por latencia de Supabase.
 
 ---
 
@@ -239,14 +241,23 @@ Vista en el sidebar entre Contador y Ajustes.
 
 | Tabla | Descripción |
 |---|---|
-| `songs` | Canciones |
-| `setlists` | Setlists |
-| `backgrounds` | Assets de fondo |
-| `app_settings` | Configuración global |
-| `profiles` | Perfil de usuario con `role` y `plan` |
-| `attendance_records` | Asistencia por culto y fecha |
-| `church_notes` | Notas del culto (asistencia + avisos) |
+| `songs` | Biblioteca de canciones (públicas y privadas) |
+| `setlists` | Listas de canciones por servicio |
+| `backgrounds` | Assets multimedia (imágenes/videos) para fondos |
+| `profiles` | Perfil de usuario: `role`, `plan`, `terms_accepted` |
+| `attendance_records` | Registros históricos de asistencia desglosada |
 | `premium_interest` | Emails de usuarios interesados en el plan premium |
+| `church_notes` | Notas del culto (soporte para migración de invitados) |
+
+### Servicios Críticos
+
+- **`supabase.ts`**:
+  - `upsertChurchNote`: Sincroniza asistencia y notas.
+  - `registerPremiumInterest`: Captura leads de la landing.
+  - `syncTermsAcceptance`: Sincroniza la aceptación de términos en el perfil.
+  - `createSong / updateSong`: CRUD con soporte para visibilidad pública.
+- **`projection.ts`**: Orquestador de la comunicación entre ventanas.
+- **`usePlan.ts`**: Lógica de negocio para límites freemium (V1: `PREMIUM_FOR_EVERYONE = true`).
 
 ### DDL `attendance_records`
 ```sql

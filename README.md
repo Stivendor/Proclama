@@ -43,68 +43,61 @@ Proclama reúne en una sola aplicación web:
 
 - Crear, editar y eliminar canciones con confirmación.
 - Buscar por título, artista, letra y etiquetas.
-- Buscar e importar letras online (lrclib.net).
+- Buscar e importar letras online (Genius/lrclib).
 - Persistencia local con Dexie para trabajar sin sesión.
-- Sincronización con Supabase cuando hay sesión iniciada.
+- Sincronización atómica con Supabase cuando hay sesión iniciada (incluye políticas RLS).
 
 ### Setlists
 
 - Crear setlists para cada servicio o reunión.
-- Agregar canciones desde la biblioteca local.
+- Sincronización automática con la nube.
+- Agregar canciones desde la biblioteca local o remota.
 - Reordenar canciones con drag and drop.
-- Activar una canción directamente desde el setlist.
+- Activar una canción directamente desde el setlist con carga rápida.
 
 ### Biblia integrada
 
-- Navegación por libros y capítulos (AT y NT).
+- Navegación por libros y capítulos (AT y NT) RVR1960.
 - Selector de capítulos tipo bento grid — clic directo al capítulo.
 - Búsqueda global por texto o referencia directa (`Juan 3:16`).
-- Proyección inmediata de versículos y pasajes.
+- Proyección inmediata de versículos y pasajes con recordatorio de última posición.
 - Historial de versículos proyectados en la sesión actual.
 
 ### Proyección en vivo
 
-- Ventana independiente para proyector o segunda pantalla.
-- Apertura automática en el segundo monitor usando Window Management API (Chrome/Edge).
-- Canvas fijo (1920×1080 para 16:9, 1024×768 para 4:3) escalado con `transform: scale` — inmune a F11 y fullscreen.
-- Navegación entre estrofas desde el panel de control.
-- Pantalla negra y modo ocultar texto.
-- Tema configurable en tiempo real: fuente, tamaño, color, sombra, transición.
-- Fondos por color, imagen y video con blur y overlay.
-- Auto-ajuste de tamaño de fuente (cálculo matemático puro, sin DOM) con escala manual ajustable.
-- Posición del título y referencia bíblica configurable.
-- Selector de relación de aspecto: 16:9 y 4:3.
+- Ventana independiente para proyector o segunda pantalla (soporta Window Management API).
+- Apertura automática en monitor extendido.
+- Canvas fijo (1920×1080 / 1024×768) con auto-ajuste de fuente matemático (no-DOM).
+- Navegación inteligente entre estrofas.
+- Pantalla negra (`B`), modo ocultar texto y logo flotante.
+- Fondos personalizables: color, imagen o video con blur, oscuridad y overlay dinámico.
+- Ajuste de escala de fuente manual (0.4x - 1.5x) para optimización en tiempo real.
 
 ### Contador regresivo
 
-- Configuración de título y duración (minutos y segundos).
-- Controles de inicio, pausa, reanudación y reinicio.
-- Tema visual independiente con las mismas opciones que la proyección.
-- Vista previa en tiempo real dentro de la pestaña.
-- Proyección en la ventana de proyección existente.
+- Configuración de título y duración exacta.
+- Tema visual independiente sincronizado con la proyección.
+- Vista previa interna y proyección a pantalla completa.
 
 ### Notas del culto
 
-- **Nombre del culto**: campo libre (ej. "Culto Dominical", "Vigilia", "Ayuno").
-- **Asistencia desglosada**: Caballeros, Damas, Amigos, Niños con total automático.
-- **Proyección de asistencia**: slide con plantilla de tabla proyectable.
-- **Avisos**: lista de texto libre con CRUD completo y proyección individual.
-- **Historial**: gráfico de barras apiladas + tabla resumen de los últimos 12 cultos.
-- **Sincronización**: asistencia sincronizada con Supabase (`attendance_records`); avisos solo locales.
-- Selector de fecha para navegar entre cultos anteriores.
+- **Asistencia**: Registro desglosado (Caballeros, Damas, Amigos, Niños) con totales automáticos.
+- **Sincronización**: Los datos se suben a Supabase y se migran automáticamente de invitado a usuario tras el login.
+- **Avisos**: Gestión de anuncios comunitarios con proyección individual de alta legibilidad.
+- **Historial**: Tablas y gráficos estadísticos de los últimos cultos.
 
-### Media y personalización
+### Estabilidad y Robustez (Core)
 
-- Carga de imágenes y videos locales para anuncios.
-- Control de reproducción de video desde el panel de control.
-- Modo fondo: media detrás del texto.
+- **Arranque Seguro**: El sistema dispone de un temporizador de seguridad de 6 segundos que libera la pantalla de carga ante fallos de red.
+- **Sesión Atómica**: El cierre de sesión (`logout`) limpia de forma inmediata todos los estados (Zustand + local) para garantizar la privacidad.
+- **Modo Offline**: PWA completamente funcional; trabaja en local y sincroniza en cuanto detecta conexión y cuenta de usuario.
 
-### Onboarding y UX
+### UX y Onboarding
 
-- Tour guiado de 4 pasos para nuevos usuarios con spotlight animado.
-- Acceso sin cuenta (modo invitado) con datos en IndexedDB local.
-- Confirmaciones antes de acciones destructivas.
-- Accesibilidad: roles ARIA, `aria-label`, foco gestionado.
+- Tour guiado dinámico para nuevos usuarios.
+- Acceso inmediato en modo invitado sin necesidad de cuenta.
+- Diseño "Premium Dark Mode" optimizado para entornos de poca luz (iglesias).
+- Accesibilidad mejorada y soporte completo de teclado.
 
 ---
 
