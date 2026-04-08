@@ -33,6 +33,11 @@ export default function SettingsView() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [isLoginMode, setIsLoginMode] = useState(true)
 
+  // MFA states
+  const [mfaEnrolling, setMfaEnrolling] = useState(false)
+  const [mfaFactorId, setMfaFactorId] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     setAuthError('')
@@ -245,6 +250,70 @@ export default function SettingsView() {
             </div>
           )}
         </section>
+
+
+
+        {/* Seguridad */}
+        {user && (
+          <section className="settings-section">
+            <h2>Seguridad</h2>
+            <div className="form-group">
+              <label>Autenticación de Dos Factores (MFA)</label>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                Agrega una capa extra de seguridad a tu cuenta con un código TOTP.
+              </p>
+              <button className="btn-secondary" onClick={async () => {
+                if (mfaEnrolling) {
+                  // Verify the MFA code
+                  try {
+                    const { error } = await supabase.auth.mfa.verify({
+                      factorId: mfaFactorId,
+                      code: mfaCode
+                    } as any)
+                    if (error) throw error
+                    setMfaEnrolling(false)
+                    setMfaFactorId('')
+                    setMfaCode('')
+                    setAuthError('')
+                    alert('MFA activado exitosamente')
+                  } catch (err: any) {
+                    setAuthError(err.message)
+                  }
+                } else {
+                  // Start enrolling
+                  try {
+                    setAuthError('')
+                    const { data, error } = await supabase.auth.mfa.enroll({
+                      factorType: 'totp'
+                    })
+                    if (error) throw error
+                    if (data.totp) {
+                      setMfaFactorId(data.id)
+                      setMfaEnrolling(true)
+                      alert(`Escanea este código QR con tu app de autenticación:\n\n${data.totp.uri}\n\nO ingresa manualmente: ${data.totp.secret}`)
+                    }
+                  } catch (err: any) {
+                    setAuthError(err.message)
+                  }
+                }
+              }}>
+                {mfaEnrolling ? 'Verificar Código MFA' : 'Activar MFA'}
+              </button>
+              {mfaEnrolling && (
+                <div style={{ marginTop: 12 }}>
+                  <input 
+                    type="text" 
+                    placeholder="Ingresa el código de 6 dígitos"
+                    value={mfaCode}
+                    onChange={e => setMfaCode(e.target.value)}
+                    style={{ width: '100%', padding: '8px', marginBottom: 8 }}
+                  />
+                </div>
+              )}
+              {authError && <div style={{ color: '#ff4d4f', fontSize: 13, marginTop: 8 }}>{authError}</div>}
+            </div>
+          </section>
+        )}
 
 
 
