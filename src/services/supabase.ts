@@ -49,6 +49,7 @@ function mapRowToSong(row: SupabaseSongRow): Song {
 
 function mapSongToPayload(song: Omit<Song, 'id'>) {
   return {
+    user_id: song.userId ?? null,
     title: song.title,
     artist: song.artist,
     lyrics: song.lyrics,
@@ -59,8 +60,8 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
     is_verified: song.isVerified,
     source_url: song.sourceUrl ?? null,
     usage_count: song.usageCount,
+    created_at: song.createdAt.toISOString(),
     updated_at: song.updatedAt.toISOString(),
-    ...(song.userId && { user_id: song.userId })
   }
 }
 
