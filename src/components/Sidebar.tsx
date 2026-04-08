@@ -1,6 +1,7 @@
 import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore, useProjectionStore } from '@/stores';
+import { supabase } from '@/services/supabase';
 import { openProjectionWindow } from '@/services/projection';
 import FeedbackModal from '@/components/FeedbackModal'
 
@@ -39,7 +40,6 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      const { supabase } = await import('@/services/supabase')
       await supabase.auth.signOut()
     } finally {
       useAppStore.getState().logout()

@@ -39,12 +39,25 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, setGuestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, userRole: cachedUserRole } = useAppStore(useShallow(s => ({
-    setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
-    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode, setGuestMode: s.setGuestMode,
-    checkTermsVersion: s.checkTermsVersion, acceptTerms: s.acceptTerms,
-    setTermsAccepted: s.setTermsAccepted, setTermsSyncPending: s.setTermsSyncPending,
-    termsSyncPending: s.termsSyncPending, userRole: s.userRole
+  const { 
+    setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, 
+    guestMode, setGuestMode, checkTermsVersion, acceptTerms, 
+    setTermsAccepted, setTermsSyncPending, termsSyncPending, 
+    userRole: cachedUserRole 
+  } = useAppStore(useShallow(s => ({
+    setUser: s.setUser, 
+    setUserRole: s.setUserRole, 
+    setUserPlan: s.setUserPlan, 
+    authStatus: s.authStatus, 
+    setAuthStatus: s.setAuthStatus, 
+    guestMode: s.guestMode, 
+    setGuestMode: s.setGuestMode,
+    checkTermsVersion: s.checkTermsVersion, 
+    acceptTerms: s.acceptTerms,
+    setTermsAccepted: s.setTermsAccepted, 
+    setTermsSyncPending: s.setTermsSyncPending,
+    termsSyncPending: s.termsSyncPending, 
+    userRole: s.userRole
   })))
   const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
