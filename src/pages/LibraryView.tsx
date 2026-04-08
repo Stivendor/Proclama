@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -100,47 +100,41 @@ export default function LibraryView() {
   const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
   const songs = useLiveQuery(async () => {
-    let query = db.songs.orderBy('title')
+    let results = await db.songs.orderBy('title').toArray()
     
-    // Aplicar filtros manuales
-    let results = await query.toArray()
-    
+    // 1. Filter by Search Query
     if (searchQuery) {
       const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase()
       const q = normalize(searchQuery)
       
-      // Prioritize searching in Titles and Artists (faster)
       const titleMatches = results.filter(s => normalize(s.title).includes(q) || normalize(s.artist).includes(q))
-      
-      if (titleMatches.length >= 50) {
-        results = titleMatches.slice(0, 50)
-      } else {
-        // If not enough title matches, look into lyrics
-        const lyricMatches = results.filter(s => 
-          !titleMatches.includes(s) && (
-            normalize(s.lyrics).includes(q) || 
-            s.tags.some(t => normalize(t).includes(q))
-          )
+      const lyricMatches = results.filter(s => 
+        !titleMatches.includes(s) && (
+          normalize(s.lyrics).includes(q) || 
+          s.tags.some(t => normalize(t).includes(q))
         )
-        results = [...titleMatches, ...lyricMatches].slice(0, 50)
-      }
-    } else {
-      results = results.slice(0, 50) // Default view limit
+      )
+      results = [...titleMatches, ...lyricMatches]
     }
 
+    // 2. Filter by Moderation Status (Pending)
+    if (filter === 'pending') {
+      results = results.filter(s => s.isPublic && !s.isVerified)
+    }
+
+    // 3. Filter by Tags
     if (selectedTag) {
       results = results.filter(s => s.tags.includes(selectedTag))
     }
 
+    // 4. Filter by Language
     if (selectedLang) {
       results = results.filter(s => s.language === selectedLang)
     }
-
-    if (filter === 'pending') {
-      results = results.filter(s => s.isPublic && !s.isVerified)
-    }
     
-    return results
+    // 5. Apply view limit (slice) as the final step
+    // This ensures we always find matches in the full local database
+    return results.slice(0, 50)
   }, [searchQuery, selectedTag, selectedLang, filter]) ?? []
 
   const allTags = useLiveQuery(async () => {
@@ -180,6 +174,28 @@ export default function LibraryView() {
       const newUsage = (song.usageCount || 0) + 1
       await updateSongRemote(song.id, { usageCount: newUsage })
       await db.songs.update(song.id, { usageCount: newUsage })
+    }
+  }
+
+  const handleApprove = async (song: Song) => {
+    if (song.id == null) return
+    try {
+      await updateSongRemote(song.id, { isVerified: true })
+      await db.songs.update(song.id, { isVerified: true })
+    } catch (err) {
+      console.error('Error approving song:', err)
+      setRemoteError('Error al aprobar la canción.')
+    }
+  }
+
+  const handleReject = async (song: Song) => {
+    if (song.id == null) return
+    try {
+      await updateSongRemote(song.id, { isPublic: false, isVerified: false })
+      await db.songs.update(song.id, { isPublic: false, isVerified: false })
+    } catch (err) {
+      console.error('Error rejecting song:', err)
+      setRemoteError('Error al rechazar la canción.')
     }
   }
 
@@ -312,6 +328,8 @@ export default function LibraryView() {
                   onEdit={handleEdit} 
                   onLoad={handleLoad} 
                   onDelete={handleDelete}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
                 />
               ))
             )}
@@ -346,7 +364,16 @@ export default function LibraryView() {
   )
 }
 
-const SongListItem = memo(function SongListItem({ song, onEdit, onLoad, onDelete }: { song: Song, onEdit: (s: Song) => void, onLoad: (s: Song) => void, onDelete: (s: Song) => void }) {
+const SongListItem = memo(function SongListItem({ 
+  song, onEdit, onLoad, onDelete, onApprove, onReject 
+}: { 
+  song: Song, 
+  onEdit: (s: Song) => void, 
+  onLoad: (s: Song) => void, 
+  onDelete: (s: Song) => void,
+  onApprove: (s: Song) => void,
+  onReject: (s: Song) => void
+}) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { user, userRole } = useAppStore(useShallow(s => ({ user: s.user, userRole: s.userRole })))
   const isActive = activeTitle === song.title
@@ -357,6 +384,8 @@ const SongListItem = memo(function SongListItem({ song, onEdit, onLoad, onDelete
     if (song.isPublic && song.isVerified) return <span title="Canción verificada"><ShieldCheck size={12} className="status-icon-verified" /></span>
     return null
   }
+
+  const isPending = song.isPublic && !song.isVerified
 
   return (
     <div 
@@ -370,18 +399,39 @@ const SongListItem = memo(function SongListItem({ song, onEdit, onLoad, onDelete
         </div>
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
-      {(userRole === 'admin' || user?.id === song.userId) && (
-        <div className="song-card-actions-mini">
+      <div className="song-card-actions-mini">
+        {/* Acciones de Moderación (Solo Admin & Solo si está pendiente) */}
+        {userRole === 'admin' && isPending && (
+          <>
+            <button 
+              className="btn-icon-xs success" 
+              onClick={(e) => { e.stopPropagation(); onApprove(song); }} 
+              title="Aprobar y verificar"
+            >
+              <Check size={12} />
+            </button>
+            <button 
+              className="btn-icon-xs warning" 
+              onClick={(e) => { e.stopPropagation(); onReject(song); }} 
+              title="Rechazar (volver privada)"
+            >
+              <X size={12} />
+            </button>
+          </>
+        )}
+
+        {(userRole === 'admin' || user?.id === song.userId) && (
           <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />
           </button>
-          {userRole === 'admin' && (
-            <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar">
-              <Trash2 size={12} />
-            </button>
-          )}
-        </div>
-      )}
+        )}
+        
+        {userRole === 'admin' && (
+          <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar permanentemente">
+            <Trash2 size={12} />
+          </button>
+        )}
+      </div>
     </div>
   )
 })
