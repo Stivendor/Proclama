@@ -1,4 +1,4 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, User, LogIn, Cloud, CloudOff, Timer, ClipboardEdit } from 'lucide-react';
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore, useProjectionStore } from '@/stores';
 import { openProjectionWindow } from '@/services/projection';
@@ -7,9 +7,9 @@ import FeedbackModal from '@/components/FeedbackModal'
 
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, toggleSidebar, user } = useAppStore(useShallow(s => ({
+  const { activeView, setActiveView, setEditingSong, toggleSidebar, user, setGuestMode } = useAppStore(useShallow(s => ({
     activeView: s.activeView, setActiveView: s.setActiveView, setEditingSong: s.setEditingSong, 
-    toggleSidebar: s.toggleSidebar, user: s.user
+    toggleSidebar: s.toggleSidebar, user: s.user, setGuestMode: s.setGuestMode
   })))
   const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
 
@@ -33,8 +33,18 @@ export default function Sidebar() {
   ] as const
 
   const handleLogoClick = () => {
-    useAppStore.getState().setGuestMode(false)
-    import('@/services/supabase').then(m => m.supabase.auth.signOut())
+    // Solo usar el logo para navegar al home (no para logout, que es confuso)
+    setGuestMode(false)
+  }
+
+  const handleLogout = async () => {
+    try {
+      const { supabase } = await import('@/services/supabase')
+      await supabase.auth.signOut()
+      // App.tsx onAuthStateChange se encarga de limpiar user y redirigir
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err)
+    }
   }
 
   return (
@@ -78,9 +88,19 @@ export default function Sidebar() {
       {/* Estado de sincronización */}
       <div className="sidebar-sync-status">
         {user ? (
-          <div className="sync-indicator synced">
-            <Cloud size={14} />
-            <span>Sincronizado</span>
+          <div className="sync-user-row">
+            <div className="sync-indicator synced">
+              <Cloud size={14} />
+              <span>{user.email ?? 'Sincronizado'}</span>
+            </div>
+            <button
+              className="btn-icon sm"
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+            >
+              <LogOut size={14} />
+            </button>
           </div>
         ) : (
           <button 

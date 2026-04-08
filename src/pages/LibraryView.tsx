@@ -22,8 +22,12 @@ export default function LibraryView() {
 
   // Conteo de canciones propias del usuario (para el límite free)
   const ownSongCount = useLiveQuery(async () => {
-    if (!user?.id) return 0
-    return db.songs.where('userId').equals(user.id).count()
+    try {
+      if (!user?.id) return 0
+      return await db.songs.where('userId').equals(user.id).count()
+    } catch {
+      return 0
+    }
   }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
@@ -69,10 +73,14 @@ export default function LibraryView() {
         const remoteSongs = await fetchSongs()
         if (cancelled) return
 
-        // Limpiar Dexie y reemplazar con el catálogo actualizado de Supabase
-        await db.songs.clear()
-        if (cancelled) return
-        await db.songs.bulkPut(remoteSongs)
+        // Operación atómica: limpiar y reemplazar en una sola transacción
+        // Esto evita que useLiveQuery vea el estado intermedio (tabla vacía) y crashee con DexieError2
+        await db.transaction('rw', db.songs, async () => {
+          await db.songs.clear()
+          if (remoteSongs.length > 0) {
+            await db.songs.bulkPut(remoteSongs)
+          }
+        })
       } catch (err) {
         console.error('Error syncing songs from Supabase:', err)
         if (!cancelled) setRemoteError('No se pudo sincronizar con Supabase. Usando datos locales.')

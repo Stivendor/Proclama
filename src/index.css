@@ -205,6 +205,31 @@ a:hover { text-decoration: underline; }
   color: var(--gold);
   background: rgba(212, 175, 55, 0.1);
 }
+.sync-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 6px;
+  padding-right: 4px;
+}
+.sync-user-row .sync-indicator {
+  background: transparent;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.sync-user-row .sync-indicator span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn-icon.sm {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px;
+}
 .sync-login-btn {
   display: flex;
   align-items: center;
@@ -1105,6 +1130,7 @@ a:hover { text-decoration: underline; }
 .recent-verse-text {
   font-size: 11px; color: var(--text-secondary); line-height: 1.4;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden; text-overflow: ellipsis;
 }
 .recent-hint {
