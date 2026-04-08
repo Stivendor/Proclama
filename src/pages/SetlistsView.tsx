@@ -62,12 +62,33 @@ export default function SetlistsView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
 
-  const localSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
-  const allSongs = useLiveQuery(() => db.songs.orderBy('title').toArray()) ?? []
+  const localSetlists = useLiveQuery(async () => {
+    try {
+      return await db.setlists.orderBy('date').reverse().toArray()
+    } catch {
+      return []
+    }
+  }) ?? []
+
+  const allSongs = useLiveQuery(async () => {
+    try {
+      return await db.songs.orderBy('title').toArray()
+    } catch {
+      return []
+    }
+  }) ?? []
   
   // Batch load all songs for the editing setlist (fixes N+1 query pattern)
   const setlistSongs = useLiveQuery(
-    () => editingSetlist ? db.songs.bulkGet(editingSetlist.songIds) : Promise.resolve([] as (Song | undefined)[]),
+    async () => {
+      try {
+        if (!editingSetlist) return []
+        const songs = await db.songs.bulkGet(editingSetlist.songIds)
+        return songs.filter((s): s is Song => !!s)
+      } catch {
+        return []
+      }
+    },
     [editingSetlist?.songIds]
   ) ?? []
 
@@ -99,11 +120,19 @@ export default function SetlistsView() {
 
     let cancelled = false
     setLoading(true)
-    supabaseService.fetchSetlists()
-      .then(data => { if (!cancelled) setCloudSetlists(data) })
-      .catch(err => { console.error('Error fetching setlists:', err) })
-      .finally(() => { if (!cancelled) setLoading(false) })
+    
+    const loadData = async () => {
+      try {
+        const data = await supabaseService.fetchSetlists()
+        if (!cancelled) setCloudSetlists(data || [])
+      } catch (err) {
+        console.error('Failed to load setlists:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
 
+    loadData()
     return () => { cancelled = true }
   }, [userId, authStatus])
 
