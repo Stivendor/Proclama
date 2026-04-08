@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useShallow } from 'zustand/react/shallow'
@@ -41,9 +41,8 @@ export default function App() {
 function AppContent() {
   const { 
     setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, 
-    guestMode, setGuestMode, checkTermsVersion, acceptTerms, 
-    setTermsAccepted, setTermsSyncPending, termsSyncPending, 
-    userRole: cachedUserRole 
+    guestMode, checkTermsVersion, acceptTerms, 
+    termsSyncPending, cachedUserRole 
   } = useAppStore(useShallow(s => ({
     setUser: s.setUser, 
     setUserRole: s.setUserRole, 
@@ -51,64 +50,14 @@ function AppContent() {
     authStatus: s.authStatus, 
     setAuthStatus: s.setAuthStatus, 
     guestMode: s.guestMode, 
-    setGuestMode: s.setGuestMode,
     checkTermsVersion: s.checkTermsVersion, 
     acceptTerms: s.acceptTerms,
-    setTermsAccepted: s.setTermsAccepted, 
-    setTermsSyncPending: s.setTermsSyncPending,
     termsSyncPending: s.termsSyncPending, 
-    userRole: s.userRole
+    cachedUserRole: s.userRole
   })))
+
   const [showTermsGate, setShowTermsGate] = useState(false)
   const isServer = typeof window === 'undefined'
-
-  // Migrate guest notes to authenticated user
-  const migrateGuestNotes = useCallback(async (userId: string) => {
-    try {
-      const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
-      for (const note of guestNotes) {
-        const noteToMigrate = { ...note, userId }
-        const result = await upsertChurchNote(noteToMigrate)
-        if (result) {
-          await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
-        }
-      }
-    } catch (err) {
-      console.warn('Guest notes migration failed silently:', err)
-    }
-  }, [])
-
-  // Migrate local songs to authenticated user
-  const migrateLocalSongs = useCallback(async (userId: string, isPremium: boolean) => {
-    try {
-      // DESACTIVADO: Ya no hay canciones locales que migrar
-      // Si en el futuro necesitas migrar, descomenta este código
-      /*
-      const localSongs = await db.songs.filter(s => !s.userId).toArray()
-      if (localSongs.length === 0) return
-
-      for (const song of localSongs) {
-        const songToMigrate = { ...song, userId }
-        
-        // Si es premium, sincronizar con Supabase
-        if (isPremium) {
-          const { createSong } = await import('@/services/supabase')
-          const created = await createSong(songToMigrate)
-          if (created) {
-            await db.songs.add(created)
-          } else {
-            await db.songs.add(songToMigrate)
-          }
-        } else {
-          // Si es free, solo guardar localmente
-          await db.songs.add(songToMigrate)
-        }
-      }
-      */
-    } catch (err) {
-      console.warn('Local songs migration failed silently:', err)
-    }
-  }, [])
 
   const handleAcceptTerms = async () => {
     await acceptTerms(CURRENT_TERMS_VERSION)
@@ -155,8 +104,7 @@ function AppContent() {
       }
     }
 
-    // Migrate local songs to authenticated user
-    const migrateLocalSongs = async (userId: string, isPremium: boolean) => {
+    const migrateLocalSongs = async (userId: string, _isPremium: boolean) => {
       try {
         // DESACTIVADO: Ya no hay canciones locales que migrar
       } catch (err) {
@@ -188,7 +136,7 @@ function AppContent() {
       } finally {
         clearTimeout(authTimeout)
       }
-    })
+    }
 
     initAuth()
 
@@ -204,17 +152,14 @@ function AppContent() {
         setUser(user)
 
         if (user) {
-          // Carga de perfil (role, plan)
           const profile = await loadProfile(user.id).catch(e => {
             console.warn('Profile sync failed:', e)
             return null
           })
 
           if (event === 'SIGNED_IN') {
-            // Migraciones y sincronización inicial post-login
             try {
               await migrateGuestNotes(user.id)
-              
               const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
               await migrateLocalSongs(user.id, isPremium)
               
@@ -227,15 +172,14 @@ function AppContent() {
               const { termsSyncPending, termsAccepted } = useAppStore.getState()
               if (termsSyncPending && termsAccepted) {
                 const { syncTermsAcceptance } = await import('@/services/supabase')
-                const ok = await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
-                if (ok) useAppStore.getState().setTermsSyncPending(false)
+                await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt)
+                useAppStore.getState().setTermsSyncPending(false)
               }
             } catch (err) {
               console.warn('Post-login sync tasks had issues:', err)
             }
           }
         } else {
-          // SIGNED_OUT o sesión vacía inicial
           if (event === 'SIGNED_OUT') {
             useAppStore.getState().logout()
           }
@@ -243,7 +187,6 @@ function AppContent() {
       } catch (err) {
         console.error('Auth event processing failed:', err)
       } finally {
-        // Garantizar que salimos del estado "loading" pase lo que pase
         setAuthStatus(session ? 'authenticated' : 'unauthenticated')
         if (checkTermsVersion()) setShowTermsGate(true)
       }
@@ -260,7 +203,7 @@ function AppContent() {
       subscription.unsubscribe()
       offMedia()
     }
-  }, [migrateGuestNotes, migrateLocalSongs, setTermsAccepted, setTermsSyncPending, termsSyncPending, termsAccepted])
+  }, [isServer, cachedUserRole, checkTermsVersion, acceptTerms, setAuthStatus, setUser, setUserRole, setUserPlan])
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />
@@ -288,7 +231,9 @@ function AppContent() {
 function MainApp() {
   useKeyboardShortcuts()
   const { activeView, isSidebarOpen, onboardingDone } = useAppStore(useShallow(s => ({
-    activeView: s.activeView, isSidebarOpen: s.isSidebarOpen, onboardingDone: s.onboardingDone
+    activeView: s.activeView, 
+    isSidebarOpen: s.isSidebarOpen, 
+    onboardingDone: s.onboardingDone
   })))
 
   return (
