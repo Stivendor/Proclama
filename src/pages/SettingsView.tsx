@@ -214,23 +214,39 @@ export default function SettingsView() {
               </p>
             </div>
           ) : (
-            <div className="auth-card success">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <CheckCircle color="var(--gold)" size={20} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>Autenticado como:</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{user.email} (Escritura habilitada)</div>
+            <div className="session-card">
+              <div className="session-profile">
+                <div className="session-avatar">
+                  {user.email?.[0].toUpperCase() ?? 'U'}
+                </div>
+                <div className="session-details">
+                  <div className="session-email">{user.email}</div>
+                  <div className="session-status">
+                    <Cloud size={12} />
+                    <span>Sincronización activa</span>
+                    <span className="status-divider">•</span>
+                    <span className="status-plan">Plan Escritura</span>
+                  </div>
                 </div>
               </div>
-              <button className="btn-secondary" onClick={() => {
-                supabase.auth.signOut()
-                useAppStore.getState().setGuestMode(false)
-              }}>
-                <LogOut size={15} /> Cerrar Sesión
-              </button>
-              <button className="btn-secondary" style={{ marginTop: 8 }} onClick={() => setActiveView('terms')}>
-                <FileText size={15} /> Términos y Condiciones
-              </button>
+              
+              <div className="session-actions-grid">
+                <button className="btn-session logout" onClick={async () => {
+                  try {
+                    await supabase.auth.signOut()
+                  } finally {
+                    useAppStore.getState().logout()
+                  }
+                }}>
+                  <LogOut size={16} />
+                  <span>Cerrar Sesión</span>
+                </button>
+                
+                <button className="btn-session terms" onClick={() => setActiveView('terms')}>
+                  <FileText size={16} />
+                  <span>Términos y condiciones</span>
+                </button>
+              </div>
             </div>
           )}
         </section>
@@ -801,6 +817,100 @@ export default function SettingsView() {
           flex: 1;
           height: 1px;
           background: var(--border);
+        }
+
+        /* Session Active Card */
+        .session-card {
+          background: linear-gradient(145deg, var(--bg-elevated), var(--bg-base));
+          border: 1px solid var(--border-light);
+          border-radius: 12px;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .session-profile {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .session-avatar {
+          width: 48px;
+          height: 48px;
+          background: var(--gold);
+          color: black;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 12px;
+          font-weight: 700;
+          font-size: 20px;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+        .session-email {
+          font-weight: 600;
+          font-size: 15px;
+          color: var(--text-primary);
+          margin-bottom: 2px;
+          word-break: break-all;
+        }
+        .session-status {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          color: var(--text-muted);
+        }
+        .session-status svg {
+          color: var(--green);
+        }
+        .status-divider {
+          color: var(--border);
+        }
+        .status-plan {
+          color: var(--gold);
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 10px;
+          letter-spacing: 0.5px;
+        }
+        .session-actions-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .btn-session {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid var(--border);
+          background: rgba(255,255,255,0.03);
+          color: var(--text-secondary);
+        }
+        .btn-session:hover {
+          background: var(--bg-hover);
+          color: var(--text-primary);
+          border-color: var(--border-light);
+          transform: translateY(-1px);
+        }
+        .btn-session.logout:hover {
+          background: rgba(224, 85, 85, 0.1);
+          color: var(--red);
+          border-color: var(--red-dim);
+        }
+        
+        @media (max-width: 480px) {
+          .session-actions-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>

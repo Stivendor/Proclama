@@ -47,9 +47,9 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView } = useAppStore(useShallow(s => ({
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
     setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen, 
-    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView
+    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView, authStatus: s.authStatus
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
@@ -62,12 +62,33 @@ export default function SetlistsView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
 
-  const localSetlists = useLiveQuery(() => db.setlists.orderBy('date').reverse().toArray()) ?? []
-  const allSongs = useLiveQuery(() => db.songs.orderBy('title').toArray()) ?? []
+  const localSetlists = useLiveQuery(async () => {
+    try {
+      return await db.setlists.orderBy('date').reverse().toArray()
+    } catch {
+      return []
+    }
+  }) ?? []
+
+  const allSongs = useLiveQuery(async () => {
+    try {
+      return await db.songs.orderBy('title').toArray()
+    } catch {
+      return []
+    }
+  }) ?? []
   
   // Batch load all songs for the editing setlist (fixes N+1 query pattern)
   const setlistSongs = useLiveQuery(
-    () => editingSetlist ? db.songs.bulkGet(editingSetlist.songIds) : Promise.resolve([] as (Song | undefined)[]),
+    async () => {
+      try {
+        if (!editingSetlist) return []
+        const songs = await db.songs.bulkGet(editingSetlist.songIds)
+        return songs.filter((s): s is Song => !!s)
+      } catch {
+        return []
+      }
+    },
     [editingSetlist?.songIds]
   ) ?? []
 
@@ -84,19 +105,45 @@ export default function SetlistsView() {
     return Array.from(langs).sort()
   }, [allSongs])
 
-  // Cargar setlists de Supabase si hay usuario
+  // Cargar setlists de Supabase si hay usuario.
+  // Usa userId (string primitivo) + authStatus para detectar login con Google OAuth.
+  const userId = user?.id ?? null
   useEffect(() => {
-    setCloudSetlists([]) // Limpiar siempre al cambiar de usuario para evitar fugas visuals
-    if (user) {
-      setLoading(true)
-      supabaseService.fetchSetlists().then(data => {
-        setCloudSetlists(data)
-        setLoading(false)
-      })
-    } else {
+    // No hacer nada hasta que auth esté resuelto
+    if (authStatus === 'loading') return
+
+    setCloudSetlists([])
+    if (!userId) {
       setLoading(false)
+      return
     }
-  }, [user])
+
+    let cancelled = false
+    setLoading(true)
+    
+    const loadData = async () => {
+      try {
+        const data = await supabaseService.fetchSetlists()
+        if (!cancelled) setCloudSetlists(data || [])
+      } catch (err) {
+        console.error('Failed to load setlists:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadData()
+
+    // Safety timeout: si en 8 segundos no ha terminado, quitar el loading
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false)
+    }, 8000)
+
+    return () => { 
+      cancelled = true
+      clearTimeout(timeout)
+    }
+  }, [userId, authStatus])
 
   const setlists = user ? cloudSetlists : localSetlists
 
