@@ -56,6 +56,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     if (!importedLyrics) return
     const { song, lyrics } = importedLyrics
     setSaving(true)
+    setError('')
     try {
       const now = new Date()
       const payload = {
@@ -73,27 +74,30 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         updatedAt: now,
         sourceUrl: song.url
       }
-      
-      // Solo sincronizar con Supabase si el usuario puede
+
       if (canSync && user) {
         const created = await createSong(payload)
         if (created) {
+          // Inserción en Supabase exitosa → guardar en Dexie con el id remoto
           await db.songs.add(created)
         } else {
-          await db.songs.add(payload)
+          // createSong devolvió null: Supabase rechazó (ej. RLS). Lanzar error
+          // para que no quede el spinner colgado ni se haga add(null).
+          throw new Error('No se pudo guardar en la nube. Verifica tu sesión e inténtalo de nuevo.')
         }
       } else {
-        // Usuario free: solo guardar localmente
+        // Usuario sin sesión o plan free: guardar solo localmente
         await db.songs.add(payload)
       }
-      
+
+      // Solo llegar aquí si todo salió bien
+      setImportedLyrics(null)
       onClose()
     } catch (err) {
-      console.error(err)
-      setError('Error al guardar la canción.')
+      console.error('handleSave error:', err)
+      setError(err instanceof Error ? err.message : 'Error al guardar la canción.')
     } finally {
       setSaving(false)
-      setImportedLyrics(null)
     }
   }
 
