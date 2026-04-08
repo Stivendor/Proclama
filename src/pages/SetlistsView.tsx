@@ -133,7 +133,16 @@ export default function SetlistsView() {
     }
 
     loadData()
-    return () => { cancelled = true }
+
+    // Safety timeout: si en 8 segundos no ha terminado, quitar el loading
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false)
+    }, 8000)
+
+    return () => { 
+      cancelled = true
+      clearTimeout(timeout)
+    }
   }, [userId, authStatus])
 
   const setlists = user ? cloudSetlists : localSetlists

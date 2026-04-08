@@ -217,6 +217,8 @@ interface AppStore {
   checkTermsVersion: () => boolean
   setTermsAccepted: (t: TermsAcceptance | null) => void
   setTermsSyncPending: (v: boolean) => void
+
+  logout: () => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -299,6 +301,17 @@ export const useAppStore = create<AppStore>()(
           }
         }
       },
+
+      logout: () => set({ 
+        user: null, 
+        userRole: null, 
+        userPlan: 'free', 
+        authStatus: 'unauthenticated', 
+        guestMode: false,
+        termsAccepted: null,
+        activeSetlist: null,
+        editingSong: null
+      }),
     }),
     {
       name: 'proclama-app',

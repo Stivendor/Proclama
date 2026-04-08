@@ -226,9 +226,12 @@ export default function SettingsView() {
               </div>
               
               <div className="session-actions-grid">
-                <button className="btn-session logout" onClick={() => {
-                  supabase.auth.signOut()
-                  useAppStore.getState().setGuestMode(false)
+                <button className="btn-session logout" onClick={async () => {
+                  try {
+                    await supabase.auth.signOut()
+                  } finally {
+                    useAppStore.getState().logout()
+                  }
                 }}>
                   <LogOut size={16} />
                   <span>Cerrar Sesión</span>
