@@ -47,9 +47,9 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView } = useAppStore(useShallow(s => ({
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
     setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen, 
-    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView
+    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView, authStatus: s.authStatus
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
@@ -84,19 +84,28 @@ export default function SetlistsView() {
     return Array.from(langs).sort()
   }, [allSongs])
 
-  // Cargar setlists de Supabase si hay usuario
+  // Cargar setlists de Supabase si hay usuario.
+  // Usa userId (string primitivo) + authStatus para detectar login con Google OAuth.
+  const userId = user?.id ?? null
   useEffect(() => {
-    setCloudSetlists([]) // Limpiar siempre al cambiar de usuario para evitar fugas visuals
-    if (user) {
-      setLoading(true)
-      supabaseService.fetchSetlists().then(data => {
-        setCloudSetlists(data)
-        setLoading(false)
-      })
-    } else {
+    // No hacer nada hasta que auth esté resuelto
+    if (authStatus === 'loading') return
+
+    setCloudSetlists([])
+    if (!userId) {
       setLoading(false)
+      return
     }
-  }, [user])
+
+    let cancelled = false
+    setLoading(true)
+    supabaseService.fetchSetlists()
+      .then(data => { if (!cancelled) setCloudSetlists(data) })
+      .catch(err => { console.error('Error fetching setlists:', err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+
+    return () => { cancelled = true }
+  }, [userId, authStatus])
 
   const setlists = user ? cloudSetlists : localSetlists
 

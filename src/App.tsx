@@ -39,9 +39,9 @@ export default function App() {
 }
 
 function AppContent() {
-  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, userRole: cachedUserRole } = useAppStore(useShallow(s => ({
+  const { setUser, setUserRole, setUserPlan, authStatus, setAuthStatus, guestMode, setGuestMode, checkTermsVersion, acceptTerms, setTermsAccepted, setTermsSyncPending, termsSyncPending, userRole: cachedUserRole } = useAppStore(useShallow(s => ({
     setUser: s.setUser, setUserRole: s.setUserRole, setUserPlan: s.setUserPlan, 
-    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode,
+    authStatus: s.authStatus, setAuthStatus: s.setAuthStatus, guestMode: s.guestMode, setGuestMode: s.setGuestMode,
     checkTermsVersion: s.checkTermsVersion, acceptTerms: s.acceptTerms,
     setTermsAccepted: s.setTermsAccepted, setTermsSyncPending: s.setTermsSyncPending,
     termsSyncPending: s.termsSyncPending, userRole: s.userRole
@@ -163,7 +163,14 @@ function AppContent() {
           }
         }
       } else {
+        // SIGNED_OUT: limpiar estado de sesión en el store
         setUserRole(null)
+        setUserPlan('free')
+        setGuestMode(false)        // ← sin esto la app nunca redirige a landing
+        setTermsAccepted(null)
+        // NO limpiar db.songs aquí: LibraryView se desmonta al ir a LandingView,
+        // y el sync effect lo reemplazará cuando el usuario vuelva a entrar.
+        // Limpiar Dexie async mientras hay useLiveQuery activos causa DexieError2.
       }
       setAuthStatus(session ? 'authenticated' : 'unauthenticated')
       if (checkTermsVersion()) setShowTermsGate(true)
