@@ -232,10 +232,11 @@ export default function SettingsView() {
               
               <div className="session-actions-grid">
                 <button className="btn-session logout" onClick={async () => {
+                  useAppStore.getState().logout()
                   try {
                     await supabase.auth.signOut()
-                  } finally {
-                    useAppStore.getState().logout()
+                  } catch(e) {
+                    console.warn(e)
                   }
                 }}>
                   <LogOut size={16} />

@@ -33,9 +33,6 @@ export default function ControlPanel() {
     <div className="control-panel compact-sidebar">
       <div className="control-song-header">
         <div className="control-song-title">{songTitle}</div>
-        <button className="btn-icon danger" onClick={clearSong} aria-label="Cerrar canción" title="Cerrar canción">
-          <Trash2 size={16} />
-        </button>
       </div>
 
       <div className="control-nav">

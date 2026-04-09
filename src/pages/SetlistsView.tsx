@@ -166,13 +166,22 @@ export default function SetlistsView() {
 
     if (user) {
       const created = await supabaseService.createSetlist(newSl)
-      if (created) setCloudSetlists([created, ...cloudSetlists])
+      if (created) {
+        setCloudSetlists([created, ...cloudSetlists])
+        setNewName('')
+        setShowNew(false)
+      } else {
+        alert('Error al crear el setlist en la nube. Verifica tu conexión o sesión.')
+      }
     } else {
-      await db.setlists.add(newSl as Setlist)
+      try {
+        await db.setlists.add(newSl as Setlist)
+        setNewName('')
+        setShowNew(false)
+      } catch (e: any) {
+        alert('Error al crear setlist local: ' + e.message)
+      }
     }
-
-    setNewName('')
-    setShowNew(false)
   }
 
   const deleteSetlist = async (sl: Setlist) => {

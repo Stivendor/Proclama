@@ -1,16 +1,9 @@
-// ─── Church (Sede IPUC) ───────────────────────────────────────────────────────
-export interface Church {
-  id: string
-  code: string
-  name: string
-  createdAt: Date
-}
+
 
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
   userId?: string         // UUID del usuario propietario (Supabase)
-  churchId?: string
   title: string
   artist: string
   lyrics: string          // Estrofas separadas por línea en blanco. Etiquetas opcionales: [Coro], [Verso 1], etc.
@@ -29,7 +22,6 @@ export interface Song {
 export interface Setlist {
   id?: number
   userId?: string     // UUID del usuario (Supabase)
-  churchId?: string
   name: string
   date: Date
   songIds: number[]
@@ -188,6 +180,21 @@ export interface AttendanceBreakdown {
   damas: number
   amigos: number
   ninos: number
+}
+
+/** Asistencia por fecha; Dexie + Supabase `attendance_records` (no mezclar con `church_notes`). */
+export interface AttendanceRecord {
+  id?: number
+  remoteId?: string
+  userId: string
+  date: string
+  serviceName?: string
+  caballeros: number
+  damas: number
+  amigos: number
+  ninos: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ChurchNote {

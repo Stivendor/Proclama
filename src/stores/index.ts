@@ -79,6 +79,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       isBible,
       slides: parseLyrics(song.lyrics),
       currentSlide: 0,
+      hideText: false,
     }
     set({ state: newState })
     sendProjectionUpdate(newState)
@@ -87,7 +88,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   nextSlide: () => {
     set(s => {
       if (s.state.currentSlide < s.state.slides.length - 1) {
-        const newState = { ...s.state, currentSlide: s.state.currentSlide + 1 }
+        const newState = { ...s.state, currentSlide: s.state.currentSlide + 1, hideText: false }
         sendProjectionUpdate(newState)
         return { state: newState }
       }
@@ -98,7 +99,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   prevSlide: () => {
     set(s => {
       if (s.state.currentSlide > 0) {
-        const newState = { ...s.state, currentSlide: s.state.currentSlide - 1 }
+        const newState = { ...s.state, currentSlide: s.state.currentSlide - 1, hideText: false }
         sendProjectionUpdate(newState)
         return { state: newState }
       }
@@ -109,7 +110,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   goToSlide: (index) => {
     set(s => {
       if (index >= 0 && index < s.state.slides.length) {
-        const newState = { ...s.state, currentSlide: index }
+        const newState = { ...s.state, currentSlide: index, hideText: false }
         sendProjectionUpdate(newState)
         return { state: newState }
       }

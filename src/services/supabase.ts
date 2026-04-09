@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Song, Setlist, ChurchNote } from '@/types'
+import type { Song, Setlist, ChurchNote, AttendanceRecord, AttendanceBreakdown } from '@/types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -13,7 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 type SupabaseSongRow = {
   id: number
   user_id: string | null
-  church_id: string | null
   title: string
   artist: string | null
   lyrics: string | null
@@ -80,7 +79,7 @@ export async function fetchSongs(): Promise<Song[]> {
 
     if (error) {
       console.error('Error fetching songs:', error)
-      break
+      throw new Error(error.message)
     }
     if (!data || data.length === 0) break
     
@@ -299,49 +298,108 @@ export async function fetchProfile(userId: string) {
 }
 
 // ─── Funciones para Attendance Records ────────────────────────────────────────
-import type { AttendanceBreakdown } from '@/types'
 
+function normalizePgDate(d: string): string {
+  return d.length >= 10 ? d.slice(0, 10) : d
+}
+
+type SupabaseAttendanceRow = {
+  id: string
+  user_id: string
+  date: string
+  service_name: string | null
+  caballeros: number
+  damas: number
+  amigos: number
+  ninos: number
+  updated_at: string
+}
+
+function mapRowToAttendanceRecord(row: SupabaseAttendanceRow, userId: string): AttendanceRecord {
+  return {
+    remoteId: row.id,
+    userId,
+    date: normalizePgDate(row.date),
+    serviceName: row.service_name ?? undefined,
+    caballeros: row.caballeros,
+    damas: row.damas,
+    amigos: row.amigos,
+    ninos: row.ninos,
+    createdAt: row.updated_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
+ * Upsert en `attendance_records`.
+ * `userId` debe ser el mismo que `auth.uid()` en la petición (p. ej. de una sola `getSession()` en la UI).
+ * No llama a `getSession()` aquí para evitar contención del lock de GoTrue (Strict Mode / OAuth).
+ */
 export async function upsertAttendance(
   userId: string,
   date: string,
   attendance: AttendanceBreakdown,
-  serviceName?: string
-): Promise<boolean> {
-  const { error } = await supabase
-    .from('attendance_records')
-    .upsert(
-      {
-        user_id: userId,
-        date,
-        service_name: serviceName ?? null,
-        caballeros: attendance.caballeros,
-        damas: attendance.damas,
-        amigos: attendance.amigos,
-        ninos: attendance.ninos,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,date' }
-    )
-
-  if (error) {
-    console.error('Error upserting attendance:', error.message)
-    return false
+  serviceName?: string,
+  /** Si el upsert no devuelve fila pero ya teníamos id local, se acepta. */
+  existingRemoteId?: string
+): Promise<{ remoteId: string }> {
+  const payload = {
+    user_id: userId,
+    date,
+    service_name: serviceName ?? null,
+    caballeros: attendance.caballeros,
+    damas: attendance.damas,
+    amigos: attendance.amigos,
+    ninos: attendance.ninos,
+    updated_at: new Date().toISOString(),
   }
-  return true
-}
 
-export async function fetchAllAttendance(userId: string): Promise<Array<{ date: string } & AttendanceBreakdown>> {
   const { data, error } = await supabase
     .from('attendance_records')
-    .select('date, caballeros, damas, amigos, ninos')
+    .upsert(payload, { onConflict: 'user_id,date' })
+    .select('id')
+
+  if (error) {
+    const msg = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
+    console.error('Error upserting attendance:', msg)
+    throw new Error(msg || 'No se pudo guardar la asistencia en el servidor.')
+  }
+
+  const rows = Array.isArray(data) ? data : data != null ? [data] : []
+  let id = rows[0]?.id as string | undefined
+
+  if (!id) {
+    const { data: fetched, error: fetchErr } = await supabase
+      .from('attendance_records')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .maybeSingle()
+    if (fetchErr) {
+      throw new Error(fetchErr.message || 'No se pudo confirmar la asistencia en el servidor.')
+    }
+    id = fetched?.id as string | undefined
+  }
+
+  if (id) return { remoteId: id }
+  if (existingRemoteId) return { remoteId: existingRemoteId }
+  throw new Error(
+    'El servidor no devolvió el id del registro. Revisa en Supabase que exista la tabla attendance_records y políticas RLS para tu usuario.'
+  )
+}
+
+export async function fetchAllAttendanceRecords(userId: string): Promise<AttendanceRecord[]> {
+  const { data, error } = await supabase
+    .from('attendance_records')
+    .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
     .eq('user_id', userId)
     .order('date', { ascending: false })
 
   if (error) {
-    console.error('Error fetching attendance:', error.message)
+    console.error('Error fetching attendance records:', error.message)
     return []
   }
-  return (data ?? []) as Array<{ date: string } & AttendanceBreakdown>
+  return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
 }
 type SupabaseChurchNoteRow = {
   id: string
@@ -358,7 +416,7 @@ function mapRowToChurchNote(row: SupabaseChurchNoteRow): ChurchNote {
     remoteId: row.id,
     userId: row.user_id,
     date: row.date,
-    attendance: row.attendance ?? undefined,
+    // Asistencia vive solo en `attendance_records`; la columna legacy se ignora al mapear.
     notices: row.notices ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -382,12 +440,53 @@ export async function fetchChurchNote(date: string, userId: string): Promise<Chu
   return mapRowToChurchNote(data as SupabaseChurchNoteRow)
 }
 
-export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote | null> {
+export async function fetchAllChurchNotes(userId: string): Promise<ChurchNote[]> {
+  const { data, error } = await supabase
+    .from('church_notes')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error fetching all church notes:', error.message)
+    return []
+  }
+  return (data as SupabaseChurchNoteRow[]).map(mapRowToChurchNote)
+}
+
+/** Filas crudas para migración (incluye `attendance` legacy en `church_notes`). */
+export async function fetchAllChurchNotesRaw(userId: string): Promise<SupabaseChurchNoteRow[]> {
+  const { data, error } = await supabase
+    .from('church_notes')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error fetching raw church notes:', error.message)
+    return []
+  }
+  return (data ?? []) as SupabaseChurchNoteRow[]
+}
+
+export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
+  const { error } = await supabase.from('feedback').insert({
+    message: message.trim(),
+    user_id: userId,
+  })
+
+  if (error) {
+    console.error('Error submitting feedback:', error.message)
+    return false
+  }
+  return true
+}
+
+/** `note.userId` debe coincidir con la sesión (pasar uid desde una sola `getSession()` en la UI). */
+export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote> {
   const payload = {
     ...(note.remoteId && { id: note.remoteId }),
     user_id: note.userId,
     date: note.date,
-    attendance: note.attendance ?? null,
+    attendance: null,
     notices: note.notices,
     created_at: note.createdAt,
     updated_at: note.updatedAt
@@ -397,13 +496,33 @@ export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote | n
     .from('church_notes')
     .upsert(payload, { onConflict: 'user_id,date' })
     .select()
-    .single()
 
   if (error) {
-    console.error('Error upserting church note:', error.message)
-    return null
+    const msg = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
+    console.error('Error upserting church note:', msg)
+    throw new Error(msg || 'No se pudieron guardar los avisos en el servidor.')
   }
-  return mapRowToChurchNote(data as SupabaseChurchNoteRow)
+
+  const rows = Array.isArray(data) ? data : data != null ? [data] : []
+  let row = rows[0] as SupabaseChurchNoteRow | undefined
+
+  if (!row) {
+    const { data: fetched, error: fetchErr } = await supabase
+      .from('church_notes')
+      .select('*')
+      .eq('user_id', note.userId)
+      .eq('date', note.date)
+      .maybeSingle()
+    if (fetchErr || !fetched) {
+      throw new Error(
+        fetchErr?.message ||
+          'No se pudo confirmar el guardado de avisos. Comprueba la tabla church_notes y RLS en Supabase.'
+      )
+    }
+    row = fetched as SupabaseChurchNoteRow
+  }
+
+  return mapRowToChurchNote(row)
 }
 
 export async function deleteChurchNote(remoteId: string): Promise<void> {
@@ -463,10 +582,10 @@ export async function fetchTermsAcceptance(
 
 // ─── Funciones para Premium Interest ──────────────────────────────────────────
 
-export async function registerPremiumInterest(email: string): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
+export async function registerPremiumInterest(email: string, userId: string | null = null): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
   const { error } = await supabase
     .from('premium_interest')
-    .insert({ email, created_at: new Date().toISOString() })
+    .insert({ email, user_id: userId, created_at: new Date().toISOString() })
 
   if (error) {
     // Código 23505 = unique violation (email ya registrado)

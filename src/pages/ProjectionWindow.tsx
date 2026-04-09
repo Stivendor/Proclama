@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
-import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
+import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme } from '@/types'
 import { DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
@@ -106,6 +106,49 @@ export default function ProjectionWindow() {
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
+  const calcCountdownSize = (theme: CountdownTheme, title: string | undefined, remainingSeconds: number) => {
+    const ctx = document.createElement('canvas').getContext('2d')
+    if (!ctx) {
+      return { timerFontSize: theme.fontSize || 160, titleFontSize: Math.max(14, Math.floor((theme.fontSize || 160) * 0.25)) }
+    }
+
+    const safeWidth = canvas.width * 0.92
+    const safeHeight = canvas.height * 0.92
+    const titleHeightReserve = title ? safeHeight * 0.16 : 0
+    const timerHeightMax = safeHeight - titleHeightReserve
+    const timerText = formatTime(remainingSeconds)
+    const fontWeight = 900
+    const lineHeightFactor = 1.05
+
+    const fits = (size: number) => {
+      ctx.font = `${fontWeight} ${size}px ${theme.fontFamily}`
+      const textWidth = ctx.measureText(timerText).width
+      const textHeight = size * lineHeightFactor
+      return textWidth <= safeWidth && textHeight <= timerHeightMax
+    }
+
+    let lo = 10
+    let hi = Math.max(theme.fontSize || 160, Math.floor(timerHeightMax))
+    let best = lo
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2)
+      if (fits(mid)) {
+        best = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+
+    const timerFontSize = Math.max(10, best)
+    const titleFontSize = title
+      ? Math.min(Math.max(12, Math.floor(timerFontSize * 0.22)), Math.floor(titleHeightReserve * 0.75))
+      : 0
+
+    return { timerFontSize, titleFontSize }
+  }
+
   const strongShadow = activeTheme.textShadow
     ? `
       0 0 10px rgba(0,0,0,1), 
@@ -182,32 +225,38 @@ export default function ProjectionWindow() {
         )}
 
         {/* Countdown */}
-        {isCountdownActive && !hideText && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 10,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            fontSize: `${((activeTheme as any).fontSize || 160)}px`
-          }}>
-            {countdown.config.title && (
-              <div style={{ fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
-                fontSize: '0.35em', marginBottom: '0.5em', textTransform: 'uppercase', letterSpacing: '4px', textShadow: strongShadow }}>
-                {countdown.config.title}
+        {isCountdownActive && (() => {
+          const countdownSizes = calcCountdownSize(countdown.config.theme, countdown.config.title, countdown.remainingTime)
+          return (
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 10,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
+              fontSize: `${countdownSizes.timerFontSize}px`
+            }}>
+              {countdown.config.title && (
+                <div style={{ fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
+                  fontSize: `${countdownSizes.titleFontSize}px`, marginBottom: '0.5em', textTransform: 'uppercase', letterSpacing: '4px', textShadow: strongShadow }}>
+                  {countdown.config.title}
+                </div>
+              )}
+              <div style={{ fontFamily: activeTheme.fontFamily, color: (activeTheme as any).timerColor || activeTheme.textColor,
+                fontSize: '1em', fontVariantNumeric: 'tabular-nums', fontWeight: 'bold', textShadow: strongShadow, lineHeight: 1 }}>
+                {formatTime(countdown.remainingTime)}
               </div>
-            )}
-            <div style={{ fontFamily: activeTheme.fontFamily, color: (activeTheme as any).timerColor || activeTheme.textColor,
-              fontSize: '1em', fontVariantNumeric: 'tabular-nums', fontWeight: 'bold', textShadow: strongShadow, lineHeight: 1 }}>
-              {formatTime(countdown.remainingTime)}
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Slides */}
-        {!isCountdownActive && !hideText && slide && (
+        {!isCountdownActive && slide && (
           <div key={`${songTitle}-${currentSlide}`} style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
+            animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
           }}>
             <div style={textStyle}>
               {titleAtTop && (
@@ -229,8 +278,10 @@ export default function ProjectionWindow() {
           </div>
         )}
 
-        {!isCountdownActive && !hideText && !slide && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+        {!isCountdownActive && !slide && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out' 
+          }}>
             <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '8rem' }}>✝</div>
           </div>
         )}

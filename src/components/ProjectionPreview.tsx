@@ -193,16 +193,17 @@ function ProjectionPreview() {
           </video>
         )}
         <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
-        {!hideText && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: 10,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
-            boxSizing: 'border-box', textAlign: 'center',
-            fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
-            lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
-            fontSize: `${fontSize}px`, wordBreak: 'break-word',
-          }}>
+        <div key={`${songTitle}-${currentSlide}`} style={{
+          position: 'absolute', inset: 0, zIndex: 10,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
+          boxSizing: 'border-box', textAlign: 'center',
+          fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
+          lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
+          fontSize: `${fontSize}px`, wordBreak: 'break-word',
+          opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
+          animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
+        }}>
             {titleAtTop && (
               <div style={{ opacity: 1, fontSize: '0.85em', marginBottom: '0.4em', textShadow }}>
                 {songTitle}
@@ -217,7 +218,6 @@ function ProjectionPreview() {
               </div>
             )}
           </div>
-        )}
         {projectionState.media && (
           <div style={{ 
             position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,

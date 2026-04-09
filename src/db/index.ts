@@ -1,11 +1,12 @@
 import Dexie, { Table } from 'dexie'
-import type { Song, Setlist, AppSettings, ChurchNote } from '@/types'
+import type { Song, Setlist, AppSettings, ChurchNote, AttendanceRecord } from '@/types'
 
 export class ProclamaDB extends Dexie {
   songs!: Table<Song>
   setlists!: Table<Setlist>
   settings!: Table<AppSettings & { id: number }>
   church_notes!: Table<ChurchNote>
+  attendance_records!: Table<AttendanceRecord>
 
   constructor() {
     super('ProclamaDB')
@@ -19,6 +20,9 @@ export class ProclamaDB extends Dexie {
     })
     this.version(5).stores({
       songs: '++id, title, artist, language, usageCount, userId, createdAt'
+    })
+    this.version(6).stores({
+      attendance_records: '++id, date, userId, [date+userId], remoteId'
     })
   }
 }
