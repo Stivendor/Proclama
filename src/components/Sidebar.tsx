@@ -39,10 +39,11 @@ export default function Sidebar() {
   }
 
   const handleLogout = async () => {
+    useAppStore.getState().logout()
     try {
       await supabase.auth.signOut()
-    } finally {
-      useAppStore.getState().logout()
+    } catch(e) {
+      console.warn(e)
     }
   }
 

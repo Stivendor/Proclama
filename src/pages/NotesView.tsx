@@ -344,16 +344,27 @@ export default function NotesView() {
       amigos:     parseField(att.amigos),
       ninos:      parseField(att.ninos),
     }
+    const newNote = buildNote({ attendance: breakdown, serviceName: serviceName.trim() || undefined })
     // Save locally
-    await persistNote(buildNote({ attendance: breakdown, serviceName: serviceName.trim() || undefined }))
+    const savedId = await db.church_notes.put(newNote)
+    newNote.id = savedId as number
     
     // Sync attendance to Supabase if authenticated
     if (user) {
       setSyncing(true)
-      const ok = await upsertAttendance(user.id, selectedDate, breakdown, serviceName.trim() || undefined)
-      setSyncing(false)
-      if (ok) setSyncOk(true)
-      else setSyncError(true)
+      try {
+        const { upsertChurchNote } = await import('@/services/supabase')
+        const result = await upsertChurchNote(newNote)
+        if (result) {
+          await db.church_notes.update(savedId, { remoteId: result.remoteId, updatedAt: result.updatedAt })
+          setSyncOk(true)
+        } else setSyncError(true)
+      } catch (err) {
+        console.error('Error syncing:', err)
+        setSyncError(true)
+      } finally {
+        setSyncing(false)
+      }
     }
   }
 
