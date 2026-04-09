@@ -182,6 +182,21 @@ export interface AttendanceBreakdown {
   ninos: number
 }
 
+/** Asistencia por fecha; Dexie + Supabase `attendance_records` (no mezclar con `church_notes`). */
+export interface AttendanceRecord {
+  id?: number
+  remoteId?: string
+  userId: string
+  date: string
+  serviceName?: string
+  caballeros: number
+  damas: number
+  amigos: number
+  ninos: number
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ChurchNote {
   id?: number         // Dexie autoincrement (local)
   remoteId?: string   // UUID de Supabase

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
@@ -7,12 +7,39 @@ import {
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { upsertAttendance } from '@/services/supabase'
+import { supabase, upsertChurchNote, upsertAttendance } from '@/services/supabase'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate } from '@/services/projection'
-import type { ChurchNote, Notice, AttendanceBreakdown } from '@/types'
+import type { ChurchNote, Notice, AttendanceBreakdown, AttendanceRecord } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
+
+const SUPABASE_SYNC_TIMEOUT_MS = 60_000
+
+async function requireAuthUid(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user?.id) {
+    throw new Error('No hay sesión activa. Inicia sesión para sincronizar con la nube.')
+  }
+  return session.user.id
+}
+
+/** Dexie permite varias filas con el mismo usuario y fecha; una sola “vigente” por par (userId+date). */
+function dedupeAttendanceRecords(rows: AttendanceRecord[]): AttendanceRecord[] {
+  const map = new Map<string, AttendanceRecord>()
+  for (const r of rows) {
+    const k = `${r.userId}\u0000${r.date}`
+    const prev = map.get(k)
+    if (!prev || new Date(r.updatedAt) >= new Date(prev.updatedAt)) {
+      map.set(k, r)
+    }
+  }
+  return Array.from(map.values())
+}
+
+function attendanceRowKey(r: AttendanceRecord): string {
+  return String(r.id ?? r.remoteId ?? `${r.date}-${r.updatedAt}`)
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +68,24 @@ function totalAttendance(a?: AttendanceBreakdown): number {
   return (a.caballeros || 0) + (a.damas || 0) + (a.amigos || 0) + (a.ninos || 0)
 }
 
+/** Solo para el gráfico / export (misma forma que antes con `ChurchNote`). */
+function attendanceRecordToChartNote(r: AttendanceRecord): ChurchNote {
+  return {
+    userId: r.userId,
+    date: r.date,
+    serviceName: r.serviceName,
+    attendance: {
+      caballeros: r.caballeros,
+      damas: r.damas,
+      amigos: r.amigos,
+      ninos: r.ninos,
+    },
+    notices: [],
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  }
+}
+
 function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-')
   return `${d}/${m}/${y}`
@@ -63,27 +108,23 @@ function buildAttendanceLyrics(a: AttendanceBreakdown, date: string, name?: stri
 
 // ─── Mini bar chart (CSS only, no lib) ────────────────────────────────────────
 
-function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
+function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState<string>('all')
   const RECORDS_PER_PAGE = 7
 
   // Obtener lista de meses disponibles
   const availableMonths = Array.from(
-    new Set(
-      notes
-        .filter(n => n.attendance)
-        .map(n => n.date.slice(0, 7)) // YYYY-MM
-    )
+    new Set(records.map(r => r.date.slice(0, 7)))
   ).sort((a, b) => b.localeCompare(a)) // Más recientes primero
 
   // Filtrar por mes seleccionado
-  let filtered = notes.filter(n => n.attendance)
+  let filtered = records
   if (selectedMonth !== 'all') {
-    filtered = filtered.filter(n => n.date.startsWith(selectedMonth))
+    filtered = filtered.filter(r => r.date.startsWith(selectedMonth))
   }
 
-  const sorted = filtered.sort((a, b) => b.date.localeCompare(a.date)) // Más recientes primero
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date)) // Más recientes primero
 
   // Reset page when filter changes
   useEffect(() => {
@@ -111,7 +152,12 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
   const currentRecords = sorted.slice(startIdx, endIdx)
 
   // Calcular max para los registros actuales (para el gráfico)
-  const maxTotal = Math.max(...currentRecords.map(n => totalAttendance(n.attendance)), 1)
+  const maxTotal = Math.max(
+    ...currentRecords.map(r =>
+      totalAttendance({ caballeros: r.caballeros, damas: r.damas, amigos: r.amigos, ninos: r.ninos })
+    ),
+    1
+  )
 
   // Formatear mes para mostrar
   const formatMonth = (monthStr: string) => {
@@ -135,9 +181,9 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
             onChange={e => setSelectedMonth(e.target.value)}
             style={{ width: 'auto', minWidth: 180 }}
           >
-            <option value="all">Todos los meses ({notes.filter(n => n.attendance).length})</option>
+            <option value="all">Todos los meses ({records.length})</option>
             {availableMonths.map(month => {
-              const count = notes.filter(n => n.attendance && n.date.startsWith(month)).length
+              const count = records.filter(r => r.date.startsWith(month)).length
               return (
                 <option key={month} value={month}>
                   {formatMonth(month)} ({count})
@@ -150,16 +196,21 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
 
       {/* Bar chart - sincronizado con la página actual */}
       <div className="chart-bars-row">
-        {currentRecords.map(n => {
-          const t = totalAttendance(n.attendance)
+        {currentRecords.map(r => {
+          const a: AttendanceBreakdown = {
+            caballeros: r.caballeros,
+            damas: r.damas,
+            amigos: r.amigos,
+            ninos: r.ninos,
+          }
+          const t = totalAttendance(a)
           const pct = Math.round((t / maxTotal) * 100)
-          const a = n.attendance!
           const cab  = t > 0 ? Math.round(((a.caballeros||0)/t)*100) : 0
           const dam  = t > 0 ? Math.round(((a.damas||0)/t)*100) : 0
           const ami  = t > 0 ? Math.round(((a.amigos||0)/t)*100) : 0
           const nin  = t > 0 ? Math.round(((a.ninos||0)/t)*100) : 0
           return (
-            <div key={n.date} className="chart-col">
+            <div key={attendanceRowKey(r)} className="chart-col">
               <span className="chart-value">{t}</span>
               <div className="chart-bar-wrap">
                 <div className="chart-bar" style={{ height: `${Math.max(pct, 4)}%` }}>
@@ -169,7 +220,7 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
                   <div className="chart-bar-segment" style={{ height: `${cab}%`,  background: 'var(--blue)' }} />
                 </div>
               </div>
-              <span className="chart-label">{n.date.slice(5)}</span>
+              <span className="chart-label">{r.date.slice(5)}</span>
             </div>
           )
         })}
@@ -191,14 +242,19 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
           <span>Niños</span>
           <span>Total</span>
         </div>
-        {currentRecords.map(n => {
-          const a = n.attendance!
+        {currentRecords.map(r => {
+          const a: AttendanceBreakdown = {
+            caballeros: r.caballeros,
+            damas: r.damas,
+            amigos: r.amigos,
+            ninos: r.ninos,
+          }
           return (
-            <div key={n.date} className="chart-table-row">
+            <div key={attendanceRowKey(r)} className="chart-table-row">
               <span>
-                {n.serviceName
-                  ? <><strong style={{ color: 'var(--text-primary)' }}>{n.serviceName}</strong><br /><span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatDate(n.date)}</span></>
-                  : formatDate(n.date)
+                {r.serviceName
+                  ? <><strong style={{ color: 'var(--text-primary)' }}>{r.serviceName}</strong><br /><span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatDate(r.date)}</span></>
+                  : formatDate(r.date)
                 }
               </span>
               <span>{a.caballeros || 0}</span>
@@ -253,7 +309,10 @@ export default function NotesView() {
   // Attendance breakdown inputs
   const [att, setAtt] = useState({ caballeros: '', damas: '', amigos: '', ninos: '' })
   const [attError, setAttError] = useState('')
+  const [cloudSyncError, setCloudSyncError] = useState('')
   const [syncing, setSyncing] = useState(false)
+  /** Evita solapar upserts de asistencia (p. ej. doble clic o guardar mientras otra petición sigue en vuelo). */
+  const attendanceSyncQueueRef = useRef(Promise.resolve())
 
   // Notices
   const [newNoticeText, setNewNoticeText] = useState('')
@@ -270,44 +329,99 @@ export default function NotesView() {
   })))
   const userId = user?.id ?? 'guest'
 
-  const note = useLiveQuery(
+  const churchNote = useLiveQuery(
     () => db.church_notes.where({ date: selectedDate, userId }).first(),
     [selectedDate, userId]
   )
 
-  // All notes for dashboard
-  const allNotes = useLiveQuery(
-    () => db.church_notes.where('userId').equals(userId).toArray(),
+  const attendanceRecord = useLiveQuery(
+    async () => {
+      const rows = await db.attendance_records.where({ date: selectedDate, userId }).toArray()
+      if (rows.length === 0) return undefined
+      return rows.reduce((a, b) =>
+        new Date(a.updatedAt) >= new Date(b.updatedAt) ? a : b
+      )
+    },
+    [selectedDate, userId]
+  )
+
+  const allAttendanceRows = useLiveQuery(
+    () => db.attendance_records.where('userId').equals(userId).toArray(),
     [userId]
   )
 
-  // Sync attendance inputs when note changes
+  const chartAttendanceRecords = useMemo(
+    () => dedupeAttendanceRecords(allAttendanceRows ?? []),
+    [allAttendanceRows]
+  )
+
+  const chartNotes = useMemo(
+    () => chartAttendanceRecords.map(attendanceRecordToChartNote),
+    [chartAttendanceRecords]
+  )
+
+  // Sync attendance inputs when the saved record changes
   useEffect(() => {
-    const a = note?.attendance
-    setServiceName(note?.serviceName ?? '')
+    const a = attendanceRecord
+    setServiceName(a?.serviceName ?? '')
     setAtt({
-      caballeros: a?.caballeros != null ? String(a.caballeros) : '',
-      damas:      a?.damas      != null ? String(a.damas)      : '',
-      amigos:     a?.amigos     != null ? String(a.amigos)     : '',
-      ninos:      a?.ninos      != null ? String(a.ninos)      : '',
+      caballeros: a != null ? String(a.caballeros) : '',
+      damas:      a != null ? String(a.damas)      : '',
+      amigos:     a != null ? String(a.amigos)     : '',
+      ninos:      a != null ? String(a.ninos)      : '',
     })
     setAttError('')
-  }, [note, selectedDate])
+  }, [attendanceRecord, selectedDate])
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  function buildNote(overrides: Partial<ChurchNote>): ChurchNote {
+  /** Solo avisos en `church_notes` (sin asistencia ni nombre de culto). */
+  function buildNoticeNote(overrides: Partial<ChurchNote>): ChurchNote {
     const now = new Date().toISOString()
+    const base = churchNote ?? {
+      userId,
+      date: selectedDate,
+      notices: [],
+      createdAt: now,
+      updatedAt: now,
+    }
     return {
-      ...(note ?? { userId, date: selectedDate, notices: [], createdAt: now }),
+      ...base,
+      attendance: undefined,
+      serviceName: undefined,
       updatedAt: now,
       ...overrides,
     } as ChurchNote
   }
 
-  // Persist locally only (notices are local-only)
+  // Persist avisos locally and sync church_notes to Supabase if authenticated
   async function persistNote(updated: ChurchNote) {
-    await db.church_notes.put(updated)
+    const stripped: ChurchNote = {
+      ...updated,
+      attendance: undefined,
+      serviceName: undefined,
+    }
+    const localResult = await db.church_notes.put(stripped)
+    const localId = stripped.id ?? localResult
+
+    if (user?.id && user.id !== 'guest') {
+      setCloudSyncError('')
+      setSyncing(true)
+      try {
+        const authUid = await requireAuthUid()
+        const forSync = { ...stripped, userId: authUid }
+        const syncResult = await runWithTimeout(upsertChurchNote(forSync), SUPABASE_SYNC_TIMEOUT_MS)
+        if (syncResult.remoteId && localId) {
+          await db.church_notes.update(localId, { remoteId: syncResult.remoteId })
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error al sincronizar avisos'
+        setCloudSyncError(msg)
+        console.warn('Failed to sync note to Supabase:', err)
+      } finally {
+        setSyncing(false)
+      }
+    }
   }
 
   // ─── Attendance ──────────────────────────────────────────────────────────────
@@ -344,14 +458,66 @@ export default function NotesView() {
       amigos:     parseField(att.amigos),
       ninos:      parseField(att.ninos),
     }
-    const newNote = buildNote({ attendance: breakdown, serviceName: serviceName.trim() || undefined })
-    // Save locally only (attendance is local-only like notices)
-    await db.church_notes.put(newNote)
+    const now = new Date().toISOString()
+    const existingAr = attendanceRecord
+    const row: AttendanceRecord = {
+      ...existingAr,
+      userId,
+      date: selectedDate,
+      caballeros: breakdown.caballeros,
+      damas: breakdown.damas,
+      amigos: breakdown.amigos,
+      ninos: breakdown.ninos,
+      serviceName: serviceName.trim() || undefined,
+      createdAt: existingAr?.createdAt ?? now,
+      updatedAt: now,
+    }
+    const localResult = await db.attendance_records.put(row)
+    const localId = row.id ?? (localResult as number)
+
+    if (user?.id && user.id !== 'guest') {
+      setCloudSyncError('')
+      setSyncing(true)
+      const syncTask = async () => {
+        const authUid = await requireAuthUid()
+        const syncResult = await runWithTimeout(
+          upsertAttendance(
+            authUid,
+            selectedDate,
+            breakdown,
+            row.serviceName,
+            existingAr?.remoteId
+          ),
+          SUPABASE_SYNC_TIMEOUT_MS
+        )
+        if (syncResult.remoteId && localId) {
+          await db.attendance_records.update(localId, { remoteId: syncResult.remoteId })
+        }
+      }
+      const queued = attendanceSyncQueueRef.current.then(syncTask)
+      attendanceSyncQueueRef.current = queued.catch(() => undefined)
+      try {
+        await queued
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error al sincronizar asistencia'
+        setCloudSyncError(msg)
+        console.warn('Failed to sync attendance to Supabase:', err)
+      } finally {
+        setSyncing(false)
+      }
+    }
   }
 
   function projectAttendance() {
-    const a = note?.attendance ?? { caballeros: 0, damas: 0, amigos: 0, ninos: 0 }
-    const lyrics = buildAttendanceLyrics(a, selectedDate, note?.serviceName)
+    const a = attendanceRecord
+      ? {
+          caballeros: attendanceRecord.caballeros,
+          damas: attendanceRecord.damas,
+          amigos: attendanceRecord.amigos,
+          ninos: attendanceRecord.ninos,
+        }
+      : { caballeros: 0, damas: 0, amigos: 0, ninos: 0 }
+    const lyrics = buildAttendanceLyrics(a, selectedDate, attendanceRecord?.serviceName)
     // Use linesPerSlide=6 so all 6 lines stay in one slide
     const slides = parseLyrics(lyrics, 6)
     const currentState = useProjectionStore.getState().state
@@ -368,7 +534,15 @@ export default function NotesView() {
   }
 
   const isAttendanceProjected = projectionState.songTitle === 'Asistencia'
-  const total = totalAttendance(note?.attendance)
+  const savedAttendanceBreakdown: AttendanceBreakdown | undefined = attendanceRecord
+    ? {
+        caballeros: attendanceRecord.caballeros,
+        damas: attendanceRecord.damas,
+        amigos: attendanceRecord.amigos,
+        ninos: attendanceRecord.ninos,
+      }
+    : undefined
+  const savedTotal = totalAttendance(savedAttendanceBreakdown)
 
   // ─── Notices ─────────────────────────────────────────────────────────────────
 
@@ -380,14 +554,14 @@ export default function NotesView() {
     setNoticeError('')
     const now = new Date().toISOString()
     const newNotice: Notice = { id: crypto.randomUUID(), text: newNoticeText.trim(), createdAt: now, updatedAt: now }
-    await persistNote(buildNote({ notices: [...(note?.notices ?? []), newNotice] }))
+    await persistNote(buildNoticeNote({ notices: [...(churchNote?.notices ?? []), newNotice] }))
     setNewNoticeText('')
     setShowAddForm(false)
   }
 
   async function confirmDeleteNotice() {
     if (!deletingNoticeId) return
-    await persistNote(buildNote({ notices: (note?.notices ?? []).filter(n => n.id !== deletingNoticeId) }))
+    await persistNote(buildNoticeNote({ notices: (churchNote?.notices ?? []).filter(n => n.id !== deletingNoticeId) }))
     setDeletingNoticeId(null)
   }
 
@@ -404,8 +578,8 @@ export default function NotesView() {
     }
     setNoticeError('')
     const now = new Date().toISOString()
-    await persistNote(buildNote({
-      notices: (note?.notices ?? []).map(n =>
+    await persistNote(buildNoticeNote({
+      notices: (churchNote?.notices ?? []).map(n =>
         n.id === editingNoticeId ? { ...n, text: editingText.trim(), updatedAt: now } : n
       ),
     }))
@@ -440,8 +614,7 @@ export default function NotesView() {
   function exportAttendanceReport() {
     if (!canExportReports) return
 
-    const notes = allNotes ?? []
-    const attendanceNotes = notes.filter(n => n.attendance).sort((a, b) => a.date.localeCompare(b.date))
+    const attendanceNotes = [...chartNotes].sort((a, b) => a.date.localeCompare(b.date))
 
     if (attendanceNotes.length === 0) {
       alert('No hay datos de asistencia para exportar')
@@ -536,6 +709,15 @@ export default function NotesView() {
       </div>
 
       <div className="notes-body">
+        {cloudSyncError && (
+          <p
+            className="field-error"
+            role="alert"
+            style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.35)' }}
+          >
+            <strong>No se guardó en la nube.</strong> {cloudSyncError}
+          </p>
+        )}
 
         {/* ── Dashboard ── */}
         {showDashboard && (
@@ -555,7 +737,7 @@ export default function NotesView() {
                 {!canExportReports && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
               </button>
             </div>
-            <AttendanceChart notes={allNotes ?? []} />
+            <AttendanceChart records={chartAttendanceRecords} />
           </section>
         )}
 
@@ -567,9 +749,9 @@ export default function NotesView() {
               <span id="attendance-label">Asistencia al culto</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {total > 0 && (
+              {savedTotal > 0 && (
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Total: <strong style={{ color: 'var(--text-primary)' }}>{total}</strong>
+                  Total: <strong style={{ color: 'var(--text-primary)' }}>{savedTotal}</strong>
                 </span>
               )}
               <button
@@ -577,7 +759,7 @@ export default function NotesView() {
                 onClick={projectAttendance}
                 title="Proyectar asistencia"
                 aria-label="Proyectar asistencia"
-                disabled={!note?.attendance && total === 0}
+                disabled={savedTotal === 0}
               >
                 <Tv2 size={15} />
               </button>
@@ -682,9 +864,9 @@ export default function NotesView() {
             </div>
           )}
 
-          {note?.notices && note.notices.length > 0 && (
+          {churchNote?.notices && churchNote.notices.length > 0 && (
             <ul className="notice-list" aria-label="Lista de avisos">
-              {note.notices.map(notice => {
+              {churchNote.notices.map(notice => {
                 const isProjected = projectionState.songTitle === 'Aviso' &&
                   projectionState.slides.some(s => s.lines.join('\n') === notice.text.split('\n').slice(0, 4).join('\n'))
                 return (
@@ -728,7 +910,7 @@ export default function NotesView() {
             </ul>
           )}
 
-          {(!note?.notices || note.notices.length === 0) && !showAddForm && (
+          {(!churchNote?.notices || churchNote.notices.length === 0) && !showAddForm && (
             <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
               No hay avisos para esta fecha
             </p>
