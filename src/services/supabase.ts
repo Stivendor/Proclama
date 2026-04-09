@@ -13,7 +13,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 type SupabaseSongRow = {
   id: number
   user_id: string | null
-  church_id: string | null
   title: string
   artist: string | null
   lyrics: string | null
@@ -382,6 +381,19 @@ export async function fetchChurchNote(date: string, userId: string): Promise<Chu
   return mapRowToChurchNote(data as SupabaseChurchNoteRow)
 }
 
+export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
+  const { error } = await supabase.from('feedback').insert({
+    message: message.trim(),
+    user_id: userId,
+  })
+
+  if (error) {
+    console.error('Error submitting feedback:', error.message)
+    return false
+  }
+  return true
+}
+
 export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote | null> {
   const payload = {
     ...(note.remoteId && { id: note.remoteId }),
@@ -463,10 +475,10 @@ export async function fetchTermsAcceptance(
 
 // ─── Funciones para Premium Interest ──────────────────────────────────────────
 
-export async function registerPremiumInterest(email: string): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
+export async function registerPremiumInterest(email: string, userId: string | null = null): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
   const { error } = await supabase
     .from('premium_interest')
-    .insert({ email, created_at: new Date().toISOString() })
+    .insert({ email, user_id: userId, created_at: new Date().toISOString() })
 
   if (error) {
     // Código 23505 = unique violation (email ya registrado)
