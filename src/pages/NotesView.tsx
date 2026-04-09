@@ -362,7 +362,6 @@ export default function NotesView() {
       isBible: false,
       slides,
       currentSlide: 0,
-      theme: { ...currentState.theme, maxFontSize: 64 },
     }
     useProjectionStore.setState({ state: newState })
     sendProjectionUpdate(newState)
