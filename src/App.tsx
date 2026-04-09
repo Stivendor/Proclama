@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { supabase, upsertChurchNote } from '@/services/supabase'
+import { supabase } from '@/services/supabase'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { onMessage } from '@/services/projection'
 import Sidebar from '@/components/Sidebar'
@@ -86,18 +86,14 @@ function AppContent() {
         console.warn('Auth initialization timed out, falling back to unauthenticated.')
         setAuthStatus('unauthenticated')
       }
-    }, 6000)
+    }, 10000)
 
-    // Migrate guest notes to authenticated user
+    // Migrate guest notes to authenticated user locally only
     const migrateGuestNotes = async (userId: string) => {
       try {
         const guestNotes = await db.church_notes.where('userId').equals('guest').toArray()
         for (const note of guestNotes) {
-          const noteToMigrate = { ...note, userId }
-          const result = await upsertChurchNote(noteToMigrate)
-          if (result) {
-            await db.church_notes.update(note.id!, { userId, remoteId: result.remoteId })
-          }
+          await db.church_notes.update(note.id!, { userId })
         }
       } catch (err) {
         console.warn('Guest notes migration failed silently:', err)
@@ -109,57 +105,6 @@ function AppContent() {
         // DESACTIVADO: Ya no hay canciones locales que migrar
       } catch (err) {
         console.warn('Local songs migration failed silently:', err)
-      }
-    }
-
-    const syncRemoteNotes = async (userId: string) => {
-      try {
-        const { fetchAllChurchNotes, upsertChurchNote, deleteChurchNote } = await import('@/services/supabase')
-        const remoteNotes = await fetchAllChurchNotes(userId)
-        const localNotes = await db.church_notes.where({ userId }).toArray()
-
-        const remoteMap = new Map(remoteNotes.map(n => [n.date, n]))
-        const localMap = new Map(localNotes.map(n => [n.date, n]))
-
-        // 1. Process Remote Notes (Update local or Add local)
-        for (const remote of remoteNotes) {
-          const localNote = localMap.get(remote.date)
-          if (!localNote) {
-            // New from remote -> Save locally
-            await db.church_notes.add(remote)
-          } else if (remote.updatedAt > localNote.updatedAt) {
-            // Remote is newer -> Update local
-            await db.church_notes.update(localNote.id!, {
-              attendance: remote.attendance,
-              notices: remote.notices,
-              serviceName: remote.serviceName,
-              remoteId: remote.remoteId,
-              updatedAt: remote.updatedAt
-            })
-          }
-        }
-
-        // 2. Process Local Notes (Push to remote or Delete locally)
-        for (const local of localNotes) {
-          const remoteNote = remoteMap.get(local.date)
-          if (!remoteNote) {
-            if (local.remoteId) {
-              // Existed remotely but now deleted in Supabase -> Delete locally
-              await db.church_notes.delete(local.id!)
-            } else {
-              // Never pushed to Supabase (e.g., migrated guest note) -> Push to Remote
-              const result = await upsertChurchNote(local)
-              if (result) {
-                await db.church_notes.update(local.id!, { remoteId: result.remoteId })
-              }
-            }
-          } else if (local.updatedAt > remoteNote.updatedAt) {
-            // Local is newer -> Push to remote
-            await upsertChurchNote(local)
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to sync remote notes:', err)
       }
     }
 
@@ -211,7 +156,6 @@ function AppContent() {
           if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             try {
               await migrateGuestNotes(user.id)
-              await syncRemoteNotes(user.id)
               const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
               await migrateLocalSongs(user.id, isPremium)
               

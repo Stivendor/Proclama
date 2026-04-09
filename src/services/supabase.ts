@@ -306,26 +306,26 @@ export async function upsertAttendance(
   attendance: AttendanceBreakdown,
   serviceName?: string
 ): Promise<boolean> {
+  const payload = {
+    user_id: userId,
+    date,
+    service_name: serviceName ?? null,
+    caballeros: attendance.caballeros,
+    damas: attendance.damas,
+    amigos: attendance.amigos,
+    ninos: attendance.ninos,
+    updated_at: new Date().toISOString(),
+  }
+
   const { error } = await supabase
     .from('attendance_records')
-    .upsert(
-      {
-        user_id: userId,
-        date,
-        service_name: serviceName ?? null,
-        caballeros: attendance.caballeros,
-        damas: attendance.damas,
-        amigos: attendance.amigos,
-        ninos: attendance.ninos,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,date' }
-    )
+    .upsert(payload, { onConflict: 'user_id,date' })
 
   if (error) {
-    console.error('Error upserting attendance:', error.message)
+    console.error('Error upserting attendance:', error.message, error.details)
     return false
   }
+
   return true
 }
 
