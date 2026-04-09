@@ -462,9 +462,6 @@ const LiveSelection = memo(function LiveSelection() {
           <h2>{songTitle}</h2>
           <div className="live-meta">Estrofas: {slides.length}</div>
         </div>
-        <button className="btn-icon danger" onClick={clearSong} title="Cerrar">
-          <Trash2 size={16} />
-        </button>
       </div>
 
       <div className="live-slides-grid">
