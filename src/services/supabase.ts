@@ -79,7 +79,7 @@ export async function fetchSongs(): Promise<Song[]> {
 
     if (error) {
       console.error('Error fetching songs:', error)
-      break
+      throw new Error(error.message)
     }
     if (!data || data.length === 0) break
     
