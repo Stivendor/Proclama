@@ -381,6 +381,19 @@ export async function fetchChurchNote(date: string, userId: string): Promise<Chu
   return mapRowToChurchNote(data as SupabaseChurchNoteRow)
 }
 
+export async function fetchAllChurchNotes(userId: string): Promise<ChurchNote[]> {
+  const { data, error } = await supabase
+    .from('church_notes')
+    .select('*')
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error fetching all church notes:', error.message)
+    return []
+  }
+  return (data as SupabaseChurchNoteRow[]).map(mapRowToChurchNote)
+}
+
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
   const { error } = await supabase.from('feedback').insert({
     message: message.trim(),

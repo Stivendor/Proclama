@@ -112,6 +112,29 @@ function AppContent() {
       }
     }
 
+    const syncRemoteNotes = async (userId: string) => {
+      try {
+        const { fetchAllChurchNotes } = await import('@/services/supabase')
+        const remoteNotes = await fetchAllChurchNotes(userId)
+        for (const remote of remoteNotes) {
+          const localNote = await db.church_notes.where({ date: remote.date, userId }).first()
+          if (!localNote) {
+            await db.church_notes.add(remote)
+          } else if (remote.updatedAt > localNote.updatedAt) {
+            await db.church_notes.update(localNote.id!, {
+              attendance: remote.attendance,
+              notices: remote.notices,
+              serviceName: remote.serviceName,
+              remoteId: remote.remoteId,
+              updatedAt: remote.updatedAt
+            })
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to sync remote notes:', err)
+      }
+    }
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -160,6 +183,7 @@ function AppContent() {
           if (event === 'SIGNED_IN') {
             try {
               await migrateGuestNotes(user.id)
+              await syncRemoteNotes(user.id)
               const isPremium = profile?.plan === 'premium' || profile?.role === 'admin'
               await migrateLocalSongs(user.id, isPremium)
               
