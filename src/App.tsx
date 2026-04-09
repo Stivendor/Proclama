@@ -114,13 +114,21 @@ function AppContent() {
 
     const syncRemoteNotes = async (userId: string) => {
       try {
-        const { fetchAllChurchNotes } = await import('@/services/supabase')
+        const { fetchAllChurchNotes, upsertChurchNote, deleteChurchNote } = await import('@/services/supabase')
         const remoteNotes = await fetchAllChurchNotes(userId)
+        const localNotes = await db.church_notes.where({ userId }).toArray()
+
+        const remoteMap = new Map(remoteNotes.map(n => [n.date, n]))
+        const localMap = new Map(localNotes.map(n => [n.date, n]))
+
+        // 1. Process Remote Notes (Update local or Add local)
         for (const remote of remoteNotes) {
-          const localNote = await db.church_notes.where({ date: remote.date, userId }).first()
+          const localNote = localMap.get(remote.date)
           if (!localNote) {
+            // New from remote -> Save locally
             await db.church_notes.add(remote)
           } else if (remote.updatedAt > localNote.updatedAt) {
+            // Remote is newer -> Update local
             await db.church_notes.update(localNote.id!, {
               attendance: remote.attendance,
               notices: remote.notices,
@@ -128,6 +136,26 @@ function AppContent() {
               remoteId: remote.remoteId,
               updatedAt: remote.updatedAt
             })
+          }
+        }
+
+        // 2. Process Local Notes (Push to remote or Delete locally)
+        for (const local of localNotes) {
+          const remoteNote = remoteMap.get(local.date)
+          if (!remoteNote) {
+            if (local.remoteId) {
+              // Existed remotely but now deleted in Supabase -> Delete locally
+              await db.church_notes.delete(local.id!)
+            } else {
+              // Never pushed to Supabase (e.g., migrated guest note) -> Push to Remote
+              const result = await upsertChurchNote(local)
+              if (result) {
+                await db.church_notes.update(local.id!, { remoteId: result.remoteId })
+              }
+            }
+          } else if (local.updatedAt > remoteNote.updatedAt) {
+            // Local is newer -> Push to remote
+            await upsertChurchNote(local)
           }
         }
       } catch (err) {
@@ -180,7 +208,7 @@ function AppContent() {
             return null
           })
 
-          if (event === 'SIGNED_IN') {
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             try {
               await migrateGuestNotes(user.id)
               await syncRemoteNotes(user.id)
