@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { MessageSquarePlus, X, Send, CheckCircle, Loader2 } from 'lucide-react'
-import { supabase } from '@/services/supabase'
+import { supabase, createFeedback } from '@/services/supabase'
 import { useAppStore } from '@/stores'
 
 export default function FeedbackModal() {
@@ -19,12 +19,9 @@ export default function FeedbackModal() {
     }
     setLoading(true)
     setError('')
-    const { error: err } = await supabase.from('feedback').insert({
-      message: message.trim(),
-      user_id: user?.id ?? null,
-    })
+    const success = await createFeedback(message, user?.id ?? null)
     setLoading(false)
-    if (err) {
+    if (!success) {
       setError('Error al enviar. Intenta de nuevo.')
     } else {
       setSent(true)
