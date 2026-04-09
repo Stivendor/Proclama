@@ -182,11 +182,12 @@ export default function ProjectionWindow() {
         )}
 
         {/* Countdown */}
-        {isCountdownActive && !hideText && (
+        {isCountdownActive && (
           <div style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            fontSize: `${((activeTheme as any).fontSize || 160)}px`
+            fontSize: `${((activeTheme as any).fontSize || 160)}px`,
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out'
           }}>
             {countdown.config.title && (
               <div style={{ fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
@@ -202,12 +203,14 @@ export default function ProjectionWindow() {
         )}
 
         {/* Slides */}
-        {!isCountdownActive && !hideText && slide && (
+        {!isCountdownActive && slide && (
           <div key={`${songTitle}-${currentSlide}`} style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
+            animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
           }}>
             <div style={textStyle}>
               {titleAtTop && (
@@ -229,8 +232,10 @@ export default function ProjectionWindow() {
           </div>
         )}
 
-        {!isCountdownActive && !hideText && !slide && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+        {!isCountdownActive && !slide && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out' 
+          }}>
             <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '8rem' }}>✝</div>
           </div>
         )}
