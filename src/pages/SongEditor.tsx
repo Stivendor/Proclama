@@ -250,7 +250,7 @@ export default function SongEditor() {
             <div className="tags-row">
               {form.tags.map(t => (
                 <span key={t} className="tag removable" onClick={() => removeTag(t)}>
-                  {t} ×
+                  {t} ✕
                 </span>
               ))}
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, X, AlertCircle, Tv2, BarChart2, Download, Lock
+  Check, Tv2, BarChart2, Download, Lock
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
@@ -244,8 +244,6 @@ function AttendanceChart({ notes }: { notes: ChurchNote[] }) {
 export default function NotesView() {
   const { canExportReports } = usePlan()
   const [selectedDate, setSelectedDate] = useState<string>(todayISO())
-  const [syncError, setSyncError] = useState(false)
-  const [syncOk, setSyncOk] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
 
@@ -296,18 +294,6 @@ export default function NotesView() {
     setAttError('')
   }, [note, selectedDate])
 
-  useEffect(() => {
-    if (!syncError) return
-    const t = setTimeout(() => setSyncError(false), 5000)
-    return () => clearTimeout(t)
-  }, [syncError])
-
-  useEffect(() => {
-    if (!syncOk) return
-    const t = setTimeout(() => setSyncOk(false), 3000)
-    return () => clearTimeout(t)
-  }, [syncOk])
-
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   function buildNote(overrides: Partial<ChurchNote>): ChurchNote {
@@ -331,6 +317,20 @@ export default function NotesView() {
     return isNaN(n) || n < 0 ? 0 : n
   }
 
+  async function runWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    let timeoutId: number | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => reject(new Error('Supabase request timed out')), ms)
+    })
+    try {
+      return await Promise.race([promise, timeoutPromise]) as T
+    } finally {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }
+
   async function saveAttendance() {
     const fields = [att.caballeros, att.damas, att.amigos, att.ninos]
     if (fields.some(f => !validateAttendance(f))) {
@@ -345,27 +345,8 @@ export default function NotesView() {
       ninos:      parseField(att.ninos),
     }
     const newNote = buildNote({ attendance: breakdown, serviceName: serviceName.trim() || undefined })
-    // Save locally
-    const savedId = await db.church_notes.put(newNote)
-    newNote.id = savedId as number
-    
-    // Sync attendance to Supabase if authenticated
-    if (user) {
-      setSyncing(true)
-      try {
-        const { upsertChurchNote } = await import('@/services/supabase')
-        const result = await upsertChurchNote(newNote)
-        if (result) {
-          await db.church_notes.update(savedId, { remoteId: result.remoteId, updatedAt: result.updatedAt })
-          setSyncOk(true)
-        } else setSyncError(true)
-      } catch (err) {
-        console.error('Error syncing:', err)
-        setSyncError(true)
-      } finally {
-        setSyncing(false)
-      }
-    }
+    // Save locally only (attendance is local-only like notices)
+    await db.church_notes.put(newNote)
   }
 
   function projectAttendance() {
@@ -756,22 +737,6 @@ export default function NotesView() {
         </section>
       </div>
 
-      {syncOk && (
-        <div className="sync-ok-toast" role="status" aria-live="polite">
-          <Check size={14} />
-          <span>Asistencia sincronizada correctamente</span>
-        </div>
-      )}
-
-      {syncError && (
-        <div className="sync-error-toast" role="alert" aria-live="polite">
-          <AlertCircle size={14} />
-          <span style={{ flex: 1 }}>Error al sincronizar. Los datos se guardaron localmente.</span>
-          <button className="btn-icon" onClick={() => setSyncError(false)} aria-label="Cerrar" style={{ minWidth: 'unset', minHeight: 'unset' }}>
-            <X size={14} />
-          </button>
-        </div>
-      )}
 
       {deletingNoticeId && (
         <ConfirmDialog
@@ -792,7 +757,7 @@ export default function NotesView() {
                 Función Premium
               </h2>
               <button className="btn-icon" onClick={() => setShowExportModal(false)} aria-label="Cerrar">
-                <X size={16} />
+                ✕
               </button>
             </div>
             <div className="modal-body" style={{ padding: '24px' }}>
