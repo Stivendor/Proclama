@@ -389,17 +389,23 @@ export async function upsertAttendance(
 }
 
 export async function fetchAllAttendanceRecords(userId: string): Promise<AttendanceRecord[]> {
-  const { data, error } = await supabase
-    .from('attendance_records')
-    .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching attendance records:', error.message)
+    if (error) {
+      console.error('Error fetching attendance records:', error.message)
+      return []
+    }
+    return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return [] // React Strict Mode — inofensivo
+    console.error('Error fetching attendance records:', err)
     return []
   }
-  return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
 }
 type SupabaseChurchNoteRow = {
   id: string
