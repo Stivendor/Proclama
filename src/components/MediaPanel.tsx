@@ -1,144 +1,170 @@
-import { useRef, useState, DragEvent } from 'react'
-import { Image, Film, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from 'lucide-react'
-import { useShallow } from 'zustand/react/shallow'
-import { useProjectionStore } from '@/stores'
-import VideoControls from './VideoControls'
+import { useRef, useState, DragEvent } from "react";
+import {
+  Image,
+  Film,
+  X,
+  Upload,
+  MonitorPlay,
+  Zap,
+  Plus,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
+import { useProjectionStore } from "@/stores";
+import VideoControls from "./VideoControls";
 
 interface LocalMedia {
-  id: string
-  url: string
-  type: 'image' | 'video'
-  name: string
+  id: string;
+  url: string;
+  type: "image" | "video";
+  name: string;
 }
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export default function MediaPanel() {
-  const { media, songId, isBible, setMedia, toggleMediaBackground } = useProjectionStore(useShallow(s => ({
-    media: s.state.media,
-    songId: s.state.songId,
-    isBible: s.state.isBible,
-    setMedia: s.setMedia,
-    toggleMediaBackground: s.toggleMediaBackground
-  })))
-  const state = { media, songId, isBible }
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [mediaList, setMediaList] = useState<LocalMedia[]>([])
-  const [isDragging, setIsDragging] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { media, songId, isBible, setMedia, toggleMediaBackground } =
+    useProjectionStore(
+      useShallow((s) => ({
+        media: s.state.media,
+        songId: s.state.songId,
+        isBible: s.state.isBible,
+        setMedia: s.setMedia,
+        toggleMediaBackground: s.toggleMediaBackground,
+      })),
+    );
+  const state = { media, songId, isBible };
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mediaList, setMediaList] = useState<LocalMedia[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const processFiles = (files: File[]) => {
-    setError(null)
-    const validFiles: File[] = []
-    const rejectedFiles: string[] = []
+    setError(null);
+    const validFiles: File[] = [];
+    const rejectedFiles: string[] = [];
 
-    files.forEach(file => {
-      const isTypeValid = file.type.startsWith('image/') || file.type.startsWith('video/')
-      const isSizeValid = file.size <= MAX_FILE_SIZE
+    files.forEach((file) => {
+      const isTypeValid =
+        file.type.startsWith("image/") || file.type.startsWith("video/");
+      const isSizeValid = file.size <= MAX_FILE_SIZE;
 
       if (isTypeValid && isSizeValid) {
-        validFiles.push(file)
+        validFiles.push(file);
       } else {
-        rejectedFiles.push(file.name + (!isTypeValid ? ' (Tipo no válido)' : ' (Demasiado grande)'))
+        rejectedFiles.push(
+          file.name +
+          (!isTypeValid ? " (Tipo no válido)" : " (Demasiado grande)"),
+        );
       }
-    })
+    });
 
     if (rejectedFiles.length > 0) {
-      setError(`No se pudieron cargar ${rejectedFiles.length} archivo(s): ${rejectedFiles.slice(0, 2).join(', ')}${rejectedFiles.length > 2 ? '...' : ''}`)
-      setTimeout(() => setError(null), 5000)
+      setError(
+        `No se pudieron cargar ${rejectedFiles.length} archivo(s): ${rejectedFiles.slice(0, 2).join(", ")}${rejectedFiles.length > 2 ? "..." : ""}`,
+      );
+      setTimeout(() => setError(null), 5000);
     }
 
-    if (validFiles.length === 0) return
+    if (validFiles.length === 0) return;
 
-    const newItems: LocalMedia[] = validFiles.map(file => ({
+    const newItems: LocalMedia[] = validFiles.map((file) => ({
       id: Math.random().toString(36).substr(2, 9),
       url: URL.createObjectURL(file),
-      type: file.type.startsWith('video/') ? 'video' : 'image',
-      name: file.name
-    }))
+      type: file.type.startsWith("video/") ? "video" : "image",
+      name: file.name,
+    }));
 
-    setMediaList(prev => [...prev, ...newItems])
-  }
+    setMediaList((prev) => [...prev, ...newItems]);
+  };
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    processFiles(files)
-    e.target.value = ''
-  }
+    const files = Array.from(e.target.files || []);
+    processFiles(files);
+    e.target.value = "";
+  };
 
   const handleDragOver = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
   const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
   const handleDrop = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    processFiles(files)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
+  };
 
   const toggleProjection = (item: LocalMedia) => {
     if (state.media?.url === item.url) {
-      setMedia(null)
+      setMedia(null);
     } else {
       // Default to background mode if a song or Bible passage is being projected
-      const isSongActive = state.songId || state.isBible
-      setMedia({ 
-        url: item.url, 
-        type: item.type, 
-        isBackgroundMode: !!isSongActive 
-      })
+      const isSongActive = state.songId || state.isBible;
+      setMedia({
+        url: item.url,
+        type: item.type,
+        isBackgroundMode: !!isSongActive,
+      });
     }
-  }
+  };
 
   const removeMedia = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const item = mediaList.find(m => m.id === id)
-    if (!item) return
+    e.stopPropagation();
+    const item = mediaList.find((m) => m.id === id);
+    if (!item) return;
 
     if (state.media?.url === item.url) {
-      setMedia(null)
+      setMedia(null);
     }
-    
-    URL.revokeObjectURL(item.url)
-    setMediaList(prev => prev.filter(m => m.id !== id))
-  }
+
+    URL.revokeObjectURL(item.url);
+    setMediaList((prev) => prev.filter((m) => m.id !== id));
+  };
 
   return (
-    <div 
-      className={`media-panel ${isDragging ? 'is-dragging' : ''}`}
+    <div
+      className={`media-panel ${isDragging ? "is-dragging" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="recognition-header" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div
+        className="recognition-header"
+        style={{ justifyContent: "space-between" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <MonitorPlay size={14} /> Anuncios / Media Local
         </div>
         {mediaList.length > 0 && (
-          <button className="btn-add-mini" onClick={() => fileInputRef.current?.click()} title="Añadir más">
+          <button
+            className="btn-add-mini"
+            onClick={() => fileInputRef.current?.click()}
+            title="Añadir más"
+          >
             <Plus size={14} />
           </button>
         )}
       </div>
 
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleFiles} 
-        accept="image/*,video/*" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFiles}
+        accept="image/*,video/*"
         multiple
-        style={{ display: 'none' }} 
+        style={{ display: "none" }}
       />
 
       {error && (
@@ -150,40 +176,62 @@ export default function MediaPanel() {
 
       {state.media && (
         <div className="media-controls-row">
-          <button 
-            className={`btn-media-toggle ${state.media.isBackgroundMode ? 'active' : ''}`}
+          <button
+            className={`btn-media-toggle ${state.media.isBackgroundMode ? "active" : ""}`}
             onClick={toggleMediaBackground}
-            title={state.media.isBackgroundMode ? 'Cambiar a modo Presentación (Pantalla completa)' : 'Cambiar a modo Fondo (Debajo del texto)'}
+            title={
+              state.media.isBackgroundMode
+                ? "Cambiar a modo Presentación (Pantalla completa)"
+                : "Cambiar a modo Fondo (Debajo del texto)"
+            }
           >
-            {state.media.isBackgroundMode ? <Zap size={14} /> : <MonitorPlay size={14} />}
-            {state.media.isBackgroundMode ? 'Fondo Dinámico Activo' : 'Usar como Fondo'}
+            {state.media.isBackgroundMode ? (
+              <Zap size={14} />
+            ) : (
+              <MonitorPlay size={14} />
+            )}
+            {state.media.isBackgroundMode
+              ? "Fondo Dinámico Activo"
+              : "Usar como Fondo"}
           </button>
         </div>
       )}
 
-      {state.media?.type === 'video' && <VideoControls />}
+      {state.media?.type === "video" && <VideoControls />}
 
       {mediaList.length === 0 ? (
-        <div 
-          className={`media-upload-zone ${isDragging ? 'dragging' : ''}`} 
+        <div
+          className={`media-upload-zone ${isDragging ? "dragging" : ""}`}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload size={24} opacity={isDragging ? 0.8 : 0.3} className={isDragging ? 'bounce' : ''} />
-          <p>{isDragging ? '¡Suelta para cargar!' : 'Cargar Anuncios (PNG, JPG, MP4)'}</p>
-          <span>{isDragging ? 'Formatos soportados' : 'Arrastra aquí o haz clic para buscar'}</span>
+          <Upload
+            size={24}
+            opacity={isDragging ? 0.8 : 0.3}
+            className={isDragging ? "bounce" : ""}
+          />
+          <p>
+            {isDragging
+              ? "¡Suelta para cargar!"
+              : "Cargar Anuncios (PNG, JPG, MP4)"}
+          </p>
+          <span>
+            {isDragging
+              ? "Formatos soportados"
+              : "Hasta 500MB · Arrastra aquí o haz clic"}
+          </span>
         </div>
       ) : (
         <div className="media-gallery">
           {mediaList.map((item) => {
-            const isProjecting = state.media?.url === item.url
+            const isProjecting = state.media?.url === item.url;
             return (
-              <div 
-                key={item.id} 
-                className={`media-item-card ${isProjecting ? 'projecting' : ''}`}
+              <div
+                key={item.id}
+                className={`media-item-card ${isProjecting ? "projecting" : ""}`}
                 onClick={() => toggleProjection(item)}
               >
                 <div className="media-item-thumb">
-                  {item.type === 'video' ? (
+                  {item.type === "video" ? (
                     <video src={item.url} muted />
                   ) : (
                     <img src={item.url} alt="thumb" />
@@ -193,16 +241,20 @@ export default function MediaPanel() {
                       <Zap size={10} fill="currentColor" /> EN VIVO
                     </div>
                   )}
-                  <button className="media-item-delete" onClick={(e) => removeMedia(item.id, e)} title="Eliminar">
+                  <button
+                    className="media-item-delete"
+                    onClick={(e) => removeMedia(item.id, e)}
+                    title="Eliminar"
+                  >
                     <X size={12} />
                   </button>
                 </div>
               </div>
-            )
+            );
           })}
-          
-          <div 
-            className={`media-item-add ${isDragging ? 'dragging' : ''}`} 
+
+          <div
+            className={`media-item-add ${isDragging ? "dragging" : ""}`}
             onClick={() => fileInputRef.current?.click()}
             title="Añadir anuncios (PNG, JPG, MP4)"
           >
@@ -399,5 +451,5 @@ export default function MediaPanel() {
         }
       `}</style>
     </div>
-  )
+  );
 }

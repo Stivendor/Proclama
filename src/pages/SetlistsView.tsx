@@ -20,9 +20,9 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
   const isActive = song?.title === activeTitle
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
+    <div
+      ref={setNodeRef}
+      style={style}
       className={`setlist-song-item ${isActive ? 'active' : ''}`}
       onClick={() => song && onActivate(song)}
     >
@@ -33,8 +33,8 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {song?.key && <span className="song-key-sm">{song.key}</span>}
-        <button 
-          className="btn-icon danger sm" 
+        <button
+          className="btn-icon danger sm"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           title="Quitar de la lista"
         >
@@ -48,7 +48,7 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
   const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
-    setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen, 
+    setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen,
     toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView, authStatus: s.authStatus
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
@@ -77,7 +77,7 @@ export default function SetlistsView() {
       return []
     }
   }) ?? []
-  
+
   // Batch load all songs for the editing setlist (fixes N+1 query pattern)
   const setlistSongs = useLiveQuery(
     async () => {
@@ -120,7 +120,7 @@ export default function SetlistsView() {
 
     let cancelled = false
     setLoading(true)
-    
+
     const loadData = async () => {
       try {
         const data = await supabaseService.fetchSetlists()
@@ -139,7 +139,7 @@ export default function SetlistsView() {
       if (!cancelled) setLoading(false)
     }, 8000)
 
-    return () => { 
+    return () => {
       cancelled = true
       clearTimeout(timeout)
     }
@@ -155,23 +155,24 @@ export default function SetlistsView() {
   const createSetlist = async () => {
     if (!newName.trim()) return
     const now = new Date()
-    const newSl: Omit<Setlist, 'id'> = { 
-      name: newName, 
-      date: now, 
-      songIds: [], 
-      createdAt: now, 
+    const newSl: Omit<Setlist, 'id'> = {
+      name: newName,
+      date: now,
+      songIds: [],
+      createdAt: now,
       updatedAt: now,
-      userId: user?.id 
+      userId: user?.id
     }
 
     if (user) {
       const created = await supabaseService.createSetlist(newSl)
       if (created) {
-        setCloudSetlists([created, ...cloudSetlists])
         setNewName('')
         setShowNew(false)
+        const updated = await supabaseService.fetchSetlists()
+        setCloudSetlists(updated)
       } else {
-        alert('Error al crear el setlist en la nube. Verifica tu conexión o sesión.')
+        alert('Error al crear el setlist. Verifica tu conexión o sesión.')
       }
     } else {
       try {
@@ -252,14 +253,14 @@ export default function SetlistsView() {
       .filter(s => !editingSetlist.songIds.includes(s.id!))
       .filter(s => {
         const search = songSearch.toLowerCase()
-        const matchSearch = !search || 
-          s.title.toLowerCase().includes(search) || 
+        const matchSearch = !search ||
+          s.title.toLowerCase().includes(search) ||
           (s.artist?.toLowerCase() || '').includes(search) ||
           s.tags?.some(t => t.toLowerCase().includes(search))
-        
+
         const matchTag = !selectedTag || s.tags?.includes(selectedTag)
         const matchLang = !selectedLang || s.language === selectedLang
-        
+
         return matchSearch && matchTag && matchLang
       })
       .slice(0, 50)
@@ -367,11 +368,11 @@ export default function SetlistsView() {
                     {editingSetlist.songIds.map((id, index) => {
                       const song = setlistSongs[index]
                       return (
-                        <SortableSongItem 
-                          key={id} 
+                        <SortableSongItem
+                          key={id}
                           songId={id}
-                          song={song} 
-                          onRemove={() => removeSongFromSetlist(id)} 
+                          song={song}
+                          onRemove={() => removeSongFromSetlist(id)}
                           onActivate={loadSong}
                         />
                       )
@@ -416,7 +417,7 @@ export default function SetlistsView() {
                   {allLangs.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
-              
+
               <div className="add-songs-list highlight">
                 {filteredSongs.length === 0 ? (
                   <p className="empty-hint">No se encontraron canciones con esos filtros</p>

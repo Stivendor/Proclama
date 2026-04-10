@@ -34,9 +34,14 @@ export default function Sidebar() {
   ] as const
 
   const handleLogoClick = () => {
-    // Solo usar el logo para navegar al home (no para logout, que es confuso)
+  if (user) {
+    // Con sesión: ir a biblioteca (home de la app)
+    setActiveView('library')
+  } else {
+    // Sin sesión guest: volver al landing
     setGuestMode(false)
   }
+}
 
   const handleLogout = async () => {
     useAppStore.getState().logout()

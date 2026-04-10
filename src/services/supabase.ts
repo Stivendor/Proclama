@@ -82,12 +82,12 @@ export async function fetchSongs(): Promise<Song[]> {
       throw new Error(error.message)
     }
     if (!data || data.length === 0) break
-    
+
     allData.push(...(data as SupabaseSongRow[]))
     if (data.length < step) break
     from += step
   }
-  
+
   return allData.map(mapRowToSong)
 }
 
@@ -115,7 +115,7 @@ export async function searchSongs(query: string): Promise<Song[]> {
 
 export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
   const payload = mapSongToPayload(song)
-  
+
   const { data, error } = await supabase
     .from('songs')
     .insert([payload])
@@ -192,71 +192,79 @@ function mapRowToSetlist(row: any): Setlist {
 }
 
 export async function fetchSetlists(): Promise<Setlist[]> {
-  const { data, error } = await supabase
-    .from('setlists')
-    .select('*')
-    .order('date', { ascending: false })
-  
-  if (error) {
-    console.error('Error fetching setlists:', error)
+  try {
+    const { data, error } = await supabase
+      .from('setlists')
+      .select('*')
+      .order('date', { ascending: false })
+    if (error) throw error
+    return (data || []).map(mapRowToSetlist)
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return []
+    console.error('Error fetching setlists:', err)
     return []
   }
-  return (data || []).map(mapRowToSetlist)
 }
 
 export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setlist | null> {
   const payload = {
     name: setlist.name,
-    date: setlist.date.toISOString().split('T')[0], // solo fecha YYYY-MM-DD
+    date: setlist.date.toISOString().split('T')[0],
     user_id: setlist.userId,
     song_ids: setlist.songIds,
     notes: setlist.notes || '',
+    created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   }
-
-  const { data, error } = await supabase
-    .from('setlists')
-    .insert([payload])
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error creating setlist:', error)
+  try {
+    const { data, error } = await supabase
+      .from('setlists')
+      .insert([payload])
+      .select()
+      .single()
+    if (error) throw error
+    return mapRowToSetlist(data)
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return null
+    console.error('Error creating setlist:', err)
     return null
   }
-  return mapRowToSetlist(data)
 }
 
 export async function updateSetlist(id: number, updates: Partial<Setlist>): Promise<Setlist | null> {
-  const payload: any = {
-    updated_at: new Date().toISOString()
-  }
+  const payload: any = { updated_at: new Date().toISOString() }
   if (updates.name !== undefined) payload.name = updates.name
   if (updates.date !== undefined) payload.date = updates.date.toISOString().split('T')[0]
   if (updates.songIds !== undefined) payload.song_ids = updates.songIds
   if (updates.notes !== undefined) payload.notes = updates.notes
 
-  const { data, error } = await supabase
-    .from('setlists')
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single()
-  
-  if (error) {
-    console.error('Error updating setlist:', error)
+  try {
+    const { data, error } = await supabase
+      .from('setlists')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return mapRowToSetlist(data)
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return null
+    console.error('Error updating setlist:', err)
     return null
   }
-  return mapRowToSetlist(data)
 }
 
-export async function deleteSetlist(id: number) {
-  const { error } = await supabase
-    .from('setlists')
-    .delete()
-    .eq('id', id)
-  
-  if (error) console.error('Error deleting setlist:', error)
+export async function deleteSetlist(id: number): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('setlists')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return
+    console.error('Error deleting setlist:', err)
+  }
 }
 
 // ─── Funciones para Settings ──────────────────────────────────────────────
@@ -265,7 +273,7 @@ export async function fetchSettings() {
     .from('app_settings')
     .select('*')
     .single()
-  
+
   if (error) console.warn('No settings found:', error)
   return data || null
 }
@@ -278,7 +286,7 @@ export async function updateSettings(updates: any) {
   } else {
     result = await supabase.from('app_settings').insert(updates).select()
   }
-  
+
   if (result.error) console.error('Error updating settings:', result.error)
   return result.data?.[0] || null
 }
@@ -289,7 +297,7 @@ export async function fetchProfile(userId: string) {
     .select('role, plan')
     .eq('id', userId)
     .single()
-  
+
   if (error) {
     console.warn('Error fetching profile:', error.message)
     return null
@@ -389,17 +397,23 @@ export async function upsertAttendance(
 }
 
 export async function fetchAllAttendanceRecords(userId: string): Promise<AttendanceRecord[]> {
-  const { data, error } = await supabase
-    .from('attendance_records')
-    .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
-    .eq('user_id', userId)
-    .order('date', { ascending: false })
+  try {
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching attendance records:', error.message)
+    if (error) {
+      console.error('Error fetching attendance records:', error.message)
+      return []
+    }
+    return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
+  } catch (err: any) {
+    if (err?.name === 'AbortError') return [] // React Strict Mode — inofensivo
+    console.error('Error fetching attendance records:', err)
     return []
   }
-  return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
 }
 type SupabaseChurchNoteRow = {
   id: string
@@ -516,7 +530,7 @@ export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote> {
     if (fetchErr || !fetched) {
       throw new Error(
         fetchErr?.message ||
-          'No se pudo confirmar el guardado de avisos. Comprueba la tabla church_notes y RLS en Supabase.'
+        'No se pudo confirmar el guardado de avisos. Comprueba la tabla church_notes y RLS en Supabase.'
       )
     }
     row = fetched as SupabaseChurchNoteRow
