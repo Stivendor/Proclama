@@ -94,14 +94,17 @@ function AppContent() {
     };
 
     // Check initial auth state with a safety timeout
-    const authTimeout = setTimeout(() => {
-      if (useAppStore.getState().authStatus === "loading") {
-        console.warn(
-          "Auth initialization timed out, falling back to unauthenticated.",
-        );
-        setAuthStatus("unauthenticated");
-      }
-    }, 10000);
+    const authTimeout = setTimeout(
+      () => {
+        if (useAppStore.getState().authStatus === "loading") {
+          console.warn(
+            "Auth initialization timed out, falling back to unauthenticated.",
+          );
+          setAuthStatus("unauthenticated");
+        }
+      },
+      import.meta.env.DEV ? 30_000 : 10_000,
+    ); // 30s en dev, 10s en prod
 
     // Migrate guest notes / split attendance vs avisos; sync with remote
     const migrateGuestNotes = async (userId: string) => {
