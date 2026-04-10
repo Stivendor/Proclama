@@ -205,19 +205,19 @@ function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
           }
           const t = totalAttendance(a)
           const pct = Math.round((t / maxTotal) * 100)
-          const cab  = t > 0 ? Math.round(((a.caballeros||0)/t)*100) : 0
-          const dam  = t > 0 ? Math.round(((a.damas||0)/t)*100) : 0
-          const ami  = t > 0 ? Math.round(((a.amigos||0)/t)*100) : 0
-          const nin  = t > 0 ? Math.round(((a.ninos||0)/t)*100) : 0
+          const cab = t > 0 ? Math.round(((a.caballeros || 0) / t) * 100) : 0
+          const dam = t > 0 ? Math.round(((a.damas || 0) / t) * 100) : 0
+          const ami = t > 0 ? Math.round(((a.amigos || 0) / t) * 100) : 0
+          const nin = t > 0 ? Math.round(((a.ninos || 0) / t) * 100) : 0
           return (
             <div key={attendanceRowKey(r)} className="chart-col">
               <span className="chart-value">{t}</span>
               <div className="chart-bar-wrap">
                 <div className="chart-bar" style={{ height: `${Math.max(pct, 4)}%` }}>
-                  <div className="chart-bar-segment" style={{ height: `${nin}%`,  background: '#a78bfa' }} />
-                  <div className="chart-bar-segment" style={{ height: `${ami}%`,  background: 'var(--green)' }} />
-                  <div className="chart-bar-segment" style={{ height: `${dam}%`,  background: 'var(--gold)' }} />
-                  <div className="chart-bar-segment" style={{ height: `${cab}%`,  background: 'var(--blue)' }} />
+                  <div className="chart-bar-segment" style={{ height: `${nin}%`, background: '#a78bfa' }} />
+                  <div className="chart-bar-segment" style={{ height: `${ami}%`, background: 'var(--green)' }} />
+                  <div className="chart-bar-segment" style={{ height: `${dam}%`, background: 'var(--gold)' }} />
+                  <div className="chart-bar-segment" style={{ height: `${cab}%`, background: 'var(--blue)' }} />
                 </div>
               </div>
               <span className="chart-label">{r.date.slice(5)}</span>
@@ -266,7 +266,7 @@ function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
           )
         })}
       </div>
-      
+
       {/* Pagination controls */}
       {totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
@@ -349,7 +349,7 @@ export default function NotesView() {
     () => db.attendance_records.where('userId').equals(userId).toArray(),
     [userId]
   )
-
+  const isLoadingAttendance = attendanceRecord === undefined && allAttendanceRows === undefined
   const chartAttendanceRecords = useMemo(
     () => dedupeAttendanceRecords(allAttendanceRows ?? []),
     [allAttendanceRows]
@@ -366,9 +366,9 @@ export default function NotesView() {
     setServiceName(a?.serviceName ?? '')
     setAtt({
       caballeros: a != null ? String(a.caballeros) : '',
-      damas:      a != null ? String(a.damas)      : '',
-      amigos:     a != null ? String(a.amigos)     : '',
-      ninos:      a != null ? String(a.ninos)      : '',
+      damas: a != null ? String(a.damas) : '',
+      amigos: a != null ? String(a.amigos) : '',
+      ninos: a != null ? String(a.ninos) : '',
     })
     setAttError('')
   }, [attendanceRecord, selectedDate])
@@ -454,9 +454,9 @@ export default function NotesView() {
     setAttError('')
     const breakdown: AttendanceBreakdown = {
       caballeros: parseField(att.caballeros),
-      damas:      parseField(att.damas),
-      amigos:     parseField(att.amigos),
-      ninos:      parseField(att.ninos),
+      damas: parseField(att.damas),
+      amigos: parseField(att.amigos),
+      ninos: parseField(att.ninos),
     }
     const now = new Date().toISOString()
     const existingAr = attendanceRecord
@@ -511,11 +511,11 @@ export default function NotesView() {
   function projectAttendance() {
     const a = attendanceRecord
       ? {
-          caballeros: attendanceRecord.caballeros,
-          damas: attendanceRecord.damas,
-          amigos: attendanceRecord.amigos,
-          ninos: attendanceRecord.ninos,
-        }
+        caballeros: attendanceRecord.caballeros,
+        damas: attendanceRecord.damas,
+        amigos: attendanceRecord.amigos,
+        ninos: attendanceRecord.ninos,
+      }
       : { caballeros: 0, damas: 0, amigos: 0, ninos: 0 }
     const lyrics = buildAttendanceLyrics(a, selectedDate, attendanceRecord?.serviceName)
     // Use linesPerSlide=6 so all 6 lines stay in one slide
@@ -536,11 +536,11 @@ export default function NotesView() {
   const isAttendanceProjected = projectionState.songTitle === 'Asistencia'
   const savedAttendanceBreakdown: AttendanceBreakdown | undefined = attendanceRecord
     ? {
-        caballeros: attendanceRecord.caballeros,
-        damas: attendanceRecord.damas,
-        amigos: attendanceRecord.amigos,
-        ninos: attendanceRecord.ninos,
-      }
+      caballeros: attendanceRecord.caballeros,
+      damas: attendanceRecord.damas,
+      amigos: attendanceRecord.amigos,
+      ninos: attendanceRecord.ninos,
+    }
     : undefined
   const savedTotal = totalAttendance(savedAttendanceBreakdown)
 
@@ -803,7 +803,10 @@ export default function NotesView() {
           <div className="attendance-total-row">
             <span className="attendance-total-label">Total</span>
             <span className="attendance-total-value">
-              {parseField(att.caballeros) + parseField(att.damas) + parseField(att.amigos) + parseField(att.ninos)}
+              {isLoadingAttendance
+                ? <span style={{ opacity: 0.3 }}>–</span>
+                : parseField(att.caballeros) + parseField(att.damas) + parseField(att.amigos) + parseField(att.ninos)
+              }
             </span>
             <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }} disabled={syncing}>
               {syncing ? (
