@@ -14,8 +14,6 @@ import type { ChurchNote, Notice, AttendanceBreakdown, AttendanceRecord } from '
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
 
-const SUPABASE_SYNC_TIMEOUT_MS = 60_000
-
 async function requireAuthUid(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session?.user?.id) {
@@ -309,10 +307,8 @@ export default function NotesView() {
   // Attendance breakdown inputs
   const [att, setAtt] = useState({ caballeros: '', damas: '', amigos: '', ninos: '' })
   const [attError, setAttError] = useState('')
-  const [cloudSyncError, setCloudSyncError] = useState('')
-  const [syncing, setSyncing] = useState(false)
   /** Evita solapar upserts de asistencia (p. ej. doble clic o guardar mientras otra petición sigue en vuelo). */
-  const attendanceSyncQueueRef = useRef(Promise.resolve())
+
 
   // Notices
   const [newNoticeText, setNewNoticeText] = useState('')
@@ -403,25 +399,6 @@ export default function NotesView() {
     }
     const localResult = await db.church_notes.put(stripped)
     const localId = stripped.id ?? localResult
-
-    if (user?.id && user.id !== 'guest') {
-      setCloudSyncError('')
-      setSyncing(true)
-      try {
-        const authUid = await requireAuthUid()
-        const forSync = { ...stripped, userId: authUid }
-        const syncResult = await runWithTimeout(upsertChurchNote(forSync), SUPABASE_SYNC_TIMEOUT_MS)
-        if (syncResult.remoteId && localId) {
-          await db.church_notes.update(localId, { remoteId: syncResult.remoteId })
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error al sincronizar avisos'
-        setCloudSyncError(msg)
-        console.warn('Failed to sync note to Supabase:', err)
-      } finally {
-        setSyncing(false)
-      }
-    }
   }
 
   // ─── Attendance ──────────────────────────────────────────────────────────────
@@ -472,40 +449,7 @@ export default function NotesView() {
       createdAt: existingAr?.createdAt ?? now,
       updatedAt: now,
     }
-    const localResult = await db.attendance_records.put(row)
-    const localId = row.id ?? (localResult as number)
-
-    if (user?.id && user.id !== 'guest') {
-      setCloudSyncError('')
-      setSyncing(true)
-      const syncTask = async () => {
-        const authUid = await requireAuthUid()
-        const syncResult = await runWithTimeout(
-          upsertAttendance(
-            authUid,
-            selectedDate,
-            breakdown,
-            row.serviceName,
-            existingAr?.remoteId
-          ),
-          SUPABASE_SYNC_TIMEOUT_MS
-        )
-        if (syncResult.remoteId && localId) {
-          await db.attendance_records.update(localId, { remoteId: syncResult.remoteId })
-        }
-      }
-      const queued = attendanceSyncQueueRef.current.then(syncTask)
-      attendanceSyncQueueRef.current = queued.catch(() => undefined)
-      try {
-        await queued
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error al sincronizar asistencia'
-        setCloudSyncError(msg)
-        console.warn('Failed to sync attendance to Supabase:', err)
-      } finally {
-        setSyncing(false)
-      }
-    }
+    await db.attendance_records.put(row)
   }
 
   function projectAttendance() {
@@ -543,6 +487,21 @@ export default function NotesView() {
     }
     : undefined
   const savedTotal = totalAttendance(savedAttendanceBreakdown)
+
+  // ─── Delete History ─────────────────────────────────────────────────────────────────
+  const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false)
+  async function deleteAttendanceHistory() {
+    await db.attendance_records.where('userId').equals(userId).delete()
+
+    if (user?.id && user.id !== 'guest') {
+      await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('user_id', user.id)
+    }
+
+    setShowDeleteHistoryConfirm(false)
+  }
 
   // ─── Notices ─────────────────────────────────────────────────────────────────
 
@@ -709,16 +668,6 @@ export default function NotesView() {
       </div>
 
       <div className="notes-body">
-        {cloudSyncError && (
-          <p
-            className="field-error"
-            role="alert"
-            style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.35)' }}
-          >
-            <strong>No se guardó en la nube.</strong> {cloudSyncError}
-          </p>
-        )}
-
         {/* ── Dashboard ── */}
         {showDashboard && (
           <section className="notes-section">
@@ -736,10 +685,20 @@ export default function NotesView() {
                 Exportar CSV
                 {!canExportReports && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
               </button>
+              <button
+                className="btn-ghost danger"
+                onClick={() => setShowDeleteHistoryConfirm(true)}
+                title="Borrar historial de asistencia"
+              >
+                <Trash2 size={14} />
+                Borrar historial
+              </button>
             </div>
             <AttendanceChart records={chartAttendanceRecords} />
           </section>
         )}
+
+
 
         {/* ── Asistencia ── */}
         <section className="notes-section" aria-labelledby="attendance-label">
@@ -808,18 +767,9 @@ export default function NotesView() {
                 : parseField(att.caballeros) + parseField(att.damas) + parseField(att.amigos) + parseField(att.ninos)
               }
             </span>
-            <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }} disabled={syncing}>
-              {syncing ? (
-                <>
-                  <span className="spinner" style={{ width: 14, height: 14, marginRight: 4 }} />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <Check size={14} />
-                  Guardar
-                </>
-              )}
+            <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }}>
+              <Check size={14} />
+              Guardar
             </button>
           </div>
 
@@ -921,6 +871,16 @@ export default function NotesView() {
         </section>
       </div>
 
+      {/* ── Diálogo de confirmación de borrado de historial de asistencia  ── */}
+      {showDeleteHistoryConfirm && (
+        <ConfirmDialog
+          message="¿Borrar todo el historial de asistencia? Esta acción no se puede deshacer."
+          onConfirm={deleteAttendanceHistory}
+          onCancel={() => setShowDeleteHistoryConfirm(false)}
+          confirmLabel="Borrar todo"
+          danger
+        />
+      )}
 
       {deletingNoticeId && (
         <ConfirmDialog

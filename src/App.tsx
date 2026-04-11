@@ -109,7 +109,7 @@ function AppContent() {
     // Migrate guest notes / split attendance vs avisos; sync with remote
     const migrateGuestNotes = async (userId: string) => {
       try {
-        const { fetchAllAttendanceRecords, fetchAllChurchNotesRaw } =
+        const { fetchAllChurchNotesRaw } =
           await import("@/services/supabase");
 
         // 0. Dexie: asistencia solo en attendance_records (quitar de church_notes)
@@ -162,27 +162,7 @@ function AppContent() {
           await db.attendance_records.update(row.id!, { userId });
         }
 
-        // 3. Supabase attendance_records → Dexie
-        const remoteAtt = await fetchAllAttendanceRecords(userId).catch(
-          () => [],
-        );
-        for (const r of remoteAtt) {
-          const local = await db.attendance_records
-            .where({ date: r.date, userId })
-            .first();
-          if (!local || new Date(r.updatedAt) > new Date(local.updatedAt)) {
-            await db.attendance_records.put({
-              ...local,
-              ...r,
-              id: local?.id,
-              remoteId: r.remoteId,
-              userId,
-              date: r.date,
-            });
-          }
-        }
-
-        // 4. Supabase church_notes: avisos + rellenar asistencia legacy (JSON) si no hay fila local
+        // 3. Supabase church_notes: avisos + rellenar asistencia legacy (JSON) si no hay fila local
         const rawRows = await fetchAllChurchNotesRaw(userId).catch(() => []);
         for (const row of rawRows) {
           const remoteNote = {

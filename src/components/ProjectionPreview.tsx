@@ -154,7 +154,7 @@ function ProjectionPreview() {
     if (!projectionState || projectionState.slides.length === 0) {
       return (
         <div className="preview-empty-state">
-          <div style={{ opacity: 0.3, fontSize: '2rem' }}>✝</div>
+          <div style={{ opacity: 0.3, fontSize: '2rem' }}></div>
         </div>
       )
     }
