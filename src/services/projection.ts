@@ -50,7 +50,7 @@ export function openProjectionWindow(): Window | null {
   const w = window.open(
     '/projection',
     'proclama-projection',
-    'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
+    'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
   )
   return w
 }

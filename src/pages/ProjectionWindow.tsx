@@ -282,7 +282,7 @@ export default function ProjectionWindow() {
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
             opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out' 
           }}>
-            <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '8rem' }}>✝</div>
+            <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '8rem' }}></div>
           </div>
         )}
 
