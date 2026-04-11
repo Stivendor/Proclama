@@ -396,25 +396,6 @@ export async function upsertAttendance(
   )
 }
 
-export async function fetchAllAttendanceRecords(userId: string): Promise<AttendanceRecord[]> {
-  try {
-    const { data, error } = await supabase
-      .from('attendance_records')
-      .select('id, date, service_name, caballeros, damas, amigos, ninos, updated_at')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching attendance records:', error.message)
-      return []
-    }
-    return (data as SupabaseAttendanceRow[]).map(row => mapRowToAttendanceRecord(row, userId))
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return [] // React Strict Mode — inofensivo
-    console.error('Error fetching attendance records:', err)
-    return []
-  }
-}
 type SupabaseChurchNoteRow = {
   id: string
   user_id: string
@@ -584,7 +565,7 @@ export async function fetchTermsAcceptance(
     .from('profiles')
     .select('terms_version, terms_accepted_at')
     .eq('id', userId)
-    .single()
+    .maybeSingle()
 
   if (error) {
     console.warn('Error fetching terms acceptance:', error.message)
