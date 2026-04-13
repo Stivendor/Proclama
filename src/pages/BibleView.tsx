@@ -45,6 +45,7 @@ export default function BibleView() {
   const quickSearchBookRef = useRef<HTMLInputElement>(null)
   const quickSearchChapterRef = useRef<HTMLInputElement>(null)
   const quickSearchVerseRef = useRef<HTMLInputElement>(null)
+  const quickSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
 
   const { loadSong, songTitle, theme, slides, currentSlide } = useProjectionStore(useShallow(s => ({
@@ -169,16 +170,20 @@ export default function BibleView() {
   const handleVerseChange = (value: string) => {
     setQuickSearchVerse(value)
     
-    // Auto-project when all fields are complete
+    // Clear previous timeout to debounce auto-projection
+    if (quickSearchTimeoutRef.current) {
+      clearTimeout(quickSearchTimeoutRef.current)
+    }
+    
+    // Auto-project with a larger delay to wait for second digits
     if (parsedBook && quickSearchChapter && value) {
       const chapter = parseInt(quickSearchChapter)
       const verse = parseInt(value)
       
       if (!isNaN(chapter) && !isNaN(verse)) {
-        // Small delay to let user see the complete input
-        setTimeout(() => {
+        quickSearchTimeoutRef.current = setTimeout(() => {
           handleQuickSearchProject()
-        }, 300)
+        }, 800)
       }
     }
   }
@@ -190,7 +195,7 @@ export default function BibleView() {
       if (parsedBook && quickSearchChapter && quickSearchVerse) {
         handleQuickSearchProject()
       }
-    } else if (e.key === 'Enter' && parsedBook && quickSearchChapter && quickSearchVerse) {
+    } else if ((e.key === 'Enter' || e.key === ' ') && parsedBook && quickSearchChapter && quickSearchVerse) {
       e.preventDefault()
       handleQuickSearchProject()
     } else if (e.key === 'Escape') {
@@ -230,6 +235,9 @@ export default function BibleView() {
   }
 
   const closeQuickSearch = () => {
+    if (quickSearchTimeoutRef.current) {
+      clearTimeout(quickSearchTimeoutRef.current)
+    }
     setShowQuickSearch(false)
     setQuickSearchBook('')
     setQuickSearchChapter('')
