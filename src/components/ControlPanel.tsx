@@ -36,11 +36,11 @@ export default function ControlPanel() {
       </div>
 
       <div className="control-nav">
-        <button className="btn-nav" onClick={prevSlide} disabled={currentSlide === 0}>
+        <button className="btn-nav" onClick={prevSlide} disabled={currentSlide <= 0}>
           <ChevronLeft size={20} />
           Anterior
         </button>
-        <button className="btn-nav primary" onClick={nextSlide} disabled={currentSlide >= slides.length - 1}>
+        <button className="btn-nav primary" onClick={nextSlide} disabled={slides.length === 0 || currentSlide >= slides.length - 1}>
           Siguiente
           <ChevronRight size={20} />
         </button>

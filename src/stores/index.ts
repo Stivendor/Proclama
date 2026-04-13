@@ -42,7 +42,7 @@ interface ProjectionStore {
   state: ProjectionState
   projectionWindow: Window | null
   setProjectionWindow: (w: Window | null) => void
-  loadSong: (song: Song, isBible?: boolean) => void
+  loadSong: (song: Song, isBible?: boolean, initialSlide?: number) => void
   nextSlide: () => void
   prevSlide: () => void
   goToSlide: (index: number) => void
@@ -71,14 +71,14 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   setProjectionWindow: (w) => set({ projectionWindow: w }),
 
-  loadSong: (song, isBible = false) => {
+  loadSong: (song, isBible = false, initialSlide = -1) => {
     const newState: ProjectionState = {
       ...get().state,
       songId: song.id || null,
       songTitle: song.title,
       isBible,
       slides: parseLyrics(song.lyrics),
-      currentSlide: 0,
+      currentSlide: initialSlide,
       hideText: false,
     }
     set({ state: newState })
@@ -87,8 +87,10 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   nextSlide: () => {
     set(s => {
-      if (s.state.currentSlide < s.state.slides.length - 1) {
-        const newState = { ...s.state, currentSlide: s.state.currentSlide + 1, hideText: false }
+      const { currentSlide, slides } = s.state
+      if (currentSlide < slides.length - 1) {
+        const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
+        const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
         sendProjectionUpdate(newState)
         return { state: newState }
       }

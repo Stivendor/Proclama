@@ -316,7 +316,7 @@ export default function BibleView() {
       isVerified: true,
       createdAt: new Date(),
       updatedAt: new Date()
-    }, true)
+    }, true, 0)
     
     // Add to recent verses history
     versesToProject.forEach(verse => {
