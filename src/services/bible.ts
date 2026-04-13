@@ -249,7 +249,7 @@ export async function fetchChapter(
       reference: `${bookName} ${chapter}:${v.verse}`,
       text: v.text
         .replace(/<[^>]*>?/gm, '') // Limpiar HTML
-        .replace(/([a-zA-Z])\d+/g, '$1') // Quitar números pegados a palabras (Strong's)
+        .replace(/([a-zA-Z,.;!?])\d+/g, '$1') // Quitar números pegados a palabras o puntuación (Strong's)
         .replace(/\s\d{3,5}\b/g, ' ') // Quitar números de 3-5 dígitos sueltos (Strong's)
         .replace(/\s+/g, ' ') // Normalizar espacios
         .trim(),
@@ -469,7 +469,7 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
               reference: ref,
               text: v.text
                 .replace(/<[^>]*>?/gm, '')
-                .replace(/([a-zA-Z])\d+/g, '$1')
+                .replace(/([a-zA-Z,.;!?])\d+/g, '$1')
                 .replace(/\s\d{3,5}\b/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim(),
