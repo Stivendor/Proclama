@@ -47,9 +47,14 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
-    setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen,
-    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView, authStatus: s.authStatus
+  const { setActiveSetlist, user, userPlan, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
+    setActiveSetlist: s.setActiveSetlist,
+    user: s.user,
+    userPlan: s.userPlan,
+    isSidebarOpen: s.isSidebarOpen,
+    toggleSidebar: s.toggleSidebar,
+    setActiveView: s.setActiveView,
+    authStatus: s.authStatus
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
@@ -165,6 +170,18 @@ export default function SetlistsView() {
     }
 
     if (user) {
+      if (userPlan !== 'premium' && (user as any).role !== 'admin') {
+        alert('La sincronización en la nube es una función Premium. Tu setlist se guardará localmente.')
+        try {
+          await db.setlists.add(newSl as Setlist)
+          setNewName('')
+          setShowNew(false)
+        } catch (e: any) {
+          alert('Error al crear setlist local: ' + e.message)
+        }
+        return
+      }
+
       const created = await supabaseService.createSetlist(newSl)
       if (created) {
         setNewName('')
@@ -172,7 +189,7 @@ export default function SetlistsView() {
         const updated = await supabaseService.fetchSetlists()
         setCloudSetlists(updated)
       } else {
-        alert('Error al crear el setlist. Verifica tu conexión o sesión.')
+        alert('Error al crear el setlist en la nube. Verifica tu conexión.')
       }
     } else {
       try {
