@@ -1,19 +1,27 @@
 import { useState } from 'react'
-import { Search, Download, X, Loader, Music2, Cloud, CloudOff } from 'lucide-react'
-import { searchSongs, fetchLyrics } from '@/services/genius'
+import { Search, Download, X, Loader, Music2, Cloud, CloudOff, ShieldCheck, Globe, Plus } from 'lucide-react'
+import { searchExternalSongs, fetchLyrics } from '@/services/genius'
+import { searchSongs as searchInternal } from '@/services/supabase'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
 import { useAppStore } from '@/stores'
 import { createSong } from '@/services/supabase'
 import type { GeniusSong } from '@/services/genius'
 import { usePlan } from '@/hooks/usePlan'
+import type { Song } from '@/types'
+
+// Tipo unificado para los resultados
+interface SearchResult extends Partial<GeniusSong> {
+  internalSong?: Song;
+  isInternal?: boolean;
+}
 
 export default function OnlineSearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GeniusSong[]>([])
+  const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState<number | null>(null)
-  const [importedLyrics, setImportedLyrics] = useState<{ song: GeniusSong; lyrics: string } | null>(null)
+  const [importedLyrics, setImportedLyrics] = useState<{ song: SearchResult; lyrics: string } | null>(null)
   const [error, setError] = useState('')
   const { canUseGenius, canSync } = usePlan()
 
@@ -22,24 +30,74 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     setLoading(true)
     setError('')
     try {
-      const res = await searchSongs(query)
-      setResults(res)
-      if (res.length === 0) setError('No se encontraron resultados. Prueba con otro término.')
-    } catch {
+      // Búsqueda en paralelo
+      let [internalRes, externalRes] = await Promise.all([
+        searchInternal(query, true), // true = solo públicas
+        searchExternalSongs(query)
+      ])
+
+      // Fallback para búsqueda externa: si no hay resultados y la frase es larga, simplificar
+      if (externalRes.length === 0 && query.trim().split(/\s+/).length > 2) {
+        // Filtrar palabras comunes y tomar las más importantes (máx 3)
+        const simplified = query.split(/\s+/)
+          .filter(word => word.length > 3)
+          .slice(0, 3)
+          .join(' ')
+        
+        if (simplified && simplified !== query) {
+          externalRes = await searchExternalSongs(simplified)
+        }
+      }
+
+      // Mapear resultados internos
+      const mappedInternal: SearchResult[] = internalRes.map(s => ({
+        id: s.id!,
+        title: s.title,
+        artist: s.artist,
+        isInternal: true,
+        internalSong: s
+      }))
+
+      // Unir y eliminar duplicados por título/artista (priorizando internos)
+      const combined = [...mappedInternal]
+      externalRes.forEach(ext => {
+        const alreadyExists = combined.some(
+          int => int.title?.toLowerCase() === ext.title.toLowerCase() && 
+                 int.artist?.toLowerCase() === ext.artist.toLowerCase()
+        )
+        if (!alreadyExists) {
+          combined.push({ ...ext, isInternal: false })
+        }
+      })
+
+      setResults(combined)
+      if (combined.length === 0) setError('No se encontraron resultados. Prueba con otro término.')
+    } catch (err) {
+      console.error('Search error:', err)
       setError('Error al buscar. Verifica tu conexión a internet.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleImport = async (song: GeniusSong) => {
-    setImporting(song.id)
+  const handleImport = async (item: SearchResult) => {
+    // Si ya es un resultado interno, ya tenemos la letra
+    if (item.isInternal && item.internalSong) {
+      setImportedLyrics({ 
+        song: item, 
+        lyrics: item.internalSong.lyrics 
+      })
+      return
+    }
+
+    // Si es externo, hay que obtenerla
+    setImporting(item.id!)
     try {
-      const lyrics = await fetchLyrics(song.artist, song.title)
+      const lyrics = await fetchLyrics(item.artist!, item.title!)
       if (lyrics) {
-        setImportedLyrics({ song, lyrics: cleanLyricsText(lyrics) })
+        setImportedLyrics({ song: item, lyrics: cleanLyricsText(lyrics) })
       } else {
-        setError(`No se encontró la letra de "${song.title}". Puedes agregarla manualmente.`)
+        setError(`No se encontró la letra de "${item.title}". Puedes agregarla manualmente.`)
       }
     } catch {
       setError('Error al obtener la letra.')
@@ -171,28 +229,69 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
               {error && <div className="search-error" role="alert" aria-live="polite">{error}</div>}
 
               <div className="search-results">
-                {results.map(song => (
-                  <div key={song.id} className="search-result-item">
-                    {song.thumbnailUrl && (
-                      <img src={song.thumbnailUrl} alt="" className="result-thumb" />
+                {results.map(item => (
+                  <div key={`${item.isInternal ? 'int' : 'ext'}-${item.id}`} className="search-result-item">
+                    {item.thumbnailUrl && (
+                      <img src={item.thumbnailUrl} alt="" className="result-thumb" />
                     )}
-                    {!song.thumbnailUrl && <div className="result-thumb-placeholder"><Music2 size={20} /></div>}
+                    {!item.thumbnailUrl && (
+                      <div className="result-thumb-placeholder">
+                        {item.isInternal ? <Cloud size={20} color="var(--blue)" /> : <Globe size={20} />}
+                      </div>
+                    )}
                     <div className="result-info">
-                      <div className="result-title">{song.title}</div>
-                      <div className="result-artist">{song.artist}</div>
+                      <div className="result-title-row">
+                        <span className="result-title">{item.title}</span>
+                        {item.isInternal && (
+                          <span className="source-badge">
+                            {item.internalSong?.isVerified ? <ShieldCheck size={10} /> : <Cloud size={10} />}
+                            Comunidad
+                          </span>
+                        )}
+                      </div>
+                      <div className="result-artist">{item.artist}</div>
                     </div>
                     <button
-                      className="btn-primary"
-                      onClick={() => handleImport(song)}
-                      disabled={importing === song.id}
+                      className={`btn-${item.isInternal ? 'ghost' : 'primary'} sm`}
+                      onClick={() => handleImport(item)}
+                      disabled={importing === item.id}
                     >
-                      {importing === song.id
-                        ? <><Loader size={12} className="spin" /> Obteniendo...</>
-                        : <><Download size={12} /> Importar</>}
+                      {importing === item.id ? (
+                        <><Loader size={12} className="spin" /> Obteniendo...</>
+                      ) : (
+                        <><Plus size={12} /> {item.isInternal ? 'Añadir' : 'Importar'}</>
+                      )}
                     </button>
                   </div>
                 ))}
               </div>
+
+              <style>{`
+                .result-title-row {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                }
+                .source-badge {
+                  display: flex;
+                  align-items: center;
+                  gap: 4px;
+                  font-size: 9px;
+                  background: rgba(59, 130, 246, 0.15);
+                  color: var(--blue);
+                  padding: 2px 6px;
+                  border-radius: 10px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+                .search-result-item {
+                  transition: all 0.2s ease;
+                }
+                .search-result-item:hover {
+                  background: rgba(255, 255, 255, 0.03);
+                }
+              `}</style>
             </>
           ) : (
             <div className="lyrics-preview">

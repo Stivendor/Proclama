@@ -54,7 +54,7 @@ export interface GeniusSong {
   thumbnailUrl?: string
 }
 
-export async function searchSongs(query: string): Promise<GeniusSong[]> {
+export async function searchExternalSongs(query: string): Promise<GeniusSong[]> {
   try {
     const res = await fetch(
       `https://lrclib.net/api/search?q=${encodeURIComponent(query)}`,
@@ -109,7 +109,7 @@ export async function fetchLyrics(artist: string, title: string): Promise<string
       const lyrics = data.plainLyrics || stripTimestamps(data.syncedLyrics)
       if (lyrics) return lyrics
     }
-    const results = await searchSongs(`${artist} ${title}`)
+    const results = await searchExternalSongs(`${artist} ${title}`)
     if (results.length === 0) return null
     const res2 = await fetch(
       `https://lrclib.net/api/get/${results[0].id}`,

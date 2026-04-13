@@ -19,14 +19,23 @@ export default function FeedbackModal() {
     }
     setLoading(true)
     setError('')
-    const success = await createFeedback(message, user?.id ?? null)
-    setLoading(false)
-    if (!success) {
-      setError('Error al enviar. Intenta de nuevo.')
-    } else {
-      setSent(true)
-      setMessage('')
-      setTimeout(() => { setSent(false); setOpen(false) }, 2500)
+    try {
+      const success = await createFeedback(message, user?.id ?? null)
+      if (!success) {
+        setError('Error al enviar. Intenta de nuevo.')
+      } else {
+        setSent(true)
+        setMessage('')
+        setTimeout(() => {
+          setSent(false)
+          setOpen(false)
+        }, 2500)
+      }
+    } catch (err) {
+      console.error('Feedback submit error:', err)
+      setError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
     }
   }
 
