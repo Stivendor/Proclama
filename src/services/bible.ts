@@ -247,7 +247,12 @@ export async function fetchChapter(
     
     const verses = (data ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
-      text: v.text.replace(/<[^>]*>?/gm, '').trim(), // Limpiar HTML si lo hay
+      text: v.text
+        .replace(/<[^>]*>?/gm, '') // Limpiar HTML
+        .replace(/([a-zA-Z])\d+/g, '$1') // Quitar números pegados a palabras (Strong's)
+        .replace(/\s\d{3,5}\b/g, ' ') // Quitar números de 3-5 dígitos sueltos (Strong's)
+        .replace(/\s+/g, ' ') // Normalizar espacios
+        .trim(),
       translation,
       bookId,
       chapter
@@ -462,7 +467,12 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
           if (!results.find(r => r.reference === ref)) {
             results.push({
               reference: ref,
-              text: v.text.replace(/<[^>]*>?/gm, '').trim(),
+              text: v.text
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/([a-zA-Z])\d+/g, '$1')
+                .replace(/\s\d{3,5}\b/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim(),
               translation,
               bookId,
               chapter: v.chapter
