@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -243,7 +243,7 @@ export default function LibraryView() {
             </button>
           )}
           <div>
-            <h1>Biblioteca</h1>
+            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Biblioteca</h1>
             <span className="song-count">{songs.length} canciones</span>
           </div>
         </div>
