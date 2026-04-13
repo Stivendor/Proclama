@@ -241,11 +241,8 @@ export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setli
   const payload = {
     name: setlist.name,
     date: setlist.date.toISOString().split('T')[0],
-    user_id: setlist.userId,
-    song_ids: setlist.songIds,
     notes: setlist.notes || '',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    song_ids: setlist.songIds || []
   }
   try {
     const { data, error } = await supabase
@@ -263,7 +260,7 @@ export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setli
 }
 
 export async function updateSetlist(id: number, updates: Partial<Setlist>): Promise<Setlist | null> {
-  const payload: any = { updated_at: new Date().toISOString() }
+  const payload: any = {}
   if (updates.name !== undefined) payload.name = updates.name
   if (updates.date !== undefined) payload.date = updates.date.toISOString().split('T')[0]
   if (updates.songIds !== undefined) payload.song_ids = updates.songIds
