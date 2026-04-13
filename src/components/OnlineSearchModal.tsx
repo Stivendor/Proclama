@@ -8,6 +8,7 @@ import { useAppStore } from '@/stores'
 import { createSong } from '@/services/supabase'
 import type { GeniusSong } from '@/services/genius'
 import { usePlan } from '@/hooks/usePlan'
+import { detectLanguage } from '@/services/languageUtils'
 import type { Song } from '@/types'
 
 // Tipo unificado para los resultados
@@ -23,16 +24,21 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
   const [importing, setImporting] = useState<number | null>(null)
   const [importedLyrics, setImportedLyrics] = useState<{ song: SearchResult; lyrics: string } | null>(null)
   const [error, setError] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState<'Español' | 'Inglés' | 'Cualquiera'>('Cualquiera')
   const { canUseGenius, canSync } = usePlan()
+
+  // Heurística de detección mientras escribe
+  const detectedLang = query.trim().length > 3 ? detectLanguage(query) : null
 
   const handleSearch = async () => {
     if (!query.trim()) return
     setLoading(true)
     setError('')
     try {
+      const langParam = selectedLanguage === 'Cualquiera' ? undefined : selectedLanguage
       // Búsqueda en paralelo
       let [internalRes, externalRes] = await Promise.all([
-        searchInternal(query, true), // true = solo públicas
+        searchInternal(query, true, langParam), // true = solo públicas
         searchExternalSongs(query)
       ])
 
@@ -95,7 +101,13 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     try {
       const lyrics = await fetchLyrics(item.artist!, item.title!)
       if (lyrics) {
-        setImportedLyrics({ song: item, lyrics: cleanLyricsText(lyrics) })
+        const cleaned = cleanLyricsText(lyrics)
+        setImportedLyrics({ 
+          song: item, 
+          lyrics: cleaned 
+        })
+        // Detectar idioma de la letra importada
+        setSongLanguage(detectLanguage(cleaned))
       } else {
         setError(`No se encontró la letra de "${item.title}". Puedes agregarla manualmente.`)
       }
@@ -108,6 +120,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
 
   const { user, userRole, setActiveView } = useAppStore()
   const [isPublic, setIsPublic] = useState(true)
+  const [songLanguage, setSongLanguage] = useState<'Español' | 'Inglés'>('Español')
   const [saving, setSaving] = useState(false)
   
   const handleSave = async () => {
@@ -124,7 +137,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         lyrics,
         key: '',
         tags: [],
-        language: 'Español',
+        language: songLanguage,
         usageCount: 0,
         isPublic: user ? isPublic : false,
         isVerified: userRole === 'admin' ? isPublic : false,
@@ -226,6 +239,20 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 </button>
               </div>
 
+              <div className="search-filters">
+                <div className="lang-tabs">
+                  {(['Cualquiera', 'Español', 'Inglés'] as const).map(l => (
+                    <button 
+                      key={l}
+                      className={`lang-tab ${selectedLanguage === l ? 'active' : ''}`}
+                      onClick={() => setSelectedLanguage(l)}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {error && <div className="search-error" role="alert" aria-live="polite">{error}</div>}
 
               <div className="search-results">
@@ -251,6 +278,11 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                       </div>
                       <div className="result-artist">{item.artist}</div>
                     </div>
+                    {item.internalSong?.language && (
+                      <span className={`lang-badge ${item.internalSong.language.toLowerCase()}`}>
+                        {item.internalSong.language === 'Inglés' ? 'EN' : 'ES'}
+                      </span>
+                    )}
                     <button
                       className={`btn-${item.isInternal ? 'ghost' : 'primary'} sm`}
                       onClick={() => handleImport(item)}
@@ -285,6 +317,44 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                   text-transform: uppercase;
                   letter-spacing: 0.5px;
                 }
+                .search-filters {
+                  display: flex;
+                  justify-content: flex-end;
+                  align-items: center;
+                  margin-bottom: 20px;
+                  gap: 12px;
+                }
+                .lang-tabs {
+                  display: flex;
+                  gap: 4px;
+                  background: rgba(255,255,255,0.05);
+                  padding: 3px;
+                  border-radius: 8px;
+                }
+                .lang-tab {
+                  border: none;
+                  background: none;
+                  color: var(--text-muted);
+                  font-size: 11px;
+                  padding: 4px 12px;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-weight: 600;
+                  transition: all 0.2s;
+                }
+                .lang-tab.active {
+                  background: var(--blue);
+                  color: white;
+                }
+                .lang-badge {
+                  font-size: 10px;
+                  font-weight: 800;
+                  padding: 2px 5px;
+                  border-radius: 4px;
+                  margin-right: 8px;
+                }
+                .lang-badge.español { background: rgba(212, 175, 55, 0.2); color: var(--gold); }
+                .lang-badge.inglés { background: rgba(167, 139, 250, 0.2); color: #a78bfa; }
                 .search-result-item {
                   transition: all 0.2s ease;
                 }
@@ -303,8 +373,41 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 value={importedLyrics.lyrics}
                 onChange={e => setImportedLyrics(p => p ? { ...p, lyrics: e.target.value } : p)}
                 rows={12}
-                style={{ marginBottom: 20 }}
+                style={{ marginBottom: 12 }}
               />
+
+              <div className="language-selector-preview">
+                <label style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>Idioma de la canción</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  <button 
+                    className={`lang-pill ${songLanguage === 'Español' ? 'active es' : ''}`}
+                    onClick={() => setSongLanguage('Español')}
+                  >
+                    🇪🇸 Español
+                  </button>
+                  <button 
+                    className={`lang-pill ${songLanguage === 'Inglés' ? 'active en' : ''}`}
+                    onClick={() => setSongLanguage('Inglés')}
+                  >
+                    🇺🇸 Inglés
+                  </button>
+                </div>
+              </div>
+
+              <style>{`
+                .lang-pill {
+                  border: 1px solid var(--border);
+                  background: none;
+                  color: var(--text-secondary);
+                  padding: 6px 16px;
+                  border-radius: 20px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  transition: all 0.2s;
+                }
+                .lang-pill.active.es { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+                .lang-pill.active.en { border-color: #a78bfa; background: rgba(167, 139, 250, 0.1); color: #a78bfa; }
+              `}</style>
 
               <div className="modal-actions-wrapper">
                 {user ? (
