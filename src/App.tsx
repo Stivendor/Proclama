@@ -106,114 +106,6 @@ function AppContent() {
       import.meta.env.DEV ? 30_000 : 10_000,
     ); // 30s en dev, 10s en prod
 
-    // Migrate guest notes / split attendance vs avisos; sync with remote
-    const migrateGuestNotes = async (userId: string) => {
-      try {
-        const { fetchAllChurchNotesRaw } =
-          await import("@/services/supabase");
-
-        // 0. Dexie: asistencia solo en attendance_records (quitar de church_notes)
-        const localNotes = await db.church_notes.toArray();
-        for (const n of localNotes) {
-          if (!n.attendance || n.id == null) continue;
-          const existing = await db.attendance_records
-            .where({ date: n.date, userId: n.userId })
-            .first();
-          if (
-            !existing ||
-            new Date(n.updatedAt) >= new Date(existing.updatedAt)
-          ) {
-            await db.attendance_records.put({
-              ...existing,
-              id: existing?.id,
-              remoteId: existing?.remoteId,
-              userId: n.userId,
-              date: n.date,
-              serviceName: n.serviceName,
-              caballeros: n.attendance.caballeros,
-              damas: n.attendance.damas,
-              amigos: n.attendance.amigos,
-              ninos: n.attendance.ninos,
-              createdAt: existing?.createdAt ?? n.createdAt,
-              updatedAt: n.updatedAt,
-            });
-          }
-          await db.church_notes.update(n.id, {
-            attendance: undefined,
-            serviceName: undefined,
-          });
-        }
-
-        // 1. Invitado → usuario (avisos)
-        const guestNotes = await db.church_notes
-          .where("userId")
-          .equals("guest")
-          .toArray();
-        for (const note of guestNotes) {
-          await db.church_notes.update(note.id!, { userId });
-        }
-
-        // 2. Invitado → usuario (asistencia)
-        const guestAtt = await db.attendance_records
-          .where("userId")
-          .equals("guest")
-          .toArray();
-        for (const row of guestAtt) {
-          await db.attendance_records.update(row.id!, { userId });
-        }
-
-        // 3. Supabase church_notes: avisos + rellenar asistencia legacy (JSON) si no hay fila local
-        const rawRows = await fetchAllChurchNotesRaw(userId).catch(() => []);
-        for (const row of rawRows) {
-          const remoteNote = {
-            remoteId: row.id,
-            userId,
-            date: row.date,
-            notices: row.notices ?? [],
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-          };
-
-          if (row.attendance) {
-            const localAtt = await db.attendance_records
-              .where({ date: row.date, userId })
-              .first();
-            if (!localAtt) {
-              const a = row.attendance;
-              await db.attendance_records.add({
-                userId,
-                date: row.date,
-                serviceName: undefined,
-                caballeros: a.caballeros ?? 0,
-                damas: a.damas ?? 0,
-                amigos: a.amigos ?? 0,
-                ninos: a.ninos ?? 0,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at,
-              });
-            }
-          }
-
-          const localNote = await db.church_notes
-            .where({ date: remoteNote.date, userId })
-            .first();
-          if (!localNote) {
-            await db.church_notes.add(remoteNote);
-          } else if (
-            new Date(remoteNote.updatedAt) > new Date(localNote.updatedAt)
-          ) {
-            await db.church_notes.update(localNote.id!, {
-              notices: remoteNote.notices,
-              updatedAt: remoteNote.updatedAt,
-              remoteId: remoteNote.remoteId,
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("Guest notes migration/sync failed silently:", err);
-      }
-    };
-
     const migrateLocalSongs = async (userId: string, _isPremium: boolean) => {
       try {
         // DESACTIVADO: Ya no hay canciones locales que migrar
@@ -276,7 +168,6 @@ function AppContent() {
 
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             try {
-              await migrateGuestNotes(user.id);
               const isPremium =
                 profile?.plan === "premium" || profile?.role === "admin";
               await migrateLocalSongs(user.id, isPremium);
