@@ -97,14 +97,15 @@ export async function fetchSongs(): Promise<Song[]> {
  * @param query El texto a buscar
  * @param publicOnly Si es true, solo devolverá canciones marcadas como públicas (para descubrimiento online)
  */
-export async function searchSongs(query: string, publicOnly = false): Promise<Song[]> {
+export async function searchSongs(query: string, publicOnly = false, targetLanguage?: string): Promise<Song[]> {
   if (!query) return fetchSongs()
 
   try {
     const { data, error } = await supabase
       .rpc('search_songs_community', { 
         search_term: query, 
-        public_only: publicOnly 
+        public_only: publicOnly,
+        target_language: targetLanguage 
       })
 
     if (!error && data) {
@@ -127,6 +128,10 @@ export async function searchSongs(query: string, publicOnly = false): Promise<So
 
   if (publicOnly) {
     request = request.eq('is_public', true)
+  }
+
+  if (targetLanguage) {
+    request = request.eq('language', targetLanguage)
   }
 
   const { data, error } = await request
