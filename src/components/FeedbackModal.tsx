@@ -20,7 +20,16 @@ export default function FeedbackModal() {
     setLoading(true)
     setError('')
     try {
-      const success = await createFeedback(message, user?.id ?? null)
+      // Usar un race para evitar esperas infinitas si la red falla
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+      )
+
+      const success = await Promise.race([
+        createFeedback(message, user?.id ?? null),
+        timeout
+      ]) as boolean
+
       if (!success) {
         setError('Error al enviar. Intenta de nuevo.')
       } else {
@@ -31,9 +40,13 @@ export default function FeedbackModal() {
           setOpen(false)
         }, 2500)
       }
-    } catch (err) {
-      console.error('Feedback submit error:', err)
-      setError('Error de conexión. Intenta de nuevo.')
+    } catch (err: any) {
+      console.error('[Feedback] Submit catch:', err)
+      if (err.message === 'TIMEOUT') {
+        setError('El servidor está tardando demasiado. Intenta de nuevo.')
+      } else {
+        setError('Error de conexión. Intenta de nuevo.')
+      }
     } finally {
       setLoading(false)
     }

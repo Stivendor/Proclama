@@ -232,17 +232,22 @@ export async function fetchSetlists(): Promise<Setlist[]> {
     return (data || []).map(mapRowToSetlist)
   } catch (err: any) {
     if (err?.name === 'AbortError') return []
-    console.error('Error fetching setlists:', err)
+    console.error('[Setlists] Error al obtener:', err)
     return []
   }
 }
 
 export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setlist | null> {
+  console.log('[Setlists] Iniciando creación...', { userId: setlist.userId })
+  const now = new Date().toISOString()
   const payload = {
     name: setlist.name,
     date: setlist.date.toISOString().split('T')[0],
+    user_id: setlist.userId,
     notes: setlist.notes || '',
-    song_ids: setlist.songIds || []
+    song_ids: setlist.songIds || [],
+    created_at: now,
+    updated_at: now
   }
   try {
     const { data, error } = await supabase
@@ -251,16 +256,17 @@ export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setli
       .select()
       .single()
     if (error) throw error
+    console.log('[Setlists] Creación exitosa')
     return mapRowToSetlist(data)
   } catch (err: any) {
     if (err?.name === 'AbortError') return null
-    console.error('Error creating setlist:', err)
+    console.error('[Setlists] Error al crear:', err)
     return null
   }
 }
 
 export async function updateSetlist(id: number, updates: Partial<Setlist>): Promise<Setlist | null> {
-  const payload: any = {}
+  const payload: any = { updated_at: new Date().toISOString() }
   if (updates.name !== undefined) payload.name = updates.name
   if (updates.date !== undefined) payload.date = updates.date.toISOString().split('T')[0]
   if (updates.songIds !== undefined) payload.song_ids = updates.songIds
@@ -334,15 +340,17 @@ export async function fetchProfile(userId: string) {
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
+  console.log('[Feedback] Iniciando envío...', { userId })
   const { error } = await supabase.from('feedback').insert({
     message: message.trim(),
     user_id: userId,
   })
 
   if (error) {
-    console.error('Error submitting feedback:', error.message)
+    console.error('[Feedback] Error al enviar:', error.message)
     return false
   }
+  console.log('[Feedback] Envío exitoso')
   return true
 }
 
