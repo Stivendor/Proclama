@@ -471,7 +471,7 @@ export default function BibleView() {
                     />
                     {parsedBook && !isBookLocked && (
                       <div className="book-autocomplete-hint">
-                        {selectedLanguage === 'Inglés' ? parsedBook.nameEn : parsedBook.name} - {selectedLanguage === 'Inglés' ? 'Press TAB to autocomplete' : 'Presiona TAB para autocompletar'}
+                        {selectedLanguage === 'Inglés' ? parsedBook.name : parsedBook.name} - {selectedLanguage === 'Inglés' ? 'Press TAB to autocomplete' : 'Presiona TAB para autocompletar'}
                       </div>
                     )}
                   </div>
