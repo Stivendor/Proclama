@@ -1,4 +1,5 @@
 // API gratuita sin CORS: bible-api.com (dominio público / RVR1960)
+import type { BibleBook } from '@/types'
 import { BIBLE_CONTENT, BIBLE_BOOKS as IMPORTED_BIBLE_BOOKS } from '@/data/bible-content'
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -492,7 +493,7 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
 }
 
 // Autocompletado de libros - devuelve el libro solo si la búsqueda es suficientemente específica
-export function getBookSuggestion(query: string): { id: string; name: string } | null {
+export function getBookSuggestion(query: string): { id: string; name: string; nameEn: string } | null {
   if (!query.trim()) return null
   
   // Helper function to remove accents/diacritics
@@ -510,7 +511,7 @@ export function getBookSuggestion(query: string): { id: string; name: string } |
   
   // Si hay exactamente una coincidencia, devolverla
   if (matches.length === 1) {
-    return { id: matches[0].id, name: matches[0].name }
+    return { id: matches[0].id, name: matches[0].name, nameEn: matches[0].nameEn }
   }
   
   // Si hay mltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
@@ -523,7 +524,7 @@ export function getBookSuggestion(query: string): { id: string; name: string } |
   
   // Si solo hay una coincidencia de palabra, devolverla
   if (wordMatches.length === 1 && matches.length > 1) {
-    return { id: wordMatches[0].id, name: wordMatches[0].name }
+    return { id: wordMatches[0].id, name: wordMatches[0].name, nameEn: wordMatches[0].nameEn }
   }
   
   return null

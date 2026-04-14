@@ -9,6 +9,7 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 // ─── Canvas size de referencia (16:9) ──────────────────────────────────────────
 export const CANVAS_SIZE = { width: 1920, height: 1080 } as const
+export const PREMIUM_FOR_EVERYONE = false
 export const DEFAULT_THEME: ProjectionTheme = {
   background: '#0a0a0f',
   fontFamily: 'Montserrat, sans-serif',
@@ -310,7 +311,7 @@ export const useAppStore = create<AppStore>()(
         userRole: null, 
         userPlan: 'free', 
         authStatus: 'unauthenticated', 
-        guestMode: false,
+        guestMode: true,
         termsAccepted: null,
         activeSetlist: null,
         editingSong: null
@@ -323,6 +324,8 @@ export const useAppStore = create<AppStore>()(
         isSidebarOpen: state.isSidebarOpen, 
         onboardingDone: state.onboardingDone,
         guestMode: state.guestMode,
+        userRole: state.userRole,
+        userPlan: state.userPlan,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
       })
