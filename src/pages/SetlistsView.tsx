@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff, RefreshCw } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -150,6 +150,20 @@ export default function SetlistsView() {
       clearTimeout(timeout)
     }
   }, [userId, authStatus])
+  
+  const handleSync = async () => {
+    if (!user || loading) return
+    setLoading(true)
+    try {
+      const data = await supabaseService.fetchSetlists()
+      setCloudSetlists(data || [])
+    } catch (err) {
+      console.error('Manual sync failed:', err)
+    } finally {
+      // Small delay for better UX
+      setTimeout(() => setLoading(false), 500)
+    }
+  }
 
   const setlists = useMemo(() => {
     const local = localSetlists.map(sl => ({ ...sl, source: 'local' as const }))
@@ -350,9 +364,22 @@ export default function SetlistsView() {
           )}
           <h1>Setlists {user && <span className="badge">Nube</span>}</h1>
         </div>
-        <button className="btn-primary" onClick={() => setShowNew(true)}>
-          <Plus size={15} /> Nuevo Setlist
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {user && (
+            <button 
+              className="btn-ghost" 
+              onClick={handleSync} 
+              disabled={loading}
+              title="Sincronizar con la nube"
+            >
+              <RefreshCw size={15} className={loading ? 'spin' : ''} /> 
+              Sincronizar
+            </button>
+          )}
+          <button className="btn-primary" onClick={() => setShowNew(true)}>
+            <Plus size={15} /> Nuevo Setlist
+          </button>
+        </div>
       </div>
 
       {/* Banner de sincronización para usuarios no autenticados */}
