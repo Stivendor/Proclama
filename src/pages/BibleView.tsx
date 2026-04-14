@@ -96,7 +96,7 @@ export default function BibleView() {
     
     const suggestion = getBookSuggestion(quickSearchBook.trim())
     if (suggestion) {
-      const displayName = selectedLanguage === 'Inglés' ? (suggestion as any).nameEn || suggestion.name : suggestion.name
+      const displayName = selectedLanguage === 'Inglés' ? (suggestion as any).name || suggestion.name : suggestion.name
       setParsedBook({ name: displayName, id: suggestion.id })
       
       // AUTO-LOCK: Si ya es una coincidencia única y han escrito al menos 2 caracteres
