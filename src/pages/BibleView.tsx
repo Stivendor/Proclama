@@ -28,6 +28,7 @@ export default function BibleView() {
   const [searching, setSearching] = useState(false)
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState<'Español' | 'Inglés'>('Español')
   
   // Recent verses history (persistent)
   const [recentVerses, setRecentVerses] = useState<RecentVerse[]>(() => {
@@ -57,6 +58,14 @@ export default function BibleView() {
 
   const book = BIBLE_BOOKS.find(b => b.id === selectedBook)
   const filteredBooks = BIBLE_BOOKS.filter(b => testament === 'ALL' || b.testament === testament)
+  const filteredTranslations = SUPPORTED_TRANSLATIONS.filter(t => (t as any).lang === selectedLanguage)
+
+  // Reset selected translation if it's not in the filtered list
+  useEffect(() => {
+    if (!filteredTranslations.find(t => t.id === selectedTranslation)) {
+      setSelectedTranslation(filteredTranslations[0]?.id || 'RVR1960')
+    }
+  }, [selectedLanguage])
 
   // Keyboard shortcut for quick search (any letter key)
   useEffect(() => {
@@ -81,17 +90,27 @@ export default function BibleView() {
     return () => window.removeEventListener('keypress', handleKeyPress)
   }, [])
 
-  // Autocomplete book as user types
+  // Autocomplete book as user types - Automatic lock when unique
   useEffect(() => {
     if (!quickSearchBook.trim() || isBookLocked) return
     
     const suggestion = getBookSuggestion(quickSearchBook.trim())
     if (suggestion) {
-      setParsedBook({ name: suggestion.name, id: suggestion.id })
+      const displayName = selectedLanguage === 'Inglés' ? (suggestion as any).name || suggestion.name : suggestion.name
+      setParsedBook({ name: displayName, id: suggestion.id })
+      
+      // AUTO-LOCK: Si ya es una coincidencia única y han escrito al menos 2 caracteres
+      // Esto permite que al escribir "Sal" se bloquee "Salmos" automáticamente
+      const query = quickSearchBook.trim().toLowerCase()
+      if (query.length >= 2) {
+        setQuickSearchBook(displayName)
+        setIsBookLocked(true)
+        setTimeout(() => quickSearchChapterRef.current?.focus(), 10)
+      }
     } else {
       setParsedBook(null)
     }
-  }, [quickSearchBook, isBookLocked])
+  }, [quickSearchBook, isBookLocked, selectedLanguage])
 
   // Handle book input with auto-lock when number is detected
   const handleBookChange = (value: string) => {
@@ -131,9 +150,12 @@ export default function BibleView() {
     const book = BIBLE_BOOKS.find(b => b.id === parsedBook.id)
     if (!book) return
     
-    const num = parseInt(value)
-    if (value === '' || (num >= 1 && num <= book.chapters)) {
-      setQuickSearchChapter(value)
+    // Solo permitir números
+    const cleanValue = value.replace(/\D/g, '')
+    const num = parseInt(cleanValue)
+    
+    if (cleanValue === '' || (num >= 1 && num <= book.chapters)) {
+      setQuickSearchChapter(cleanValue)
     }
   }
 
@@ -156,22 +178,11 @@ export default function BibleView() {
     }
   }
 
-  // Handle verse input and auto-project when complete
+  // Handle verse input
   const handleVerseChange = (value: string) => {
-    setQuickSearchVerse(value)
-    
-    // Auto-project when all fields are complete
-    if (parsedBook && quickSearchChapter && value) {
-      const chapter = parseInt(quickSearchChapter)
-      const verse = parseInt(value)
-      
-      if (!isNaN(chapter) && !isNaN(verse)) {
-        // Small delay to let user see the complete input
-        setTimeout(() => {
-          handleQuickSearchProject()
-        }, 300)
-      }
-    }
+    // Solo permitir números
+    const cleanValue = value.replace(/\D/g, '')
+    setQuickSearchVerse(cleanValue)
   }
 
   const handleVerseKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -181,7 +192,7 @@ export default function BibleView() {
       if (parsedBook && quickSearchChapter && quickSearchVerse) {
         handleQuickSearchProject()
       }
-    } else if (e.key === 'Enter' && parsedBook && quickSearchChapter && quickSearchVerse) {
+    } else if ((e.key === 'Enter' || e.key === ' ') && parsedBook && quickSearchChapter && quickSearchVerse) {
       e.preventDefault()
       handleQuickSearchProject()
     } else if (e.key === 'Escape') {
@@ -310,13 +321,13 @@ export default function BibleView() {
       lyrics,
       key: '',
       tags: ['Biblia'],
-      language: 'Español',
+      language: selectedLanguage,
       usageCount: 0,
       isPublic: true,
       isVerified: true,
       createdAt: new Date(),
       updatedAt: new Date()
-    }, true)
+    }, true, 0)
     
     // Add to recent verses history
     versesToProject.forEach(verse => {
@@ -350,13 +361,25 @@ export default function BibleView() {
             <h1><BookOpen size={18} style={{ display: 'inline', marginRight: 8 }} />Biblia</h1>
           </div>
         </div>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+          <div className="language-selector-bible">
+            {(['Español', 'Inglés'] as const).map(l => (
+              <button
+                key={l}
+                className={`lang-tab-btn ${selectedLanguage === l ? 'active' : ''}`}
+                onClick={() => setSelectedLanguage(l)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
           <select
             className="filter-select"
             value={selectedTranslation}
             onChange={e => setSelectedTranslation(e.target.value)}
           >
-            {TRANSLATIONS.map(t => <option key={t.id} value={t.id}>{t.name} ({t.id})</option>)}
+            {filteredTranslations.map(t => <option key={t.id} value={t.id}>{t.name} ({t.id})</option>)}
           </select>
         </div>
       </div>
@@ -401,7 +424,7 @@ export default function BibleView() {
                 className={`book-item ${selectedBook === b.id ? 'active' : ''}`}
                 onClick={() => handleSelectBook(b.id)}
               >
-                {b.name}
+                {selectedLanguage === 'Inglés' ? b.nameEn : b.name}
               </button>
             ))}
           </div>
@@ -413,7 +436,14 @@ export default function BibleView() {
             <div className="quick-search-overlay">
               <div className="quick-search-modal-holyrics">
                 <div className="quick-search-header">
-                  <span>Esc para cancelar</span>
+                  <div className="quick-search-info">
+                    <span>Esc para cancelar</span>
+                    {parsedBook && (
+                      <span className="book-info-tag">
+                        {parsedBook.name}: <strong>{BIBLE_BOOKS.find(b => b.id === parsedBook.id)?.chapters}</strong> {selectedLanguage === 'Inglés' ? 'chapters' : 'capítulos'}
+                      </span>
+                    )}
+                  </div>
                   <button 
                     className="btn-icon" 
                     onClick={closeQuickSearch}
@@ -426,7 +456,7 @@ export default function BibleView() {
                 <div className="quick-search-sections">
                   {/* Book Section */}
                   <div className="quick-search-section">
-                    <div className="section-label">Libro</div>
+                    <div className="section-label">{selectedLanguage === 'Inglés' ? 'Book' : 'Libro'}</div>
                     <input
                       ref={quickSearchBookRef}
                       type="text"
@@ -434,26 +464,26 @@ export default function BibleView() {
                       onChange={e => handleBookChange(e.target.value)}
                       onKeyDown={handleBookKeyDown}
                       className={`section-input section-input-book ${isBookLocked ? 'locked' : ''}`}
-                      placeholder="Sa_"
+                      placeholder={selectedLanguage === 'Inglés' ? 'Ge_' : 'Gé_'}
                       readOnly={isBookLocked}
                       tabIndex={isBookLocked ? -1 : 0}
                       autoFocus
                     />
                     {parsedBook && !isBookLocked && (
                       <div className="book-autocomplete-hint">
-                        {parsedBook.name} - Presiona TAB para autocompletar
+                        {selectedLanguage === 'Inglés' ? parsedBook.name : parsedBook.name} - {selectedLanguage === 'Inglés' ? 'Press TAB to autocomplete' : 'Presiona TAB para autocompletar'}
                       </div>
                     )}
                   </div>
                   
                   {/* Chapter Section */}
                   <div className="quick-search-section">
-                    <div className="section-label">Capítulo</div>
+                    <div className="section-label">{selectedLanguage === 'Inglés' ? 'Chapter' : 'Capítulo'}</div>
                     <input
                       ref={quickSearchChapterRef}
-                      type="number"
-                      min="1"
-                      max={parsedBook ? BIBLE_BOOKS.find(b => b.id === parsedBook.id)?.chapters : undefined}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={quickSearchChapter}
                       onChange={e => handleChapterChange(e.target.value)}
                       onKeyDown={handleChapterKeyDown}
@@ -465,11 +495,12 @@ export default function BibleView() {
                   
                   {/* Verse Section */}
                   <div className="quick-search-section">
-                    <div className="section-label">Versículo</div>
+                    <div className="section-label">{selectedLanguage === 'Inglés' ? 'Verse' : 'Versículo'}</div>
                     <input
                       ref={quickSearchVerseRef}
-                      type="number"
-                      min="1"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={quickSearchVerse}
                       onChange={e => handleVerseChange(e.target.value)}
                       onKeyDown={handleVerseKeyDown}
@@ -493,7 +524,7 @@ export default function BibleView() {
               <ChevronLeft size={18} />
             </button>
             <span className="chapter-title">
-              {book.name} — Capítulo {selectedChapter}
+              {selectedLanguage === 'Inglés' ? book.nameEn : book.name} — Capítulo {selectedChapter}
             </span>
             <button
               className="btn-icon"

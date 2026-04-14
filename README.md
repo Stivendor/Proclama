@@ -218,29 +218,34 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 ---
 
-## Base de Datos Supabase
+---
 
-Además de las tablas estándar (`songs`, `setlists`, `backgrounds`, `profiles`), necesitas crear:
+## Base de Datos Supabase (Tablas Principales)
 
+- `songs`: Catálogo de canciones.
+- `setlists`: Listas de canciones planificadas.
+- `profiles`: Datos de usuario y preferencias.
+- `backgrounds`: Fondos (imágenes/videos) compartidos para la proyección.
+
+> [!NOTE]
+> **Privacidad Local**: Las funciones de **Notas del Culto** y **Registro de Asistencia** son estrictamente locales (IndexedDB/Dexie). Estos datos NO se sincronizan con Supabase por privacidad y preferencia del usuario.
+
+---
+
+## Configuración de Búsqueda Optimizada (FTS)
+
+Para habilitar la búsqueda por letra ignorando acentos y tildes (necesario para la función "Buscar online"):
+Para habilitar la búsqueda por letra ignorando acentos y tildes:
 ```sql
-CREATE TABLE attendance_records (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  date         DATE NOT NULL,
-  service_name TEXT,
-  caballeros   INTEGER NOT NULL DEFAULT 0,
-  damas        INTEGER NOT NULL DEFAULT 0,
-  amigos       INTEGER NOT NULL DEFAULT 0,
-  ninos        INTEGER NOT NULL DEFAULT 0,
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, date)
-);
+CREATE EXTENSION IF NOT EXISTS unaccent;
 
-ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users manage own attendance"
-  ON attendance_records FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+-- Crear configuración personalizada en español sin acentos
+DO $$ BEGIN
+  CREATE TEXT SEARCH CONFIGURATION public.spanish_unaccent (COPY = spanish);
+  ALTER TEXT SEARCH CONFIGURATION public.spanish_unaccent
+    ALTER MAPPING FOR hword, hword_part, word WITH unaccent, spanish_stem;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 ```
 
 ---

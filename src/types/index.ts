@@ -144,6 +144,7 @@ export interface AppSettings {
 export interface BibleBook {
   id: string
   name: string
+  nameEn: string
   chapters: number
   testament: 'AT' | 'NT'
 }

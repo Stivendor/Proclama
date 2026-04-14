@@ -93,20 +93,51 @@ export async function fetchSongs(): Promise<Song[]> {
 
 /**
  * Busca canciones por texto en título, artista o letra.
- * Utiliza búsqueda de texto completo para mayor precisión.
+ * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
+ * @param query El texto a buscar
+ * @param publicOnly Si es true, solo devolverá canciones marcadas como públicas (para descubrimiento online)
  */
-export async function searchSongs(query: string): Promise<Song[]> {
+export async function searchSongs(query: string, publicOnly = false, targetLanguage?: string): Promise<Song[]> {
   if (!query) return fetchSongs()
 
-  // Búsqueda simple por ILIKE en título/artista y Full Text Search en lyrics
-  const { data, error } = await supabase
+  try {
+    const { data, error } = await supabase
+      .rpc('search_songs_community', { 
+        search_term: query, 
+        public_only: publicOnly,
+        target_language: targetLanguage 
+      })
+
+    if (!error && data) {
+      return (data as SupabaseSongRow[]).map(mapRowToSong)
+    }
+    
+    // Si hay error en el RPC (p. ej. no existe la función aún), caer en el fallback
+    if (error) console.warn('RPC search error, falling back to basic search:', error.message)
+  } catch (err) {
+    console.warn('Search RPC failed, using fallback:', err)
+  }
+
+  // Fallback: Búsqueda básica (sensible a acentos)
+  let request = supabase
     .from('songs')
     .select('*')
     .or(`title.ilike.%${query}%,artist.ilike.%${query}%,lyrics.fts.${query}`)
     .order('usage_count', { ascending: false })
+    .limit(20)
+
+  if (publicOnly) {
+    request = request.eq('is_public', true)
+  }
+
+  if (targetLanguage) {
+    request = request.eq('language', targetLanguage)
+  }
+
+  const { data, error } = await request
 
   if (error) {
-    console.error('Error searching songs:', error)
+    console.error('Error in fallback search:', error)
     return []
   }
 
@@ -201,20 +232,22 @@ export async function fetchSetlists(): Promise<Setlist[]> {
     return (data || []).map(mapRowToSetlist)
   } catch (err: any) {
     if (err?.name === 'AbortError') return []
-    console.error('Error fetching setlists:', err)
+    console.error('[Setlists] Error al obtener:', err)
     return []
   }
 }
 
 export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setlist | null> {
+  console.log('[Setlists] Iniciando creación...', { userId: setlist.userId })
+  const now = new Date().toISOString()
   const payload = {
     name: setlist.name,
     date: setlist.date.toISOString().split('T')[0],
     user_id: setlist.userId,
-    song_ids: setlist.songIds,
     notes: setlist.notes || '',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    song_ids: setlist.songIds || [],
+    created_at: now,
+    updated_at: now
   }
   try {
     const { data, error } = await supabase
@@ -223,10 +256,11 @@ export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setli
       .select()
       .single()
     if (error) throw error
+    console.log('[Setlists] Creación exitosa')
     return mapRowToSetlist(data)
   } catch (err: any) {
     if (err?.name === 'AbortError') return null
-    console.error('Error creating setlist:', err)
+    console.error('[Setlists] Error al crear:', err)
     return null
   }
 }
@@ -305,228 +339,19 @@ export async function fetchProfile(userId: string) {
   return data as { role: 'admin' | 'user'; plan: 'free' | 'premium' }
 }
 
-// ─── Funciones para Attendance Records ────────────────────────────────────────
-
-function normalizePgDate(d: string): string {
-  return d.length >= 10 ? d.slice(0, 10) : d
-}
-
-type SupabaseAttendanceRow = {
-  id: string
-  user_id: string
-  date: string
-  service_name: string | null
-  caballeros: number
-  damas: number
-  amigos: number
-  ninos: number
-  updated_at: string
-}
-
-function mapRowToAttendanceRecord(row: SupabaseAttendanceRow, userId: string): AttendanceRecord {
-  return {
-    remoteId: row.id,
-    userId,
-    date: normalizePgDate(row.date),
-    serviceName: row.service_name ?? undefined,
-    caballeros: row.caballeros,
-    damas: row.damas,
-    amigos: row.amigos,
-    ninos: row.ninos,
-    createdAt: row.updated_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-/**
- * Upsert en `attendance_records`.
- * `userId` debe ser el mismo que `auth.uid()` en la petición (p. ej. de una sola `getSession()` en la UI).
- * No llama a `getSession()` aquí para evitar contención del lock de GoTrue (Strict Mode / OAuth).
- */
-export async function upsertAttendance(
-  userId: string,
-  date: string,
-  attendance: AttendanceBreakdown,
-  serviceName?: string,
-  /** Si el upsert no devuelve fila pero ya teníamos id local, se acepta. */
-  existingRemoteId?: string
-): Promise<{ remoteId: string }> {
-  const payload = {
-    user_id: userId,
-    date,
-    service_name: serviceName ?? null,
-    caballeros: attendance.caballeros,
-    damas: attendance.damas,
-    amigos: attendance.amigos,
-    ninos: attendance.ninos,
-    updated_at: new Date().toISOString(),
-  }
-
-  const { data, error } = await supabase
-    .from('attendance_records')
-    .upsert(payload, { onConflict: 'user_id,date' })
-    .select('id')
-
-  if (error) {
-    const msg = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
-    console.error('Error upserting attendance:', msg)
-    throw new Error(msg || 'No se pudo guardar la asistencia en el servidor.')
-  }
-
-  const rows = Array.isArray(data) ? data : data != null ? [data] : []
-  let id = rows[0]?.id as string | undefined
-
-  if (!id) {
-    const { data: fetched, error: fetchErr } = await supabase
-      .from('attendance_records')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle()
-    if (fetchErr) {
-      throw new Error(fetchErr.message || 'No se pudo confirmar la asistencia en el servidor.')
-    }
-    id = fetched?.id as string | undefined
-  }
-
-  if (id) return { remoteId: id }
-  if (existingRemoteId) return { remoteId: existingRemoteId }
-  throw new Error(
-    'El servidor no devolvió el id del registro. Revisa en Supabase que exista la tabla attendance_records y políticas RLS para tu usuario.'
-  )
-}
-
-type SupabaseChurchNoteRow = {
-  id: string
-  user_id: string
-  date: string
-  attendance: AttendanceBreakdown | null
-  notices: ChurchNote['notices']
-  created_at: string
-  updated_at: string
-}
-
-function mapRowToChurchNote(row: SupabaseChurchNoteRow): ChurchNote {
-  return {
-    remoteId: row.id,
-    userId: row.user_id,
-    date: row.date,
-    // Asistencia vive solo en `attendance_records`; la columna legacy se ignora al mapear.
-    notices: row.notices ?? [],
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  }
-}
-
-export async function fetchChurchNote(date: string, userId: string): Promise<ChurchNote | null> {
-  const { data, error } = await supabase
-    .from('church_notes')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('date', date)
-    .limit(1)
-    .single()
-
-  if (error) {
-    if (error.code === 'PGRST116') return null // no rows found
-    console.error('Error fetching church note:', error.message)
-    return null
-  }
-  return mapRowToChurchNote(data as SupabaseChurchNoteRow)
-}
-
-export async function fetchAllChurchNotes(userId: string): Promise<ChurchNote[]> {
-  const { data, error } = await supabase
-    .from('church_notes')
-    .select('*')
-    .eq('user_id', userId)
-
-  if (error) {
-    console.error('Error fetching all church notes:', error.message)
-    return []
-  }
-  return (data as SupabaseChurchNoteRow[]).map(mapRowToChurchNote)
-}
-
-/** Filas crudas para migración (incluye `attendance` legacy en `church_notes`). */
-export async function fetchAllChurchNotesRaw(userId: string): Promise<SupabaseChurchNoteRow[]> {
-  const { data, error } = await supabase
-    .from('church_notes')
-    .select('*')
-    .eq('user_id', userId)
-
-  if (error) {
-    console.error('Error fetching raw church notes:', error.message)
-    return []
-  }
-  return (data ?? []) as SupabaseChurchNoteRow[]
-}
-
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
+  console.log('[Feedback] Iniciando envío...', { userId })
   const { error } = await supabase.from('feedback').insert({
     message: message.trim(),
     user_id: userId,
   })
 
   if (error) {
-    console.error('Error submitting feedback:', error.message)
+    console.error('[Feedback] Error al enviar:', error.message)
     return false
   }
+  console.log('[Feedback] Envío exitoso')
   return true
-}
-
-/** `note.userId` debe coincidir con la sesión (pasar uid desde una sola `getSession()` en la UI). */
-export async function upsertChurchNote(note: ChurchNote): Promise<ChurchNote> {
-  const payload = {
-    ...(note.remoteId && { id: note.remoteId }),
-    user_id: note.userId,
-    date: note.date,
-    attendance: null,
-    notices: note.notices,
-    created_at: note.createdAt,
-    updated_at: note.updatedAt
-  }
-
-  const { data, error } = await supabase
-    .from('church_notes')
-    .upsert(payload, { onConflict: 'user_id,date' })
-    .select()
-
-  if (error) {
-    const msg = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
-    console.error('Error upserting church note:', msg)
-    throw new Error(msg || 'No se pudieron guardar los avisos en el servidor.')
-  }
-
-  const rows = Array.isArray(data) ? data : data != null ? [data] : []
-  let row = rows[0] as SupabaseChurchNoteRow | undefined
-
-  if (!row) {
-    const { data: fetched, error: fetchErr } = await supabase
-      .from('church_notes')
-      .select('*')
-      .eq('user_id', note.userId)
-      .eq('date', note.date)
-      .maybeSingle()
-    if (fetchErr || !fetched) {
-      throw new Error(
-        fetchErr?.message ||
-        'No se pudo confirmar el guardado de avisos. Comprueba la tabla church_notes y RLS en Supabase.'
-      )
-    }
-    row = fetched as SupabaseChurchNoteRow
-  }
-
-  return mapRowToChurchNote(row)
-}
-
-export async function deleteChurchNote(remoteId: string): Promise<void> {
-  const { error } = await supabase
-    .from('church_notes')
-    .delete()
-    .eq('id', remoteId)
-
-  if (error) console.error('Error deleting church note:', error.message)
 }
 
 // ─── Funciones para Terms & Conditions ────────────────────────────────────────

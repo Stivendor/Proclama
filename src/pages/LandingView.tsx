@@ -1,38 +1,38 @@
-import { useState, useEffect, useRef } from 'react'
-import { Music2, BookOpen, Video, Cloud, Zap, ChevronRight, Search, Globe, Layout, Cpu, Check, X, Lock, Sparkles, Mail } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Check, ChevronRight, Cpu, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
-import { FREE_SONG_LIMIT } from '@/hooks/usePlan'
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView } = useAppStore()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
-  const observerRef = useRef<IntersectionObserver | null>(null)
   const [interestEmail, setInterestEmail] = useState('')
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
+  const observerRef = useRef<IntersectionObserver | null>(null)
 
   const handleInterestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!interestEmail) return
     setInterestStatus('loading')
     const result = await registerPremiumInterest(interestEmail.trim().toLowerCase())
-    if (!result.success) { setInterestStatus('error'); return }
+    if (!result.success) {
+      setInterestStatus('error')
+      return
+    }
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
   }
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible')
-        }
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('is-visible')
       })
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' })
+    }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' })
 
     document.querySelectorAll('.animate-on-scroll').forEach((el) => {
       observerRef.current?.observe(el)
@@ -43,16 +43,14 @@ export default function LandingView() {
 
   if (showAuth) {
     return (
-      <div className="landing-auth-container fade-in">
-        <button className="btn-close-auth" onClick={() => setShowAuth(false)}>
-          <ChevronRight size={24} style={{ transform: 'rotate(180deg)' }} /> Volver
+      <div className="landing-auth">
+        <button className="back-btn" onClick={() => setShowAuth(false)}>
+          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> Volver
         </button>
         <AuthView />
         <style>{`
-          .landing-auth-container { position: fixed; inset: 0; z-index: 3000; background: #060810; }
-          .btn-close-auth { position: absolute; top: 20px; left: 20px; z-index: 3100; color: white; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px; }
-          .fade-in { animation: fadeIn 0.3s ease-out; }
-          @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+          .landing-auth { position: fixed; inset: 0; background: #05070d; z-index: 3000; }
+          .back-btn { position: absolute; top: 20px; left: 20px; z-index: 3001; display: flex; gap: 8px; align-items: center; color: white; font-weight: 700; }
         `}</style>
       </div>
     )
@@ -60,661 +58,433 @@ export default function LandingView() {
 
   return (
     <div className="landing-root">
-      {/* Fondo Ultraligero pero elegante */}
-      <div className="landing-bg">
-        <div className="grid-overlay"></div>
-        <div className="glow glow-1"></div>
-        <div className="glow glow-2"></div>
-      </div>
+      <div className="landing-bg" aria-hidden="true" />
 
       <nav className="landing-nav animate-fade-down">
         <div className="landing-logo">
-          <Music2 size={32} color="var(--gold)" />
+          <Music2 size={28} color="#c9a658" />
           <span>Proclama <span>Pro</span></span>
         </div>
         <div className="nav-links">
           <a href="#funciones">Funciones</a>
-          <a href="#diferenciadores">Por qué Proclama</a>
           <a href="#planes">Planes</a>
+          <a href="#premium-interest">Pro</a>
         </div>
         <div className="nav-actions">
           <FeedbackModal />
-          <button className="btn-login-line" onClick={() => setShowAuth(true)}>Acceder</button>
+          <button className="btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
         </div>
       </nav>
 
       <main className="landing-main">
         <section className="hero">
-          <div className="hero-content">
-            <div className="badge animate-fade-up" style={{ animationDelay: '0.1s' }}>
-              <Zap size={14} color="#C9A658" /> Software Ultra Ligero
+          <div className="hero-copy">
+            <div className="pill animate-fade-up" style={{ animationDelay: '0.08s' }}>
+              <Zap size={14} color="#c9a658" /> Privacidad y velocidad local
             </div>
-            <h1 className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
-              Proyección pura.<br />
-              <span className="text-glow">Sin complicaciones.</span>
+            <h1 className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
+              Abre y empieza.
+              <br />
+              <span>Todo corre en local.</span>
             </h1>
-            <p className="animate-fade-up" style={{ animationDelay: '0.3s' }}>
-              El software definitivo para iglesias optimizado para cualquier PC. <br/>
-              Búsqueda de letras online, Biblia al instante y proyección impecable.
+            <p className="animate-fade-up" style={{ animationDelay: '0.24s' }}>
+              Setlists, notas y ajustes viven en tu equipo por defecto. La cuenta Pro queda reservada para búsqueda online y exportación de reportes CSV.
             </p>
-            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.4s' }}>
-              <button className="btn-primary-glow" onClick={() => setShowTermsForGuest(true)}>
-                Probar Gratis <ChevronRight size={18} />
+            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.32s' }}>
+              <button className="btn-primary" onClick={() => setShowTermsForGuest(true)}>
+                Entrar como Invitado <ChevronRight size={18} />
               </button>
-              <a href="#funciones" className="btn-secondary-line">Descubrir más</a>
+              <button className="btn-secondary" onClick={() => setShowAuth(true)}>
+                Desbloquear Pro
+              </button>
             </div>
           </div>
 
-          <div className="hero-visual animate-pop-in" style={{ animationDelay: '0.5s' }}>
-            {/* Abstracción UI ligera en lugar de iframes pesados */}
-            <div className="abstract-ui">
-              <div className="ui-header">
-                <span className="dot" style={{background:'#ff5f56'}}></span>
-                <span className="dot" style={{background:'#ffbd2e'}}></span>
-                <span className="dot" style={{background:'#27c93f'}}></span>
+          <div className="hero-panel animate-pop-in" style={{ animationDelay: '0.4s' }}>
+            <div className="hero-card hero-card-wide">
+              <Cpu size={22} color="#c9a658" />
+              <div>
+                <strong>Arranque instantáneo</strong>
+                <p>La app abre su interfaz principal sin esperar autenticación.</p>
               </div>
-              <div className="ui-body">
-                <div className="ui-sidebar">
-                  <div className="ui-line short"></div>
-                  <div className="ui-line medium active"></div>
-                  <div className="ui-line short"></div>
-                </div>
-                <div className="ui-main">
-                  <div className="ui-lyrics-card">
-                    <h2>Cuán Grande Es Él</h2>
-                    <div className="ui-line full opacity-50"></div>
-                    <div className="ui-line medium opacity-50"></div>
-                  </div>
-                  <div className="ui-search-bar">
-                    <Search size={14} color="#8b98b0" />
-                    <span>Buscar canción en internet...</span>
-                  </div>
-                </div>
+            </div>
+            <div className="hero-card">
+              <Shield size={20} color="#9ad3ff" />
+              <div>
+                <strong>100% local</strong>
+                <p>Setlists, notas y ajustes persisten tras refrescar.</p>
+              </div>
+            </div>
+            <div className="hero-card">
+              <Globe size={20} color="#86efac" />
+              <div>
+                <strong>Pro opcional</strong>
+                <p>Activa búsqueda online y exportación CSV solo cuando lo necesites.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="funciones" className="features-section">
-          <div className="features-header animate-on-scroll">
-            <h2 className="title-serif">Todo lo que necesitas, nada que sobre</h2>
+        <section id="funciones" className="section">
+          <div className="section-head animate-on-scroll">
+            <h2>Local-first de verdad</h2>
+            <p>El flujo principal ya no depende de la nube para servir con rapidez.</p>
           </div>
-
-          <div className="bento-grid">
-            {/* Celda Principal */}
-            <div className="bento-cell cell-large animate-on-scroll delay-1">
-              <div className="cell-content">
-                <Globe size={32} color="var(--gold)" />
-                <h3>Búsqueda Online Integrada</h3>
-                <p>No pierdas tiempo descargando archivos. Busca en internet y proyecta las letras directamente en el servicio en segundos.</p>
-              </div>
-              <div className="cell-decor decor-search">
-                <div className="search-pill"><Search size={12}/> <span>Quiero levantar mis manos</span></div>
-              </div>
-            </div>
-
-            {/* Celdas regulares */}
-            <div className="bento-cell animate-on-scroll delay-2">
-               <Music2 size={28} color="var(--gold)" />
-               <h3>3,000+ Canciones Precargadas</h3>
-               <p>Base de datos completa de himnos y alabanzas cristianas lista para usar desde el primer día.</p>
-            </div>
-
-            <div className="bento-cell animate-on-scroll delay-3">
-               <BookOpen size={28} color="var(--gold)" />
-               <h3>Biblia Veloz</h3>
-               <p>Ingresa referencias ("Juan 3:16") y lánzalas pantalla al instante en múltiples versiones.</p>
-            </div>
-
-            <div className="bento-cell animate-on-scroll delay-4">
-               <Video size={28} color="var(--gold)" />
-               <h3>Fondos Dinámicos</h3>
-               <p>Monta videos en bucle (MP4) o imágenes de fondo sin atascar tu computadora.</p>
-            </div>
-
-            <div className="bento-cell cell-wide animate-on-scroll delay-5">
-              <div className="cell-content-row">
-                <div className="icon-box"><Cloud size={24} color="#060810"/></div>
-                <div>
-                  <h3>Sincronización Cloud Automática</h3>
-                  <p>Inicia sesión en la PC de la iglesia y tendrás acceso a todas tus canciones y configuraciones instantáneamente. Adiós memorias USB.</p>
-                </div>
-              </div>
-            </div>
+          <div className="feature-grid">
+            <article className="feature-card animate-on-scroll delay-1">
+              <Cpu size={28} color="#c9a658" />
+              <h3>Velocidad local</h3>
+              <p>La app responde de inmediato desde el navegador, incluso después de refrescar.</p>
+            </article>
+            <article className="feature-card animate-on-scroll delay-2">
+              <Lock size={28} color="#c9a658" />
+              <h3>Privacidad total</h3>
+              <p>Tus datos centrales permanecen en tu dispositivo y no dependen de una sincronización remota.</p>
+            </article>
+            <article className="feature-card animate-on-scroll delay-3">
+              <BookOpen size={28} color="#c9a658" />
+              <h3>Biblia siempre lista</h3>
+              <p>Consulta y proyecta pasajes con el mismo rendimiento aun cuando falle la conexión.</p>
+            </article>
+            <article className="feature-card animate-on-scroll delay-4">
+              <Video size={28} color="#c9a658" />
+              <h3>Proyección fluida</h3>
+              <p>Fondos, videos y letras siguen corriendo desde la máquina local, con menos fricción.</p>
+            </article>
           </div>
         </section>
 
-        {/* Ventajas Verticales - Scroll Experience */}
-        <section id="diferenciadores" className="differentiators-section">
-          <div className="features-header animate-on-scroll">
-            <h2 className="title-serif">Diseñado para la Iglesia</h2>
-            <p style={{color: '#8b98b0', marginTop: '16px'}}>Fluidez, portabilidad y potencia sin compromisos.</p>
+        <section id="planes" className="section">
+          <div className="section-head animate-on-scroll">
+            <h2>Planes claros</h2>
+            <p>Gratis para operar en local. Pro para buscar e informar mejor.</p>
           </div>
-          
-          <div className="vertical-features">
-            {/* Feature 1 */}
-            <div className="v-feature animate-on-scroll">
-              <div className="v-feature-text">
-                <div className="feature-icon"><Layout size={24} color="var(--gold)"/></div>
-                <h3>Proyección 100% Web</h3>
-                <p>Olvídate de descargas pesadas o de necesitar hardware dedicado. Abre tu navegador en cualquier PC (o Mac), inicia sesión, conecta tu pantalla extendida y comienza a proyectar al instante.</p>
-              </div>
-              <div className="v-feature-visual">
-                <div className="wireframe-box fade-in-delay">
-                  <div className="wf-bar"></div>
-                  <div className="wf-main">
-                    <div className="wf-sidebar"></div>
-                    <div className="wf-content"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Feature 2 (Reverse) */}
-            <div className="v-feature reverse animate-on-scroll">
-              <div className="v-feature-text">
-                <div className="feature-icon"><Cpu size={24} color="var(--gold)"/></div>
-                <h3>Ultra Eficiente</h3>
-                <p>Todo está optimizado para que funcione rápido y sin problemas. Puedes proyectar texto, fondos en movimiento y usar varias pantallas sin que el computador se ponga lento, incluso si es antiguo.</p>
-              </div>
-              <div className="v-feature-visual">
-                 <div className="wireframe-circle-box fade-in-delay">
-                    <Zap size={40} color="#8b98b0" style={{opacity: 0.3}}/>
-                 </div>
-              </div>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="v-feature animate-on-scroll">
-              <div className="v-feature-text">
-                <div className="feature-icon"><Search size={24} color="var(--gold)"/></div>
-                <h3>Repertorio Ilimitado</h3>
-                <p>¿Te pidieron una adoración de último minuto? Nuestra barra de búsqueda online rastrea acordes y letras de toda la web y las expone formateadas y listas para la proyección en pantalla completa.</p>
-              </div>
-              <div className="v-feature-visual">
-                <div className="wireframe-search-box fade-in-delay">
-                  <div className="wf-search-bar"><Search size={14} /> buscar canto...</div>
-                  <div className="wf-results">
-                    <div className="wf-line"></div>
-                    <div className="wf-line"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Sección Comparativa de Planes ── */}
-        <section id="planes" className="plans-section">
-          <div className="features-header animate-on-scroll">
-            <h2 className="title-serif">Planes</h2>
-            <p style={{ color: '#8b98b0', marginTop: '16px' }}>Durante el lanzamiento, todos los usuarios tienen acceso completo sin costo.</p>
-          </div>
-
-          <div className="launch-banner animate-on-scroll delay-1">
-            <Sparkles size={16} color="#C9A658" />
-            <span>Período de lanzamiento activo — todas las funciones premium disponibles gratis por tiempo limitado</span>
-          </div>
-
           <div className="plans-grid animate-on-scroll delay-2">
-            {/* Plan Free */}
-            <div className="plan-card">
-              <div className="plan-header">
-                <span className="plan-badge free-badge">Gratis</span>
-                <div className="plan-price">$0 <span>/mes</span></div>
-                <p className="plan-desc">Siempre disponible, sin tarjeta de crédito</p>
-              </div>
-              <ul className="plan-features">
-                <li><Check size={16} className="icon-check" /> Biblioteca pública de 3,000+ canciones</li>
-                <li><Check size={16} className="icon-check" /> Proyección en pantalla completa</li>
-                <li><Check size={16} className="icon-check" /> Biblia integrada</li>
-                <li><Check size={16} className="icon-check" /> Fondos de color sólido</li>
-                <li><Check size={16} className="icon-check" /> Hasta {FREE_SONG_LIMIT} canciones propias</li>
-                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Búsqueda online de letras</li>
-                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Fondos multimedia (video/imagen)</li>
-                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Sincronización en la nube</li>
-                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Canciones propias ilimitadas</li>
-                <li className="feature-locked"><Lock size={14} className="icon-lock" /> Exportar reportes de asistencia</li>
+            <article className="plan-card">
+              <span className="plan-badge">Free</span>
+              <h3>$0 <span>/ siempre</span></h3>
+              <ul>
+                <li><Check size={16} /> Uso local ilimitado</li>
+                <li><Check size={16} /> Proyección</li>
+                <li><Check size={16} /> Biblioteca básica</li>
+                <li><Check size={16} /> Biblia</li>
+                <li><Check size={16} /> Setlists y notas locales</li>
+                <li className="locked"><Lock size={14} /> Búsqueda online</li>
+                <li className="locked"><Lock size={14} /> Exportación CSV</li>
               </ul>
-              <button className="btn-plan-free" onClick={() => setShowTermsForGuest(true)}>
-                Comenzar gratis
-              </button>
-            </div>
-
-            {/* Plan Premium */}
-            <div className="plan-card plan-card-premium">
-              <div className="plan-glow-ring" />
-              <div className="plan-launch-tag"><Zap size={12} /> Gratis durante el lanzamiento</div>
-              <div className="plan-header">
-                <span className="plan-badge premium-badge"><Sparkles size={12} /> Premium</span>
-                <div className="plan-price">Próximamente <span></span></div>
-                <p className="plan-desc">Hoy gratis. Precio anunciado pronto.</p>
-              </div>
-              <ul className="plan-features">
-                <li><Check size={16} className="icon-check gold" /> Todo lo del plan gratuito</li>
-                <li><Check size={16} className="icon-check gold" /> Búsqueda online de letras (Genius)</li>
-                <li><Check size={16} className="icon-check gold" /> Fondos multimedia (video/imagen)</li>
-                <li><Check size={16} className="icon-check gold" /> Sincronización en la nube</li>
-                <li><Check size={16} className="icon-check gold" /> Canciones propias ilimitadas</li>
-                <li><Check size={16} className="icon-check gold" /> Exportar reportes de asistencia</li>
-                <li><Check size={16} className="icon-check gold" /> Soporte prioritario</li>
-                <li><Check size={16} className="icon-check gold" /> Acceso anticipado a nuevas funciones</li>
+              <button className="btn-secondary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
+            </article>
+            <article className="plan-card plan-pro">
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Premium</span>
+              <h3>Cuenta Pro</h3>
+              <ul>
+                <li><Check size={16} /> Todo lo del plan Free</li>
+                <li><Check size={16} /> Búsqueda online (LRC Lib / nube)</li>
+                <li><Check size={16} /> Exportación de reportes CSV</li>
+                <li><Check size={16} /> Soporte prioritario</li>
               </ul>
-              <button className="btn-primary-glow" style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => document.getElementById('premium-interest')?.scrollIntoView({ behavior: 'smooth' })}>
-                Reservar mi lugar <ChevronRight size={16} />
-              </button>
-            </div>
+              <button className="btn-primary" onClick={() => setShowAuth(true)}>Entrar con cuenta Pro</button>
+            </article>
           </div>
         </section>
 
-        {/* ── Tarjeta de Interés Premium ── */}
-        <section id="premium-interest" className="interest-section animate-on-scroll">
+        <section id="premium-interest" className="section narrow animate-on-scroll">
           <div className="interest-card">
-            <div className="interest-badge"><Sparkles size={14} color="#C9A658" /> Período de lanzamiento</div>
-            <h2 className="title-serif">Úsalo todo, gratis, ahora mismo</h2>
-            <p>Estamos en fase de lanzamiento y todas las funciones premium están disponibles sin costo. Deja tu correo y te avisamos antes de que el plan de pago entre en vigencia, para que puedas decidir con tiempo.</p>
-
+            <div className="pill"><Sparkles size={14} color="#c9a658" /> Mantente al tanto</div>
+            <h2>Novedades de Pro</h2>
+            <p>Te avisamos cuando haya mejoras en búsqueda online, exportación CSV y beneficios para equipos.</p>
             {interestStatus === 'success' ? (
-              <div className="interest-success">
-                <Check size={20} color="#27c93f" />
-                <span>¡Listo! Te avisaremos cuando el plan Premium esté disponible.</span>
-              </div>
+              <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
             ) : interestStatus === 'duplicate' ? (
-              <div className="interest-success">
-                <Check size={20} color="#C9A658" />
-                <span>Ya tienes tu lugar reservado. Te avisaremos pronto.</span>
-              </div>
+              <div className="interest-state"><Check size={18} color="#c9a658" /> Ya estás en la lista.</div>
             ) : (
               <form className="interest-form" onSubmit={handleInterestSubmit}>
-                <div className="interest-input-wrap">
+                <div className="interest-input">
                   <Mail size={16} color="#8b98b0" />
                   <input
                     type="email"
                     placeholder="tu@correo.com"
                     value={interestEmail}
-                    onChange={e => setInterestEmail(e.target.value)}
+                    onChange={(e) => setInterestEmail(e.target.value)}
                     required
                     disabled={interestStatus === 'loading'}
                   />
                 </div>
-                <button type="submit" className="btn-primary-glow" disabled={interestStatus === 'loading'}>
+                <button type="submit" className="btn-primary" disabled={interestStatus === 'loading'}>
                   {interestStatus === 'loading' ? 'Enviando...' : 'Notificarme'}
                 </button>
-                {interestStatus === 'error' && (
-                  <p className="interest-error">Ocurrió un error. Intenta de nuevo.</p>
-                )}
+                {interestStatus === 'error' && <p className="error-line">Ocurrió un error. Intenta de nuevo.</p>}
               </form>
             )}
           </div>
         </section>
-
-        <section className="cta-section animate-on-scroll">
-          <div className="cta-box">
-            <h2>Lleva la excelencia a tus pantallas</h2>
-            <p>Hecho para correr fluido hasta en ordenadores con bajos recursos.</p>
-            <button className="btn-primary-glow" onClick={() => setShowTermsForGuest(true)}>
-              Iniciar Presentación
-            </button>
-          </div>
-        </section>
       </main>
 
-      <footer className="landing-footer">
-        <p>&copy; 2026 Proclama — Excelencia para Su Reino.</p>
-      </footer>
+      <footer className="landing-footer">© 2026 Proclama — local-first para servir con calma.</footer>
 
       {showTermsForGuest && (
         <TermsModal
           mode="required"
           onAccept={async () => {
             await acceptTerms(CURRENT_TERMS_VERSION)
+            setActiveView('library')
             setGuestMode(true)
           }}
           onClose={() => setShowTermsForGuest(false)}
         />
       )}
 
-      {/* Estilos estrictamente optimizados (Sin Backdrop Filters excesivos) */}
       <style>{`
-        ::selection { background: rgba(201, 166, 88, 0.3); color: white; }
-        
         .landing-root {
-          background: #040509;
-          color: white;
           height: 100vh;
-          overflow-y: auto;
+          min-height: 100vh;
+          background: #05070d;
+          color: white;
+          font-family: 'Outfit', sans-serif;
           overflow-x: hidden;
-          font-family: 'Inter', sans-serif;
-          scroll-behavior: smooth;
+          overflow-y: auto;
+          overscroll-behavior: contain;
         }
-
-        /* Ambientación de bajo costo computacional */
         .landing-bg {
-          position: fixed; inset: 0; z-index: 0; pointer-events: none;
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at top right, rgba(201, 166, 88, 0.16), transparent 28%),
+            radial-gradient(circle at bottom left, rgba(52, 152, 219, 0.12), transparent 26%),
+            linear-gradient(180deg, #05070d, #0a0e17);
         }
-        .grid-overlay {
-          position: absolute; inset: 0;
-          background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-          background-size: 40px 40px;
-          mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
-          -webkit-mask-image: radial-gradient(circle at center, black 20%, transparent 80%);
-        }
-        .glow {
-          position: absolute; width: 500px; height: 500px; border-radius: 50%;
-          filter: blur(120px); opacity: 0.15;
-          /* Usamos renderizado GPU */
-          transform: translateZ(0); 
-        }
-        .glow-1 { top: -200px; right: -100px; background: #C9A658; }
-        .glow-2 { bottom: -200px; left: -100px; background: #1a365d; }
-
-        /* Typography */
-        .title-serif { font-family: 'Cinzel', serif; font-weight: 600; }
-        .text-glow {
-          background: linear-gradient(90deg, #fff, #C9A658);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          filter: drop-shadow(0px 0px 20px rgba(201, 166, 88, 0.2));
-        }
-
-        /* Navigation */
+        .landing-nav,
+        .landing-main,
+        .landing-footer { position: relative; z-index: 1; }
         .landing-nav {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 24px 5%; position: relative; z-index: 10;
-          max-width: 1400px; margin: 0 auto;
+          max-width: 1180px;
+          margin: 0 auto;
+          padding: 24px 5%;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
         }
         .landing-logo {
-          display: flex; align-items: center; gap: 12px;
-          font-family: 'Cinzel', serif; font-size: 24px; font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: 'Cinzel', serif;
+          font-size: 24px;
+          font-weight: 600;
         }
-        .landing-logo span span { color: var(--gold); }
-        .nav-links { display: flex; gap: 32px; display: none; }
-        @media (min-width: 768px) { .nav-links { display: flex; } }
-        .nav-links a { color: #8b98b0; text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
-        .nav-links a:hover { color: white; }
-        .nav-actions { display: flex; align-items: center; gap: 16px; }
-
-        /* Buttons Minimalistas */
-        .btn-login-line {
-          padding: 8px 24px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-          background: transparent; color: white; font-weight: 500; font-size: 14px;
-          transition: border-color 0.2s, background 0.2s;
+        .landing-logo span span { color: #c9a658; }
+        .nav-links { display: none; gap: 24px; }
+        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; }
+        .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-line, .btn-secondary, .btn-primary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border-radius: 999px;
+          font-weight: 700;
+          transition: 0.2s ease;
         }
-        .btn-login-line:hover { border-color: rgba(201, 166, 88, 0.5); background: rgba(201, 166, 88, 0.05); }
-
-        .btn-primary-glow {
-          display: inline-flex; align-items: center; gap: 8px;
-          padding: 16px 36px; border-radius: 8px; font-size: 16px; font-weight: 600;
-          background: #C9A658; color: #040509; border: none; cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
-          box-shadow: 0 8px 30px rgba(201, 166, 88, 0.2);
+        .btn-line, .btn-secondary {
+          padding: 12px 20px;
+          border: 1px solid rgba(255,255,255,0.14);
+          color: white;
+          background: transparent;
         }
-        .btn-primary-glow:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 40px rgba(201, 166, 88, 0.3);
+        .btn-primary {
+          padding: 14px 24px;
+          border: none;
+          color: #05070d;
+          background: linear-gradient(135deg, #d5b164, #bc933b);
+          box-shadow: 0 16px 40px rgba(201, 166, 88, 0.22);
         }
-
-        .btn-secondary-line {
-          display: inline-flex; align-items: center; padding: 16px 36px; border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.1); color: white; text-decoration: none; font-weight: 500;
-          transition: background 0.2s;
-        }
-        .btn-secondary-line:hover { background: rgba(255,255,255,0.05); }
-
-        .badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 6px 16px; border-radius: 99px; border: 1px solid rgba(201, 166, 88, 0.3);
-          background: rgba(201, 166, 88, 0.05); color: #e2e8f0; font-size: 13px; font-weight: 500;
-          letter-spacing: 0.5px;
-        }
-
-        /* Hero Layout */
-        .landing-main { position: relative; z-index: 1; overflow: hidden; }
-        
+        .btn-line:hover, .btn-secondary:hover { background: rgba(255,255,255,0.05); }
+        .btn-primary:hover { transform: translateY(-2px); }
+        .landing-main { max-width: 1180px; margin: 0 auto; padding: 24px 5% 96px; }
         .hero {
-          display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
-          padding: 100px 5%; max-width: 1400px; margin: 0 auto;
-          align-items: center; min-height: 80vh;
+          display: grid;
+          grid-template-columns: 1.1fr 0.9fr;
+          gap: 32px;
+          align-items: center;
+          min-height: 78vh;
         }
-        .hero-content h1 {
-          font-family: 'Cinzel', serif; font-size: clamp(40px, 5vw, 64px); 
-          font-weight: 700; line-height: 1.1; margin: 24px 0; text-wrap: balance;
+        .pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(201, 166, 88, 0.28);
+          background: rgba(201, 166, 88, 0.08);
+          color: #e7edf8;
+          font-size: 13px;
+          font-weight: 600;
         }
-        .hero-content p {
-          font-size: 18px; color: #8b98b0; max-width: 500px; line-height: 1.6; margin-bottom: 40px;
+        .hero-copy h1 {
+          margin: 20px 0 16px;
+          font-family: 'Cinzel', serif;
+          font-size: clamp(42px, 5vw, 68px);
+          line-height: 1.04;
         }
-        .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
-
-        /* Abstracción UI Ultraligera (CSS puro, no imágenes) */
-        .hero-visual {
-          position: relative; perspective: 1000px;
+        .hero-copy h1 span {
+          background: linear-gradient(90deg, #fff, #c9a658);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
-        .abstract-ui {
-          width: 100%; aspect-ratio: 16/10;
-          background: linear-gradient(135deg, #101218, #0a0c12);
-          border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 12px; box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-          transform: rotateY(-10deg) rotateX(5deg);
-          display: flex; flex-direction: column; overflow: hidden;
+        .hero-copy p,
+        .section-head p,
+        .hero-card p,
+        .feature-card p,
+        .interest-card p { color: #9aa6bb; line-height: 1.7; }
+        .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+        .hero-panel {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+          padding: 24px;
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: linear-gradient(150deg, rgba(14, 18, 28, 0.92), rgba(7, 10, 16, 0.82));
+          box-shadow: 0 34px 90px rgba(0,0,0,0.42);
         }
-        .ui-header { height: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 12px; gap: 6px; }
-        .ui-header .dot { width: 8px; height: 8px; border-radius: 50%; opacity: 0.5; }
-        .ui-body { display: flex; flex: 1; }
-        .ui-sidebar { width: 60px; border-right: 1px solid rgba(255,255,255,0.05); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        .ui-line { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.1); }
-        .ui-line.short { width: 60%; }
-        .ui-line.medium { width: 80%; }
-        .ui-line.full { width: 100%; }
-        .ui-line.active { background: var(--gold); }
-        .opacity-50 { opacity: 0.5; margin-bottom: 8px; }
-        .ui-main { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
-        .ui-lyrics-card { 
-          flex: 1; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); 
-          border-radius: 8px; padding: 20px;
+        .hero-card {
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          padding: 18px;
+          border-radius: 18px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.06);
         }
-        .ui-lyrics-card h2 { font-size: 20px; font-weight: 600; color: white; margin-bottom: 16px; font-family: 'Cinzel', serif;}
-        .ui-search-bar {
-          background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
-          border-radius: 6px; padding: 12px 16px; display: flex; align-items: center; gap: 10px;
-          color: #8b98b0; font-size: 13px;
+        .hero-card-wide { grid-column: span 2; }
+        .hero-card strong, .feature-card h3 { display: block; margin-bottom: 6px; }
+        .section { padding-top: 82px; }
+        .section.narrow { max-width: 760px; margin: 0 auto; }
+        .section-head { text-align: center; margin-bottom: 42px; }
+        .section-head h2, .interest-card h2 {
+          margin: 0 0 12px;
+          font-family: 'Cinzel', serif;
+          font-size: clamp(30px, 4vw, 40px);
         }
-
-        /* Bento Grid */
-        .features-section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; }
-        .features-header { text-align: center; margin-bottom: 60px; }
-        .features-header h2 { font-size: 36px; }
-        
-        .bento-grid {
-          display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-          grid-auto-rows: minmax(180px, auto);
+        .feature-grid, .plans-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
         }
-        .bento-cell {
-          background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-          border: 1px solid rgba(255,255,255,0.05); border-radius: 16px;
-          padding: 32px; display: flex; flex-direction: column; position: relative;
-          overflow: hidden; transition: border-color 0.3s;
+        .feature-card, .plan-card, .interest-card {
+          border-radius: 22px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
         }
-        .bento-cell:hover { border-color: rgba(201, 166, 88, 0.3); }
-        .bento-cell h3 { font-size: 20px; margin: 16px 0 8px; color: #fff; font-weight: 600; }
-        .bento-cell p { font-size: 14px; color: #8b98b0; line-height: 1.6; }
-        
-        .cell-large { grid-column: span 3; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
-        @media (max-width: 768px) { .cell-large { grid-template-columns: 1fr; } }
-        
-        .cell-wide { grid-column: span 3; }
-        .cell-content-row { display: flex; align-items: center; gap: 24px; }
-        @media (max-width: 768px) { .cell-content-row { flex-direction: column; align-items: flex-start; } }
-        .icon-box { background: var(--gold); width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        
-        .decor-search { display: flex; align-items: center; justify-content: center; height: 100%; }
-        .search-pill { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; border-radius: 99px; display: flex; align-items: center; gap: 10px; color: #fff; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-
-        /* Differentiators Vertical Scroll */
-        .differentiators-section { padding: 80px 5% 120px; max-width: 1200px; margin: 0 auto; }
-        .vertical-features { display: flex; flex-direction: column; gap: 120px; margin-top: 80px; }
-        
-        .v-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
-        .v-feature.reverse { direction: rtl; }
-        .v-feature.reverse > * { direction: ltr; }
-        
-        .v-feature-text h3 { font-family: 'Cinzel', serif; font-size: 32px; font-weight: 600; margin-bottom: 20px; color: white; }
-        .v-feature-text p { font-size: 17px; color: #8b98b0; line-height: 1.7; }
-        
-        .v-feature-visual {
-          perspective: 1000px;
-          display: flex; justify-content: center; align-items: center;
-          background: radial-gradient(circle at center, rgba(201, 166, 88, 0.05) 0%, transparent 60%);
-          height: 300px; border-radius: 24px; position: relative;
+        .feature-card {
+          padding: 26px;
         }
-
-        /* Abstract Wireframes for Visuals */
-        .wireframe-box { width: 260px; height: 180px; border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; background: rgba(0,0,0,0.4); display: flex; flex-direction: column; transform: rotateY(-15deg) rotateX(10deg); box-shadow: 20px 30px 60px rgba(0,0,0,0.5); }
-        .wf-bar { height: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .wf-main { display: flex; flex: 1; }
-        .wf-sidebar { width: 40px; border-right: 1px solid rgba(255,255,255,0.05); }
-        .wf-content { flex: 1; background: rgba(201, 166, 88, 0.05); border: 2px dashed rgba(201, 166, 88, 0.2); margin: 12px; border-radius: 4px; }
-        
-        .wireframe-circle-box { width: 140px; height: 140px; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; position: relative; }
-        .wireframe-circle-box::before { content: ''; position: absolute; inset: -20px; border: 1px solid rgba(255,255,255,0.05); border-radius: 50%; }
-        
-        .wireframe-search-box { width: 260px; background: #0a0c12; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; transform: rotateY(15deg) rotateX(10deg); box-shadow: -20px 30px 60px rgba(0,0,0,0.5);}
-        .wf-search-bar { background: rgba(255,255,255,0.05); border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; margin-bottom: 16px; }
-        .wf-results { display: flex; flex-direction: column; gap: 8px; }
-        .wf-line { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; width: 100%; }
-        .wf-line:last-child { width: 60%; }
-
-        @media (max-width: 768px) {
-          .v-feature, .v-feature.reverse { grid-template-columns: 1fr; gap: 40px; text-align: center; }
-          .feature-icon { margin: 0 auto; }
-          .vertical-features { gap: 80px; }
-        }
-
-        /* CTA */
-        .cta-section { padding: 60px 5% 120px; max-width: 1000px; margin: 0 auto; text-align: center; }
-        .cta-box { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 80px; }
-        .cta-box h2 { font-family: 'Cinzel', serif; font-size: 36px; margin-bottom: 16px; }
-        .cta-box p { color: #8b98b0; font-size: 16px; margin-bottom: 32px; }
-
-        .landing-footer { text-align: center; padding: 32px; color: #4a5568; font-size: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
-
-        /* ── Plans Section ── */
-        .plans-section { padding: 100px 5%; max-width: 1000px; margin: 0 auto; }
-        .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 60px; }
-        @media (max-width: 768px) { .plans-grid { grid-template-columns: 1fr; } }
-
-        .launch-banner {
-          display: flex; align-items: center; gap: 10px; justify-content: center;
-          margin-top: 24px; padding: 12px 24px; border-radius: 10px;
-          background: rgba(201, 166, 88, 0.08); border: 1px solid rgba(201, 166, 88, 0.2);
-          color: #C9A658; font-size: 14px; font-weight: 500;
-        }
-
-        .plan-launch-tag {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: rgba(201, 166, 88, 0.15); color: #C9A658;
-          font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-          padding: 4px 10px; border-radius: 6px; width: fit-content; margin-bottom: 4px;
-        }
-
         .plan-card {
-          background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-          border: 1px solid rgba(255,255,255,0.07); border-radius: 20px;
-          padding: 36px; display: flex; flex-direction: column; gap: 28px; position: relative; overflow: hidden;
+          padding: 30px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
         }
-        .plan-card-premium {
-          border-color: rgba(201, 166, 88, 0.3);
-          background: linear-gradient(145deg, rgba(201, 166, 88, 0.05), rgba(255,255,255,0.01));
-        }
-        .plan-glow-ring {
-          position: absolute; top: -60px; right: -60px; width: 200px; height: 200px;
-          border-radius: 50%; background: rgba(201, 166, 88, 0.08); filter: blur(40px); pointer-events: none;
-        }
+        .plan-pro { border-color: rgba(201, 166, 88, 0.22); }
         .plan-badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; width: fit-content;
+          width: fit-content;
+          padding: 6px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+          color: #d1dae8;
+          font-size: 12px;
+          font-weight: 700;
         }
-        .free-badge { background: rgba(255,255,255,0.07); color: #8b98b0; border: 1px solid rgba(255,255,255,0.1); }
-        .premium-badge { background: rgba(201, 166, 88, 0.15); color: #C9A658; border: 1px solid rgba(201, 166, 88, 0.3); }
-        .plan-price { font-size: 36px; font-weight: 700; color: white; margin-top: 12px; }
-        .plan-price span { font-size: 16px; font-weight: 400; color: #8b98b0; }
-        .plan-desc { font-size: 14px; color: #8b98b0; margin-top: 4px; }
-        .plan-features { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; flex: 1; }
-        .plan-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #c8d0dc; }
-        .feature-locked { color: #4a5568 !important; }
-        .icon-check { color: #27c93f; flex-shrink: 0; }
-        .icon-check.gold { color: #C9A658; }
-        .icon-lock { color: #4a5568; flex-shrink: 0; }
-        .btn-plan-free {
-          padding: 14px 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-          background: transparent; color: white; font-weight: 600; font-size: 15px;
-          transition: background 0.2s, border-color 0.2s; cursor: pointer;
+        .plan-badge-pro {
+          display: inline-flex;
+          gap: 6px;
+          align-items: center;
+          background: rgba(201, 166, 88, 0.14);
+          color: #f0dfb6;
         }
-        .btn-plan-free:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
-
-        /* ── Interest Section ── */
-        .interest-section { padding: 40px 5% 100px; max-width: 700px; margin: 0 auto; }
-        .interest-card {
-          background: linear-gradient(145deg, rgba(201, 166, 88, 0.06), rgba(255,255,255,0.02));
-          border: 1px solid rgba(201, 166, 88, 0.2); border-radius: 24px;
-          padding: 48px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;
+        .plan-card h3 {
+          margin: 0;
+          font-size: 36px;
         }
-        .interest-badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 6px 16px; border-radius: 99px; border: 1px solid rgba(201, 166, 88, 0.3);
-          background: rgba(201, 166, 88, 0.08); color: #C9A658; font-size: 13px; font-weight: 500;
+        .plan-card h3 span { color: #9aa6bb; font-size: 16px; }
+        .plan-card ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
-        .interest-card h2 { font-size: 28px; }
-        .interest-card p { color: #8b98b0; font-size: 16px; line-height: 1.6; max-width: 480px; }
-        .interest-form { display: flex; gap: 12px; width: 100%; max-width: 460px; flex-wrap: wrap; justify-content: center; }
-        .interest-input-wrap {
-          flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 8px; padding: 0 16px;
+        .plan-card li {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          color: #d5dce7;
         }
-        .interest-input-wrap input {
-          flex: 1; background: transparent; border: none; outline: none;
-          color: white; font-size: 15px; padding: 14px 0;
+        .plan-card .locked { color: #778398; }
+        .interest-card { padding: 34px; text-align: center; }
+        .interest-form { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+        .interest-input {
+          min-width: 220px;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 16px;
+          border-radius: 14px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.04);
         }
-        .interest-input-wrap input::placeholder { color: #4a5568; }
-        .interest-input-wrap input:disabled { opacity: 0.5; }
-        .interest-success {
-          display: flex; align-items: center; gap: 10px;
-          background: rgba(39, 201, 63, 0.08); border: 1px solid rgba(39, 201, 63, 0.2);
-          border-radius: 10px; padding: 16px 24px; color: #c8d0dc; font-size: 15px;
+        .interest-input input {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          color: white;
+          padding: 15px 0;
         }
-        .interest-error { color: #fc8181; font-size: 13px; width: 100%; text-align: center; margin-top: -4px; }
-
-        /* Animations */
-        .animate-fade-up { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-fade-down { opacity: 0; transform: translateY(-10px); animation: fadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-pop-in { opacity: 0; transform: scale(0.95); animation: popIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        /* Scroll Animations */
-        .animate-on-scroll { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+        .interest-state {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 20px;
+          padding: 14px 18px;
+          border-radius: 14px;
+          background: rgba(255,255,255,0.05);
+        }
+        .error-line { width: 100%; color: #fca5a5; font-size: 13px; }
+        .landing-footer {
+          position: relative;
+          z-index: 1;
+          padding: 28px;
+          text-align: center;
+          color: #748197;
+          border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .animate-fade-up { opacity: 0; transform: translateY(18px); animation: fadeUp 0.7s ease forwards; }
+        .animate-fade-down { opacity: 0; transform: translateY(-10px); animation: fadeDown 0.6s ease forwards; }
+        .animate-pop-in { opacity: 0; transform: scale(0.97); animation: popIn 0.8s ease forwards; }
+        .animate-on-scroll { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
         .animate-on-scroll.is-visible { opacity: 1; transform: translateY(0); }
-        .delay-1 { transition-delay: 0.1s; }
-        .delay-2 { transition-delay: 0.2s; }
-        .delay-3 { transition-delay: 0.3s; }
-        .delay-4 { transition-delay: 0.4s; }
-        
+        .delay-1 { transition-delay: 0.08s; }
+        .delay-2 { transition-delay: 0.16s; }
+        .delay-3 { transition-delay: 0.24s; }
+        .delay-4 { transition-delay: 0.32s; }
         @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeDown { to { opacity: 1; transform: translateY(0); } }
-        @keyframes popIn { 
-          from { opacity: 0; transform: scale(0.95) rotateY(-15deg) rotateX(10deg); } 
-          to { opacity: 1; transform: scale(1) rotateY(-10deg) rotateX(5deg); } 
-        }
-
-        @media (max-width: 1024px) {
-          .hero { grid-template-columns: 1fr; text-align: center; padding-top: 60px; }
-          .hero-content p { margin-left: auto; margin-right: auto; }
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+        @media (min-width: 860px) { .nav-links { display: flex; } }
+        @media (max-width: 920px) {
+          .hero, .feature-grid, .plans-grid { grid-template-columns: 1fr; }
+          .hero-copy { text-align: center; }
           .hero-actions { justify-content: center; }
-          .bento-grid { grid-template-columns: 1fr; }
-          .cell-large, .cell-wide { grid-column: span 1; }
-          .abstract-ui { transform: none; animation: none; }
+          .hero-card-wide { grid-column: span 1; }
+          .hero-panel { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
   )
 }
-

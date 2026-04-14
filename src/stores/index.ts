@@ -9,6 +9,7 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 // ─── Canvas size de referencia (16:9) ──────────────────────────────────────────
 export const CANVAS_SIZE = { width: 1920, height: 1080 } as const
+export const PREMIUM_FOR_EVERYONE = false
 export const DEFAULT_THEME: ProjectionTheme = {
   background: '#0a0a0f',
   fontFamily: 'Montserrat, sans-serif',
@@ -42,7 +43,7 @@ interface ProjectionStore {
   state: ProjectionState
   projectionWindow: Window | null
   setProjectionWindow: (w: Window | null) => void
-  loadSong: (song: Song, isBible?: boolean) => void
+  loadSong: (song: Song, isBible?: boolean, initialSlide?: number) => void
   nextSlide: () => void
   prevSlide: () => void
   goToSlide: (index: number) => void
@@ -71,14 +72,14 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   setProjectionWindow: (w) => set({ projectionWindow: w }),
 
-  loadSong: (song, isBible = false) => {
+  loadSong: (song, isBible = false, initialSlide = -1) => {
     const newState: ProjectionState = {
       ...get().state,
       songId: song.id || null,
       songTitle: song.title,
       isBible,
       slides: parseLyrics(song.lyrics),
-      currentSlide: 0,
+      currentSlide: initialSlide,
       hideText: false,
     }
     set({ state: newState })
@@ -87,8 +88,10 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
 
   nextSlide: () => {
     set(s => {
-      if (s.state.currentSlide < s.state.slides.length - 1) {
-        const newState = { ...s.state, currentSlide: s.state.currentSlide + 1, hideText: false }
+      const { currentSlide, slides } = s.state
+      if (currentSlide < slides.length - 1) {
+        const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
+        const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
         sendProjectionUpdate(newState)
         return { state: newState }
       }
@@ -308,7 +311,7 @@ export const useAppStore = create<AppStore>()(
         userRole: null, 
         userPlan: 'free', 
         authStatus: 'unauthenticated', 
-        guestMode: false,
+        guestMode: true,
         termsAccepted: null,
         activeSetlist: null,
         editingSong: null
@@ -321,6 +324,8 @@ export const useAppStore = create<AppStore>()(
         isSidebarOpen: state.isSidebarOpen, 
         onboardingDone: state.onboardingDone,
         guestMode: state.guestMode,
+        userRole: state.userRole,
+        userPlan: state.userPlan,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
       })

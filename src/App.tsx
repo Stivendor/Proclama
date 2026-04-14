@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useShallow } from "zustand/react/shallow";
@@ -22,8 +22,6 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
-import { db } from "@/db";
-import { Loader2 } from "lucide-react";
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION =
@@ -49,10 +47,9 @@ function AppContent() {
     authStatus,
     setAuthStatus,
     guestMode,
-    checkTermsVersion,
     acceptTerms,
     termsSyncPending,
-    cachedUserRole,
+    onboardingDone,
   } = useAppStore(
     useShallow((s) => ({
       setUser: s.setUser,
@@ -61,35 +58,33 @@ function AppContent() {
       authStatus: s.authStatus,
       setAuthStatus: s.setAuthStatus,
       guestMode: s.guestMode,
-      checkTermsVersion: s.checkTermsVersion,
       acceptTerms: s.acceptTerms,
       termsSyncPending: s.termsSyncPending,
-      cachedUserRole: s.userRole,
+      onboardingDone: s.onboardingDone,
     })),
   );
 
   const [showTermsGate, setShowTermsGate] = useState(false);
   const isServer = typeof window === "undefined";
+  const initRef = useRef(false);
 
   const handleAcceptTerms = async () => {
     await acceptTerms(CURRENT_TERMS_VERSION);
-    // Verificar con el estado actualizado, no con checkTermsVersion()
     setShowTermsGate(false);
   };
 
   useEffect(() => {
     if (isServer) return;
+    if (initRef.current) return;
+    initRef.current = true;
 
-    const loadProfile = async (userId: string, skipCache = false) => {
-      // Check cache first (unless explicitly skipped)
-      if (!skipCache && cachedUserRole !== null) {
-        return null; // Use cached role
-      }
-
+    const syncProfile = async (userId: string) => {
       const { fetchProfile } = await import("@/services/supabase");
       const profile = await fetchProfile(userId);
-      setUserRole(profile?.role ?? "user");
-      setUserPlan(profile?.plan ?? "free");
+      if (profile) {
+        setUserRole(profile.role);
+        setUserPlan(profile.plan);
+      }
       return profile;
     };
 
@@ -103,124 +98,8 @@ function AppContent() {
           setAuthStatus("unauthenticated");
         }
       },
-      import.meta.env.DEV ? 30_000 : 10_000,
-    ); // 30s en dev, 10s en prod
-
-    // Migrate guest notes / split attendance vs avisos; sync with remote
-    const migrateGuestNotes = async (userId: string) => {
-      try {
-        const { fetchAllChurchNotesRaw } =
-          await import("@/services/supabase");
-
-        // 0. Dexie: asistencia solo en attendance_records (quitar de church_notes)
-        const localNotes = await db.church_notes.toArray();
-        for (const n of localNotes) {
-          if (!n.attendance || n.id == null) continue;
-          const existing = await db.attendance_records
-            .where({ date: n.date, userId: n.userId })
-            .first();
-          if (
-            !existing ||
-            new Date(n.updatedAt) >= new Date(existing.updatedAt)
-          ) {
-            await db.attendance_records.put({
-              ...existing,
-              id: existing?.id,
-              remoteId: existing?.remoteId,
-              userId: n.userId,
-              date: n.date,
-              serviceName: n.serviceName,
-              caballeros: n.attendance.caballeros,
-              damas: n.attendance.damas,
-              amigos: n.attendance.amigos,
-              ninos: n.attendance.ninos,
-              createdAt: existing?.createdAt ?? n.createdAt,
-              updatedAt: n.updatedAt,
-            });
-          }
-          await db.church_notes.update(n.id, {
-            attendance: undefined,
-            serviceName: undefined,
-          });
-        }
-
-        // 1. Invitado → usuario (avisos)
-        const guestNotes = await db.church_notes
-          .where("userId")
-          .equals("guest")
-          .toArray();
-        for (const note of guestNotes) {
-          await db.church_notes.update(note.id!, { userId });
-        }
-
-        // 2. Invitado → usuario (asistencia)
-        const guestAtt = await db.attendance_records
-          .where("userId")
-          .equals("guest")
-          .toArray();
-        for (const row of guestAtt) {
-          await db.attendance_records.update(row.id!, { userId });
-        }
-
-        // 3. Supabase church_notes: avisos + rellenar asistencia legacy (JSON) si no hay fila local
-        const rawRows = await fetchAllChurchNotesRaw(userId).catch(() => []);
-        for (const row of rawRows) {
-          const remoteNote = {
-            remoteId: row.id,
-            userId,
-            date: row.date,
-            notices: row.notices ?? [],
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-          };
-
-          if (row.attendance) {
-            const localAtt = await db.attendance_records
-              .where({ date: row.date, userId })
-              .first();
-            if (!localAtt) {
-              const a = row.attendance;
-              await db.attendance_records.add({
-                userId,
-                date: row.date,
-                serviceName: undefined,
-                caballeros: a.caballeros ?? 0,
-                damas: a.damas ?? 0,
-                amigos: a.amigos ?? 0,
-                ninos: a.ninos ?? 0,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at,
-              });
-            }
-          }
-
-          const localNote = await db.church_notes
-            .where({ date: remoteNote.date, userId })
-            .first();
-          if (!localNote) {
-            await db.church_notes.add(remoteNote);
-          } else if (
-            new Date(remoteNote.updatedAt) > new Date(localNote.updatedAt)
-          ) {
-            await db.church_notes.update(localNote.id!, {
-              notices: remoteNote.notices,
-              updatedAt: remoteNote.updatedAt,
-              remoteId: remoteNote.remoteId,
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("Guest notes migration/sync failed silently:", err);
-      }
-    };
-
-    const migrateLocalSongs = async (userId: string, _isPremium: boolean) => {
-      try {
-        // DESACTIVADO: Ya no hay canciones locales que migrar
-      } catch (err) {
-        console.warn("Local songs migration failed silently:", err);
-      }
-    };
+      30000 // Aumentado a 30s para mayor robustez
+    );
 
     const initAuth = async () => {
       try {
@@ -228,16 +107,16 @@ function AppContent() {
           data: { session },
         } = await supabase.auth.getSession();
         const user = session?.user ?? null;
-        setUser(user);
 
         if (user) {
-          try {
-            await loadProfile(user.id);
-          } catch (e) {
-            console.warn("Profile load failed during init, continuing...", e);
-          }
+          setUser(user);
+          void syncProfile(user.id).catch((err) => {
+            console.warn("Profile sync failed:", err);
+          });
         } else {
+          setUser(null);
           setUserRole(null);
+          setUserPlan("free");
         }
 
         setAuthStatus(session ? "authenticated" : "unauthenticated");
@@ -256,7 +135,6 @@ function AppContent() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
-        // Only process key events to prevent redundant sync loops
         if (
           event !== "SIGNED_IN" &&
           event !== "SIGNED_OUT" &&
@@ -269,30 +147,21 @@ function AppContent() {
         setUser(user);
 
         if (user) {
-          const profile = await loadProfile(user.id).catch((e) => {
-            console.warn("Profile sync failed:", e);
-            return null;
+          void syncProfile(user.id).catch((err) => {
+            console.warn("Profile sync failed:", err);
           });
 
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             try {
-              await migrateGuestNotes(user.id);
-              const isPremium =
-                profile?.plan === "premium" || profile?.role === "admin";
-              await migrateLocalSongs(user.id, isPremium);
-
-              const { fetchTermsAcceptance } =
-                await import("@/services/supabase");
+              const { fetchTermsAcceptance } = await import("@/services/supabase");
               const remoteTerms = await fetchTermsAcceptance(user.id);
               if (remoteTerms) {
                 useAppStore.getState().setTermsAccepted(remoteTerms);
               }
 
-              const { termsSyncPending, termsAccepted } =
-                useAppStore.getState();
+              const { termsSyncPending, termsAccepted } = useAppStore.getState();
               if (termsSyncPending && termsAccepted) {
-                const { syncTermsAcceptance } =
-                  await import("@/services/supabase");
+                const { syncTermsAcceptance } = await import("@/services/supabase");
                 await syncTermsAcceptance(
                   user.id,
                   termsAccepted.version,
@@ -305,6 +174,8 @@ function AppContent() {
             }
           }
         } else {
+          setUserRole(null);
+          setUserPlan("free");
           if (event === "SIGNED_OUT") {
             useAppStore.getState().logout();
           }
@@ -320,7 +191,6 @@ function AppContent() {
       }
     });
 
-    // Listen to media status from projection window
     const offMedia = onMessage((msg) => {
       if (msg.type === "MEDIA_STATUS") {
         useProjectionStore.getState().setMediaStatus(msg.payload);
@@ -333,9 +203,6 @@ function AppContent() {
     };
   }, [
     isServer,
-    cachedUserRole,
-    checkTermsVersion,
-    acceptTerms,
     setAuthStatus,
     setUser,
     setUserRole,
@@ -346,26 +213,10 @@ function AppContent() {
     return <ProjectionWindow />;
   }
 
-  if (isServer || (authStatus === "unauthenticated" && !guestMode)) {
-    return <LandingView />;
-  }
+  // Si somos servidor, no renderizamos nada pesado
+  if (isServer) return null;
 
-  if (authStatus === "loading") {
-    return (
-      <div
-        style={{
-          height: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#060810",
-        }}
-      >
-        <Loader2 className="spin" size={48} color="var(--gold)" />
-      </div>
-    );
-  }
-
+  // Gate de Términos y Condiciones (Solo si es imperativo mostrarlo)
   if (showTermsGate) {
     return (
       <TermsModal
@@ -377,6 +228,10 @@ function AppContent() {
         }}
       />
     );
+  }
+
+  if (!guestMode && !onboardingDone && authStatus !== "authenticated") {
+    return <LandingView />;
   }
 
   return <MainApp />;

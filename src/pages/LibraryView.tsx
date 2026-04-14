@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -243,7 +243,7 @@ export default function LibraryView() {
             </button>
           )}
           <div>
-            <h1>Biblioteca</h1>
+            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Biblioteca</h1>
             <span className="song-count">{songs.length} canciones</span>
           </div>
         </div>
@@ -437,12 +437,13 @@ const SongListItem = memo(function SongListItem({
 })
 
 const LiveSelection = memo(function LiveSelection() {
-  const { slides, currentSlide, songTitle, goToSlide, clearSong } = useProjectionStore(useShallow(s => ({
+  const { slides, currentSlide, songTitle, goToSlide, clearSong, hideText } = useProjectionStore(useShallow(s => ({
     slides: s.state.slides,
     currentSlide: s.state.currentSlide,
     songTitle: s.state.songTitle,
     goToSlide: s.goToSlide,
-    clearSong: s.clearSong
+    clearSong: s.clearSong,
+    hideText: s.state.hideText
   })))
 
   if (!songTitle) {
@@ -465,22 +466,50 @@ const LiveSelection = memo(function LiveSelection() {
       </div>
 
       <div className="live-slides-grid">
-        {slides.map((slide, i) => (
-          <button
-            key={i}
-            className={`live-slide-card ${i === currentSlide ? 'active' : ''}`}
-            onClick={() => goToSlide(i)}
-          >
-            <span className="live-slide-number">{i + 1}</span>
-            <div className="live-slide-content">
-              {slide.lines.map((line, li) => (
-                <div key={li} className="live-slide-line">{line}</div>
-              ))}
-            </div>
-            {slide.label && <span className="live-slide-label">{slide.label}</span>}
-          </button>
-        ))}
+        {slides.map((slide, i) => {
+          const isActive = i === currentSlide;
+          const isHiddenAndActive = isActive && hideText;
+          
+          return (
+            <button
+              key={i}
+              className={`live-slide-card ${isActive ? 'active' : ''} ${isHiddenAndActive ? 'is-hidden-preview' : ''}`}
+              onClick={() => goToSlide(i)}
+              title={isHiddenAndActive ? "Presiona para mostrar el texto" : ""}
+            >
+              <span className="live-slide-number">{i + 1}</span>
+              <div className="live-slide-content">
+                {slide.lines.map((line, li) => (
+                  <div key={li} className="live-slide-line">{line}</div>
+                ))}
+              </div>
+              {slide.label && <span className="live-slide-label">{slide.label}</span>}
+              {isHiddenAndActive && <div className="hidden-indicator-preview">OCULTO</div>}
+            </button>
+          );
+        })}
       </div>
+
+      <style>{`
+        .live-slide-card.is-hidden-preview {
+          opacity: 0.5;
+          filter: grayscale(1);
+          border-style: dashed;
+        }
+        .hidden-indicator-preview {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(220, 38, 38, 0.1);
+          color: var(--red);
+          font-weight: 900;
+          font-size: 1.5rem;
+          letter-spacing: 4px;
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   )
 })

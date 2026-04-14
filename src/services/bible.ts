@@ -1,75 +1,76 @@
 // API gratuita sin CORS: bible-api.com (dominio público / RVR1960)
+import type { BibleBook } from '@/types'
 import { BIBLE_CONTENT, BIBLE_BOOKS as IMPORTED_BIBLE_BOOKS } from '@/data/bible-content'
 
-export const BIBLE_BOOKS: { id: string; name: string; chapters: number; testament: 'AT' | 'NT' }[] = [
+export const BIBLE_BOOKS: BibleBook[] = [
   // ─── Antiguo Testamento ───
-  { id: 'gen', name: 'Génesis', chapters: 50, testament: 'AT' },
-  { id: 'exo', name: 'Éxodo', chapters: 40, testament: 'AT' },
-  { id: 'lev', name: 'Levítico', chapters: 27, testament: 'AT' },
-  { id: 'num', name: 'Números', chapters: 36, testament: 'AT' },
-  { id: 'deu', name: 'Deuteronomio', chapters: 34, testament: 'AT' },
-  { id: 'jos', name: 'Josué', chapters: 24, testament: 'AT' },
-  { id: 'jdg', name: 'Jueces', chapters: 21, testament: 'AT' },
-  { id: 'rut', name: 'Rut', chapters: 4, testament: 'AT' },
-  { id: '1sa', name: '1 Samuel', chapters: 31, testament: 'AT' },
-  { id: '2sa', name: '2 Samuel', chapters: 24, testament: 'AT' },
-  { id: '1ki', name: '1 Reyes', chapters: 22, testament: 'AT' },
-  { id: '2ki', name: '2 Reyes', chapters: 25, testament: 'AT' },
-  { id: '1ch', name: '1 Crónicas', chapters: 29, testament: 'AT' },
-  { id: '2ch', name: '2 Crónicas', chapters: 36, testament: 'AT' },
-  { id: 'ezr', name: 'Esdras', chapters: 10, testament: 'AT' },
-  { id: 'neh', name: 'Nehemías', chapters: 13, testament: 'AT' },
-  { id: 'est', name: 'Ester', chapters: 10, testament: 'AT' },
-  { id: 'job', name: 'Job', chapters: 42, testament: 'AT' },
-  { id: 'psa', name: 'Salmos', chapters: 150, testament: 'AT' },
-  { id: 'pro', name: 'Proverbios', chapters: 31, testament: 'AT' },
-  { id: 'ecc', name: 'Eclesiastés', chapters: 12, testament: 'AT' },
-  { id: 'sng', name: 'Cantares', chapters: 8, testament: 'AT' },
-  { id: 'isa', name: 'Isaías', chapters: 66, testament: 'AT' },
-  { id: 'jer', name: 'Jeremías', chapters: 52, testament: 'AT' },
-  { id: 'lam', name: 'Lamentaciones', chapters: 5, testament: 'AT' },
-  { id: 'ezk', name: 'Ezequiel', chapters: 48, testament: 'AT' },
-  { id: 'dan', name: 'Daniel', chapters: 12, testament: 'AT' },
-  { id: 'hos', name: 'Oseas', chapters: 14, testament: 'AT' },
-  { id: 'jol', name: 'Joel', chapters: 3, testament: 'AT' },
-  { id: 'amo', name: 'Amós', chapters: 9, testament: 'AT' },
-  { id: 'oba', name: 'Abdías', chapters: 1, testament: 'AT' },
-  { id: 'jon', name: 'Jonás', chapters: 4, testament: 'AT' },
-  { id: 'mic', name: 'Miqueas', chapters: 7, testament: 'AT' },
-  { id: 'nam', name: 'Nahúm', chapters: 3, testament: 'AT' },
-  { id: 'hab', name: 'Habacuc', chapters: 3, testament: 'AT' },
-  { id: 'zep', name: 'Sofonías', chapters: 3, testament: 'AT' },
-  { id: 'hag', name: 'Hageo', chapters: 2, testament: 'AT' },
-  { id: 'zec', name: 'Zacarías', chapters: 14, testament: 'AT' },
-  { id: 'mal', name: 'Malaquías', chapters: 4, testament: 'AT' },
+  { id: 'gen', name: 'Génesis', nameEn: 'Genesis', chapters: 50, testament: 'AT' },
+  { id: 'exo', name: 'Éxodo', nameEn: 'Exodus', chapters: 40, testament: 'AT' },
+  { id: 'lev', name: 'Levítico', nameEn: 'Leviticus', chapters: 27, testament: 'AT' },
+  { id: 'num', name: 'Números', nameEn: 'Numbers', chapters: 36, testament: 'AT' },
+  { id: 'deu', name: 'Deuteronomio', nameEn: 'Deuteronomy', chapters: 34, testament: 'AT' },
+  { id: 'jos', name: 'Josué', nameEn: 'Joshua', chapters: 24, testament: 'AT' },
+  { id: 'jdg', name: 'Jueces', nameEn: 'Judges', chapters: 21, testament: 'AT' },
+  { id: 'rut', name: 'Rut', nameEn: 'Ruth', chapters: 4, testament: 'AT' },
+  { id: '1sa', name: '1 Samuel', nameEn: '1 Samuel', chapters: 31, testament: 'AT' },
+  { id: '2sa', name: '2 Samuel', nameEn: '2 Samuel', chapters: 24, testament: 'AT' },
+  { id: '1ki', name: '1 Reyes', nameEn: '1 Kings', chapters: 22, testament: 'AT' },
+  { id: '2ki', name: '2 Reyes', nameEn: '2 Kings', chapters: 25, testament: 'AT' },
+  { id: '1ch', name: '1 Crónicas', nameEn: '1 Chronicles', chapters: 29, testament: 'AT' },
+  { id: '2ch', name: '2 Crónicas', nameEn: '2 Chronicles', chapters: 36, testament: 'AT' },
+  { id: 'ezr', name: 'Esdras', nameEn: 'Ezra', chapters: 10, testament: 'AT' },
+  { id: 'neh', name: 'Nehemías', nameEn: 'Nehemiah', chapters: 13, testament: 'AT' },
+  { id: 'est', name: 'Ester', nameEn: 'Esther', chapters: 10, testament: 'AT' },
+  { id: 'job', name: 'Job', nameEn: 'Job', chapters: 42, testament: 'AT' },
+  { id: 'psa', name: 'Salmos', nameEn: 'Psalms', chapters: 150, testament: 'AT' },
+  { id: 'pro', name: 'Proverbios', nameEn: 'Proverbs', chapters: 31, testament: 'AT' },
+  { id: 'ecc', name: 'Eclesiastés', nameEn: 'Ecclesiastes', chapters: 12, testament: 'AT' },
+  { id: 'sng', name: 'Cantares', nameEn: 'Song of Solomon', chapters: 8, testament: 'AT' },
+  { id: 'isa', name: 'Isaías', nameEn: 'Isaiah', chapters: 66, testament: 'AT' },
+  { id: 'jer', name: 'Jeremías', nameEn: 'Jeremiah', chapters: 52, testament: 'AT' },
+  { id: 'lam', name: 'Lamentaciones', nameEn: 'Lamentations', chapters: 5, testament: 'AT' },
+  { id: 'ezk', name: 'Ezequiel', nameEn: 'Ezekiel', chapters: 48, testament: 'AT' },
+  { id: 'dan', name: 'Daniel', nameEn: 'Daniel', chapters: 12, testament: 'AT' },
+  { id: 'hos', name: 'Oseas', nameEn: 'Hosea', chapters: 14, testament: 'AT' },
+  { id: 'jol', name: 'Joel', nameEn: 'Joel', chapters: 3, testament: 'AT' },
+  { id: 'amo', name: 'Amós', nameEn: 'Amos', chapters: 9, testament: 'AT' },
+  { id: 'oba', name: 'Abdías', nameEn: 'Obadiah', chapters: 1, testament: 'AT' },
+  { id: 'jon', name: 'Jonás', nameEn: 'Jonah', chapters: 4, testament: 'AT' },
+  { id: 'mic', name: 'Miqueas', nameEn: 'Micah', chapters: 7, testament: 'AT' },
+  { id: 'nam', name: 'Nahúm', nameEn: 'Nahum', chapters: 3, testament: 'AT' },
+  { id: 'hab', name: 'Habacuc', nameEn: 'Habakkuk', chapters: 3, testament: 'AT' },
+  { id: 'zep', name: 'Sofonías', nameEn: 'Zephaniah', chapters: 3, testament: 'AT' },
+  { id: 'hag', name: 'Hageo', nameEn: 'Haggai', chapters: 2, testament: 'AT' },
+  { id: 'zec', name: 'Zacarías', nameEn: 'Zechariah', chapters: 14, testament: 'AT' },
+  { id: 'mal', name: 'Malaquías', nameEn: 'Malachi', chapters: 4, testament: 'AT' },
   // ─── Nuevo Testamento ───
-  { id: 'mat', name: 'Mateo', chapters: 28, testament: 'NT' },
-  { id: 'mrk', name: 'Marcos', chapters: 16, testament: 'NT' },
-  { id: 'luk', name: 'Lucas', chapters: 24, testament: 'NT' },
-  { id: 'jhn', name: 'Juan', chapters: 21, testament: 'NT' },
-  { id: 'act', name: 'Hechos', chapters: 28, testament: 'NT' },
-  { id: 'rom', name: 'Romanos', chapters: 16, testament: 'NT' },
-  { id: '1co', name: '1 Corintios', chapters: 16, testament: 'NT' },
-  { id: '2co', name: '2 Corintios', chapters: 13, testament: 'NT' },
-  { id: 'gal', name: 'Gálatas', chapters: 6, testament: 'NT' },
-  { id: 'eph', name: 'Efesios', chapters: 6, testament: 'NT' },
-  { id: 'php', name: 'Filipenses', chapters: 4, testament: 'NT' },
-  { id: 'col', name: 'Colosenses', chapters: 4, testament: 'NT' },
-  { id: '1th', name: '1 Tesalonicenses', chapters: 5, testament: 'NT' },
-  { id: '2th', name: '2 Tesalonicenses', chapters: 3, testament: 'NT' },
-  { id: '1ti', name: '1 Timoteo', chapters: 6, testament: 'NT' },
-  { id: '2ti', name: '2 Timoteo', chapters: 4, testament: 'NT' },
-  { id: 'tit', name: 'Tito', chapters: 3, testament: 'NT' },
-  { id: 'phm', name: 'Filemón', chapters: 1, testament: 'NT' },
-  { id: 'heb', name: 'Hebreos', chapters: 13, testament: 'NT' },
-  { id: 'jas', name: 'Santiago', chapters: 5, testament: 'NT' },
-  { id: '1pe', name: '1 Pedro', chapters: 5, testament: 'NT' },
-  { id: '2pe', name: '2 Pedro', chapters: 3, testament: 'NT' },
-  { id: '1jn', name: '1 Juan', chapters: 5, testament: 'NT' },
-  { id: '2jn', name: '2 Juan', chapters: 1, testament: 'NT' },
-  { id: '3jn', name: '3 Juan', chapters: 1, testament: 'NT' },
-  { id: 'jud', name: 'Judas', chapters: 1, testament: 'NT' },
-  { id: 'rev', name: 'Apocalipsis', chapters: 22, testament: 'NT' },
+  { id: 'mat', name: 'Mateo', nameEn: 'Matthew', chapters: 28, testament: 'NT' },
+  { id: 'mrk', name: 'Marcos', nameEn: 'Mark', chapters: 16, testament: 'NT' },
+  { id: 'luk', name: 'Lucas', nameEn: 'Luke', chapters: 24, testament: 'NT' },
+  { id: 'jhn', name: 'Juan', nameEn: 'John', chapters: 21, testament: 'NT' },
+  { id: 'act', name: 'Hechos', nameEn: 'Acts', chapters: 28, testament: 'NT' },
+  { id: 'rom', name: 'Romanos', nameEn: 'Romans', chapters: 16, testament: 'NT' },
+  { id: '1co', name: '1 Corintios', nameEn: '1 Corinthians', chapters: 16, testament: 'NT' },
+  { id: '2co', name: '2 Corintios', nameEn: '2 Corinthians', chapters: 13, testament: 'NT' },
+  { id: 'gal', name: 'Gálatas', nameEn: 'Galatians', chapters: 6, testament: 'NT' },
+  { id: 'eph', name: 'Efesios', nameEn: 'Ephesians', chapters: 6, testament: 'NT' },
+  { id: 'php', name: 'Filipenses', nameEn: 'Philippians', chapters: 4, testament: 'NT' },
+  { id: 'col', name: 'Colosenses', nameEn: 'Colossians', chapters: 4, testament: 'NT' },
+  { id: '1th', name: '1 Tesalonicenses', nameEn: '1 Thessalonians', chapters: 5, testament: 'NT' },
+  { id: '2th', name: '2 Tesalonicenses', nameEn: '2 Thessalonians', chapters: 3, testament: 'NT' },
+  { id: '1ti', name: '1 Timoteo', nameEn: '1 Timothy', chapters: 6, testament: 'NT' },
+  { id: '2ti', name: '2 Timoteo', nameEn: '2 Timothy', chapters: 4, testament: 'NT' },
+  { id: 'tit', name: 'Tito', nameEn: 'Titus', chapters: 3, testament: 'NT' },
+  { id: 'phm', name: 'Filemón', nameEn: 'Philemon', chapters: 1, testament: 'NT' },
+  { id: 'heb', name: 'Hebreos', nameEn: 'Hebrews', chapters: 13, testament: 'NT' },
+  { id: 'jas', name: 'Santiago', nameEn: 'James', chapters: 5, testament: 'NT' },
+  { id: '1pe', name: '1 Pedro', nameEn: '1 Peter', chapters: 5, testament: 'NT' },
+  { id: '2pe', name: '2 Pedro', nameEn: '2 Peter', chapters: 3, testament: 'NT' },
+  { id: '1jn', name: '1 Juan', nameEn: '1 John', chapters: 5, testament: 'NT' },
+  { id: '2jn', name: '2 Juan', nameEn: '2 John', chapters: 1, testament: 'NT' },
+  { id: '3jn', name: '3 Juan', nameEn: '3 John', chapters: 1, testament: 'NT' },
+  { id: 'jud', name: 'Judas', nameEn: 'Jude', chapters: 1, testament: 'NT' },
+  { id: 'rev', name: 'Apocalipsis', nameEn: 'Revelation', chapters: 22, testament: 'NT' },
 ]
 
 // Mapeo de IDs de libros a IDs numéricos de Bolls Life (1-66)
@@ -84,9 +85,19 @@ const BOLLS_BOOK_MAP: Record<string, number> = {
 }
 
 export const SUPPORTED_TRANSLATIONS = [
-  { id: 'RVR1960', name: 'Reina Valera 1960' },
-  { id: 'NVI', name: 'Nueva Versión Internacional' },
-  { id: 'PDT', name: 'Palabra de Dios para Todos' }
+  // Español
+  { id: 'RVR1960', name: 'Reina Valera 1960', lang: 'Español' },
+  { id: 'NVI', name: 'Nueva Versión Internacional', lang: 'Español' },
+  { id: 'PDT', name: 'Palabra de Dios para Todos', lang: 'Español' },
+  { id: 'LBLA', name: 'La Biblia de las Américas', lang: 'Español' },
+  { id: 'NTV', name: 'Nueva Traducción Viviente', lang: 'Español' },
+  
+  // Inglés
+  { id: 'KJV', name: 'King James Version', lang: 'Inglés' },
+  { id: 'ESV', name: 'English Standard Version', lang: 'Inglés' },
+  { id: 'WEB', name: 'World English Bible', lang: 'Inglés' },
+  { id: 'NASB', name: 'New American Standard Bible', lang: 'Inglés' },
+  { id: 'NET', name: 'New English Translation', lang: 'Inglés' }
 ]
 
 export interface BibleVerseResult {
@@ -237,7 +248,12 @@ export async function fetchChapter(
     
     const verses = (data ?? []).map((v: any) => ({
       reference: `${bookName} ${chapter}:${v.verse}`,
-      text: v.text.replace(/<[^>]*>?/gm, '').trim(), // Limpiar HTML si lo hay
+      text: v.text
+        .replace(/<[^>]*>?/gm, '') // Limpiar HTML
+        .replace(/([a-zA-Z,.;!?])\d+/g, '$1') // Quitar números pegados a palabras o puntuación (Strong's)
+        .replace(/\s\d{3,5}\b/g, ' ') // Quitar números de 3-5 dígitos sueltos (Strong's)
+        .replace(/\s+/g, ' ') // Normalizar espacios
+        .trim(),
       translation,
       bookId,
       chapter
@@ -356,11 +372,13 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
     const chapter = Number(refMatch[2])
     const verseNum = refMatch[3] ? Number(refMatch[3]) : null
     
-    // Buscar el libro por nombre o id
+    // Buscar el libro por nombre o id (Bilingüe)
     const book = BIBLE_BOOKS.find(b => 
       b.name.toLowerCase() === bookQuery || 
+      b.nameEn.toLowerCase() === bookQuery ||
       b.id.toLowerCase() === bookQuery ||
-      b.name.toLowerCase().startsWith(bookQuery)
+      b.name.toLowerCase().startsWith(bookQuery) ||
+      b.nameEn.toLowerCase().startsWith(bookQuery)
     )
     
     if (book && BIBLE_DATA[book.id]) {
@@ -393,7 +411,10 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
   }
 
   // 2. Intentar buscar si es solo el nombre de un libro
-  const bookOnly = BIBLE_BOOKS.find(b => b.name.toLowerCase() === queryLower)
+  const bookOnly = BIBLE_BOOKS.find(b => 
+    b.name.toLowerCase() === queryLower || 
+    b.nameEn.toLowerCase() === queryLower
+  )
   if (bookOnly && BIBLE_DATA[bookOnly.id]) {
     // Si buscó solo el libro, mostrar los primeros versículos del cap 1
     return (BIBLE_DATA[bookOnly.id][1] || []).slice(0, 20).map(v => ({
@@ -447,7 +468,12 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
           if (!results.find(r => r.reference === ref)) {
             results.push({
               reference: ref,
-              text: v.text.replace(/<[^>]*>?/gm, '').trim(),
+              text: v.text
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/([a-zA-Z,.;!?])\d+/g, '$1')
+                .replace(/\s\d{3,5}\b/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim(),
               translation,
               bookId,
               chapter: v.chapter
@@ -467,7 +493,7 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
 }
 
 // Autocompletado de libros - devuelve el libro solo si la búsqueda es suficientemente específica
-export function getBookSuggestion(query: string): { id: string; name: string } | null {
+export function getBookSuggestion(query: string): { id: string; name: string; nameEn: string } | null {
   if (!query.trim()) return null
   
   // Helper function to remove accents/diacritics
@@ -477,26 +503,28 @@ export function getBookSuggestion(query: string): { id: string; name: string } |
   
   const queryLower = removeAccents(query.toLowerCase())
   
-  // Buscar libros que comiencen con la query (ignorando tildes)
+  // Buscar libros que comiencen con la query (ignorando tildes) en ambos idiomas
   const matches = BIBLE_BOOKS.filter(b => 
-    removeAccents(b.name.toLowerCase()).startsWith(queryLower)
+    removeAccents(b.name.toLowerCase()).startsWith(queryLower) ||
+    removeAccents(b.nameEn.toLowerCase()).startsWith(queryLower)
   )
   
   // Si hay exactamente una coincidencia, devolverla
   if (matches.length === 1) {
-    return { id: matches[0].id, name: matches[0].name }
+    return { id: matches[0].id, name: matches[0].name, nameEn: matches[0].nameEn }
   }
   
-  // Si hay múltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
-  // Por ejemplo: "san" coincide con "Santiago" pero no debería coincidir con "Salmos"
+  // Si hay mltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
   const wordMatches = BIBLE_BOOKS.filter(b => {
-    const parts = removeAccents(b.name.toLowerCase()).split(' ')
-    return parts.some(part => part.startsWith(queryLower))
+    const partsEs = removeAccents(b.name.toLowerCase()).split(' ')
+    const partsEn = removeAccents(b.nameEn.toLowerCase()).split(' ')
+    return partsEs.some(part => part.startsWith(queryLower)) || 
+           partsEn.some(part => part.startsWith(queryLower))
   })
   
   // Si solo hay una coincidencia de palabra, devolverla
   if (wordMatches.length === 1 && matches.length > 1) {
-    return { id: wordMatches[0].id, name: wordMatches[0].name }
+    return { id: wordMatches[0].id, name: wordMatches[0].name, nameEn: wordMatches[0].nameEn }
   }
   
   return null

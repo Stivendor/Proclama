@@ -147,25 +147,25 @@ export default function SettingsView() {
         <div className="settings-config-col">
           {/* Cuenta y Sincronización */}
           <section className="settings-section">
-            <h2>Sincronización en la Nube</h2>
+            <h2>Cuenta Proclama</h2>
             {!user ? (
               <div className="auth-card">
                 <div className="sync-benefits">
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
                     <span>
-                      Sincroniza tus setlists en todos tus dispositivos
+                      <strong>Acceso Pro:</strong> Búsqueda de letras online en tiempo real (Genius/LRC)
                     </span>
                   </div>
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
                     <span>
-                      Respaldo automático de tu biblioteca de canciones
+                      <strong>Reportes:</strong> Exporta tu historial de asistencia a CSV para Excel
                     </span>
                   </div>
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
-                    <span>Comparte y accede desde cualquier lugar</span>
+                    <span><strong>Comunidad:</strong> Comparte tus canciones con la biblioteca global</span>
                   </div>
                 </div>
 

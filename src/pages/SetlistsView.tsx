@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff } from 'lucide-react'
+import { useState, useMemo, memo } from 'react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -8,7 +8,6 @@ import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
-import * as supabaseService from '@/services/supabase'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
@@ -47,20 +46,21 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
-    setActiveSetlist: s.setActiveSetlist, user: s.user, isSidebarOpen: s.isSidebarOpen,
-    toggleSidebar: s.toggleSidebar, setActiveView: s.setActiveView, authStatus: s.authStatus
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+    setActiveSetlist: s.setActiveSetlist,
+    user: s.user,
+    isSidebarOpen: s.isSidebarOpen,
+    toggleSidebar: s.toggleSidebar,
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
-  const [cloudSetlists, setCloudSetlists] = useState<Setlist[]>([])
   const [songSearch, setSongSearch] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
   const [selectedLang, setSelectedLang] = useState('')
-  const [loading, setLoading] = useState(false)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const localSetlists = useLiveQuery(async () => {
     try {
@@ -78,7 +78,7 @@ export default function SetlistsView() {
     }
   }) ?? []
 
-  // Batch load all songs for the editing setlist (fixes N+1 query pattern)
+  // Batch load all songs for the editing setlist
   const setlistSongs = useLiveQuery(
     async () => {
       try {
@@ -105,47 +105,11 @@ export default function SetlistsView() {
     return Array.from(langs).sort()
   }, [allSongs])
 
-  // Cargar setlists de Supabase si hay usuario.
-  // Usa userId (string primitivo) + authStatus para detectar login con Google OAuth.
-  const userId = user?.id ?? null
-  useEffect(() => {
-    // No hacer nada hasta que auth esté resuelto
-    if (authStatus === 'loading') return
-
-    setCloudSetlists([])
-    if (!userId) {
-      setLoading(false)
-      return
-    }
-
-    let cancelled = false
-    setLoading(true)
-
-    const loadData = async () => {
-      try {
-        const data = await supabaseService.fetchSetlists()
-        if (!cancelled) setCloudSetlists(data || [])
-      } catch (err) {
-        console.error('Failed to load setlists:', err)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadData()
-
-    // Safety timeout: si en 8 segundos no ha terminado, quitar el loading
-    const timeout = setTimeout(() => {
-      if (!cancelled) setLoading(false)
-    }, 8000)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timeout)
-    }
-  }, [userId, authStatus])
-
-  const setlists = user ? cloudSetlists : localSetlists
+  const setlists = useMemo(() => {
+    return localSetlists.sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+  }, [localSetlists])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -153,35 +117,26 @@ export default function SetlistsView() {
   )
 
   const createSetlist = async () => {
-    if (!newName.trim()) return
+    if (!newName.trim() || creating) return
+    setCreating(true)
     const now = new Date()
-    const newSl: Omit<Setlist, 'id'> = {
-      name: newName,
-      date: now,
-      songIds: [],
-      createdAt: now,
-      updatedAt: now,
-      userId: user?.id
-    }
+    try {
+      const newSl: Omit<Setlist, 'id'> = {
+        name: newName,
+        date: now,
+        songIds: [],
+        createdAt: now,
+        updatedAt: now,
+        userId: user?.id
+      }
 
-    if (user) {
-      const created = await supabaseService.createSetlist(newSl)
-      if (created) {
-        setNewName('')
-        setShowNew(false)
-        const updated = await supabaseService.fetchSetlists()
-        setCloudSetlists(updated)
-      } else {
-        alert('Error al crear el setlist. Verifica tu conexión o sesión.')
-      }
-    } else {
-      try {
-        await db.setlists.add(newSl as Setlist)
-        setNewName('')
-        setShowNew(false)
-      } catch (e: any) {
-        alert('Error al crear setlist local: ' + e.message)
-      }
+      await db.setlists.add(newSl as Setlist)
+      setNewName('')
+      setShowNew(false)
+    } catch (e: any) {
+      alert('Error al crear setlist: ' + e.message)
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -191,27 +146,17 @@ export default function SetlistsView() {
 
   const confirmDeleteSetlist = async () => {
     const sl = confirmDeleteSl
-    if (!sl) return
+    if (!sl || !sl.id) return
     setConfirmDeleteSl(null)
-    if (user && sl.id) {
-      await supabaseService.deleteSetlist(sl.id)
-      setCloudSetlists(cloudSetlists.filter(s => s.id !== sl.id))
-    } else if (sl.id) {
-      await db.setlists.delete(sl.id)
-    }
+    
+    await db.setlists.delete(sl.id)
     if (editingSetlist?.id === sl.id) setEditingSetlist(null)
   }
 
   const updateSetlistInState = async (id: number, updates: Partial<Setlist>) => {
-    if (user) {
-      const updated = await supabaseService.updateSetlist(id, updates)
-      if (updated) {
-        setCloudSetlists(cloudSetlists.map(s => s.id === id ? updated : s))
-        if (editingSetlist?.id === id) setEditingSetlist(updated)
-      }
-    } else {
-      await db.setlists.update(id, updates)
-      if (editingSetlist?.id === id) setEditingSetlist({ ...editingSetlist, ...updates })
+    await db.setlists.update(id, updates)
+    if (editingSetlist?.id === id) {
+      setEditingSetlist({ ...editingSetlist, ...updates } as any)
     }
   }
 
@@ -275,23 +220,14 @@ export default function SetlistsView() {
               <Menu size={20} />
             </button>
           )}
-          <h1>Setlists {user && <span className="badge">Nube</span>}</h1>
+          <h1>Setlists</h1>
         </div>
-        <button className="btn-primary" onClick={() => setShowNew(true)}>
-          <Plus size={15} /> Nuevo Setlist
-        </button>
-      </div>
-
-      {/* Banner de sincronización para usuarios no autenticados */}
-      {!user && (
-        <div className="sync-banner">
-          <CloudOff size={18} />
-          <span>Modo local activo — tus setlists se guardan en este dispositivo</span>
-          <button className="sync-banner-btn" onClick={() => setActiveView('settings')}>
-            <Cloud size={14} /> Sincronizar en la nube
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn-primary" onClick={() => setShowNew(true)}>
+            <Plus size={15} /> Nuevo Setlist
           </button>
         </div>
-      )}
+      </div>
 
       {showNew && (
         <div className="new-setlist-form">
@@ -300,17 +236,19 @@ export default function SetlistsView() {
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && createSetlist()}
             autoFocus
+            disabled={creating}
           />
-          <button className="btn-primary" onClick={createSetlist}>Crear</button>
-          <button className="btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button>
+          <button className="btn-primary" onClick={createSetlist} disabled={creating || !newName.trim()}>
+            {creating ? 'Creando...' : 'Crear'}
+          </button>
+          <button className="btn-ghost" onClick={() => setShowNew(false)} disabled={creating}>Cancelar</button>
         </div>
       )}
 
       <div className="setlists-body">
         {/* Lista de setlists */}
         <div className="setlists-list">
-          {loading && <p className="loading-hint">Cargando setlists...</p>}
-          {!loading && setlists.length === 0 && (
+          {setlists.length === 0 && (
             <div className="library-empty">
               <List size={48} opacity={0.2} style={{ marginBottom: 12 }} />
               <h3>Aún no tienes Setlists</h3>
@@ -325,7 +263,9 @@ export default function SetlistsView() {
           {setlists.map(sl => (
             <div key={sl.id} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
               <div className="setlist-card-info" onClick={() => setEditingSetlist(sl)}>
-                <div className="setlist-name">{sl.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="setlist-name">{sl.name}</div>
+                </div>
                 <div className="setlist-meta">
                   <Calendar size={12} />
                   {new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -449,40 +389,6 @@ export default function SetlistsView() {
         />
       )}
 
-      <style>{`
-        .sync-banner {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px dashed var(--border);
-          border-radius: 8px;
-          margin: 0 20px 16px;
-          font-size: 13px;
-          color: var(--text-muted);
-        }
-        .sync-banner svg:first-child { color: var(--text-muted); }
-        .sync-banner-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: var(--gold);
-          color: black;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          margin-left: auto;
-          transition: all 0.15s;
-        }
-        .sync-banner-btn:hover {
-          background: var(--gold-hover);
-          transform: translateY(-1px);
-        }
-      `}</style>
     </div>
   )
 }

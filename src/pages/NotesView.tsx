@@ -7,20 +7,12 @@ import {
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { supabase, upsertChurchNote, upsertAttendance } from '@/services/supabase'
+import { supabase } from '@/services/supabase'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate } from '@/services/projection'
 import type { ChurchNote, Notice, AttendanceBreakdown, AttendanceRecord } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
-
-async function requireAuthUid(): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user?.id) {
-    throw new Error('No hay sesión activa. Inicia sesión para sincronizar con la nube.')
-  }
-  return session.user.id
-}
 
 /** Dexie permite varias filas con el mismo usuario y fecha; una sola “vigente” por par (userId+date). */
 function dedupeAttendanceRecords(rows: AttendanceRecord[]): AttendanceRecord[] {
@@ -390,15 +382,14 @@ export default function NotesView() {
     } as ChurchNote
   }
 
-  // Persist avisos locally and sync church_notes to Supabase if authenticated
+  // Persist avisos locally
   async function persistNote(updated: ChurchNote) {
     const stripped: ChurchNote = {
       ...updated,
       attendance: undefined,
       serviceName: undefined,
     }
-    const localResult = await db.church_notes.put(stripped)
-    const localId = stripped.id ?? localResult
+    await db.church_notes.put(stripped)
   }
 
   // ─── Attendance ──────────────────────────────────────────────────────────────
@@ -408,19 +399,6 @@ export default function NotesView() {
     return isNaN(n) || n < 0 ? 0 : n
   }
 
-  async function runWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-    let timeoutId: number | undefined
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = window.setTimeout(() => reject(new Error('Supabase request timed out')), ms)
-    })
-    try {
-      return await Promise.race([promise, timeoutPromise]) as T
-    } finally {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId)
-      }
-    }
-  }
 
   async function saveAttendance() {
     const fields = [att.caballeros, att.damas, att.amigos, att.ninos]
@@ -492,14 +470,6 @@ export default function NotesView() {
   const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false)
   async function deleteAttendanceHistory() {
     await db.attendance_records.where('userId').equals(userId).delete()
-
-    if (user?.id && user.id !== 'guest') {
-      await supabase
-        .from('attendance_records')
-        .delete()
-        .eq('user_id', user.id)
-    }
-
     setShowDeleteHistoryConfirm(false)
   }
 
