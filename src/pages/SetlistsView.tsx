@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Cloud, CloudOff, RefreshCw } from 'lucide-react'
+import { useState, useMemo, memo } from 'react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -8,7 +8,6 @@ import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
-import * as supabaseService from '@/services/supabase'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 
@@ -47,23 +46,18 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, userPlan, isSidebarOpen, toggleSidebar, setActiveView, authStatus } = useAppStore(useShallow(s => ({
+  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
     setActiveSetlist: s.setActiveSetlist,
     user: s.user,
-    userPlan: s.userPlan,
     isSidebarOpen: s.isSidebarOpen,
     toggleSidebar: s.toggleSidebar,
-    setActiveView: s.setActiveView,
-    authStatus: s.authStatus
   })))
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null)
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
-  const [cloudSetlists, setCloudSetlists] = useState<Setlist[]>([])
   const [songSearch, setSongSearch] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
   const [selectedLang, setSelectedLang] = useState('')
-  const [loading, setLoading] = useState(false)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
@@ -84,7 +78,7 @@ export default function SetlistsView() {
     }
   }) ?? []
 
-  // Batch load all songs for the editing setlist (fixes N+1 query pattern)
+  // Batch load all songs for the editing setlist
   const setlistSongs = useLiveQuery(
     async () => {
       try {
@@ -111,71 +105,11 @@ export default function SetlistsView() {
     return Array.from(langs).sort()
   }, [allSongs])
 
-  // Cargar setlists de Supabase si hay usuario.
-  // Usa userId (string primitivo) + authStatus para detectar login con Google OAuth.
-  const userId = user?.id ?? null
-  useEffect(() => {
-    // No hacer nada hasta que auth esté resuelto
-    if (authStatus === 'loading') return
-
-    setCloudSetlists([])
-    if (!userId) {
-      setLoading(false)
-      return
-    }
-
-    let cancelled = false
-    setLoading(true)
-
-    const loadData = async () => {
-      try {
-        const data = await supabaseService.fetchSetlists()
-        if (!cancelled) setCloudSetlists(data || [])
-      } catch (err) {
-        console.error('Failed to load setlists:', err)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadData()
-
-    // Safety timeout: si en 8 segundos no ha terminado, quitar el loading
-    const timeout = setTimeout(() => {
-      if (!cancelled) setLoading(false)
-    }, 8000)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timeout)
-    }
-  }, [userId, authStatus])
-  
-  const handleSync = async () => {
-    if (!user || loading) return
-    setLoading(true)
-    try {
-      const data = await supabaseService.fetchSetlists()
-      setCloudSetlists(data || [])
-    } catch (err) {
-      console.error('Manual sync failed:', err)
-    } finally {
-      // Small delay for better UX
-      setTimeout(() => setLoading(false), 500)
-    }
-  }
-
   const setlists = useMemo(() => {
-    const local = localSetlists.map(sl => ({ ...sl, source: 'local' as const }))
-    if (!user) return local
-    const cloud = cloudSetlists.map(sl => ({ ...sl, source: 'cloud' as const }))
-
-    // Filtrar locales que ya están en la nube (por nombre y fecha asumiendo que son el mismo)
-    // O simplemente mostrarlos todos. Mostrarlos todos es más seguro para no ocultar nada.
-    return [...cloud, ...local].sort((a, b) =>
+    return localSetlists.sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     )
-  }, [user, cloudSetlists, localSetlists])
+  }, [localSetlists])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -187,66 +121,24 @@ export default function SetlistsView() {
     setCreating(true)
     const now = new Date()
     try {
-    const newSl: Omit<Setlist, 'id'> = {
-      name: newName,
-      date: now,
-      songIds: [],
-      createdAt: now,
-      updatedAt: now,
-      userId: user?.id
-    }
-
-    const saveLocally = async () => {
-      try {
-        await db.setlists.add(newSl as Setlist)
-        setNewName('')
-        setShowNew(false)
-        return true
-      } catch (e: any) {
-        alert('Error al crear setlist local: ' + e.message)
-        return false
-      }
-    }
-
-    if (user) {
-      if (userPlan !== 'premium' && (user as any).role !== 'admin') {
-        alert('La sincronización en la nube es una función Premium. Tu setlist se guardará localmente.')
-        await saveLocally()
-        return
+      const newSl: Omit<Setlist, 'id'> = {
+        name: newName,
+        date: now,
+        songIds: [],
+        createdAt: now,
+        updatedAt: now,
+        userId: user?.id
       }
 
-      try {
-        const timeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
-        )
-        const created = await Promise.race([
-          supabaseService.createSetlist(newSl),
-          timeout
-        ]) as Setlist | null
-
-        if (created) {
-          setNewName('')
-          setShowNew(false)
-          const updated = await supabaseService.fetchSetlists()
-          setCloudSetlists(updated)
-        } else {
-          throw new Error('UPLOAD_FAILED')
-        }
-      } catch (err: any) {
-        console.error('[Setlists] Error o timeout en nube:', err)
-        const msg = err.message === 'TIMEOUT' 
-          ? 'La nube está tardando demasiado.' 
-          : 'Error al sincronizar con la nube.'
-        alert(msg + ' El setlist se guardará localmente para no perder cambios.')
-        await saveLocally()
-      }
-    } else {
-      await saveLocally()
+      await db.setlists.add(newSl as Setlist)
+      setNewName('')
+      setShowNew(false)
+    } catch (e: any) {
+      alert('Error al crear setlist: ' + e.message)
+    } finally {
+      setCreating(false)
     }
-  } finally {
-    setCreating(false)
   }
-}
 
   const deleteSetlist = async (sl: Setlist) => {
     setConfirmDeleteSl(sl)
@@ -254,51 +146,17 @@ export default function SetlistsView() {
 
   const confirmDeleteSetlist = async () => {
     const sl = confirmDeleteSl
-    if (!sl) return
+    if (!sl || !sl.id) return
     setConfirmDeleteSl(null)
-    const slSource = (sl as any).source || (user ? 'cloud' : 'local')
-
-    if (slSource === 'cloud' && sl.id) {
-      await supabaseService.deleteSetlist(sl.id)
-      setCloudSetlists(cloudSetlists.filter(s => s.id !== sl.id))
-    } else if (sl.id) {
-      await db.setlists.delete(sl.id)
-    }
+    
+    await db.setlists.delete(sl.id)
     if (editingSetlist?.id === sl.id) setEditingSetlist(null)
   }
 
   const updateSetlistInState = async (id: number, updates: Partial<Setlist>) => {
-    const slSource = (editingSetlist as any)?.source || (user ? 'cloud' : 'local')
-
-    if (slSource === 'cloud') {
-      try {
-        const timeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
-        )
-        const updated = await Promise.race([
-          supabaseService.updateSetlist(id, updates),
-          timeout
-        ]) as Setlist | null
-
-        if (updated) {
-          setCloudSetlists(cloudSetlists.map(s => s.id === id ? updated : s))
-          if (editingSetlist?.id === id) setEditingSetlist({ ...updated, source: 'cloud' } as any)
-        } else {
-          throw new Error('UPDATE_FAILED')
-        }
-      } catch (err: any) {
-        console.error('[Setlists] Fallo en actualización de nube:', err)
-        // Fallback: guardar una copia en local si la nube falla
-        if (editingSetlist?.id === id) {
-          const localCopy = { ...editingSetlist, ...updates, updatedAt: new Date(), source: 'local' as const }
-          await db.setlists.put(localCopy as Setlist)
-          setEditingSetlist(localCopy as any)
-          alert('No se pudo sincronizar el cambio. Se ha guardado una copia local para evitar pérdida de datos.')
-        }
-      }
-    } else {
-      await db.setlists.update(id, updates)
-      if (editingSetlist?.id === id) setEditingSetlist({ ...editingSetlist, ...updates } as any)
+    await db.setlists.update(id, updates)
+    if (editingSetlist?.id === id) {
+      setEditingSetlist({ ...editingSetlist, ...updates } as any)
     }
   }
 
@@ -362,36 +220,14 @@ export default function SetlistsView() {
               <Menu size={20} />
             </button>
           )}
-          <h1>Setlists {user && <span className="badge">Nube</span>}</h1>
+          <h1>Setlists</h1>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {user && (
-            <button 
-              className="btn-ghost" 
-              onClick={handleSync} 
-              disabled={loading}
-              title="Sincronizar con la nube"
-            >
-              <RefreshCw size={15} className={loading ? 'spin' : ''} /> 
-              Sincronizar
-            </button>
-          )}
           <button className="btn-primary" onClick={() => setShowNew(true)}>
             <Plus size={15} /> Nuevo Setlist
           </button>
         </div>
       </div>
-
-      {/* Banner de sincronización para usuarios no autenticados */}
-      {!user && (
-        <div className="sync-banner">
-          <CloudOff size={18} />
-          <span>Modo local activo — tus setlists se guardan en este dispositivo</span>
-          <button className="sync-banner-btn" onClick={() => setActiveView('settings')}>
-            <Cloud size={14} /> Sincronizar en la nube
-          </button>
-        </div>
-      )}
 
       {showNew && (
         <div className="new-setlist-form">
@@ -412,8 +248,7 @@ export default function SetlistsView() {
       <div className="setlists-body">
         {/* Lista de setlists */}
         <div className="setlists-list">
-          {loading && <p className="loading-hint">Cargando setlists...</p>}
-          {!loading && setlists.length === 0 && (
+          {setlists.length === 0 && (
             <div className="library-empty">
               <List size={48} opacity={0.2} style={{ marginBottom: 12 }} />
               <h3>Aún no tienes Setlists</h3>
@@ -426,15 +261,10 @@ export default function SetlistsView() {
             </div>
           )}
           {setlists.map(sl => (
-            <div key={`${sl.source}-${sl.id}`} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
+            <div key={sl.id} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
               <div className="setlist-card-info" onClick={() => setEditingSetlist(sl)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="setlist-name">{sl.name}</div>
-                  {sl.source === 'cloud' ? (
-                    <span className="badge-sm cloud" title="Sincronizado en la nube"><Cloud size={10} /></span>
-                  ) : (
-                    <span className="badge-sm local" title="Solo en este dispositivo"><CloudOff size={10} /></span>
-                  )}
                 </div>
                 <div className="setlist-meta">
                   <Calendar size={12} />
@@ -559,40 +389,6 @@ export default function SetlistsView() {
         />
       )}
 
-      <style>{`
-        .sync-banner {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px dashed var(--border);
-          border-radius: 8px;
-          margin: 0 20px 16px;
-          font-size: 13px;
-          color: var(--text-muted);
-        }
-        .sync-banner svg:first-child { color: var(--text-muted); }
-        .sync-banner-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          background: var(--gold);
-          color: black;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          margin-left: auto;
-          transition: all 0.15s;
-        }
-        .sync-banner-btn:hover {
-          background: var(--gold-hover);
-          transform: translateY(-1px);
-        }
-      `}</style>
     </div>
   )
 }
