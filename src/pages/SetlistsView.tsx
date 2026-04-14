@@ -66,6 +66,7 @@ export default function SetlistsView() {
   const [loading, setLoading] = useState(false)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const localSetlists = useLiveQuery(async () => {
     try {
@@ -150,7 +151,17 @@ export default function SetlistsView() {
     }
   }, [userId, authStatus])
 
-  const setlists = user ? cloudSetlists : localSetlists
+  const setlists = useMemo(() => {
+    const local = localSetlists.map(sl => ({ ...sl, source: 'local' as const }))
+    if (!user) return local
+    const cloud = cloudSetlists.map(sl => ({ ...sl, source: 'cloud' as const }))
+
+    // Filtrar locales que ya están en la nube (por nombre y fecha asumiendo que son el mismo)
+    // O simplemente mostrarlos todos. Mostrarlos todos es más seguro para no ocultar nada.
+    return [...cloud, ...local].sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+  }, [user, cloudSetlists, localSetlists])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -158,8 +169,10 @@ export default function SetlistsView() {
   )
 
   const createSetlist = async () => {
-    if (!newName.trim()) return
+    if (!newName.trim() || creating) return
+    setCreating(true)
     const now = new Date()
+    try {
     const newSl: Omit<Setlist, 'id'> = {
       name: newName,
       date: now,
@@ -169,38 +182,57 @@ export default function SetlistsView() {
       userId: user?.id
     }
 
-    if (user) {
-      if (userPlan !== 'premium' && (user as any).role !== 'admin') {
-        alert('La sincronización en la nube es una función Premium. Tu setlist se guardará localmente.')
-        try {
-          await db.setlists.add(newSl as Setlist)
-          setNewName('')
-          setShowNew(false)
-        } catch (e: any) {
-          alert('Error al crear setlist local: ' + e.message)
-        }
-        return
-      }
-
-      const created = await supabaseService.createSetlist(newSl)
-      if (created) {
-        setNewName('')
-        setShowNew(false)
-        const updated = await supabaseService.fetchSetlists()
-        setCloudSetlists(updated)
-      } else {
-        alert('Error al crear el setlist en la nube. Verifica tu conexión.')
-      }
-    } else {
+    const saveLocally = async () => {
       try {
         await db.setlists.add(newSl as Setlist)
         setNewName('')
         setShowNew(false)
+        return true
       } catch (e: any) {
         alert('Error al crear setlist local: ' + e.message)
+        return false
       }
     }
+
+    if (user) {
+      if (userPlan !== 'premium' && (user as any).role !== 'admin') {
+        alert('La sincronización en la nube es una función Premium. Tu setlist se guardará localmente.')
+        await saveLocally()
+        return
+      }
+
+      try {
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+        )
+        const created = await Promise.race([
+          supabaseService.createSetlist(newSl),
+          timeout
+        ]) as Setlist | null
+
+        if (created) {
+          setNewName('')
+          setShowNew(false)
+          const updated = await supabaseService.fetchSetlists()
+          setCloudSetlists(updated)
+        } else {
+          throw new Error('UPLOAD_FAILED')
+        }
+      } catch (err: any) {
+        console.error('[Setlists] Error o timeout en nube:', err)
+        const msg = err.message === 'TIMEOUT' 
+          ? 'La nube está tardando demasiado.' 
+          : 'Error al sincronizar con la nube.'
+        alert(msg + ' El setlist se guardará localmente para no perder cambios.')
+        await saveLocally()
+      }
+    } else {
+      await saveLocally()
+    }
+  } finally {
+    setCreating(false)
   }
+}
 
   const deleteSetlist = async (sl: Setlist) => {
     setConfirmDeleteSl(sl)
@@ -210,7 +242,9 @@ export default function SetlistsView() {
     const sl = confirmDeleteSl
     if (!sl) return
     setConfirmDeleteSl(null)
-    if (user && sl.id) {
+    const slSource = (sl as any).source || (user ? 'cloud' : 'local')
+
+    if (slSource === 'cloud' && sl.id) {
       await supabaseService.deleteSetlist(sl.id)
       setCloudSetlists(cloudSetlists.filter(s => s.id !== sl.id))
     } else if (sl.id) {
@@ -220,15 +254,37 @@ export default function SetlistsView() {
   }
 
   const updateSetlistInState = async (id: number, updates: Partial<Setlist>) => {
-    if (user) {
-      const updated = await supabaseService.updateSetlist(id, updates)
-      if (updated) {
-        setCloudSetlists(cloudSetlists.map(s => s.id === id ? updated : s))
-        if (editingSetlist?.id === id) setEditingSetlist(updated)
+    const slSource = (editingSetlist as any)?.source || (user ? 'cloud' : 'local')
+
+    if (slSource === 'cloud') {
+      try {
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+        )
+        const updated = await Promise.race([
+          supabaseService.updateSetlist(id, updates),
+          timeout
+        ]) as Setlist | null
+
+        if (updated) {
+          setCloudSetlists(cloudSetlists.map(s => s.id === id ? updated : s))
+          if (editingSetlist?.id === id) setEditingSetlist({ ...updated, source: 'cloud' } as any)
+        } else {
+          throw new Error('UPDATE_FAILED')
+        }
+      } catch (err: any) {
+        console.error('[Setlists] Fallo en actualización de nube:', err)
+        // Fallback: guardar una copia en local si la nube falla
+        if (editingSetlist?.id === id) {
+          const localCopy = { ...editingSetlist, ...updates, updatedAt: new Date(), source: 'local' as const }
+          await db.setlists.put(localCopy as Setlist)
+          setEditingSetlist(localCopy as any)
+          alert('No se pudo sincronizar el cambio. Se ha guardado una copia local para evitar pérdida de datos.')
+        }
       }
     } else {
       await db.setlists.update(id, updates)
-      if (editingSetlist?.id === id) setEditingSetlist({ ...editingSetlist, ...updates })
+      if (editingSetlist?.id === id) setEditingSetlist({ ...editingSetlist, ...updates } as any)
     }
   }
 
@@ -317,9 +373,12 @@ export default function SetlistsView() {
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && createSetlist()}
             autoFocus
+            disabled={creating}
           />
-          <button className="btn-primary" onClick={createSetlist}>Crear</button>
-          <button className="btn-ghost" onClick={() => setShowNew(false)}>Cancelar</button>
+          <button className="btn-primary" onClick={createSetlist} disabled={creating || !newName.trim()}>
+            {creating ? 'Creando...' : 'Crear'}
+          </button>
+          <button className="btn-ghost" onClick={() => setShowNew(false)} disabled={creating}>Cancelar</button>
         </div>
       )}
 
@@ -340,9 +399,16 @@ export default function SetlistsView() {
             </div>
           )}
           {setlists.map(sl => (
-            <div key={sl.id} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
+            <div key={`${sl.source}-${sl.id}`} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
               <div className="setlist-card-info" onClick={() => setEditingSetlist(sl)}>
-                <div className="setlist-name">{sl.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="setlist-name">{sl.name}</div>
+                  {sl.source === 'cloud' ? (
+                    <span className="badge-sm cloud" title="Sincronizado en la nube"><Cloud size={10} /></span>
+                  ) : (
+                    <span className="badge-sm local" title="Solo en este dispositivo"><CloudOff size={10} /></span>
+                  )}
+                </div>
                 <div className="setlist-meta">
                   <Calendar size={12} />
                   {new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
