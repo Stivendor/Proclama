@@ -72,7 +72,7 @@ export default function LandingView() {
         </div>
         <div className="nav-actions">
           <FeedbackModal />
-          <button className="btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
+          <button className="landing-btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
         </div>
       </nav>
 
@@ -91,10 +91,10 @@ export default function LandingView() {
               Setlists, notas y ajustes viven en tu equipo por defecto. La cuenta Pro queda reservada para búsqueda online y exportación de reportes CSV.
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.32s' }}>
-              <button className="btn-primary" onClick={() => setShowTermsForGuest(true)}>
+              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>
                 Entrar como Invitado <ChevronRight size={18} />
               </button>
-              <button className="btn-secondary" onClick={() => setShowAuth(true)}>
+              <button className="landing-btn-secondary" onClick={() => setShowAuth(true)}>
                 Desbloquear Pro
               </button>
             </div>
@@ -172,7 +172,7 @@ export default function LandingView() {
                 <li className="locked"><Lock size={14} /> Búsqueda online</li>
                 <li className="locked"><Lock size={14} /> Exportación CSV</li>
               </ul>
-              <button className="btn-secondary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
+              <button className="landing-btn-secondary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
             </article>
             <article className="plan-card plan-pro">
               <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Premium</span>
@@ -183,7 +183,7 @@ export default function LandingView() {
                 <li><Check size={16} /> Exportación de reportes CSV</li>
                 <li><Check size={16} /> Soporte prioritario</li>
               </ul>
-              <button className="btn-primary" onClick={() => setShowAuth(true)}>Entrar con cuenta Pro</button>
+              <button className="landing-btn-primary" onClick={() => setShowAuth(true)}>Entrar con cuenta Pro</button>
             </article>
           </div>
         </section>
@@ -201,17 +201,20 @@ export default function LandingView() {
               <form className="interest-form" onSubmit={handleInterestSubmit}>
                 <div className="interest-input">
                   <Mail size={16} color="#8b98b0" />
+                  <label htmlFor="interest-email" className="sr-only">Correo electrónico</label>
                   <input
+                    id="interest-email"
                     type="email"
-                    placeholder="tu@correo.com"
+                    placeholder="tu@correo.com…"
                     value={interestEmail}
                     onChange={(e) => setInterestEmail(e.target.value)}
                     required
                     disabled={interestStatus === 'loading'}
+                    autoComplete="email"
                   />
                 </div>
-                <button type="submit" className="btn-primary" disabled={interestStatus === 'loading'}>
-                  {interestStatus === 'loading' ? 'Enviando...' : 'Notificarme'}
+                <button type="submit" className="landing-btn-primary" disabled={interestStatus === 'loading'}>
+                  {interestStatus === 'loading' ? 'Enviando…' : 'Notificarme'}
                 </button>
                 {interestStatus === 'error' && <p className="error-line">Ocurrió un error. Intenta de nuevo.</p>}
               </form>
@@ -220,7 +223,7 @@ export default function LandingView() {
         </section>
       </main>
 
-      <footer className="landing-footer">© 2026 Proclama — local-first para servir con calma.</footer>
+      <footer className="landing-footer">© 2026 Proclama</footer>
 
       {showTermsForGuest && (
         <TermsModal
@@ -235,15 +238,39 @@ export default function LandingView() {
       )}
 
       <style>{`
+        /* ── Landing Design System ───────────────────────────────── */
+        /* Prefijo landing- para aislar estilos del sistema global   */
+
         .landing-root {
           height: 100vh;
           min-height: 100vh;
           background: #05070d;
           color: white;
           font-family: 'Outfit', sans-serif;
+          font-size: 16px;
           overflow-x: hidden;
           overflow-y: auto;
           overscroll-behavior: contain;
+        }
+        /* Forzar fuente Outfit en todos los hijos de la landing,
+           excluyendo el modal overlay que usa el design system global */
+        .landing-root > *:not(.modal-overlay) *,
+        .landing-root > nav button,
+        .landing-root > main button,
+        .landing-root > footer {
+          font-family: 'Outfit', sans-serif;
+        }
+        /* Clase de accesibilidad para labels invisibles */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          white-space: nowrap;
+          border: 0;
         }
         .landing-bg {
           position: fixed;
@@ -277,32 +304,56 @@ export default function LandingView() {
         }
         .landing-logo span span { color: #c9a658; }
         .nav-links { display: none; gap: 24px; }
-        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; }
+        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; font-family: 'Outfit', sans-serif; }
+        .nav-links a:hover { color: #e7edf8; }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
-        .btn-line, .btn-secondary, .btn-primary {
+
+        /* ── Botones de la landing (clases únicas, sin conflicto) ── */
+        .landing-btn-line,
+        .landing-btn-secondary,
+        .landing-btn-primary {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           border-radius: 999px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
           font-weight: 700;
-          transition: 0.2s ease;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
-        .btn-line, .btn-secondary {
-          padding: 12px 20px;
+        .landing-btn-line,
+        .landing-btn-secondary {
+          padding: 12px 22px;
           border: 1px solid rgba(255,255,255,0.14);
           color: white;
           background: transparent;
         }
-        .btn-primary {
-          padding: 14px 24px;
+        .landing-btn-line:hover,
+        .landing-btn-secondary:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.22); }
+        .landing-btn-primary {
+          padding: 14px 28px;
           border: none;
           color: #05070d;
           background: linear-gradient(135deg, #d5b164, #bc933b);
           box-shadow: 0 16px 40px rgba(201, 166, 88, 0.22);
         }
-        .btn-line:hover, .btn-secondary:hover { background: rgba(255,255,255,0.05); }
-        .btn-primary:hover { transform: translateY(-2px); }
+        .landing-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(201, 166, 88, 0.32); }
+        .landing-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .landing-btn-line:focus-visible,
+        .landing-btn-secondary:focus-visible,
+        .landing-btn-primary:focus-visible {
+          outline: 2px solid #c9a658;
+          outline-offset: 3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .landing-btn-primary:hover { transform: none; }
+          .animate-fade-up, .animate-fade-down, .animate-pop-in { animation: none; opacity: 1; transform: none; }
+          .animate-on-scroll { transition: none; opacity: 1; transform: none; }
+        }
+
         .landing-main { max-width: 1180px; margin: 0 auto; padding: 24px 5% 96px; }
         .hero {
           display: grid;
@@ -328,6 +379,7 @@ export default function LandingView() {
           font-family: 'Cinzel', serif;
           font-size: clamp(42px, 5vw, 68px);
           line-height: 1.04;
+          text-wrap: balance;
         }
         .hero-copy h1 span {
           background: linear-gradient(90deg, #fff, #c9a658);
@@ -338,7 +390,7 @@ export default function LandingView() {
         .section-head p,
         .hero-card p,
         .feature-card p,
-        .interest-card p { color: #9aa6bb; line-height: 1.7; }
+        .interest-card p { color: #9aa6bb; line-height: 1.7; font-size: 16px; }
         .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
         .hero-panel {
           display: grid;
@@ -360,7 +412,8 @@ export default function LandingView() {
           border: 1px solid rgba(255,255,255,0.06);
         }
         .hero-card-wide { grid-column: span 2; }
-        .hero-card strong, .feature-card h3 { display: block; margin-bottom: 6px; }
+        .hero-card strong { display: block; margin-bottom: 6px; font-size: 15px; font-weight: 700; }
+        .feature-card h3 { display: block; margin-bottom: 6px; font-size: 17px; font-weight: 700; }
         .section { padding-top: 82px; }
         .section.narrow { max-width: 760px; margin: 0 auto; }
         .section-head { text-align: center; margin-bottom: 42px; }
@@ -368,6 +421,7 @@ export default function LandingView() {
           margin: 0 0 12px;
           font-family: 'Cinzel', serif;
           font-size: clamp(30px, 4vw, 40px);
+          text-wrap: balance;
         }
         .feature-grid, .plans-grid {
           display: grid;
@@ -379,9 +433,7 @@ export default function LandingView() {
           border: 1px solid rgba(255,255,255,0.08);
           background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
         }
-        .feature-card {
-          padding: 26px;
-        }
+        .feature-card { padding: 26px; }
         .plan-card {
           padding: 30px;
           display: flex;
@@ -397,6 +449,7 @@ export default function LandingView() {
           color: #d1dae8;
           font-size: 12px;
           font-weight: 700;
+          font-family: 'Outfit', sans-serif;
         }
         .plan-badge-pro {
           display: inline-flex;
@@ -408,8 +461,10 @@ export default function LandingView() {
         .plan-card h3 {
           margin: 0;
           font-size: 36px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
         }
-        .plan-card h3 span { color: #9aa6bb; font-size: 16px; }
+        .plan-card h3 span { color: #9aa6bb; font-size: 16px; font-weight: 400; }
         .plan-card ul {
           list-style: none;
           padding: 0;
@@ -423,12 +478,14 @@ export default function LandingView() {
           gap: 10px;
           align-items: center;
           color: #d5dce7;
+          font-size: 15px;
         }
         .plan-card .locked { color: #778398; }
         .interest-card { padding: 34px; text-align: center; }
         .interest-form { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
         .interest-input {
           min-width: 220px;
+          min-height: 52px;
           flex: 1;
           display: flex;
           align-items: center;
@@ -437,7 +494,9 @@ export default function LandingView() {
           border-radius: 14px;
           border: 1px solid rgba(255,255,255,0.1);
           background: rgba(255,255,255,0.04);
+          transition: border-color 0.2s ease;
         }
+        .interest-input:focus-within { border-color: rgba(201, 166, 88, 0.5); }
         .interest-input input {
           flex: 1;
           border: none;
@@ -445,6 +504,8 @@ export default function LandingView() {
           background: transparent;
           color: white;
           padding: 15px 0;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
         }
         .interest-state {
           display: inline-flex;
@@ -454,6 +515,7 @@ export default function LandingView() {
           padding: 14px 18px;
           border-radius: 14px;
           background: rgba(255,255,255,0.05);
+          font-size: 15px;
         }
         .error-line { width: 100%; color: #fca5a5; font-size: 13px; }
         .landing-footer {
@@ -462,6 +524,7 @@ export default function LandingView() {
           padding: 28px;
           text-align: center;
           color: #748197;
+          font-size: 14px;
           border-top: 1px solid rgba(255,255,255,0.06);
         }
         .animate-fade-up { opacity: 0; transform: translateY(18px); animation: fadeUp 0.7s ease forwards; }
