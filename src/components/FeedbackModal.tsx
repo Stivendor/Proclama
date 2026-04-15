@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MessageSquarePlus, X, Send, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase, createFeedback } from '@/services/supabase'
 import { useAppStore } from '@/stores'
@@ -64,7 +65,7 @@ export default function FeedbackModal() {
         Sugerencias
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           className="modal-overlay"
           role="dialog"
@@ -121,7 +122,8 @@ export default function FeedbackModal() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )

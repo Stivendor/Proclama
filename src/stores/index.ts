@@ -311,7 +311,7 @@ export const useAppStore = create<AppStore>()(
         userRole: null, 
         userPlan: 'free', 
         authStatus: 'unauthenticated', 
-        guestMode: true,
+        guestMode: false,
         termsAccepted: null,
         activeSetlist: null,
         editingSong: null
