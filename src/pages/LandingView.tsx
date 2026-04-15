@@ -8,7 +8,7 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView, setForceLanding } = useAppStore()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [interestEmail, setInterestEmail] = useState('')
@@ -79,23 +79,20 @@ export default function LandingView() {
       <main className="landing-main">
         <section className="hero">
           <div className="hero-copy">
-            <div className="pill animate-fade-up" style={{ animationDelay: '0.08s' }}>
-              <Zap size={14} color="#c9a658" /> Privacidad y velocidad local
-            </div>
-            <h1 className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
-              Abre y empieza.
+            <h1 className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
+              Sin esperas, sin interrupciones.
               <br />
-              <span>Todo corre en local.</span>
+              <span>Tu contenido siempre listo para proyectar.</span>
             </h1>
-            <p className="animate-fade-up" style={{ animationDelay: '0.24s' }}>
-              Setlists, notas y ajustes viven en tu equipo por defecto. La cuenta Pro queda reservada para búsqueda online y exportación de reportes CSV.
+            <p className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
+              Entra directo a la acción. Gestiona tus setlists y accede a una biblioteca masiva al instante, con una interfaz diseñada para responder aunque no tengas conexión.
             </p>
-            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.32s' }}>
+            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
               <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>
                 Entrar como Invitado <ChevronRight size={18} />
               </button>
-              <button className="landing-btn-secondary" onClick={() => setShowAuth(true)}>
-                Desbloquear Pro
+              <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
+                Ver funciones Pro
               </button>
             </div>
           </div>
@@ -105,21 +102,21 @@ export default function LandingView() {
               <Cpu size={22} color="#c9a658" />
               <div>
                 <strong>Arranque instantáneo</strong>
-                <p>La app abre su interfaz principal sin esperar autenticación.</p>
+                <p>Abre la interfaz y empieza a trabajar al segundo.</p>
               </div>
             </div>
             <div className="hero-card">
-              <Shield size={20} color="#9ad3ff" />
+              <BookOpen size={20} color="#9ad3ff" />
               <div>
-                <strong>100% local</strong>
-                <p>Setlists, notas y ajustes persisten tras refrescar.</p>
+                <strong>Biblioteca integrada</strong>
+                <p>Más de 3,000 canciones listas para buscar y proyectar.</p>
               </div>
             </div>
             <div className="hero-card">
-              <Globe size={20} color="#86efac" />
+              <Shield size={20} color="#86efac" />
               <div>
-                <strong>Pro opcional</strong>
-                <p>Activa búsqueda online y exportación CSV solo cuando lo necesites.</p>
+                <strong>Confiabilidad total</strong>
+                <p>Si el internet falla, tu proyección no se detiene.</p>
               </div>
             </div>
           </div>
@@ -127,72 +124,75 @@ export default function LandingView() {
 
         <section id="funciones" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>Local-first de verdad</h2>
-            <p>El flujo principal ya no depende de la nube para servir con rapidez.</p>
+            <h2>¿Por qué usar la app?</h2>
           </div>
           <div className="feature-grid">
             <article className="feature-card animate-on-scroll delay-1">
               <Cpu size={28} color="#c9a658" />
-              <h3>Velocidad local</h3>
-              <p>La app responde de inmediato desde el navegador, incluso después de refrescar.</p>
+              <h3>Arranque inmediato</h3>
+              <p>Abre la interfaz y empieza a trabajar al segundo. Sin registros obligatorios ni pantallas de carga lentas.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-2">
-              <Lock size={28} color="#c9a658" />
-              <h3>Privacidad total</h3>
-              <p>Tus datos centrales permanecen en tu dispositivo y no dependen de una sincronización remota.</p>
+              <BookOpen size={28} color="#c9a658" />
+              <h3>Biblioteca integrada</h3>
+              <p>Más de 3,000 canciones listas para buscar y proyectar desde el primer momento, sin configurar nada.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-3">
-              <BookOpen size={28} color="#c9a658" />
-              <h3>Biblia siempre lista</h3>
-              <p>Consulta y proyecta pasajes con el mismo rendimiento aun cuando falle la conexión.</p>
-            </article>
-            <article className="feature-card animate-on-scroll delay-4">
-              <Video size={28} color="#c9a658" />
-              <h3>Proyección fluida</h3>
-              <p>Fondos, videos y letras siguen corriendo desde la máquina local, con menos fricción.</p>
+              <Shield size={28} color="#c9a658" />
+              <h3>Confiabilidad total</h3>
+              <p>Tus setlists y notas viven en tu navegador. Si el internet falla, tu proyección no se detiene; todo sigue funcionando localmente.</p>
             </article>
           </div>
         </section>
 
         <section id="planes" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>Planes claros</h2>
-            <p>Gratis para operar en local. Pro para buscar e informar mejor.</p>
+            <h2>Comparativa de Funciones</h2>
           </div>
           <div className="plans-grid animate-on-scroll delay-2">
             <article className="plan-card">
-              <span className="plan-badge">Free</span>
-              <h3>$0 <span>/ siempre</span></h3>
+              <span className="plan-badge">Gratis</span>
+              <h3>Todo lo que necesitas para proyectar</h3>
+              <div className="plan-price">$0 <span>/ Siempre</span></div>
               <ul>
-                <li><Check size={16} /> Uso local ilimitado</li>
-                <li><Check size={16} /> Proyección</li>
-                <li><Check size={16} /> Biblioteca básica</li>
-                <li><Check size={16} /> Biblia</li>
-                <li><Check size={16} /> Setlists y notas locales</li>
-                <li className="locked"><Lock size={14} /> Búsqueda online</li>
-                <li className="locked"><Lock size={14} /> Exportación CSV</li>
+                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
+                <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
+                <li className="locked"><Lock size={14} /> Sincronización en la nube</li>
+                <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
+                <li className="locked"><Lock size={14} /> Límite de 10 canciones propias</li>
               </ul>
-              <button className="landing-btn-secondary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
+              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
             </article>
             <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Premium</span>
-              <h3>Cuenta Pro</h3>
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Próximamente: Pro</span>
+              <h3>Potencia avanzada para tu equipo</h3>
+              <div className="plan-price">$0 <span>/ Siempre</span></div>
+              <div className="plan-soon">Lanzamiento muy pronto</div>
               <ul>
-                <li><Check size={16} /> Todo lo del plan Free</li>
-                <li><Check size={16} /> Búsqueda online (LRC Lib / nube)</li>
+                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
+                <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li><Check size={16} /> Búsqueda global extendida (LRC Lib)</li>
+                <li><Check size={16} /> Sincronización en la nube</li>
                 <li><Check size={16} /> Exportación de reportes CSV</li>
-                <li><Check size={16} /> Soporte prioritario</li>
+                <li><Check size={16} /> Sin límite de canciones propias</li>
               </ul>
-              <button className="landing-btn-primary" onClick={() => setShowAuth(true)}>Entrar con cuenta Pro</button>
+              <button className="landing-btn-secondary" onClick={() => document.getElementById('premium-interest')?.scrollIntoView({ behavior: 'smooth' })}>Avisarme al lanzar Pro</button>
             </article>
           </div>
         </section>
 
         <section id="premium-interest" className="section narrow animate-on-scroll">
           <div className="interest-card">
-            <div className="pill"><Sparkles size={14} color="#c9a658" /> Mantente al tanto</div>
-            <h2>Novedades de Pro</h2>
-            <p>Te avisamos cuando haya mejoras en búsqueda online, exportación CSV y beneficios para equipos.</p>
+            <div className="pill"><Sparkles size={14} color="#c9a658" /> El futuro de tu proyección</div>
+            <h2>El futuro de tu proyección comienza aquí</h2>
+            <p>Estamos expandiendo las capacidades de búsqueda y gestión de datos. Deja tu correo para ser el primero en saber cuándo el Plan Pro esté disponible.</p>
             {interestStatus === 'success' ? (
               <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
             ) : interestStatus === 'duplicate' ? (
@@ -230,6 +230,7 @@ export default function LandingView() {
           mode="required"
           onAccept={async () => {
             await acceptTerms(CURRENT_TERMS_VERSION)
+            setForceLanding(false)
             setActiveView('library')
             setGuestMode(true)
           }}
@@ -460,11 +461,27 @@ export default function LandingView() {
         }
         .plan-card h3 {
           margin: 0;
-          font-size: 36px;
+          font-size: 20px;
           font-weight: 700;
           font-family: 'Outfit', sans-serif;
+          line-height: 1.3;
         }
         .plan-card h3 span { color: #9aa6bb; font-size: 16px; font-weight: 400; }
+        .plan-price {
+          font-size: 36px;
+          font-weight: 700;
+          color: #f0dfb6;
+        }
+        .plan-price span { color: #9aa6bb; font-size: 16px; font-weight: 400; }
+        .plan-soon {
+          display: inline-block;
+          padding: 6px 14px;
+          background: rgba(201, 166, 88, 0.12);
+          color: #f0dfb6;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+        }
         .plan-card ul {
           list-style: none;
           padding: 0;

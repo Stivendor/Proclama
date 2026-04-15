@@ -223,6 +223,9 @@ interface AppStore {
   setTermsSyncPending: (v: boolean) => void
 
   logout: () => void
+  goToLanding: () => void
+  forceLanding: boolean
+  setForceLanding: (v: boolean) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -316,6 +319,11 @@ export const useAppStore = create<AppStore>()(
         activeSetlist: null,
         editingSong: null
       }),
+
+      goToLanding: () => set({ forceLanding: true }),
+
+      forceLanding: false,
+      setForceLanding: (v) => set({ forceLanding: v }),
     }),
     {
       name: 'proclama-app',
@@ -328,6 +336,7 @@ export const useAppStore = create<AppStore>()(
         userPlan: state.userPlan,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
+        forceLanding: state.forceLanding,
       })
     }
   )
