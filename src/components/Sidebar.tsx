@@ -6,14 +6,13 @@ import { openProjectionWindow } from '@/services/projection'
 import FeedbackModal from '@/components/FeedbackModal'
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, toggleSidebar, user, guestMode, setGuestMode } = useAppStore(useShallow(s => ({
+  const { activeView, setActiveView, setEditingSong, toggleSidebar, user, goToLanding } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
     setEditingSong: s.setEditingSong,
     toggleSidebar: s.toggleSidebar,
     user: s.user,
-    guestMode: s.guestMode,
-    setGuestMode: s.setGuestMode,
+    goToLanding: s.goToLanding,
   })))
   const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
 
@@ -37,12 +36,7 @@ export default function Sidebar() {
   ] as const
 
   const handleLogoClick = () => {
-    // Si el usuario está en modo invitado (no autenticado), volver a la landing
-    if (guestMode && !user) {
-      setGuestMode(false)
-    } else {
-      setActiveView('library')
-    }
+    useAppStore.getState().setForceLanding(true)
   }
 
   const handleLogout = async () => {

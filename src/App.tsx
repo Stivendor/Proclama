@@ -47,6 +47,8 @@ function AppContent() {
     authStatus,
     setAuthStatus,
     guestMode,
+    forceLanding,
+    setForceLanding,
     acceptTerms,
     termsSyncPending,
     onboardingDone,
@@ -58,6 +60,8 @@ function AppContent() {
       authStatus: s.authStatus,
       setAuthStatus: s.setAuthStatus,
       guestMode: s.guestMode,
+      forceLanding: s.forceLanding,
+      setForceLanding: s.setForceLanding,
       acceptTerms: s.acceptTerms,
       termsSyncPending: s.termsSyncPending,
       onboardingDone: s.onboardingDone,
@@ -230,7 +234,7 @@ function AppContent() {
     );
   }
 
-  if (!guestMode && !onboardingDone && authStatus !== "authenticated") {
+  if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
     return <LandingView />;
   }
 
