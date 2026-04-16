@@ -91,6 +91,19 @@ export async function fetchSongs(): Promise<Song[]> {
   return allData.map(mapRowToSong)
 }
 
+export async function fetchSongsCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('songs')
+    .select('id', { count: 'exact', head: true })
+
+  if (error) {
+    console.warn('Error fetching songs count:', error.message)
+    return 0
+  }
+
+  return count ?? 0
+}
+
 /**
  * Busca canciones por texto en título, artista o letra.
  * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
@@ -414,4 +427,74 @@ export async function registerPremiumInterest(email: string, userId: string | nu
     return { success: false }
   }
   return { success: true, alreadyRegistered: false }
+}
+
+// ─── Funciones para Lemon Squeezy / Pagos ───────────────────────────────────────
+
+export interface LemonSqueezyWebhookPayload {
+  meta: {
+    event_name: 'order_created' | 'subscription_created' | 'subscription_updated' | 'subscription_cancelled'
+    custom_data?: {
+      user_id?: string
+      email?: string
+    }
+  }
+  data: {
+    attributes: {
+      status?: string
+      order_number?: number
+      user_email?: string
+      first_order_item?: {
+        product_id?: number
+        variant_id?: number
+      }
+    }
+    id: string
+  }
+}
+
+export async function activatePremiumForUser(userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      plan: 'premium',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error activating premium:', error.message)
+    return false
+  }
+  return true
+}
+
+export async function deactivatePremiumForUser(userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      plan: 'free',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error deactivating premium:', error.message)
+    return false
+  }
+  return true
+}
+
+export async function isUserPremium(): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (error || !data) return false
+  return data.plan === 'premium'
 }

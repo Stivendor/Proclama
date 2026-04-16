@@ -6,12 +6,13 @@ import { openProjectionWindow } from '@/services/projection'
 import FeedbackModal from '@/components/FeedbackModal'
 
 export default function Sidebar() {
-  const { activeView, setActiveView, setEditingSong, toggleSidebar, user } = useAppStore(useShallow(s => ({
+  const { activeView, setActiveView, setEditingSong, toggleSidebar, user, goToLanding } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
     setEditingSong: s.setEditingSong,
     toggleSidebar: s.toggleSidebar,
     user: s.user,
+    goToLanding: s.goToLanding,
   })))
   const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
 
@@ -35,7 +36,7 @@ export default function Sidebar() {
   ] as const
 
   const handleLogoClick = () => {
-    setActiveView('library')
+    useAppStore.getState().setForceLanding(true)
   }
 
   const handleLogout = async () => {

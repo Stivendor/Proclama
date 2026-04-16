@@ -3,11 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0d1117" />
     <title>Proclama — Sistema Pro de Proyección para Iglesias</title>
-    <meta name="description" content="Proclama es un sistema profesional, gratuito y moderno para la proyección de alabanzas y Biblia en iglesias. Incluye búsqueda inteligente, sincronización en la nube y fondos dinámicos." />
+    <meta name="description" content="Proclama es un sistema profesional, gratuito y moderno para la proyección de alabanzas y Biblia en iglesias. Incluye búsqueda inteligente y fondos dinámicos." />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,14 +20,14 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://proclama.vercel.app/" />
     <meta property="og:title" content="Proclama — Proyección Profesional para Iglesias" />
-    <meta property="og:description" content="Sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
+    <meta property="og:description" content="Proclama es un sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
     <meta property="og:image" content="https://proclama.vercel.app/og-image.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://proclama.vercel.app/" />
     <meta property="twitter:title" content="Proclama — Proyección Profesional para Iglesias" />
-    <meta property="twitter:description" content="Sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
+    <meta property="twitter:description" content="Proclama es un sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
     <meta property="twitter:image" content="https://proclama.vercel.app/og-image.png" />
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -48,5 +50,14 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Lemon Squeezy for payments -->
+    <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
+    <!-- PWA Install prompt -->
+    <script>
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+      });
+    </script>
   </body>
 </html>

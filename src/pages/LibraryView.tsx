@@ -7,8 +7,9 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { fetchSongs, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
+import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
+import { containsIgnoreAccents } from '@/utils/text'
 
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus } = useAppStore(useShallow(s => ({
@@ -35,6 +36,16 @@ export default function LibraryView() {
   const [selectedLang, setSelectedLang] = useState<string>('')
   const [loadingRemote, setLoadingRemote] = useState(false)
   const [remoteError, setRemoteError] = useState<string | null>(null)
+  const [totalRemoteSongs, setTotalRemoteSongs] = useState<number | null>(null)
+
+  // Obtener el total de canciones en Supabase para mostrar en el header
+  useEffect(() => {
+    const fetchTotal = async () => {
+      const count = await fetchSongsCount()
+      setTotalRemoteSongs(count)
+    }
+    fetchTotal()
+  }, [])
   
   // Auto-dismiss remote error after 10 seconds
   useEffect(() => {
@@ -62,7 +73,9 @@ export default function LibraryView() {
   const userId = user?.id ?? null
   useEffect(() => {
     // Solo sincronizar cuando la sesión está resuelta (no durante loading)
+    // Y SOLO si hay un usuario autenticado (no guest mode)
     if (authStatus === 'loading') return
+    if (!user) return // No sincronizar en modo local/guest
 
     let cancelled = false
 
@@ -100,18 +113,25 @@ export default function LibraryView() {
   const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
   const songs = useLiveQuery(async () => {
+    // Ordenar: canciones más usadas primero (por usageCount), luego alfabéticamente
     let results = await db.songs.orderBy('title').toArray()
+    results.sort((a, b) => {
+      const usageA = a.usageCount ?? 0
+      const usageB = b.usageCount ?? 0
+      if (usageB !== usageA) return usageB - usageA // Más usadas primero
+      return a.title.localeCompare(b.title, 'es') // Luego alfabético
+    })
     
     // 1. Filter by Search Query
     if (searchQuery) {
-      const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase()
-      const q = normalize(searchQuery)
-      
-      const titleMatches = results.filter(s => normalize(s.title).includes(q) || normalize(s.artist).includes(q))
+      const titleMatches = results.filter(s => 
+        containsIgnoreAccents(s.title, searchQuery) || 
+        containsIgnoreAccents(s.artist || '', searchQuery)
+      )
       const lyricMatches = results.filter(s => 
         !titleMatches.includes(s) && (
-          normalize(s.lyrics).includes(q) || 
-          s.tags.some(t => normalize(t).includes(q))
+          containsIgnoreAccents(s.lyrics, searchQuery) || 
+          s.tags.some(t => containsIgnoreAccents(t, searchQuery))
         )
       )
       results = [...titleMatches, ...lyricMatches]
@@ -244,7 +264,10 @@ export default function LibraryView() {
           )}
           <div>
             <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Biblioteca</h1>
-            <span className="song-count">{songs.length} canciones</span>
+            <span className="song-count">
+              {songs.length} de {totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}
+              {totalRemoteSongs && totalRemoteSongs > songs.length && '+'} canciones
+            </span>
           </div>
         </div>
         <div className="header-actions">

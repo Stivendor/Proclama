@@ -1,19 +1,54 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
+import { useLemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout'
+
+declare global {
+  interface Window {
+    deferredPrompt?: BeforeInstallPromptEvent
+  }
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[]
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+  prompt(): Promise<void>
+}
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, user } = useAppStore()
+  const { openCheckout } = useLemonSqueezyCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [interestEmail, setInterestEmail] = useState('')
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
+  const [canInstall, setCanInstall] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault()
+      window.deferredPrompt = e as BeforeInstallPromptEvent
+      setCanInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!window.deferredPrompt) return
+    await window.deferredPrompt.prompt()
+    const { outcome } = await window.deferredPrompt.userChoice
+    if (outcome === 'accepted') {
+      setCanInstall(false)
+    }
+    window.deferredPrompt = undefined
+  }
 
   const handleInterestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,6 +60,14 @@ export default function LandingView() {
       return
     }
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
+  }
+
+  const handleBuyPro = () => {
+    const customData: Record<string, string | number> = {}
+    if (user?.id) {
+      customData.user_id = user.id
+    }
+    openCheckout(customData)
   }
 
   useEffect(() => {
@@ -72,31 +115,33 @@ export default function LandingView() {
         </div>
         <div className="nav-actions">
           <FeedbackModal />
-          <button className="btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
+          <button className="landing-btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
         </div>
       </nav>
 
       <main className="landing-main">
         <section className="hero">
           <div className="hero-copy">
-            <div className="pill animate-fade-up" style={{ animationDelay: '0.08s' }}>
-              <Zap size={14} color="#c9a658" /> Privacidad y velocidad local
-            </div>
-            <h1 className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
-              Abre y empieza.
+            <h1 className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
+              Sin esperas, sin interrupciones.
               <br />
-              <span>Todo corre en local.</span>
+              <span>Tu contenido siempre listo para proyectar.</span>
             </h1>
-            <p className="animate-fade-up" style={{ animationDelay: '0.24s' }}>
-              Setlists, notas y ajustes viven en tu equipo por defecto. La cuenta Pro queda reservada para búsqueda online y exportación de reportes CSV.
+            <p className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
+              Entra directo a la acción. Gestiona tus setlists y accede a una biblioteca masiva al instante, con una interfaz diseñada para responder aunque no tengas conexión.
             </p>
-            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.32s' }}>
-              <button className="btn-primary" onClick={() => setShowTermsForGuest(true)}>
+            <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
+              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>
                 Entrar como Invitado <ChevronRight size={18} />
               </button>
-              <button className="btn-secondary" onClick={() => setShowAuth(true)}>
-                Desbloquear Pro
+              <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
+                Ver funciones Pro
               </button>
+              {canInstall && (
+                <button className="landing-btn-download" onClick={handleInstall}>
+                  <Download size={16} /> Descargar App
+                </button>
+              )}
             </div>
           </div>
 
@@ -105,21 +150,21 @@ export default function LandingView() {
               <Cpu size={22} color="#c9a658" />
               <div>
                 <strong>Arranque instantáneo</strong>
-                <p>La app abre su interfaz principal sin esperar autenticación.</p>
+                <p>Abre la interfaz y empieza a trabajar al segundo.</p>
               </div>
             </div>
             <div className="hero-card">
-              <Shield size={20} color="#9ad3ff" />
+              <BookOpen size={20} color="#9ad3ff" />
               <div>
-                <strong>100% local</strong>
-                <p>Setlists, notas y ajustes persisten tras refrescar.</p>
+                <strong>Biblioteca integrada</strong>
+                <p>Más de 3,000 canciones listas para buscar y proyectar.</p>
               </div>
             </div>
             <div className="hero-card">
-              <Globe size={20} color="#86efac" />
+              <Shield size={20} color="#86efac" />
               <div>
-                <strong>Pro opcional</strong>
-                <p>Activa búsqueda online y exportación CSV solo cuando lo necesites.</p>
+                <strong>Confiabilidad total</strong>
+                <p>Si el internet falla, tu proyección no se detiene.</p>
               </div>
             </div>
           </div>
@@ -127,72 +172,93 @@ export default function LandingView() {
 
         <section id="funciones" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>Local-first de verdad</h2>
-            <p>El flujo principal ya no depende de la nube para servir con rapidez.</p>
+            <h2>¿Por qué usar la app?</h2>
           </div>
           <div className="feature-grid">
             <article className="feature-card animate-on-scroll delay-1">
               <Cpu size={28} color="#c9a658" />
-              <h3>Velocidad local</h3>
-              <p>La app responde de inmediato desde el navegador, incluso después de refrescar.</p>
+              <h3>Arranque inmediato</h3>
+              <p>Abre la interfaz y empieza a trabajar al segundo. Sin registros obligatorios ni pantallas de carga lentas.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-2">
-              <Lock size={28} color="#c9a658" />
-              <h3>Privacidad total</h3>
-              <p>Tus datos centrales permanecen en tu dispositivo y no dependen de una sincronización remota.</p>
+              <BookOpen size={28} color="#c9a658" />
+              <h3>Biblioteca integrada</h3>
+              <p>Más de 3,000 canciones listas para buscar y proyectar desde el primer momento, sin configurar nada.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-3">
-              <BookOpen size={28} color="#c9a658" />
-              <h3>Biblia siempre lista</h3>
-              <p>Consulta y proyecta pasajes con el mismo rendimiento aun cuando falle la conexión.</p>
+              <Shield size={28} color="#c9a658" />
+              <h3>Confiabilidad total</h3>
+              <p>Tus setlists y notas viven en tu navegador. Si el internet falla, tu proyección no se detiene; todo sigue funcionando localmente.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-4">
-              <Video size={28} color="#c9a658" />
-              <h3>Proyección fluida</h3>
-              <p>Fondos, videos y letras siguen corriendo desde la máquina local, con menos fricción.</p>
+              <Globe size={28} color="#c9a658" />
+              <h3>Biblia multilingüe</h3>
+              <p>Consulta y proyecta pasajes en múltiples versiones: Reina Valera 1960, NVI, PDT, LBLA, NTV (español) y KJV, ESV, WEB, NASB, NET (inglés).</p>
             </article>
           </div>
         </section>
 
         <section id="planes" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>Planes claros</h2>
-            <p>Gratis para operar en local. Pro para buscar e informar mejor.</p>
+            <h2>Comparativa de Funciones</h2>
           </div>
           <div className="plans-grid animate-on-scroll delay-2">
             <article className="plan-card">
-              <span className="plan-badge">Free</span>
-              <h3>$0 <span>/ siempre</span></h3>
+              <span className="plan-badge">Gratis</span>
+              <h3>Todo lo que necesitas para proyectar</h3>
+              <div className="plan-price">$0 <span>/ Siempre</span></div>
               <ul>
-                <li><Check size={16} /> Uso local ilimitado</li>
-                <li><Check size={16} /> Proyección</li>
-                <li><Check size={16} /> Biblioteca básica</li>
-                <li><Check size={16} /> Biblia</li>
-                <li><Check size={16} /> Setlists y notas locales</li>
-                <li className="locked"><Lock size={14} /> Búsqueda online</li>
-                <li className="locked"><Lock size={14} /> Exportación CSV</li>
+                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
+                <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
+                <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
+                <li className="locked"><Lock size={14} /> Límite de 10 canciones propias</li>
               </ul>
-              <button className="btn-secondary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
+              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
             </article>
             <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Premium</span>
-              <h3>Cuenta Pro</h3>
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Pro</span>
+              <h3>Potencia avanzada para tu equipo</h3>
+              <div className="plan-price">$0 <span>/ Siempre</span></div>
               <ul>
-                <li><Check size={16} /> Todo lo del plan Free</li>
-                <li><Check size={16} /> Búsqueda online (LRC Lib / nube)</li>
+                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
+                <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li><Check size={16} /> Búsqueda global extendida (LRC Lib)</li>
                 <li><Check size={16} /> Exportación de reportes CSV</li>
-                <li><Check size={16} /> Soporte prioritario</li>
+                <li><Check size={16} /> Sin límite de canciones propias</li>
               </ul>
-              <button className="btn-primary" onClick={() => setShowAuth(true)}>Entrar con cuenta Pro</button>
+              <button className="landing-btn-primary" onClick={handleBuyPro}>
+                <Sparkles size={16} /> Activar Plan Pro
+              </button>
             </article>
           </div>
         </section>
 
         <section id="premium-interest" className="section narrow animate-on-scroll">
           <div className="interest-card">
-            <div className="pill"><Sparkles size={14} color="#c9a658" /> Mantente al tanto</div>
-            <h2>Novedades de Pro</h2>
-            <p>Te avisamos cuando haya mejoras en búsqueda online, exportación CSV y beneficios para equipos.</p>
+            <div className="pill"><Sparkles size={14} color="#c9a658" /> Activa tu cuenta Pro</div>
+            <h2>Desbloquea todas las funciones avanzadas</h2>
+            <p>Con el Plan Pro obtienes acceso completo a todas las funciones de Proclama, incluyendo búsqueda global y exportación de reportes.</p>
+            <div className="procta">
+              <button className="landing-btn-primary large" onClick={handleBuyPro}>
+                <Sparkles size={18} /> Activar Plan Pro — $0 para siempre
+              </button>
+              <p className="procta-note">Pago único. Sin suscripciones recurrentes.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="interest-form" className="section narrow animate-on-scroll">
+          <div className="interest-card">
+            <div className="pill"><Mail size={14} color="#c9a658" /> ¿Aún no decides?</div>
+            <h2>Recibe actualizaciones</h2>
+            <p>Déjanos tu correo para enterarte de las novedades y mejoras que vengan pronto.</p>
             {interestStatus === 'success' ? (
               <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
             ) : interestStatus === 'duplicate' ? (
@@ -201,17 +267,20 @@ export default function LandingView() {
               <form className="interest-form" onSubmit={handleInterestSubmit}>
                 <div className="interest-input">
                   <Mail size={16} color="#8b98b0" />
+                  <label htmlFor="interest-email" className="sr-only">Correo electrónico</label>
                   <input
+                    id="interest-email"
                     type="email"
-                    placeholder="tu@correo.com"
+                    placeholder="tu@correo.com…"
                     value={interestEmail}
                     onChange={(e) => setInterestEmail(e.target.value)}
                     required
                     disabled={interestStatus === 'loading'}
+                    autoComplete="email"
                   />
                 </div>
-                <button type="submit" className="btn-primary" disabled={interestStatus === 'loading'}>
-                  {interestStatus === 'loading' ? 'Enviando...' : 'Notificarme'}
+                <button type="submit" className="landing-btn-primary" disabled={interestStatus === 'loading'}>
+                  {interestStatus === 'loading' ? 'Enviando…' : 'Notificarme'}
                 </button>
                 {interestStatus === 'error' && <p className="error-line">Ocurrió un error. Intenta de nuevo.</p>}
               </form>
@@ -220,13 +289,14 @@ export default function LandingView() {
         </section>
       </main>
 
-      <footer className="landing-footer">© 2026 Proclama — local-first para servir con calma.</footer>
+      <footer className="landing-footer">© 2026 Proclama</footer>
 
       {showTermsForGuest && (
         <TermsModal
           mode="required"
           onAccept={async () => {
             await acceptTerms(CURRENT_TERMS_VERSION)
+            setForceLanding(false)
             setActiveView('library')
             setGuestMode(true)
           }}
@@ -235,15 +305,39 @@ export default function LandingView() {
       )}
 
       <style>{`
+        /* ── Landing Design System ───────────────────────────────── */
+        /* Prefijo landing- para aislar estilos del sistema global   */
+
         .landing-root {
           height: 100vh;
           min-height: 100vh;
           background: #05070d;
           color: white;
           font-family: 'Outfit', sans-serif;
+          font-size: 16px;
           overflow-x: hidden;
           overflow-y: auto;
           overscroll-behavior: contain;
+        }
+        /* Forzar fuente Outfit en todos los hijos de la landing,
+           excluyendo el modal overlay que usa el design system global */
+        .landing-root > *:not(.modal-overlay) *,
+        .landing-root > nav button,
+        .landing-root > main button,
+        .landing-root > footer {
+          font-family: 'Outfit', sans-serif;
+        }
+        /* Clase de accesibilidad para labels invisibles */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0,0,0,0);
+          white-space: nowrap;
+          border: 0;
         }
         .landing-bg {
           position: fixed;
@@ -277,32 +371,78 @@ export default function LandingView() {
         }
         .landing-logo span span { color: #c9a658; }
         .nav-links { display: none; gap: 24px; }
-        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; }
+        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; font-family: 'Outfit', sans-serif; }
+        .nav-links a:hover { color: #e7edf8; }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
-        .btn-line, .btn-secondary, .btn-primary {
+
+        /* ── Botones de la landing (clases únicas, sin conflicto) ── */
+        .landing-btn-line,
+        .landing-btn-secondary,
+        .landing-btn-primary {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           border-radius: 999px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
           font-weight: 700;
-          transition: 0.2s ease;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
-        .btn-line, .btn-secondary {
-          padding: 12px 20px;
+        .landing-btn-line,
+        .landing-btn-secondary {
+          padding: 12px 22px;
           border: 1px solid rgba(255,255,255,0.14);
           color: white;
           background: transparent;
         }
-        .btn-primary {
-          padding: 14px 24px;
+        .landing-btn-line:hover,
+        .landing-btn-secondary:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.22); }
+        .landing-btn-primary {
+          padding: 14px 28px;
           border: none;
           color: #05070d;
           background: linear-gradient(135deg, #d5b164, #bc933b);
           box-shadow: 0 16px 40px rgba(201, 166, 88, 0.22);
         }
-        .btn-line:hover, .btn-secondary:hover { background: rgba(255,255,255,0.05); }
-        .btn-primary:hover { transform: translateY(-2px); }
+        .landing-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(201, 166, 88, 0.32); }
+        .landing-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .landing-btn-download {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 22px;
+          border: 1px solid rgba(212, 175, 55, 0.4);
+          border-radius: 999px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
+          font-weight: 700;
+          color: #d4af55;
+          background: rgba(212, 175, 55, 0.08);
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+        .landing-btn-download:hover {
+          background: rgba(212, 175, 55, 0.15);
+          border-color: rgba(212, 175, 55, 0.6);
+          transform: translateY(-2px);
+        }
+        .landing-btn-line:focus-visible,
+        .landing-btn-secondary:focus-visible,
+        .landing-btn-primary:focus-visible,
+        .landing-btn-download:focus-visible {
+          outline: 2px solid #c9a658;
+          outline-offset: 3px;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .landing-btn-primary:hover { transform: none; }
+          .animate-fade-up, .animate-fade-down, .animate-pop-in { animation: none; opacity: 1; transform: none; }
+          .animate-on-scroll { transition: none; opacity: 1; transform: none; }
+        }
+
         .landing-main { max-width: 1180px; margin: 0 auto; padding: 24px 5% 96px; }
         .hero {
           display: grid;
@@ -328,6 +468,7 @@ export default function LandingView() {
           font-family: 'Cinzel', serif;
           font-size: clamp(42px, 5vw, 68px);
           line-height: 1.04;
+          text-wrap: balance;
         }
         .hero-copy h1 span {
           background: linear-gradient(90deg, #fff, #c9a658);
@@ -338,7 +479,7 @@ export default function LandingView() {
         .section-head p,
         .hero-card p,
         .feature-card p,
-        .interest-card p { color: #9aa6bb; line-height: 1.7; }
+        .interest-card p { color: #9aa6bb; line-height: 1.7; font-size: 16px; }
         .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
         .hero-panel {
           display: grid;
@@ -360,7 +501,8 @@ export default function LandingView() {
           border: 1px solid rgba(255,255,255,0.06);
         }
         .hero-card-wide { grid-column: span 2; }
-        .hero-card strong, .feature-card h3 { display: block; margin-bottom: 6px; }
+        .hero-card strong { display: block; margin-bottom: 6px; font-size: 15px; font-weight: 700; }
+        .feature-card h3 { display: block; margin-bottom: 6px; font-size: 17px; font-weight: 700; }
         .section { padding-top: 82px; }
         .section.narrow { max-width: 760px; margin: 0 auto; }
         .section-head { text-align: center; margin-bottom: 42px; }
@@ -368,6 +510,7 @@ export default function LandingView() {
           margin: 0 0 12px;
           font-family: 'Cinzel', serif;
           font-size: clamp(30px, 4vw, 40px);
+          text-wrap: balance;
         }
         .feature-grid, .plans-grid {
           display: grid;
@@ -379,9 +522,7 @@ export default function LandingView() {
           border: 1px solid rgba(255,255,255,0.08);
           background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
         }
-        .feature-card {
-          padding: 26px;
-        }
+        .feature-card { padding: 26px; }
         .plan-card {
           padding: 30px;
           display: flex;
@@ -397,6 +538,7 @@ export default function LandingView() {
           color: #d1dae8;
           font-size: 12px;
           font-weight: 700;
+          font-family: 'Outfit', sans-serif;
         }
         .plan-badge-pro {
           display: inline-flex;
@@ -407,9 +549,27 @@ export default function LandingView() {
         }
         .plan-card h3 {
           margin: 0;
-          font-size: 36px;
+          font-size: 20px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          line-height: 1.3;
         }
-        .plan-card h3 span { color: #9aa6bb; font-size: 16px; }
+        .plan-card h3 span { color: #9aa6bb; font-size: 16px; font-weight: 400; }
+        .plan-price {
+          font-size: 36px;
+          font-weight: 700;
+          color: #f0dfb6;
+        }
+        .plan-price span { color: #9aa6bb; font-size: 16px; font-weight: 400; }
+        .plan-soon {
+          display: inline-block;
+          padding: 6px 14px;
+          background: rgba(201, 166, 88, 0.12);
+          color: #f0dfb6;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+        }
         .plan-card ul {
           list-style: none;
           padding: 0;
@@ -423,12 +583,14 @@ export default function LandingView() {
           gap: 10px;
           align-items: center;
           color: #d5dce7;
+          font-size: 15px;
         }
         .plan-card .locked { color: #778398; }
         .interest-card { padding: 34px; text-align: center; }
         .interest-form { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
         .interest-input {
           min-width: 220px;
+          min-height: 52px;
           flex: 1;
           display: flex;
           align-items: center;
@@ -437,7 +599,9 @@ export default function LandingView() {
           border-radius: 14px;
           border: 1px solid rgba(255,255,255,0.1);
           background: rgba(255,255,255,0.04);
+          transition: border-color 0.2s ease;
         }
+        .interest-input:focus-within { border-color: rgba(201, 166, 88, 0.5); }
         .interest-input input {
           flex: 1;
           border: none;
@@ -445,6 +609,8 @@ export default function LandingView() {
           background: transparent;
           color: white;
           padding: 15px 0;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
         }
         .interest-state {
           display: inline-flex;
@@ -454,14 +620,28 @@ export default function LandingView() {
           padding: 14px 18px;
           border-radius: 14px;
           background: rgba(255,255,255,0.05);
+          font-size: 15px;
         }
         .error-line { width: 100%; color: #fca5a5; font-size: 13px; }
+        .procta {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          margin-top: 24px;
+        }
+        .procta-note {
+          font-size: 13px;
+          color: #748197;
+          margin: 0;
+        }
         .landing-footer {
           position: relative;
           z-index: 1;
           padding: 28px;
           text-align: center;
           color: #748197;
+          font-size: 14px;
           border-top: 1px solid rgba(255,255,255,0.06);
         }
         .animate-fade-up { opacity: 0; transform: translateY(18px); animation: fadeUp 0.7s ease forwards; }

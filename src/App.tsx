@@ -6,6 +6,7 @@ import { useAppStore, useProjectionStore } from "@/stores";
 import { supabase } from "@/services/supabase";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { onMessage } from "@/services/projection";
+import FontLoader from "@/components/FontLoader";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
 import SongEditor from "@/pages/SongEditor";
@@ -20,7 +21,6 @@ import NotesView from "@/pages/NotesView";
 import TermsView from "@/pages/TermsView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
-import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 
 // Detectar si somos la ventana de proyección
@@ -47,7 +47,8 @@ function AppContent() {
     authStatus,
     setAuthStatus,
     guestMode,
-    acceptTerms,
+    forceLanding,
+    setForceLanding,
     termsSyncPending,
     onboardingDone,
   } = useAppStore(
@@ -58,20 +59,15 @@ function AppContent() {
       authStatus: s.authStatus,
       setAuthStatus: s.setAuthStatus,
       guestMode: s.guestMode,
-      acceptTerms: s.acceptTerms,
+      forceLanding: s.forceLanding,
+      setForceLanding: s.setForceLanding,
       termsSyncPending: s.termsSyncPending,
       onboardingDone: s.onboardingDone,
     })),
   );
 
-  const [showTermsGate, setShowTermsGate] = useState(false);
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);
-
-  const handleAcceptTerms = async () => {
-    await acceptTerms(CURRENT_TERMS_VERSION);
-    setShowTermsGate(false);
-  };
 
   useEffect(() => {
     if (isServer) return;
@@ -184,10 +180,6 @@ function AppContent() {
         console.error("Auth event processing failed:", err);
       } finally {
         setAuthStatus(session ? "authenticated" : "unauthenticated");
-        const { termsAccepted } = useAppStore.getState();
-        const needsTerms =
-          !termsAccepted || termsAccepted.version !== CURRENT_TERMS_VERSION;
-        if (needsTerms) setShowTermsGate(true);
       }
     });
 
@@ -216,21 +208,7 @@ function AppContent() {
   // Si somos servidor, no renderizamos nada pesado
   if (isServer) return null;
 
-  // Gate de Términos y Condiciones (Solo si es imperativo mostrarlo)
-  if (showTermsGate) {
-    return (
-      <TermsModal
-        mode="required"
-        onAccept={handleAcceptTerms}
-        onClose={() => {
-          setShowTermsGate(false);
-          useAppStore.getState().logout();
-        }}
-      />
-    );
-  }
-
-  if (!guestMode && !onboardingDone && authStatus !== "authenticated") {
+  if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
     return <LandingView />;
   }
 

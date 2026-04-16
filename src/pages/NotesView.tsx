@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { parseLyrics } from '@/services/lyricsParser'
-import { sendProjectionUpdate } from '@/services/projection'
+import { sendProjectionUpdate, openProjectionWindow } from '@/services/projection'
 import type { ChurchNote, Notice, AttendanceBreakdown, AttendanceRecord } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
@@ -311,9 +311,11 @@ export default function NotesView() {
   const [showAddForm, setShowAddForm] = useState(false)
 
   const { user } = useAppStore(useShallow(s => ({ user: s.user })))
-  const { loadSong, projectionState } = useProjectionStore(useShallow(s => ({
+  const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
-    projectionState: { songTitle: s.state.songTitle, slides: s.state.slides }
+    projectionState: { songTitle: s.state.songTitle, slides: s.state.slides },
+    projectionWindow: s.projectionWindow,
+    setProjectionWindow: s.setProjectionWindow,
   })))
   const userId = user?.id ?? 'guest'
 
@@ -453,6 +455,10 @@ export default function NotesView() {
     }
     useProjectionStore.setState({ state: newState })
     sendProjectionUpdate(newState)
+    if (!projectionWindow || projectionWindow.closed) {
+      const w = openProjectionWindow()
+      setProjectionWindow(w)
+    }
   }
 
   const isAttendanceProjected = projectionState.songTitle === 'Asistencia'
@@ -525,7 +531,10 @@ export default function NotesView() {
       usageCount: 0, isPublic: false, isVerified: false,
       createdAt: new Date(), updatedAt: new Date(),
     })
-    useProjectionStore.getState().updateTheme({ maxFontSize: 80 })
+    if (!projectionWindow || projectionWindow.closed) {
+      const w = openProjectionWindow()
+      setProjectionWindow(w)
+    }
   }
 
   const isToday = selectedDate === todayISO()
