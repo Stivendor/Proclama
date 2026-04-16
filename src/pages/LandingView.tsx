@@ -6,9 +6,11 @@ import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
+import { useLemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout'
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView, setForceLanding } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, user } = useAppStore()
+  const { openCheckout } = useLemonSqueezyCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [interestEmail, setInterestEmail] = useState('')
@@ -25,6 +27,14 @@ export default function LandingView() {
       return
     }
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
+  }
+
+  const handleBuyPro = () => {
+    const customData: Record<string, string | number> = {}
+    if (user?.id) {
+      customData.user_id = user.id
+    }
+    openCheckout(customData)
   }
 
   useEffect(() => {
@@ -142,6 +152,11 @@ export default function LandingView() {
               <h3>Confiabilidad total</h3>
               <p>Tus setlists y notas viven en tu navegador. Si el internet falla, tu proyección no se detiene; todo sigue funcionando localmente.</p>
             </article>
+            <article className="feature-card animate-on-scroll delay-4">
+              <Globe size={28} color="#c9a658" />
+              <h3>Biblia multilingüe</h3>
+              <p>Consulta y proyecta pasajes en múltiples versiones: Reina Valera 1960, NVI, PDT, LBLA, NTV (español) y KJV, ESV, WEB, NASB, NET (inglés).</p>
+            </article>
           </div>
         </section>
 
@@ -161,17 +176,15 @@ export default function LandingView() {
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
-                <li className="locked"><Lock size={14} /> Sincronización en la nube</li>
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
                 <li className="locked"><Lock size={14} /> Límite de 10 canciones propias</li>
               </ul>
               <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
             </article>
             <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Próximamente: Pro</span>
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Pro</span>
               <h3>Potencia avanzada para tu equipo</h3>
               <div className="plan-price">$0 <span>/ Siempre</span></div>
-              <div className="plan-soon">Lanzamiento muy pronto</div>
               <ul>
                 <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
@@ -179,20 +192,35 @@ export default function LandingView() {
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Búsqueda global extendida (LRC Lib)</li>
-                <li><Check size={16} /> Sincronización en la nube</li>
                 <li><Check size={16} /> Exportación de reportes CSV</li>
                 <li><Check size={16} /> Sin límite de canciones propias</li>
               </ul>
-              <button className="landing-btn-secondary" onClick={() => document.getElementById('premium-interest')?.scrollIntoView({ behavior: 'smooth' })}>Avisarme al lanzar Pro</button>
+              <button className="landing-btn-primary" onClick={handleBuyPro}>
+                <Sparkles size={16} /> Activar Plan Pro
+              </button>
             </article>
           </div>
         </section>
 
         <section id="premium-interest" className="section narrow animate-on-scroll">
           <div className="interest-card">
-            <div className="pill"><Sparkles size={14} color="#c9a658" /> El futuro de tu proyección</div>
-            <h2>El futuro de tu proyección comienza aquí</h2>
-            <p>Estamos expandiendo las capacidades de búsqueda y gestión de datos. Deja tu correo para ser el primero en saber cuándo el Plan Pro esté disponible.</p>
+            <div className="pill"><Sparkles size={14} color="#c9a658" /> Activa tu cuenta Pro</div>
+            <h2>Desbloquea todas las funciones avanzadas</h2>
+            <p>Con el Plan Pro obtienes acceso completo a todas las funciones de Proclama, incluyendo búsqueda global y exportación de reportes.</p>
+            <div className="procta">
+              <button className="landing-btn-primary large" onClick={handleBuyPro}>
+                <Sparkles size={18} /> Activar Plan Pro — $0 para siempre
+              </button>
+              <p className="procta-note">Pago único. Sin suscripciones recurrentes.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="interest-form" className="section narrow animate-on-scroll">
+          <div className="interest-card">
+            <div className="pill"><Mail size={14} color="#c9a658" /> ¿Aún no decides?</div>
+            <h2>Recibe actualizaciones</h2>
+            <p>Déjanos tu correo para enterarte de las novedades y mejoras que vengan pronto.</p>
             {interestStatus === 'success' ? (
               <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
             ) : interestStatus === 'duplicate' ? (
@@ -535,6 +563,18 @@ export default function LandingView() {
           font-size: 15px;
         }
         .error-line { width: 100%; color: #fca5a5; font-size: 13px; }
+        .procta {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          margin-top: 24px;
+        }
+        .procta-note {
+          font-size: 13px;
+          color: #748197;
+          margin: 0;
+        }
         .landing-footer {
           position: relative;
           z-index: 1;
