@@ -1,7 +1,7 @@
 {
   "name": "Proclama — Proyección para Iglesias",
   "short_name": "Proclama",
-  "description": "Sistema profesional de proyección de alabanzas y Biblia con sincronización en la nube y fondos dinámicos.",
+  "description": "Sistema profesional de proyección de alabanzas y Biblia y fondos dinámicos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060810",

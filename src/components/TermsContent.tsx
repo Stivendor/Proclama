@@ -27,7 +27,6 @@ export default function TermsContent() {
           <li>Integración con la Biblia para proyección de versículos</li>
           <li>Gestión de listas de reproducción (setlists) para servicios</li>
           <li>Proyección en pantalla secundaria o ventana dedicada</li>
-          <li>Sincronización en la nube para usuarios registrados</li>
           <li>Notas y avisos para la congregación</li>
         </ul>
       </section>

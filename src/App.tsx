@@ -20,7 +20,6 @@ import NotesView from "@/pages/NotesView";
 import TermsView from "@/pages/TermsView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
-import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 
 // Detectar si somos la ventana de proyección
@@ -49,7 +48,6 @@ function AppContent() {
     guestMode,
     forceLanding,
     setForceLanding,
-    acceptTerms,
     termsSyncPending,
     onboardingDone,
   } = useAppStore(
@@ -62,20 +60,13 @@ function AppContent() {
       guestMode: s.guestMode,
       forceLanding: s.forceLanding,
       setForceLanding: s.setForceLanding,
-      acceptTerms: s.acceptTerms,
       termsSyncPending: s.termsSyncPending,
       onboardingDone: s.onboardingDone,
     })),
   );
 
-  const [showTermsGate, setShowTermsGate] = useState(false);
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);
-
-  const handleAcceptTerms = async () => {
-    await acceptTerms(CURRENT_TERMS_VERSION);
-    setShowTermsGate(false);
-  };
 
   useEffect(() => {
     if (isServer) return;
@@ -188,10 +179,6 @@ function AppContent() {
         console.error("Auth event processing failed:", err);
       } finally {
         setAuthStatus(session ? "authenticated" : "unauthenticated");
-        const { termsAccepted } = useAppStore.getState();
-        const needsTerms =
-          !termsAccepted || termsAccepted.version !== CURRENT_TERMS_VERSION;
-        if (needsTerms) setShowTermsGate(true);
       }
     });
 
@@ -219,20 +206,6 @@ function AppContent() {
 
   // Si somos servidor, no renderizamos nada pesado
   if (isServer) return null;
-
-  // Gate de Términos y Condiciones (Solo si es imperativo mostrarlo)
-  if (showTermsGate) {
-    return (
-      <TermsModal
-        mode="required"
-        onAccept={handleAcceptTerms}
-        onClose={() => {
-          setShowTermsGate(false);
-          useAppStore.getState().logout();
-        }}
-      />
-    );
-  }
 
   if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
     return <LandingView />;
