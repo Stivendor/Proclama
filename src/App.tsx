@@ -6,6 +6,7 @@ import { useAppStore, useProjectionStore } from "@/stores";
 import { supabase } from "@/services/supabase";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { onMessage } from "@/services/projection";
+import FontLoader from "@/components/FontLoader";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
 import SongEditor from "@/pages/SongEditor";

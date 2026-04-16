@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
@@ -8,6 +8,18 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
 import { useLemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout'
 
+declare global {
+  interface Window {
+    deferredPrompt?: BeforeInstallPromptEvent
+  }
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[]
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+  prompt(): Promise<void>
+}
+
 export default function LandingView() {
   const { setGuestMode, acceptTerms, setActiveView, setForceLanding, user } = useAppStore()
   const { openCheckout } = useLemonSqueezyCheckout()
@@ -15,7 +27,28 @@ export default function LandingView() {
   const [showAuth, setShowAuth] = useState(false)
   const [interestEmail, setInterestEmail] = useState('')
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
+  const [canInstall, setCanInstall] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault()
+      window.deferredPrompt = e as BeforeInstallPromptEvent
+      setCanInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!window.deferredPrompt) return
+    await window.deferredPrompt.prompt()
+    const { outcome } = await window.deferredPrompt.userChoice
+    if (outcome === 'accepted') {
+      setCanInstall(false)
+    }
+    window.deferredPrompt = undefined
+  }
 
   const handleInterestSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,6 +137,11 @@ export default function LandingView() {
               <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
                 Ver funciones Pro
               </button>
+              {canInstall && (
+                <button className="landing-btn-download" onClick={handleInstall}>
+                  <Download size={16} /> Descargar App
+                </button>
+              )}
             </div>
           </div>
 
@@ -371,9 +409,31 @@ export default function LandingView() {
         }
         .landing-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(201, 166, 88, 0.32); }
         .landing-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .landing-btn-download {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 22px;
+          border: 1px solid rgba(212, 175, 55, 0.4);
+          border-radius: 999px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 15px;
+          font-weight: 700;
+          color: #d4af55;
+          background: rgba(212, 175, 55, 0.08);
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+        .landing-btn-download:hover {
+          background: rgba(212, 175, 55, 0.15);
+          border-color: rgba(212, 175, 55, 0.6);
+          transform: translateY(-2px);
+        }
         .landing-btn-line:focus-visible,
         .landing-btn-secondary:focus-visible,
-        .landing-btn-primary:focus-visible {
+        .landing-btn-primary:focus-visible,
+        .landing-btn-download:focus-visible {
           outline: 2px solid #c9a658;
           outline-offset: 3px;
         }
