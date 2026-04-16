@@ -1,5 +1,5 @@
 import { useState, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -10,8 +10,9 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import { containsIgnoreAccents } from '@/utils/text'
 
-const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void }) {
+const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate, onEdit }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void; onEdit: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
 
@@ -30,8 +31,15 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
         <span className="setlist-song-name">{song?.title ?? '...'}</span>
         {song?.artist && <span className="setlist-song-artist">{song.artist}</span>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {song?.key && <span className="song-key-sm">{song.key}</span>}
+        <button
+          className="btn-icon sm"
+          onClick={(e) => { e.stopPropagation(); song && onEdit(song); }}
+          title="Editar canción"
+        >
+          <Pencil size={12} />
+        </button>
         <button
           className="btn-icon danger sm"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -46,8 +54,10 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+  const { setActiveSetlist, setActiveView, setEditingSong, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
     setActiveSetlist: s.setActiveSetlist,
+    setActiveView: s.setActiveView,
+    setEditingSong: s.setEditingSong,
     user: s.user,
     isSidebarOpen: s.isSidebarOpen,
     toggleSidebar: s.toggleSidebar,
@@ -56,8 +66,6 @@ export default function SetlistsView() {
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
   const [songSearch, setSongSearch] = useState('')
-  const [selectedTag, setSelectedTag] = useState('')
-  const [selectedLang, setSelectedLang] = useState('')
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
@@ -91,19 +99,6 @@ export default function SetlistsView() {
     },
     [editingSetlist?.songIds]
   ) ?? []
-
-  // Extraer tags y lenguajes únicos para los filtros
-  const allTags = useMemo(() => {
-    const tags = new Set<string>()
-    allSongs.forEach(s => s.tags?.forEach(t => tags.add(t)))
-    return Array.from(tags).sort()
-  }, [allSongs])
-
-  const allLangs = useMemo(() => {
-    const langs = new Set<string>()
-    allSongs.forEach(s => s.language && langs.add(s.language))
-    return Array.from(langs).sort()
-  }, [allSongs])
 
   const setlists = useMemo(() => {
     return localSetlists.sort((a, b) =>
@@ -196,20 +191,13 @@ export default function SetlistsView() {
     if (!editingSetlist) return []
     return allSongs
       .filter(s => !editingSetlist.songIds.includes(s.id!))
-      .filter(s => {
-        const search = songSearch.toLowerCase()
-        const matchSearch = !search ||
-          s.title.toLowerCase().includes(search) ||
-          (s.artist?.toLowerCase() || '').includes(search) ||
-          s.tags?.some(t => t.toLowerCase().includes(search))
-
-        const matchTag = !selectedTag || s.tags?.includes(selectedTag)
-        const matchLang = !selectedLang || s.language === selectedLang
-
-        return matchSearch && matchTag && matchLang
-      })
+      .filter(s => !songSearch ||
+        containsIgnoreAccents(s.title, songSearch) ||
+        containsIgnoreAccents(s.artist || '', songSearch) ||
+        s.tags?.some(t => containsIgnoreAccents(t, songSearch))
+      )
       .slice(0, 50)
-  }, [allSongs, editingSetlist, songSearch, selectedTag, selectedLang])
+  }, [allSongs, editingSetlist, songSearch])
 
   return (
     <div className="setlists-view">
@@ -314,6 +302,7 @@ export default function SetlistsView() {
                           song={song}
                           onRemove={() => removeSongFromSetlist(id)}
                           onActivate={loadSong}
+                          onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
                         />
                       )
                     })}
@@ -324,43 +313,29 @@ export default function SetlistsView() {
 
             {/* Agregar canciones */}
             <div className="setlist-add-section">
-              <div className="section-header-row">
-                <h4>Agregar cualquier canción</h4>
-                <div className="add-section-toolbar">
-                  <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)}>
-                    <Globe size={14} /> Buscar online
-                  </button>
-                  <div className="search-box sm">
-                    <Search size={14} className="search-icon" />
-                    <input
-                      type="text"
-                      placeholder="Buscar por título, artista o etiqueta..."
-                      value={songSearch}
-                      onChange={e => setSongSearch(e.target.value)}
-                    />
-                    {songSearch && (
-                      <button className="clear-search" onClick={() => setSongSearch('')}>
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
+              <div className="add-section-toolbar">
+                <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)}>
+                  <Globe size={14} /> Buscar online
+                </button>
+                <div className="search-box sm">
+                  <Search size={14} className="search-icon" />
+                  <input
+                    type="text"
+                    placeholder="Buscar canción..."
+                    value={songSearch}
+                    onChange={e => setSongSearch(e.target.value)}
+                  />
+                  {songSearch && (
+                    <button className="clear-search" onClick={() => setSongSearch('')}>
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
-              </div>
-
-              <div className="filters-row-compact">
-                <select className="filter-select-sm" value={selectedTag} onChange={e => setSelectedTag(e.target.value)}>
-                  <option value="">Todas las etiquetas</option>
-                  {allTags.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <select className="filter-select-sm" value={selectedLang} onChange={e => setSelectedLang(e.target.value)}>
-                  <option value="">Todos los idiomas</option>
-                  {allLangs.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
               </div>
 
               <div className="add-songs-list highlight">
                 {filteredSongs.length === 0 ? (
-                  <p className="empty-hint">No se encontraron canciones con esos filtros</p>
+                  <p className="empty-hint">No se encontraron canciones</p>
                 ) : (
                   filteredSongs.map(s => (
                     <button key={s.id} className="add-song-btn-large" onClick={() => addSongToSetlist(s.id!)}>

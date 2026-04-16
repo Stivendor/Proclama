@@ -711,10 +711,12 @@ a:hover { text-decoration: underline; }
 }
 .setlist-editor h3 { margin: 0; }
 .setlist-editor h4 { margin: 0; }
-.search-box.sm {
-  background: var(--bg-base); border-color: var(--border); padding: 4px 10px; flex: 0 1 200px;
+.setlist-add-section .search-box.sm {
+  background: var(--bg-base); border: 1px solid var(--border); 
+  border-radius: var(--radius-sm); padding: 2px 8px;
 }
-.search-box.sm input { font-size: 12px; }
+.setlist-add-section .search-box.sm input { font-size: 13px; padding: 6px 0; border: none; background: transparent; }
+.setlist-add-section .search-box.sm .search-icon { opacity: 0.5; }
 .clear-search {
   color: var(--text-muted); font-size: 10px; padding: 2px;
 }

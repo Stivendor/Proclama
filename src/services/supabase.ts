@@ -91,6 +91,19 @@ export async function fetchSongs(): Promise<Song[]> {
   return allData.map(mapRowToSong)
 }
 
+export async function fetchSongsCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('songs')
+    .select('id', { count: 'exact', head: true })
+
+  if (error) {
+    console.warn('Error fetching songs count:', error.message)
+    return 0
+  }
+
+  return count ?? 0
+}
+
 /**
  * Busca canciones por texto en título, artista o letra.
  * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
