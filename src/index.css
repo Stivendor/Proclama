@@ -1330,6 +1330,23 @@ a:hover { text-decoration: underline; }
   border-color: var(--gold-dim);
 }
 
+.song-card-compact.blocked {
+  opacity: 0.6;
+}
+
+.song-card-compact.blocked:hover {
+  opacity: 0.85;
+}
+
+.rank-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
 .song-card-title {
   font-size: 13px; font-weight: 600;
   color: var(--text-primary);
@@ -1564,6 +1581,10 @@ a:hover { text-decoration: underline; }
 .status-icon-private {
   color: var(--text-muted);
   opacity: 0.6;
+}
+
+.status-icon-blocked {
+  color: var(--red);
 }
 
 /* Moderation Tabs */
