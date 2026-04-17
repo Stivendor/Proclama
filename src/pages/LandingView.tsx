@@ -244,14 +244,14 @@ export default function LandingView() {
           <div className="urgency-banner animate-on-scroll delay-1">
             <div className="urgency-col urgency-now">
               <span className="urgency-label">Precio de lanzamiento</span>
-              <div className="urgency-price">$49,900</div>
+              <div className="urgency-price">$49,900 COP</div>
               <span className="urgency-sub">pago único · acceso de por vida</span>
               <span className="urgency-badge-active">Activo ahora</span>
             </div>
             <div className="urgency-separator">→</div>
             <div className="urgency-col urgency-later">
               <span className="urgency-label">Precio regular (desde mes 3)</span>
-              <div className="urgency-price-later">$39,900</div>
+              <div className="urgency-price-later">$39,900 COP</div>
               <span className="urgency-sub">por año</span>
               <span className="urgency-badge-later">Próximamente</span>
             </div>
@@ -282,7 +282,7 @@ export default function LandingView() {
               {PREMIUM_FOR_EVERYONE ? (
                 <>
                   <span className="plan-sub-badge">Pago único — acceso de por vida</span>
-                  <span className="plan-future-price">Después: $39,900/año</span>
+                  <span className="plan-future-price">Después: $39,900 COP / año</span>
                 </>
               ) : (
                 <span className="plan-sub-badge">Acceso de por vida</span>
@@ -296,6 +296,7 @@ export default function LandingView() {
                 <li><Check size={16} /> Gestión de Setlists y Notas</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
                 <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
@@ -339,7 +340,12 @@ export default function LandingView() {
         </section>
       </main>
 
-      <footer className="landing-footer">© 2026 Proclama</footer>
+      <footer className="landing-footer">
+  <p style={{ fontStyle: 'italic', marginBottom: '10px', fontSize: '13px' }}>
+    "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
+  </p>
+  <div>© 2026 Proclama</div>
+</footer>
 
       {showTermsForGuest && (
         <TermsModal
