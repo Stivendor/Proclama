@@ -32,8 +32,9 @@ export default function LemonSqueezyCheckout({
   onCheckoutClosed,
 }: LemonSqueezyCheckoutProps) {
   const user = useAppStore(s => s.user)
-
-  const checkoutUrl = `${storeSlug || import.meta.env.VITE_LEMON_SQUEEZY_STORE_SLUG}/checkout/buy/${variantId || import.meta.env.VITE_LEMON_SQUEEZY_VARIANT_ID}`
+  const slug = storeSlug || import.meta.env.VITE_LEMON_SQUEEZY_STORE_SLUG || ''
+  const id = variantId || import.meta.env.VITE_LEMON_SQUEEZY_VARIANT_ID || ''
+  const checkoutUrl = slug && id ? `https://${slug}.lemonsqueezy.com/checkout/buy/${id}` : ''
 
   const handleClick = useCallback(() => {
     if (window.LemonSqueezy) {
@@ -86,21 +87,20 @@ export function useLemonSqueezyCheckout() {
       return
     }
 
-    const baseUrl = `${storeSlug}/checkout/buy/${variantId}`
-    const params = new URLSearchParams()
+    const baseUrl = `https://${storeSlug}.lemonsqueezy.com/checkout/buy/${variantId}`
     
+    // Lemon Squeezy espera los datos personalizados como checkout[custom][key]
+    const checkoutUrl = new URL(baseUrl)
     if (customData) {
       Object.entries(customData).forEach(([key, value]) => {
-        params.set(key, String(value))
+        checkoutUrl.searchParams.set(`checkout[custom][${key}]`, String(value))
       })
     }
-    
-    const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl
 
     if (window.LemonSqueezy) {
-      window.LemonSqueezy.Url.Open(url)
+      window.LemonSqueezy.Url.Open(checkoutUrl.toString())
     } else {
-      window.open(url, '_blank')
+      window.open(checkoutUrl.toString(), '_blank')
     }
   }, [])
 
