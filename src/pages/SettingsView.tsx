@@ -205,8 +205,20 @@ export default function SettingsView() {
                   Continuar con Google
                 </button>
 
-                <div className="auth-divider-settings">
-                  <span>o</span>
+                <div
+                  style={{
+                    marginTop: 20,
+                    padding: 16,
+                    textAlign: "center",
+                    color: "#9aa6bb",
+                    fontSize: 14,
+                    background: "rgba(255,255,255,0.04)",
+                    borderRadius: 10,
+                  }}
+                >
+                  📧 Email y contraseña temporalmente deshabilitados.
+                  <br />
+                  Usa "Continuar con Google" para entrar.
                 </div>
 
                 <div className="auth-toggle">

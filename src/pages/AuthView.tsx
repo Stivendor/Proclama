@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/services/supabase'
-import { LogIn, UserPlus, Mail, Lock, Loader2, Music2, CheckCircle } from 'lucide-react'
+import { Loader2, Music2 } from 'lucide-react'
 
-// Icono SVG de Google (no está en lucide)
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -15,16 +14,8 @@ function GoogleIcon() {
 }
 
 export default function AuthView() {
-  const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
-  const [mfaRequired, setMfaRequired] = useState(false)
-  const [mfaFactorId, setMfaFactorId] = useState<string>('')
-  const [mfaCode, setMfaCode] = useState('')
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -39,64 +30,6 @@ export default function AuthView() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-
-    try {
-      if (mfaRequired) {
-        // Verify MFA code
-        const { error } = await supabase.auth.mfa.verify({
-          factorId: mfaFactorId,
-          code: mfaCode,
-          challengeId: '' // This might need to be obtained from the challenge
-        })
-        if (error) throw error
-        setMfaRequired(false)
-        setMfaCode('')
-      } else {
-        if (isLogin) {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-          if (error) throw error
-          if (data.user && data.session && data.session.access_token) {
-            // Check if MFA is required
-            const factors = data.user.factors || []
-            if (factors.length > 0) {
-              setMfaRequired(true)
-              setMfaFactorId(factors[0].id)
-            }
-          }
-        } else {
-          const { error } = await supabase.auth.signUp({ email, password })
-          if (error) throw error
-          setSuccess(true)
-        }
-      }
-    } catch (err: any) {
-      setError(err.message || 'Ocurrió un error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (success) {
-    return (
-      <div className="auth-overlay">
-        <div className="auth-card" style={{ textAlign: 'center' }}>
-          <div className="success-icon" style={{ color: 'var(--green)', fontSize: '3rem', marginBottom: '1rem' }}>✓</div>
-          <h2>¡Registro exitoso!</h2>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-            Hemos enviado un correo de confirmación. Por favor verifica tu bandeja para continuar.
-          </p>
-          <button className="btn-primary" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setIsLogin(true)}>
-            Ir al Login
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="auth-overlay">
       <div className="auth-card">
@@ -105,8 +38,8 @@ export default function AuthView() {
             <Music2 size={32} color="var(--gold)" />
             <span>Proclama <span>Pro</span></span>
           </div>
-          <h1>{isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}</h1>
-          <p>{isLogin ? 'Accede a tus listas y ajustes personales' : 'Únete a la comunidad de Proclama'}</p>
+          <h1>Iniciar Sesión</h1>
+          <p>Accede a tus listas y ajustes personales</p>
         </div>
 
         <button
@@ -120,179 +53,98 @@ export default function AuthView() {
           Continuar con Google
         </button>
 
-        <div className="auth-divider"><span>o</span></div>
+        {error && <div className="auth-error">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label><Mail size={14} aria-hidden="true" /> Correo Electrónico</label>
-            <input 
-              type="email" 
-              required 
-              placeholder="tu@ejemplo.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label><Lock size={14} aria-hidden="true" /> Contraseña</label>
-            <input 
-              type="password" 
-              required 
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          </div>
-
-          {mfaRequired && (
-            <div className="form-group">
-              <label>Código MFA</label>
-              <input 
-                type="text" 
-                required 
-                placeholder="123456"
-                value={mfaCode}
-                onChange={e => setMfaCode(e.target.value)}
-              />
-            </div>
-          )}
-
-          {error && <div className="auth-error">{error}</div>}
-
-          <button className="btn-primary large" type="submit" disabled={loading}>
-            {loading ? <Loader2 className="spin" size={20} /> : (mfaRequired ? <CheckCircle size={18} /> : (isLogin ? <LogIn size={18} /> : <UserPlus size={18} />))}
-            {mfaRequired ? 'Verificar MFA' : (isLogin ? 'Entrar' : 'Registrarse')}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          {isLogin ? (
-            <p>¿No tienes cuenta? <button onClick={() => setIsLogin(false)}>Regístrate</button></p>
-          ) : (
-            <p>¿Ya tienes cuenta? <button onClick={() => setIsLogin(true)}>Inicia sesión</button></p>
-          )}
-        </div>
+        <style>{`
+          .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: #05070d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+          .auth-card {
+            background: #0f131c;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 40px 32px;
+            max-width: 380px;
+            width: 100%;
+          }
+          .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+          }
+          .auth-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+          }
+          .auth-logo span {
+            font-family: 'Cinzel', serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+          }
+          .auth-logo span span {
+            color: #c9a658;
+          }
+          h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
+            color: white;
+            margin: 0 0 8px;
+          }
+          p {
+            color: #9aa6bb;
+            font-size: 15px;
+            margin: 0;
+          }
+          .btn-google {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: white;
+            color: #333;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+          }
+          .btn-google:hover:not(:disabled) {
+            background: #f5f5f5;
+          }
+          .btn-google:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+          }
+          .auth-error {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(252, 129, 129, 0.12);
+            color: #fca5a5;
+            font-size: 14px;
+            text-align: center;
+          }
+          .spin {
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
-
-      <style>{`
-        .auth-overlay {
-          position: fixed; inset: 0;
-          background: #060810;
-          display: flex; align-items: center; justify-content: center;
-          z-index: 2000;
-          padding: 20px;
-        }
-        .auth-card {
-          background: var(--bg-surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          padding: 40px;
-          max-width: 440px;
-          width: 100%;
-          box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-        }
-        .auth-header { text-align: center; margin-bottom: 30px; }
-        .auth-logo { 
-          display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;
-          font-family: var(--font-display); font-size: 24px; font-weight: 600; color: var(--text-primary);
-        }
-        .auth-logo span span { color: var(--gold); }
-        .auth-header h1 { font-family: var(--font-display); font-size: 24px; margin-bottom: 8px; }
-        .auth-header p { color: var(--text-secondary); font-size: 14px; }
-        .auth-form { display: flex; flex-direction: column; gap: 20px; }
-        .auth-error { 
-           padding: 10px; border-radius: var(--radius-sm); 
-           background: rgba(224, 85, 85, 0.1); color: var(--red); 
-           font-size: 13px; border: 1px solid var(--red-dim);
-        }
-        .auth-footer { text-align: center; margin-top: 24px; color: var(--text-muted); font-size: 13px; }
-        .auth-footer button { color: var(--gold); font-weight: 600; margin-left: 5px; }
-        .auth-footer button:hover { text-decoration: underline; }
-        .sync-benefits {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-bottom: 20px;
-          padding: 16px;
-          background: rgba(212, 175, 55, 0.05);
-          border-radius: 8px;
-          border: 1px solid rgba(212, 175, 55, 0.15);
-        }
-        .sync-benefit-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 13px;
-          color: var(--text-secondary);
-        }
-        .sync-benefit-item svg { color: var(--gold); flex-shrink: 0; }
-        .auth-toggle {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 20px;
-        }
-        .toggle-btn {
-          flex: 1;
-          padding: 10px 16px;
-          border: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-muted);
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .toggle-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
-        .toggle-btn.active {
-          background: var(--gold);
-          border-color: var(--gold);
-          color: black;
-        }
-        .auth-hint {
-          text-align: center;
-          margin-top: 12px;
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-        .btn-google {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 11px 16px;
-          background: #fff;
-          color: #3c4043;
-          border: 1px solid #dadce0;
-          border-radius: var(--radius-sm);
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, box-shadow 0.15s;
-        }
-        .btn-google:hover:not(:disabled) {
-          background: #f8f9fa;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
-        .auth-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          color: var(--text-muted);
-          font-size: 12px;
-          margin: 4px 0;
-        }
-        .auth-divider::before,
-        .auth-divider::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: var(--border);
-        }
-      `}</style>
     </div>
   )
 }
