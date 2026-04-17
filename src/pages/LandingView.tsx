@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, Mail, Music2, Shield, Sparkles, Video, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Shield, Sparkles, User, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
+import { supabase } from '@/services/supabase'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
 import { useMercadoPagoCheckout } from '@/components/MercadoPagoCheckout'
@@ -27,10 +28,25 @@ export default function LandingView() {
   const { openCheckout } = useMercadoPagoCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  
   const [interestEmail, setInterestEmail] = useState('')
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
   const [canInstall, setCanInstall] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+
+  const handleSignOut = async () => {
+    const store = useAppStore.getState()
+    store.logout()
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.warn(e)
+    }
+    window.location.href = '/'
+  }
+
+  const userEmail = user?.email
+  const userName = userEmail ? userEmail.split('@')[0] : null
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -124,7 +140,19 @@ export default function LandingView() {
         </div>
         <div className="nav-actions">
           <FeedbackModal />
-          <button className="landing-btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
+          {user ? (
+            <div className="user-signed-in">
+              <span className="user-name">{userName || userEmail?.split('@')[0]}</span>
+              <button 
+                className="signout-btn" 
+                onClick={handleSignOut}
+              >
+                <LogOut size={14} /> Salir
+              </button>
+            </div>
+          ) : (
+            <button className="landing-btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
+          )}
         </div>
       </nav>
 
@@ -141,7 +169,7 @@ export default function LandingView() {
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
               <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>
-                Entrar como Invitado <ChevronRight size={18} />
+                Entrar a Proclama <ChevronRight size={18} />
               </button>
               <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
                 Ver funciones Pro
@@ -216,14 +244,14 @@ export default function LandingView() {
           <div className="urgency-banner animate-on-scroll delay-1">
             <div className="urgency-col urgency-now">
               <span className="urgency-label">Precio de lanzamiento</span>
-              <div className="urgency-price">$49,900</div>
+              <div className="urgency-price">$49,900 COP</div>
               <span className="urgency-sub">pago único · acceso de por vida</span>
               <span className="urgency-badge-active">Activo ahora</span>
             </div>
             <div className="urgency-separator">→</div>
             <div className="urgency-col urgency-later">
-              <span className="urgency-label">Precio regular (desde mes 4)</span>
-              <div className="urgency-price-later">$39,900</div>
+              <span className="urgency-label">Precio regular (desde mes 3)</span>
+              <div className="urgency-price-later">$39,900 COP</div>
               <span className="urgency-sub">por año</span>
               <span className="urgency-badge-later">Próximamente</span>
             </div>
@@ -254,7 +282,7 @@ export default function LandingView() {
               {PREMIUM_FOR_EVERYONE ? (
                 <>
                   <span className="plan-sub-badge">Pago único — acceso de por vida</span>
-                  <span className="plan-future-price">Después: $39,900/año</span>
+                  <span className="plan-future-price">Después: $39,900 COP / año</span>
                 </>
               ) : (
                 <span className="plan-sub-badge">Acceso de por vida</span>
@@ -268,6 +296,7 @@ export default function LandingView() {
                 <li><Check size={16} /> Gestión de Setlists y Notas</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
                 <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
@@ -280,7 +309,7 @@ export default function LandingView() {
           <div className="interest-card">
             <div className="pill"><Mail size={14} color="#c9a658" /> ¿Aún no decides?</div>
             <h2>Recibe actualizaciones</h2>
-            <p>Déjanos tu correo para enterarte de las novedades y mejoras que vengan pronto.</p>
+            <p>Déjanos tu correo para enterarte de las novedades y mejoras que vengan pronto.</p> 
             {interestStatus === 'success' ? (
               <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
             ) : interestStatus === 'duplicate' ? (
@@ -311,7 +340,12 @@ export default function LandingView() {
         </section>
       </main>
 
-      <footer className="landing-footer">© 2026 Proclama</footer>
+      <footer className="landing-footer">
+  <p style={{ fontStyle: 'italic', marginBottom: '10px', fontSize: '13px' }}>
+    "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
+  </p>
+  <div>© 2026 Proclama</div>
+</footer>
 
       {showTermsForGuest && (
         <TermsModal
@@ -812,6 +846,35 @@ export default function LandingView() {
           .urgency-note {
             font-size: 12px;
           }
+        }
+        /* User signed in */
+        .user-signed-in {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .user-name {
+          color: #c9a658;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .signout-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.14);
+          background: transparent;
+          color: #9aa6bb;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .signout-btn:hover {
+          background: rgba(255,255,255,0.06);
+          color: #fca5a5;
+          border-color: rgba(252, 165, 165, 0.3);
         }
       `}</style>
     </div>

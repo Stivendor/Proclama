@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock } from 'lucide-react'
+import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock, Plus, Trash2 } from 'lucide-react'
 import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore, useAppStore } from '@/stores'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/db'
+import ImportBibleModal from '@/components/ImportBibleModal'
+
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
 
@@ -29,6 +33,11 @@ export default function BibleView() {
   const [bookSearchQuery, setBookSearchQuery] = useState('')
   const [bookSuggestion, setBookSuggestion] = useState<{ id: string; name: string } | null>(null)
   const [selectedLanguage, setSelectedLanguage] = useState<'Español' | 'Inglés'>('Español')
+  const [showImportModal, setShowImportModal] = useState(false)
+  const importedBibles = useLiveQuery(() => db.imported_bibles.toArray()) || []
+  const [dynamicBookNames, setDynamicBookNames] = useState<Record<string, string>>({})
+  const [isLoadingBooks, setIsLoadingBooks] = useState(false)
+
   
   // Recent verses history (persistent)
   const [recentVerses, setRecentVerses] = useState<RecentVerse[]>(() => {
@@ -58,7 +67,38 @@ export default function BibleView() {
 
   const book = BIBLE_BOOKS.find(b => b.id === selectedBook)
   const filteredBooks = BIBLE_BOOKS.filter(b => testament === 'ALL' || b.testament === testament)
-  const filteredTranslations = SUPPORTED_TRANSLATIONS.filter(t => (t as any).lang === selectedLanguage)
+  const filteredTranslations = [
+    ...SUPPORTED_TRANSLATIONS.filter(t => (t as any).lang === selectedLanguage),
+    ...importedBibles.map(b => ({ id: b.id, name: b.name, lang: b.languageName }))
+  ]
+
+  // Actualizar nombres de libros si es una biblia importada de HelloAO
+  useEffect(() => {
+    const isImported = importedBibles.find(b => b.id === selectedTranslation)
+    if (isImported) {
+      setIsLoadingBooks(true)
+      fetch(`https://bible.helloao.org/api/${selectedTranslation}/books.json`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.books) {
+            const nameMap: Record<string, string> = {}
+            for (const book of data.books) {
+              nameMap[book.id.toLowerCase()] = book.name || book.commonName || book.title
+            }
+            setDynamicBookNames(nameMap)
+          }
+          setIsLoadingBooks(false)
+        })
+        .catch(err => {
+          console.error("Error cargando metadatos de libros", err)
+          setDynamicBookNames({})
+          setIsLoadingBooks(false)
+        })
+    } else {
+      setDynamicBookNames({})
+      setIsLoadingBooks(false)
+    }
+  }, [selectedTranslation, importedBibles])
 
   // Reset selected translation if it's not in the filtered list
   useEffect(() => {
@@ -339,6 +379,22 @@ export default function BibleView() {
     })
   }
 
+  const handleDeleteImportedBible = async () => {
+    const bibleToDelete = importedBibles.find(b => b.id === selectedTranslation);
+    if (!bibleToDelete) return;
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar la Biblia "${bibleToDelete.name}"?\nEsta acción no se puede deshacer y borrará los capítulos descargados.`)) {
+      try {
+        await db.imported_bibles.delete(bibleToDelete.id);
+        await db.bible_books_cache.where('bibleId').equals(bibleToDelete.id).delete();
+        await db.bible_chapters_cache.where('bibleId').equals(bibleToDelete.id).delete();
+        setSelectedTranslation('RVR1960');
+      } catch (error) {
+        console.error("Error al eliminar la biblia:", error);
+        alert("Ocurrió un error al intentar eliminar la Biblia.");
+      }
+    }
+  }
 
   const projectVerse = (verse: BibleVerseResult) => {
     projectVerses([verse])
@@ -351,22 +407,36 @@ export default function BibleView() {
   return (
     <div className="bible-view">
       <div className="view-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {!isSidebarOpen && (
             <button className="btn-icon" onClick={toggleSidebar}>
               <Menu size={20} />
             </button>
           )}
-          <div>
-            <h1><BookOpen size={18} style={{ display: 'inline', marginRight: 8 }} />Biblia</h1>
-          </div>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={24} color="var(--gold)" />
+            Biblia
+          </h1>
         </div>
-        <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
-          <div className="language-selector-bible">
+        
+        <div className="header-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          
+          <div style={{ display: 'flex', background: 'var(--bg-base)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
             {(['Español', 'Inglés'] as const).map(l => (
               <button
                 key={l}
-                className={`lang-tab-btn ${selectedLanguage === l ? 'active' : ''}`}
+                style={{ 
+                   padding: '6px 16px', 
+                   border: 'none', 
+                   background: selectedLanguage === l ? 'var(--bg-elevated)' : 'transparent',
+                   color: selectedLanguage === l ? 'var(--text-primary)' : 'var(--text-muted)',
+                   borderRadius: '6px',
+                   fontSize: '0.9rem',
+                   fontWeight: selectedLanguage === l ? 500 : 400,
+                   cursor: 'pointer',
+                   boxShadow: selectedLanguage === l ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                   transition: 'all 0.2s ease'
+                }}
                 onClick={() => setSelectedLanguage(l)}
               >
                 {l}
@@ -374,15 +444,82 @@ export default function BibleView() {
             ))}
           </div>
 
-          <select
-            className="filter-select"
-            value={selectedTranslation}
-            onChange={e => setSelectedTranslation(e.target.value)}
-          >
-            {filteredTranslations.map(t => <option key={t.id} value={t.id}>{t.name} ({t.id})</option>)}
-          </select>
+          <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 4px' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <select
+              className="filter-select"
+              value={selectedTranslation}
+              onChange={e => setSelectedTranslation(e.target.value)}
+              style={{
+                 maxWidth: '250px',
+                 padding: '8px 12px',
+                 borderRadius: '8px',
+                 border: '1px solid var(--border)',
+                 background: 'var(--bg-elevated)',
+                 color: 'var(--text-primary)',
+                 fontSize: '0.95rem'
+              }}
+            >
+              {filteredTranslations.map(t => <option key={t.id} value={t.id}>{t.name} ({typeof t.id === 'string' && t.id.length > 10 ? 'API' : t.id})</option>)}
+            </select>
+
+            {importedBibles.some(b => b.id === selectedTranslation) && (
+              <button
+                onClick={handleDeleteImportedBible}
+                title="Eliminar Biblia Importada"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '8px',
+                  background: 'transparent',
+                  border: '1px solid transparent',
+                  borderRadius: '8px',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={e => { e.currentTarget.style.background = 'var(--red-dim)'; e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)'; }}
+                onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+
+            <button 
+              onClick={() => setShowImportModal(true)}
+              title="Importar más Biblias (Premium)"
+              style={{ 
+                padding: '8px 14px', 
+                background: 'var(--bg-elevated)', 
+                border: '1px solid var(--border)', 
+                borderRadius: '8px',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontWeight: 500,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={e => {e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.color = 'var(--gold)'}}
+              onMouseOut={e => {e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-primary)'}}
+            >
+              <Plus size={16} /> <span style={{ fontSize: '0.9rem' }}>Importar</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {showImportModal && (
+        <ImportBibleModal 
+          onClose={() => setShowImportModal(false)} 
+          onImportSuccess={() => {
+            // Refrescar al cerrar si es necesario, aunque useLiveQuery ya lo hace.
+          }} 
+        />
+      )}
 
       <div className="bible-body">
         <div className="bible-sidebar">
@@ -418,15 +555,34 @@ export default function BibleView() {
           </div>
 
           <div className="books-list">
-            {filteredBooks.map(b => (
-              <button
-                key={b.id}
-                className={`book-item ${selectedBook === b.id ? 'active' : ''}`}
-                onClick={() => handleSelectBook(b.id)}
-              >
-                {selectedLanguage === 'Inglés' ? b.nameEn : b.name}
-              </button>
-            ))}
+            {isLoadingBooks ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                Cargando biblioteca...
+              </div>
+            ) : filteredBooks.filter(b => {
+                // Si es importada y ya cargó, OMITIR libros que no existan en la traducción
+                const isImported = importedBibles.find(t => t.id === selectedTranslation)
+                if (isImported && Object.keys(dynamicBookNames).length > 0) {
+                  return !!dynamicBookNames[b.id.toLowerCase()]
+                }
+                return true;
+            }).map(b => {
+              let displayName = dynamicBookNames[b.id.toLowerCase()] || (selectedLanguage === 'Inglés' ? b.nameEn : b.name);
+              // Si la API arroja nombres feos como "LUK", "ACT", "1COR" caer por defecto en el nativo
+              if (displayName.toUpperCase() === b.id.toUpperCase()) {
+                displayName = selectedLanguage === 'Inglés' ? b.nameEn : b.name;
+              }
+
+              return (
+                <button
+                  key={b.id}
+                  className={`book-item ${selectedBook === b.id ? 'active' : ''}`}
+                  onClick={() => handleSelectBook(b.id)}
+                >
+                  {displayName}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -524,7 +680,13 @@ export default function BibleView() {
               <ChevronLeft size={18} />
             </button>
             <span className="chapter-title">
-              {selectedLanguage === 'Inglés' ? book.nameEn : book.name} — Capítulo {selectedChapter}
+              {(() => {
+                let displayName = dynamicBookNames[book.id.toLowerCase()] || (selectedLanguage === 'Inglés' ? book.nameEn : book.name);
+                if (displayName.toUpperCase() === book.id.toUpperCase()) {
+                  displayName = selectedLanguage === 'Inglés' ? book.nameEn : book.name;
+                }
+                return displayName;
+              })()} — Capítulo {selectedChapter}
             </span>
             <button
               className="btn-icon"

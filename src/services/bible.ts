@@ -1,6 +1,7 @@
 // API gratuita sin CORS: bible-api.com (dominio público / RVR1960)
 import type { BibleBook } from '@/types'
 import { BIBLE_CONTENT, BIBLE_BOOKS as IMPORTED_BIBLE_BOOKS } from '@/data/bible-content'
+import { supabase } from '@/services/supabase'
 
 export const BIBLE_BOOKS: BibleBook[] = [
   // ─── Antiguo Testamento ───
@@ -233,6 +234,66 @@ export async function fetchChapter(
       return verses
     }
     
+    // Identificar si es una Biblia importada (HelloAO) - no está en los predeterminados
+    const isImported = !SUPPORTED_TRANSLATIONS.find(t => t.id === translation);
+    if (isImported) {
+      try {
+        const url = `https://bible.helloao.org/api/${translation}/${bookId.toUpperCase()}/${chapter}.json`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        
+        const res = await fetch(url, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.chapter?.content) {
+            
+            const extractText = (node: any): string => {
+              if (typeof node === 'string') return node;
+              if (Array.isArray(node)) return node.map(extractText).join('');
+              if (node && typeof node === 'object') {
+                if (node.text) return node.text;
+                if (node.content) return extractText(node.content);
+              }
+              return '';
+            }
+
+            const verseMap = new Map<number, string>()
+            
+            for (const item of data.chapter.content) {
+              if (item.type === 'verse' && item.number) {
+                 const text = extractText(item.content)
+                 const num = Number(item.number)
+                 if (verseMap.has(num)) {
+                    verseMap.set(num, verseMap.get(num) + ' ' + text)
+                 } else {
+                    verseMap.set(num, text)
+                 }
+              }
+            }
+            
+            const verses: BibleVerseResult[] = Array.from(verseMap.entries())
+              .sort((a,b) => a[0] - b[0])
+              .map(([num, text]) => ({
+                reference: `${bookName} ${chapter}:${num}`,
+                text: text.replace(/\s+/g, ' ').trim(),
+                translation,
+                bookId,
+                chapter
+              }))
+
+            if (verses.length > 0) {
+              setCachedChapter(bookId, chapter, translation, verses)
+              return verses;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching HelloAO chapter:', err)
+      }
+    }
+
     // Si no hay datos locales o es otra versión, usar Bolls Life API
     const bollsId = BOLLS_BOOK_MAP[bookId] || 1
     const url = `https://bolls.life/get-text/${translation}/${bollsId}/${chapter}/`

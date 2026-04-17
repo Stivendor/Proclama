@@ -56,8 +56,20 @@ export default function Sidebar() {
           onClick={handleLogoClick}
           title="Volver al inicio de la app"
         >
-          <Music2 size={24} />
-          <span>Proclama</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Music2 size={24} color="#d4a843" />
+            <div style={{
+              fontFamily: "'Montserrat', sans-serif",
+              fontSize: '22px',
+              fontWeight: 700,
+              letterSpacing: '-0.5px',
+              display: 'flex',
+              gap: '6px'
+            }}>
+              <span style={{ color: '#ffffff' }}>Proclama</span>
+              <span style={{ color: '#d4a843' }}>Pro</span>
+            </div>
+          </div>
         </div>
         <button className="btn-icon" onClick={toggleSidebar} aria-label="Cerrar panel" title="Cerrar panel">
           <List size={18} />
