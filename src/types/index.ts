@@ -209,3 +209,24 @@ export interface ChurchNote {
   createdAt: string
   updatedAt: string
 }
+
+// ─── API.Bible / HelloAO Interfaces ─────────────────────────────────────────────
+export interface HelloAOBibleInfo {
+  id: string
+  name: string
+  englishName: string
+  language: string
+  languageName: string
+  languageEnglishName: string
+  shortName: string
+  totalNumberOfChapters: number
+  totalNumberOfVerses: number
+}
+
+export interface ImportedBibleReference {
+  id: string      // ID from HelloAO (usually short like BSB, AAB)
+  name: string    
+  languageId: string
+  languageName: string
+  importedAt: number
+}
