@@ -6,7 +6,8 @@ import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
-import { useLemonSqueezyCheckout } from '@/components/LemonSqueezyCheckout'
+import { useMercadoPagoCheckout } from '@/components/MercadoPagoCheckout'
+import { PREMIUM_FOR_EVERYONE, usePlan } from '@/hooks/usePlan'
 
 declare global {
   interface Window {
@@ -22,7 +23,8 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function LandingView() {
   const { setGuestMode, acceptTerms, setActiveView, setForceLanding, user } = useAppStore()
-  const { openCheckout } = useLemonSqueezyCheckout()
+  const { isPremium } = usePlan()
+  const { openCheckout } = useMercadoPagoCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [interestEmail, setInterestEmail] = useState('')
@@ -63,11 +65,18 @@ export default function LandingView() {
   }
 
   const handleBuyPro = () => {
-    const customData: Record<string, string | number> = {}
-    if (user?.id) {
-      customData.user_id = user.id
+    if (isPremium) {
+      setShowTermsForGuest(true)
+      return
     }
-    openCheckout(customData)
+    if (!user?.id) {
+      setShowAuth(true)
+      return
+    }
+    openCheckout({
+      userId: user.id,
+      userEmail: user.email || undefined
+    })
   }
 
   useEffect(() => {
@@ -198,59 +207,72 @@ export default function LandingView() {
           </div>
         </section>
 
-        <section id="planes" className="section">
+        <section id="planes" className="section pricing-section">
           <div className="section-head animate-on-scroll">
-            <h2>Comparativa de Funciones</h2>
+            <h2>Elige tu plan</h2>
+            <p>Durante el lanzamiento: todos los beneficios Pro disponibles.</p>
           </div>
+
+          <div className="urgency-banner animate-on-scroll delay-1">
+            <div className="urgency-col urgency-now">
+              <span className="urgency-label">Precio de lanzamiento</span>
+              <div className="urgency-price">$49,900</div>
+              <span className="urgency-sub">pago único · acceso de por vida</span>
+              <span className="urgency-badge-active">Activo ahora</span>
+            </div>
+            <div className="urgency-separator">→</div>
+            <div className="urgency-col urgency-later">
+              <span className="urgency-label">Precio regular (desde mes 4)</span>
+              <div className="urgency-price-later">$39,900</div>
+              <span className="urgency-sub">por año</span>
+              <span className="urgency-badge-later">Próximamente</span>
+            </div>
+            <p className="urgency-note">Este precio no vuelve. Quienes entren ahora conservan su licencia de por vida.</p>
+          </div>
+
           <div className="plans-grid animate-on-scroll delay-2">
             <article className="plan-card">
               <span className="plan-badge">Gratis</span>
-              <h3>Todo lo que necesitas para proyectar</h3>
-              <div className="plan-price">$0 <span>/ Siempre</span></div>
+              <h3>Plan Básico</h3>
+              <div className="plan-price">$0 <span>/ siempre</span></div>
               <ul>
-                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
-                <li><Check size={16} /> Uso local ilimitado y fluido</li>
-                <li><Check size={16} /> Gestión de Setlists y Notas</li>
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li className="locked"><Lock size={14} /> Biblioteca de 3,000+ canciones completas</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
-                <li className="locked"><Lock size={14} /> Límite de 10 canciones propias</li>
+                <li className="locked"><Lock size={14} /> Sin límite de canciones propias</li>
               </ul>
-              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>Entrar como Invitado</button>
+              <button className="landing-btn-secondary plan-btn-outline" onClick={() => setShowTermsForGuest(true)}>Usar Gratis</button>
             </article>
             <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Pro</span>
-              <h3>Potencia avanzada para tu equipo</h3>
-              <div className="plan-price">$0 <span>/ Siempre</span></div>
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> {PREMIUM_FOR_EVERYONE ? 'Pro · Gratis ahora' : 'Pro'}</span>
+              <h3>Pro License</h3>
+              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$0' : '$49,900'} <span>/ {PREMIUM_FOR_EVERYONE ? 'ahora' : 'pago único'}</span></div>
+              {PREMIUM_FOR_EVERYONE ? (
+                <>
+                  <span className="plan-sub-badge">Pago único — acceso de por vida</span>
+                  <span className="plan-future-price">Después: $39,900/año</span>
+                </>
+              ) : (
+                <span className="plan-sub-badge">Acceso de por vida</span>
+              )}
               <ul>
-                <li><Check size={16} /> Biblioteca de 3,000+ canciones</li>
-                <li><Check size={16} /> Uso local ilimitado y fluido</li>
-                <li><Check size={16} /> Gestión de Setlists y Notas</li>
-                <li><Check size={16} /> Proyección de alto rendimiento</li>
-                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
                 <li><Check size={16} /> Búsqueda global extendida (LRC Lib)</li>
                 <li><Check size={16} /> Exportación de reportes CSV</li>
                 <li><Check size={16} /> Sin límite de canciones propias</li>
+                <li><Check size={16} /> Proyección de alto rendimiento</li>
+                <li><Check size={16} /> Gestión de Setlists y Notas</li>
+                <li><Check size={16} /> Fondos de video e imágenes</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
-                <Sparkles size={16} /> Activar Plan Pro
+                <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
               </button>
             </article>
-          </div>
-        </section>
-
-        <section id="premium-interest" className="section narrow animate-on-scroll">
-          <div className="interest-card">
-            <div className="pill"><Sparkles size={14} color="#c9a658" /> Activa tu cuenta Pro</div>
-            <h2>Desbloquea todas las funciones avanzadas</h2>
-            <p>Con el Plan Pro obtienes acceso completo a todas las funciones de Proclama, incluyendo búsqueda global y exportación de reportes.</p>
-            <div className="procta">
-              <button className="landing-btn-primary large" onClick={handleBuyPro}>
-                <Sparkles size={18} /> Activar Plan Pro — $0 para siempre
-              </button>
-              <p className="procta-note">Pago único. Sin suscripciones recurrentes.</p>
-            </div>
           </div>
         </section>
 
@@ -656,6 +678,116 @@ export default function LandingView() {
         @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeDown { to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+        /* ── Pricing Section ─────────────────────────────────────── */
+        .pricing-section { 
+          padding-top: 82px;
+          padding-bottom: 48px;
+        }
+        .urgency-banner {
+          max-width: 680px;
+          margin: 0 auto 42px;
+          padding: 28px 32px;
+          border-radius: 20px;
+          border: 1px solid rgba(201, 166, 88, 0.3);
+          background: #0f1219;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          flex-wrap: wrap;
+        }
+        .urgency-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 6px;
+        }
+        .urgency-label {
+          font-size: 12px;
+          color: #9aa6bb;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .urgency-price {
+          font-size: 42px;
+          font-weight: 700;
+          color: #d4a017;
+          line-height: 1.1;
+        }
+        .urgency-price-later {
+          font-size: 42px;
+          font-weight: 700;
+          color: #778398;
+          line-height: 1.1;
+        }
+        .urgency-sub {
+          font-size: 13px;
+          color: #9aa6bb;
+        }
+        .urgency-separator {
+          font-size: 24px;
+          color: #555;
+          padding: 0 8px;
+        }
+        .urgency-badge-active {
+          display: inline-block;
+          padding: 5px 12px;
+          border-radius: 999px;
+          background: rgba(39, 201, 63, 0.15);
+          color: #4ade80;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .urgency-badge-later {
+          display: inline-block;
+          padding: 5px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+          color: #9aa6bb;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .urgency-note {
+          width: 100%;
+          margin: 16px 0 0;
+          font-size: 13px;
+          color: #9aa6bb;
+          font-style: italic;
+          text-align: center;
+        }
+        .plan-price-pro {
+          font-size: 42px;
+          font-weight: 700;
+          color: #f0dfb6;
+        }
+        .plan-price-pro span {
+          font-size: 18px;
+          color: #9aa6bb;
+          font-weight: 400;
+        }
+        .plan-sub-badge {
+          display: inline-block;
+          padding: 6px 14px;
+          background: rgba(201, 166, 88, 0.12);
+          color: #d4a017;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .plan-future-price {
+          font-size: 13px;
+          color: #778398;
+        }
+        .plan-btn-outline {
+          width: 100%;
+          margin-top: auto;
+        }
+
         @media (min-width: 860px) { .nav-links { display: flex; } }
         @media (max-width: 920px) {
           .hero, .feature-grid, .plans-grid { grid-template-columns: 1fr; }
@@ -663,6 +795,23 @@ export default function LandingView() {
           .hero-actions { justify-content: center; }
           .hero-card-wide { grid-column: span 1; }
           .hero-panel { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+          .urgency-banner {
+            flex-direction: column;
+            gap: 20px;
+            padding: 24px 20px;
+          }
+          .urgency-separator {
+            transform: rotate(90deg);
+            padding: 8px 0;
+          }
+          .urgency-price, .urgency-price-later {
+            font-size: 32px;
+          }
+          .urgency-note {
+            font-size: 12px;
+          }
         }
       `}</style>
     </div>

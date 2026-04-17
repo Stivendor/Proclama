@@ -531,10 +531,6 @@ export default function NotesView() {
       usageCount: 0, isPublic: false, isVerified: false,
       createdAt: new Date(), updatedAt: new Date(),
     })
-    if (!projectionWindow || projectionWindow.closed) {
-      const w = openProjectionWindow()
-      setProjectionWindow(w)
-    }
   }
 
   const isToday = selectedDate === todayISO()
