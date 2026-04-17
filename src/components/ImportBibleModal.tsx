@@ -13,7 +13,7 @@ interface ImportBibleModalProps {
 export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBibleModalProps) {
   const { isPremium } = usePlan()
   const { fetchBibles, loading, error } = useBibleAPI()
-  
+
   const [bibles, setBibles] = useState<HelloAOBibleInfo[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set())
@@ -48,10 +48,10 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
         languageName: bible.languageEnglishName || bible.languageName || bible.language,
         importedAt: Date.now()
       }
-      
+
       await db.imported_bibles.put(record)
       setImportedIds(prev => new Set(prev).add(bible.id))
-      
+
       if (onImportSuccess) onImportSuccess()
     } catch (err) {
       console.error('Error importando biblia:', err)
@@ -62,10 +62,10 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
   const filteredBibles = bibles.filter(b => {
     if (!searchQuery.trim()) return true
     const q = searchQuery.toLowerCase()
-    return b.name.toLowerCase().includes(q) || 
-           b.englishName.toLowerCase().includes(q) ||
-           b.languageName.toLowerCase().includes(q) ||
-           (b.languageEnglishName && b.languageEnglishName.toLowerCase().includes(q))
+    return b.name.toLowerCase().includes(q) ||
+      b.englishName.toLowerCase().includes(q) ||
+      b.languageName.toLowerCase().includes(q) ||
+      (b.languageEnglishName && b.languageEnglishName.toLowerCase().includes(q))
   })
 
   const groupedBibles = filteredBibles.reduce((acc, bible) => {
@@ -80,26 +80,42 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
-      <div 
-        className="modal-content" 
-        onClick={e => e.stopPropagation()} 
-        style={{ 
-          maxWidth: '600px', 
-          width: '90%', 
-          height: '70vh', 
-          display: 'flex', 
+      <div
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: '600px',
+          width: '90%',
+          height: '70vh',
+          display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          backgroundColor: 'var(--bg-card)',
+          backgroundColor: '#0d1117',
           borderRadius: '12px',
           border: '1px solid var(--border-color)'
         }}
       >
-        <div className="modal-header" style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          className="modal-header"
+          style={{
+            padding: '20px',
+            display: 'flex', // Eliminamos el borderBottom de aquí para usar la línea personalizada
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Importar Biblias (HelloAO)</h2>
           <button className="btn-icon" onClick={onClose}><X size={20} /></button>
         </div>
+
+        {/* ESTA ES LA LÍNEA LARGA QUE SUBRAYA TODO */}
+        <div style={{
+          height: '1px',
+          width: '100%',
+          background: 'linear-gradient(90deg, transparent, var(--border-color), transparent)',
+          opacity: 0.8
+        }} />
 
         {!isPremium ? (
           <div style={{
@@ -120,19 +136,19 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
               width: '64px',
               height: '64px',
               borderRadius: '50%',
-              background: 'rgba(139, 92, 246, 0.2)',
+              background: 'rgba(255, 255, 255, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '24px'
             }}>
-              <Lock size={32} color="#8B5CF6" />
+              <Lock size={32} color="#d4a843" />
             </div>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>Función Proclama Pro</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px', maxWidth: '400px', lineHeight: 1.5 }}>
               Desbloquea el acceso a cientos de traducciones bíblicas en docenas de idiomas instantáneamente.
             </p>
-            <button className="btn-primary" style={{ padding: '12px 32px', fontSize: '1.1rem', background: '#8B5CF6', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+            <button className="btn-primary" style={{ padding: '12px 32px', fontSize: '1.1rem', background: '#d4a843', color: '#0d1117', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
               Actualizar a Premium
             </button>
           </div>
@@ -149,9 +165,9 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
                 gap: '8px'
               }}>
                 <Search size={18} color="var(--text-muted)" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar por idioma o nombre de Biblia..." 
+                <input
+                  type="text"
+                  placeholder="Buscar por idioma o nombre de Biblia..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   style={{
@@ -192,8 +208,8 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
                         {langBibles.map(b => {
                           const isImported = importedIds.has(b.id)
                           return (
-                            <div 
-                              key={b.id} 
+                            <div
+                              key={b.id}
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -205,19 +221,19 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
                               }}
                             >
                               <div>
-                                <div style={{ fontWeight: 500, marginBottom: '4px' }}>{b.name} <span style={{fontSize:'0.75rem', opacity:0.6}}>{b.id}</span></div>
+                                <div style={{ fontWeight: 500, marginBottom: '4px' }}>{b.name} <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{b.id}</span></div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                   {b.totalNumberOfChapters} Capítulos • {b.totalNumberOfVerses} Versículos
                                 </div>
                               </div>
-                              
-                              <button 
+
+                              <button
                                 className={isImported ? "btn-ghost" : "btn-primary"}
-                                style={{ 
-                                  minWidth: '110px', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
+                                style={{
+                                  minWidth: '110px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
                                   gap: '8px',
                                   opacity: isImported ? 0.7 : 1,
                                   cursor: isImported ? 'default' : 'pointer'
