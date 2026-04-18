@@ -315,7 +315,7 @@ export const useAppStore = create<AppStore>()(
         userPlan: 'free', 
         authStatus: 'unauthenticated', 
         guestMode: false,
-        termsAccepted: null,
+        // NO borrar termsAccepted para que persista entre guest y logged in
         activeSetlist: null,
         editingSong: null
       }),

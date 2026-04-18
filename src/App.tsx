@@ -142,27 +142,47 @@ function AppContent() {
         const user = session?.user ?? null;
         setUser(user);
 
-        if (user) {
+if (user) {
           void syncProfile(user.id).catch((err) => {
             console.warn("Profile sync failed:", err);
           });
 
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             try {
+              // Primero verificar si hay términos locales ya aceptados
+              const currentTerms = useAppStore.getState().termsAccepted;
+              const shouldUpdateTerms = useAppStore.getState().checkTermsVersion();
+              
+              // Si ya tiene términos locales actualizados, NO mostrar términos
+              if (currentTerms && !shouldUpdateTerms) {
+                // Sincronizar con Supabase si hay pending
+                const { termsSyncPending } = useAppStore.getState();
+                if (termsSyncPending && currentTerms) {
+                  const { syncTermsAcceptance } = await import("@/services/supabase");
+                  await syncTermsAcceptance(user.id, currentTerms.version, currentTerms.acceptedAt);
+                  useAppStore.getState().setTermsSyncPending(false);
+                }
+                return // No mostrar términos
+              }
+
+              // Descargar términos de Supabase
               const { fetchTermsAcceptance } = await import("@/services/supabase");
               const remoteTerms = await fetchTermsAcceptance(user.id);
               if (remoteTerms) {
                 useAppStore.getState().setTermsAccepted(remoteTerms);
               }
 
+              // Verificar si necesita aceptar
+              if (useAppStore.getState().checkTermsVersion()) {
+                useAppStore.getState().setActiveView("terms");
+                return
+              }
+              
+              // Sync pending si hay
               const { termsSyncPending, termsAccepted } = useAppStore.getState();
               if (termsSyncPending && termsAccepted) {
                 const { syncTermsAcceptance } = await import("@/services/supabase");
-                await syncTermsAcceptance(
-                  user.id,
-                  termsAccepted.version,
-                  termsAccepted.acceptedAt,
-                );
+                await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt);
                 useAppStore.getState().setTermsSyncPending(false);
               }
             } catch (err) {
