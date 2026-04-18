@@ -1,5 +1,4 @@
 import { useCallback } from 'react'
-import { useAppStore } from '@/stores'
 
 interface MercadoPagoCheckoutOptions {
   userId?: string
@@ -8,75 +7,53 @@ interface MercadoPagoCheckoutOptions {
 
 export function useMercadoPagoCheckout() {
   const openCheckout = useCallback(async (options?: MercadoPagoCheckoutOptions) => {
-    const accessToken = import.meta.env.VITE_MERCADOPAGO_ACCESS_TOKEN
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://proclama.lat'
+    const functionUrl = '***REMOVED***/functions/v1/create-mercadopago-preference'
     
-    if (!accessToken) {
-      console.error('MercadoPago not configured. Access token missing.')
-      console.log('Available env vars:', import.meta.env)
-      return
-    }
-
-    const title = import.meta.env.VITE_MERCADOPAGO_TITLE || 'Proclama Pro'
-    const price = Number(import.meta.env.VITE_MERCADOPAGO_PRICE) || 49900
-    const currency = import.meta.env.VITE_MERCADOPAGO_CURRENCY || 'COP'
-const webhookUrl = import.meta.env.VITE_MERCADOPAGO_WEBHOOK_URL || '***REMOVED***/functions/v1/mercadopago-webhook'
-    const origin = window.location.origin || 'http://localhost:5174'
+    // Get the anon key from supabase client
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
     
-    const payload = {
-      transaction_amount: price,
-      description: title,
-      items: [
-        {
-          title: title,
-          description: 'Acceso de por vida a Proclama Pro',
-          unit_price: price,
-          quantity: 1,
-          currency_id: currency
-        }
-      ],
-      payer: {
-        email: options?.userEmail || 'cliente@proclama.app'
-      },
-      external_reference: options?.userId || crypto.randomUUID(),
-      notification_url: webhookUrl,
-      back_urls: {
-        success: origin,
-        failure: origin,
-        pending: origin
-      },
-      payment_methods: {
-        installments: 1
-      }
-    }
-
-    console.log('Payload:', JSON.stringify(payload, null, 2))
-
     try {
-      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          userId: options?.userId,
+          userEmail: options?.userEmail,
+          price: 49900,
+          currency: 'COP',
+          successUrl: origin,
+          failureUrl: origin,
+          pendingUrl: origin
+        })
       })
-
+      
+      if (!response.ok) {
+        const err = await response.json()
+        console.error('Error creating preference:', err)
+        alert('Error al crear preferencia de pago. Intenta de nuevo.')
+        return
+      }
+      
       const data = await response.json()
-
-      console.log('MercadoPago response status:', response.status)
-      console.log('MercadoPago response:', JSON.stringify(data, null, 2))
-
-      if (data.init_point) {
-        window.open(data.init_point, '_blank')
-      } else if (data.sandbox_init_point) {
-        window.open(data.sandbox_init_point, '_blank')
+      console.log('Preference created:', data)
+      
+      // Abrir el link de pago
+      const initPoint = data?.init_point || data?.sandbox_init_point
+      if (initPoint) {
+        window.open(initPoint, '_blank')
       } else {
-        console.error('MercadoPago preference error:', data)
-        alert('Error al crear preferencia de pago. Revisa la consola.')
+        console.error('No init_point in response:', data)
+        alert('Error al obtener enlace de pago.')
       }
     } catch (error) {
       console.error('Error creating MercadoPago preference:', error)
-      alert('Error de conexión con MercadoPago. Revisa la consola.')
+      alert('Error de conexión. Revisa la consola.')
     }
   }, [])
 
@@ -97,13 +74,9 @@ export default function MercadoPagoCheckoutButton({
   onClick?: () => void
 }) {
   const { openCheckout } = useMercadoPagoCheckout()
-  const { user } = useAppStore(s => ({ user: s.user }))
 
   const handleClick = () => {
-    openCheckout({
-      userId: user?.id,
-      userEmail: user?.email || undefined
-    })
+    openCheckout()
     onClick?.()
   }
 

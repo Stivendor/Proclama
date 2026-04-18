@@ -1,0 +1,2 @@
+[functions.create_mercadopago_preference]
+verify_jwt = false
