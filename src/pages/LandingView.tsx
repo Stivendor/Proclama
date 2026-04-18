@@ -81,6 +81,7 @@ export default function LandingView() {
   }
 
   const handleBuyPro = () => {
+    console.log('handleBuyPro called', { isPremium, user: user?.id })
     if (isPremium) {
       setShowTermsForGuest(true)
       return
@@ -89,6 +90,7 @@ export default function LandingView() {
       setShowAuth(true)
       return
     }
+    console.log('Opening checkout for', user.id, user.email)
     openCheckout({
       userId: user.id,
       userEmail: user.email || undefined
