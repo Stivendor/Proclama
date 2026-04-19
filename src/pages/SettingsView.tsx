@@ -432,7 +432,13 @@ export default function SettingsView() {
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
                 </ul>
                 {!isPremium && (
-                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => openCheckout({})}>
+                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
+                    if (user?.id) {
+                      openCheckout({ userId: user.id, userEmail: user.email || undefined })
+                    } else {
+                      openCheckout({})
+                    }
+                  }}>
                     Mejorar a Premium
                   </button>
                 )}
