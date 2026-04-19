@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Shield, Sparkles, User, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
@@ -49,6 +49,15 @@ export default function LandingView() {
   const userName = userEmail ? userEmail.split('@')[0] : null
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const scrollTo = params.get('scroll');
+    if (scrollTo) {
+      setTimeout(() => {
+        const el = document.getElementById(scrollTo);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+    
     const handler = (e: Event) => {
       e.preventDefault()
       window.deferredPrompt = e as BeforeInstallPromptEvent
@@ -80,13 +89,14 @@ export default function LandingView() {
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
   }
 
-  const handleBuyPro = () => {
+  const handleBuyPro = async () => {
     console.log('handleBuyPro called', { isPremium, user: user?.id })
     if (isPremium) {
       setShowTermsForGuest(true)
       return
     }
     if (!user?.id) {
+      localStorage.setItem('pendingCheckout', 'true')
       setShowAuth(true)
       return
     }
@@ -96,6 +106,16 @@ export default function LandingView() {
       userEmail: user.email || undefined
     })
   }
+
+  const checkPendingCheckout = useCallback(() => {
+    if (localStorage.getItem('pendingCheckout') === 'true' && user?.id && !isPremium) {
+      localStorage.removeItem('pendingCheckout')
+      openCheckout({
+        userId: user.id,
+        userEmail: user.email || undefined
+      })
+    }
+  }, [user, isPremium])
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -110,6 +130,10 @@ export default function LandingView() {
 
     return () => observerRef.current?.disconnect()
   }, [])
+
+  useEffect(() => {
+    checkPendingCheckout()
+  }, [user, isPremium])
 
   if (showAuth) {
     return (
@@ -248,7 +272,7 @@ export default function LandingView() {
               <span className="urgency-label">Precio de lanzamiento</span>
               <div className="urgency-price">$49,900 COP</div>
               <span className="urgency-sub">pago único · acceso de por vida</span>
-              <span className="urgency-badge-active">Activo ahora</span>
+              <span className="urgency-badge-active">Precio especial</span>
             </div>
             <div className="urgency-separator">→</div>
             <div className="urgency-col urgency-later">
@@ -423,7 +447,7 @@ export default function LandingView() {
           display: flex;
           align-items: center;
           gap: 12px;
-          font-family: 'Cinzel', serif;
+          font-family: 'Montserrat', sans-serif;
           font-size: 24px;
           font-weight: 600;
         }
@@ -523,7 +547,7 @@ export default function LandingView() {
         }
         .hero-copy h1 {
           margin: 20px 0 16px;
-          font-family: 'Cinzel', serif;
+          font-family: 'Montserrat', sans-serif;
           font-size: clamp(42px, 5vw, 68px);
           line-height: 1.04;
           text-wrap: balance;
@@ -566,7 +590,7 @@ export default function LandingView() {
         .section-head { text-align: center; margin-bottom: 42px; }
         .section-head h2, .interest-card h2 {
           margin: 0 0 12px;
-          font-family: 'Cinzel', serif;
+          font-family: 'Montserrat', sans-serif;
           font-size: clamp(30px, 4vw, 40px);
           text-wrap: balance;
         }

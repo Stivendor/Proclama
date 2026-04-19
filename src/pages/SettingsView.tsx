@@ -28,6 +28,8 @@ import { supabase } from "@/services/supabase";
 import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 import MFAModal from "@/components/MFAModal";
+import { usePlan } from "@/hooks/usePlan";
+import { useMercadoPagoCheckout } from "@/components/MercadoPagoCheckout";
 
 export default function SettingsView() {
   const {
@@ -65,6 +67,9 @@ export default function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [showTermsForSignup, setShowTermsForSignup] = useState(false);
   const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null);
+
+  const { isPremium } = usePlan();
+  const { openCheckout } = useMercadoPagoCheckout();
 
   useEffect(() => {
     fetchBackgrounds();
@@ -113,7 +118,7 @@ export default function SettingsView() {
     "Inter, sans-serif",
     "Playfair Display, serif",
     "Lora, serif",
-    "Cinzel, serif",
+    "Montserrat, sans-serif",
     "Verdana, sans-serif",
   ];
 
@@ -384,6 +389,57 @@ export default function SettingsView() {
             )}
           </section>
 
+{/* Planes */}
+          <section className="settings-section">
+            <h2>Planes</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {/* Plan Básico */}
+              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', color: '#d1dae8', fontSize: '12px', fontWeight: 700 }}>Usar Gratis</span>
+                </div>
+                <div>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>$0<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> para siempre</span></div>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Proyección de alto rendimiento</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de Setlists y Notas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Fondos de video e imágenes</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Uso local ilimitado y fluido</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca de 3,000+ canciones completas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Búsqueda global extendida (LRC Lib)</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de reportes CSV</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Sin límite de canciones propias</li>
+                </ul>
+              </div>
+
+              {/* Plan Premium */}
+              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(201, 166, 88, 0.22)', background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(201, 166, 88, 0.14)', color: '#f0dfb6', fontSize: '12px', fontWeight: 700 }}>Plan Premium</span>
+                  {isPremium && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
+                </div>
+                <div>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$49,900<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · único</span></div>
+                  <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Acceso de por vida</p>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todo del plan Básico</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca de 3,000+ canciones completas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda global extendida (LRC Lib)</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Exportación de reportes CSV</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Sin límite de canciones propias</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
+                </ul>
+                {!isPremium && (
+                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => openCheckout({})}>
+                    Mejorar a Premium
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Seguridad */}
           {user && (
             <section className="settings-section">
@@ -409,271 +465,8 @@ export default function SettingsView() {
 
           {showMFAModal && <MFAModal onClose={() => setShowMFAModal(false)} />}
 
-          {/* Proyección */}
-          <section className="settings-section">
-            <h2>
-              <Sliders size={15} /> Proyección — Tema por Defecto
-            </h2>
-            <div className="form-group">
-              <label>Tipo de Fondo</label>
-              <div className="segmented-control">
-                <button
-                  className={
-                    !state.theme.backgroundType ||
-                    state.theme.backgroundType === "color"
-                      ? "active"
-                      : ""
-                  }
-                  onClick={() => updateTheme({ backgroundType: "color" })}
-                >
-                  <Sliders size={14} /> Color
-                </button>
-                <button
-                  className={
-                    state.theme.backgroundType === "image" ? "active" : ""
-                  }
-                  onClick={() => updateTheme({ backgroundType: "image" })}
-                >
-                  <ImageIcon size={14} /> Imagen
-                </button>
-                <button
-                  className={
-                    state.theme.backgroundType === "video" ? "active" : ""
-                  }
-                  onClick={() => updateTheme({ backgroundType: "video" })}
-                >
-                  <Film size={14} /> Video
-                </button>
-              </div>
-            </div>
-
-            <div className="background-options">
-              {state.theme.backgroundType === "image" && (
-                <div className="gallery-container">
-                  <label>
-                    <ImageIcon size={14} /> Galería de Imagenes
-                  </label>
-                  <div className="backgrounds-gallery">
-                    {backgrounds.map((bg) => (
-                      <div
-                        key={bg.id}
-                        className={`gallery-item ${state.theme.backgroundImageUrl === bg.url ? "active" : ""}`}
-                        onClick={() =>
-                          updateTheme({
-                            backgroundType: "image",
-                            backgroundImageUrl: bg.url,
-                            backgroundThumbnail: bg.thumbnailUrl,
-                          })
-                        }
-                      >
-                        <img
-                          src={bg.thumbnailUrl || bg.url}
-                          alt="background"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (target.src !== bg.url) {
-                              target.src = bg.url;
-                            }
-                          }}
-                        />
-                        {state.theme.backgroundImageUrl === bg.url && (
-                          <div className="active-overlay">
-                            <CheckCircle size={14} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="form-group" style={{ marginTop: 20 }}>
-                    <label>URL de Imagen Personalizada</label>
-                    <input
-                      type="text"
-                      placeholder="https://...imagen.jpg"
-                      value={state.theme.backgroundImageUrl || ""}
-                      onChange={(e) =>
-                        updateTheme({ backgroundImageUrl: e.target.value })
-                      }
-                    />
-                    <span className="input-tip">
-                      Pega aquí el enlace de cualquier imagen para usarla de
-                      fondo.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {state.theme.backgroundType === "video" && (
-                <div className="form-group">
-                  <label>
-                    <Film size={14} /> URL del Video (MP4)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="https://...fondo.mp4"
-                    value={state.theme.backgroundVideoUrl || ""}
-                    onChange={(e) =>
-                      updateTheme({ backgroundVideoUrl: e.target.value })
-                    }
-                  />
-                </div>
-              )}
-
-              {(state.theme.backgroundType === "color" ||
-                !state.theme.backgroundType) && (
-                <div className="form-group">
-                  <label>Color de fondo</label>
-                  <div className="color-input-row">
-                    <input
-                      type="color"
-                      value={
-                        state.theme.background.startsWith("#")
-                          ? state.theme.background
-                          : "#0a0a0f"
-                      }
-                      onChange={(e) =>
-                        updateTheme({ background: e.target.value })
-                      }
-                    />
-                    <input
-                      type="text"
-                      value={state.theme.background}
-                      onChange={(e) =>
-                        updateTheme({ background: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Color de texto</label>
-                <div className="color-input-row">
-                  <input
-                    type="color"
-                    value={state.theme.textColor}
-                    onChange={(e) => updateTheme({ textColor: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    value={state.theme.textColor}
-                    onChange={(e) => updateTheme({ textColor: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Fuente</label>
-                <select
-                  value={state.theme.fontFamily}
-                  onChange={(e) => updateTheme({ fontFamily: e.target.value })}
-                >
-                  {FONTS.map((f) => (
-                    <option key={f} value={f}>
-                      {f.split(",")[0]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Posición Cita Bíblica</label>
-                <select
-                  value={state.theme.verseReferencePosition || "top"}
-                  onChange={(e) =>
-                    updateTheme({
-                      verseReferencePosition: e.target.value as any,
-                    })
-                  }
-                >
-                  <option value="top">Arriba</option>
-                  <option value="bottom">Abajo</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Transición</label>
-                <select
-                  value={state.theme.transition}
-                  onChange={(e) =>
-                    updateTheme({ transition: e.target.value as any })
-                  }
-                >
-                  {TRANSITIONS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group checkboxes">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={state.theme.textShadow}
-                  onChange={(e) =>
-                    updateTheme({ textShadow: e.target.checked })
-                  }
-                />
-                Sombra en el texto
-              </label>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={state.theme.textUppercase || false}
-                  onChange={(e) =>
-                    updateTheme({ textUppercase: e.target.checked })
-                  }
-                />
-                Texto en mayúsculas
-              </label>
-            </div>
-
-            <div className="form-row" style={{ marginTop: 20 }}>
-              <div className="form-group">
-                <label>
-                  Desenfoque de Fondo ({state.theme.backgroundBlur || 0}px)
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  step="1"
-                  value={state.theme.backgroundBlur || 0}
-                  onChange={(e) =>
-                    updateTheme({ backgroundBlur: parseInt(e.target.value) })
-                  }
-                  className="proclama-range"
-                />
-              </div>
-              <div className="form-group">
-                <label>
-                  Filtro Oscuro (
-                  {Math.round(
-                    (state.theme.backgroundOverlayOpacity || 0) * 100,
-                  )}
-                  %)
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={state.theme.backgroundOverlayOpacity ?? 0.3}
-                  onChange={(e) =>
-                    updateTheme({
-                      backgroundOverlayOpacity: parseFloat(e.target.value),
-                    })
-                  }
-                  className="proclama-range"
-                />
-              </div>
-            </div>
-          </section>
+          
+         
         </div>
 
         {/* Columna Derecha de Preview */}

@@ -31,7 +31,6 @@ export default function CountdownView() {
     'Inter, sans-serif',
     'Playfair Display, serif',
     'Lora, serif',
-    'Cinzel, serif',
     'Verdana, sans-serif'
   ]
 
@@ -169,16 +168,7 @@ export default function CountdownView() {
                   ))}
                 </div>
                 
-                <div className="form-group" style={{ marginTop: 20 }}>
-                  <label>URL de Imagen Personalizada</label>
-                  <input 
-                    type="text" 
-                    placeholder="https://...imagen.jpg" 
-                    value={config.theme.backgroundImageUrl || ''} 
-                    onChange={e => updateTheme({ backgroundImageUrl: e.target.value })} 
-                  />
-                  <span className="input-tip">Pega aquí el enlace de cualquier imagen para usarla de fondo.</span>
-                </div>
+                
               </div>
             )}
 

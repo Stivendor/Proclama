@@ -1,4 +1,4 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
@@ -32,6 +32,7 @@ export default function Sidebar() {
     { id: 'bible', icon: BookIcon, label: 'Biblia' },
     { id: 'countdown', icon: Timer, label: 'Contador' },
     { id: 'notes', icon: ClipboardEdit, label: 'Notas' },
+    { id: 'fondos', icon: Image, label: 'Fondos' },
     { id: 'settings', icon: Settings, label: 'Ajustes' }
   ] as const
 

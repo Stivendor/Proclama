@@ -10,13 +10,12 @@ export function useMercadoPagoCheckout() {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://proclama.lat'
     const functionUrl = 'https://ydyozanakkzpgldqcdjj.supabase.co/functions/v1/create-mercadopago-preference'
     
-    // Get the anon key from supabase client
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+    const supabaseAnonKey = 'bb2051aa7654052dc22821d10a7310db0ab43ac00ef3f878479bb8635ea6242'
     
     try {
       const response = await fetch(functionUrl, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${supabaseAnonKey}`,
@@ -35,7 +34,7 @@ export function useMercadoPagoCheckout() {
       
       if (!response.ok) {
         const err = await response.json()
-        console.error('Error creating preference:', err)
+        console.error('Error creating preference:', JSON.stringify(err, null, 2)) // ← stringify
         alert('Error al crear preferencia de pago. Intenta de nuevo.')
         return
       }

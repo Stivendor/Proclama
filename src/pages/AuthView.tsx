@@ -85,7 +85,7 @@ export default function AuthView() {
             margin-bottom: 24px;
           }
           .auth-logo span {
-            font-family: 'Cinzel', serif;
+            font-family: 'Montserrat', sans-serif;
             font-size: 24px;
             font-weight: 600;
             color: white;
@@ -94,7 +94,7 @@ export default function AuthView() {
             color: #c9a658;
           }
           h1 {
-            font-family: 'Cinzel', serif;
+            font-family: 'Montserrat', sans-serif;
             font-size: 28px;
             color: white;
             margin: 0 0 8px;

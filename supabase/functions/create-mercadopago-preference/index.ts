@@ -1,18 +1,16 @@
-const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')!
-const MERCADOPAGO_WEBHOOK_URL = Deno.env.get('MERCADOPAGO_WEBHOOK_URL') || 'https://ydyozanakkzpgldqcdjj.supabase.co/functions/v1/mercadopago-webhook'
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Expose-Headers': 'content-type',
+}
 
 Deno.serve(async (req) => {
-  // This function uses verify: false in config to bypass JWT verification
-  // Handle CORS preflight - allow all without auth check
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Max-Age': '3600',
-      }
+      headers: corsHeaders
     })
   }
 
@@ -21,10 +19,21 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { userId, userEmail, price = 49900, currency = 'COP', successUrl, failureUrl, pendingUrl } = await req.json()
+    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+    const MERCADOPAGO_WEBHOOK_URL = Deno.env.get('MERCADOPAGO_WEBHOOK_URL') || 'https://ydyozanakkzpgldqcdjj.supabase.co/functions/v1/mercadopago-webhook'
+
+    const body = await req.text()
+    console.log('Request body:', body)
+    
+    if (!body) {
+      return new Response(JSON.stringify({ error: 'Empty body' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    
+    const { userId, userEmail, price = 49900, currency = 'COP', successUrl, failureUrl, pendingUrl } = JSON.parse(body)
 
     if (!MERCADOPAGO_ACCESS_TOKEN) {
-      return new Response(JSON.stringify({ error: 'MercadoPago not configured' }), { status: 500 })
+      console.error('MercadoPago token not set')
+      return new Response(JSON.stringify({ error: 'MercadoPago not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const payload = {
@@ -64,28 +73,30 @@ Deno.serve(async (req) => {
     })
 
     const data = await response.json()
+    console.log('MP response:', data)
+
+    if (!response.ok) {
+      console.error('MP error:', data)
+      return new Response(JSON.stringify({ error: data }), { status: 400 })
+    }
 
     if (data.init_point || data.sandbox_init_point) {
 return new Response(JSON.stringify(data), { 
         status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': '*',
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     } else {
       console.error('MercadoPago error:', data)
       return new Response(JSON.stringify({ error: data }), { 
         status: 400,
-        headers: { 'Access-Control-Allow-Origin': '*' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
   } catch (error) {
     console.error('Error:', error)
     return new Response(JSON.stringify({ error: 'Internal server error' }), { 
       status: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
