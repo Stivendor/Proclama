@@ -212,26 +212,6 @@ export default function FondosView() {
             <h2 onClick={() => setTextoExpanded(!textoExpanded)} style={{ cursor: "pointer", flex: 1 }}>
               <Type size={15} /> Texto {textoExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </h2>
-            <div className="texto-preview-mini" style={{ 
-              width: "200px", 
-              height: "50px", 
-              borderRadius: "8px", 
-              background: state.theme.backgroundType === "image" ? `url(${state.theme.backgroundImageUrl}) center/cover` : state.theme.background || "#000",
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center",
-              color: state.theme.textColor || "#fff",
-              fontFamily: state.theme.fontFamily || "Montserrat",
-              fontSize: "14px",
-              fontWeight: 900,
-              textAlign: "center",
-              padding: "4px",
-              boxSizing: "border-box",
-              textShadow: state.theme.textShadow !== false ? "0 2px 4px rgba(0,0,0,0.8)" : "none",
-              filter: state.theme.textShadow !== false ? "drop-shadow(0 2px 4px rgba(0,0,0,0.8))" : "none",
-            }}>
-              {state.theme.textUppercase ? "EJEMPLO DE TEXTO" : "Ejemplo de texto"}
-            </div>
           </div>
           {textoExpanded && (
             <div className="options-grid">
