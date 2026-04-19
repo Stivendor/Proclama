@@ -32,7 +32,7 @@ export default function Sidebar() {
     { id: 'bible', icon: BookIcon, label: 'Biblia' },
     { id: 'countdown', icon: Timer, label: 'Contador' },
     { id: 'notes', icon: ClipboardEdit, label: 'Notas' },
-    { id: 'fondos', icon: Image, label: 'Fondos' },
+    { id: 'fondos', icon: Image, label: 'Fondos / Estilos' },
     { id: 'settings', icon: Settings, label: 'Ajustes' }
   ] as const
 
