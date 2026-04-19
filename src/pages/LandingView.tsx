@@ -92,7 +92,7 @@ export default function LandingView() {
   const handleBuyPro = async () => {
     console.log('handleBuyPro called', { isPremium, user: user?.id })
     if (isPremium) {
-      setShowTermsForGuest(true)
+      setActiveView('library')
       return
     }
     if (!user?.id) {
@@ -194,7 +194,11 @@ export default function LandingView() {
               Entra directo a la acción. Gestiona tus setlists y accede a una biblioteca masiva al instante, con una interfaz diseñada para responder aunque no tengas conexión.
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
-              <button className="landing-btn-primary" onClick={() => setShowTermsForGuest(true)}>
+              <button className="landing-btn-primary" onClick={() => {
+                acceptTerms(CURRENT_TERMS_VERSION)
+                setGuestMode(true)
+                setForceLanding(false)
+              }}>
                 Entrar a Proclama <ChevronRight size={18} />
               </button>
               <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -299,7 +303,11 @@ export default function LandingView() {
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
                 <li className="locked"><Lock size={14} /> Sin límite de canciones propias</li>
               </ul>
-              <button className="landing-btn-secondary plan-btn-outline" onClick={() => setShowTermsForGuest(true)}>Usar Gratis</button>
+              <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
+                acceptTerms(CURRENT_TERMS_VERSION)
+                setGuestMode(true)
+                setForceLanding(false)
+              }}>Usar Gratis</button>
             </article>
             <article className="plan-card plan-pro">
               <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> {PREMIUM_FOR_EVERYONE ? 'Pro · Gratis ahora' : 'Pro'}</span>
