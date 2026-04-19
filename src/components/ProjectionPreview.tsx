@@ -14,6 +14,23 @@ interface PreviewState {
   countdownState: CountdownState | null
 }
 
+interface ProjectionPreviewProps {
+  textColor?: string
+  fontFamily?: string
+  textUppercase?: boolean
+  textShadow?: boolean
+  transition?: string
+  verseReferencePosition?: string
+  hideText?: boolean
+  onTextColorChange?: (color: string) => void
+  onFontFamilyChange?: (font: string) => void
+  onTextUppercaseChange?: (val: boolean) => void
+  onTextShadowChange?: (val: boolean) => void
+  onTransitionChange?: (val: string) => void
+  onVersePositionChange?: (val: string) => void
+  onHideTextChange?: (val: boolean) => void
+}
+
 // Helper: Load collapsed state from localStorage
 const loadCollapsedState = (): boolean => {
   try {
@@ -50,7 +67,7 @@ const validateProjectionState = (state: any): ProjectionState | null => {
   }
 }
 
-function ProjectionPreview() {
+function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, transition, verseReferencePosition, hideText, onTextColorChange, onFontFamilyChange, onTextUppercaseChange, onTextShadowChange, onTransitionChange, onVersePositionChange, onHideTextChange }: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
     projectionState: null,
@@ -347,6 +364,80 @@ function ProjectionPreview() {
             >
               {renderPreviewContent()}
             </div>
+          </div>
+          <div className="preview-canvas-controls-left">
+            <div className="preview-canvas-row">
+              <label>Color de Texto</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <input 
+                  type="color" 
+                  value={textColor || '#ffffff'} 
+                  onChange={(e) => onTextColorChange?.(e.target.value)}
+                />
+                <span>{textColor || '#ffffff'}</span>
+              </div>
+            </div>
+            <div className="preview-canvas-row">
+              <label>Fuente</label>
+              <select 
+                value={fontFamily || 'Montserrat'}
+                onChange={(e) => onFontFamilyChange?.(e.target.value)}
+              >
+                <option value="Montserrat">Montserrat</option>
+                <option value="Arial">Arial</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Impact">Impact</option>
+              </select>
+            </div>
+            <div className="preview-canvas-row">
+              <label>Transición</label>
+              <select 
+                value={transition || 'fade'}
+                onChange={(e) => onTransitionChange?.(e.target.value)}
+              >
+                <option value="fade">Fade (suave)</option>
+                <option value="slide">Slide</option>
+                <option value="instant">Instant</option>
+              </select>
+            </div>
+            <div className="preview-canvas-row">
+              <label>Posición Cita</label>
+              <div className="preview-canvas-btns">
+                <button className={verseReferencePosition === 'top' ? 'active' : ''} onClick={() => onVersePositionChange?.('top')}>Arriba</button>
+                <button className={verseReferencePosition === 'bottom' || !verseReferencePosition ? 'active' : ''} onClick={() => onVersePositionChange?.('bottom')}>Abajo</button>
+              </div>
+            </div>
+            <div className="preview-canvas-row">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={textShadow !== false} 
+                  onChange={(e) => onTextShadowChange?.(e.target.checked)}
+                />
+                Sombra en el texto
+              </label>
+            </div>
+            <div className="preview-canvas-row">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={textUppercase === true} 
+                  onChange={(e) => onTextUppercaseChange?.(e.target.checked)}
+                />
+                Texto en mayúsculas
+              </label>
+            </div>
+          </div>
+          <div className="preview-canvas-controls-right">
+            <button 
+              className={`preview-hide-text-btn ${hideText ? 'active' : ''}`}
+              onClick={() => onHideTextChange?.(!hideText)}
+            >
+              {hideText ? ' Mostrar Texto' : 'Ocultar Texto'}
+            </button>
           </div>
         </div>
       )}

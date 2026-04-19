@@ -28,7 +28,7 @@
   --radius-lg:  12px;
 
   --font-ui:    'Inter', -apple-system, sans-serif;
-  --font-display: 'Cinzel', Georgia, serif;
+  --font-display: 'Montserrat', sans-serif;
 }
 
 /* ─── Reset ───────────────────────────────────────────────────────────────────── */
@@ -2237,6 +2237,31 @@ a:hover { text-decoration: underline; }
   min-height: 32px;
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
+}
+
+.preview-text-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-text-controls input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview-text-controls select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
   transition: background-color 0.15s ease-out, color 0.15s ease-out;
 }
 
@@ -2313,4 +2338,284 @@ a:hover { text-decoration: underline; }
   .app-shell:has(.projection-preview.expanded) {
     padding-bottom: 150px;
   }
+}
+
+.preview-text-controls-panel {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-color);
+}
+
+.preview-text-control-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview-text-control-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.preview-text-control-row input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview-text-control-row select {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.preview-text-control-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+}
+
+.preview-header-text-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+
+.preview-header-text-controls input[type="color"] {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview-header-text-controls select {
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 36px;
+}
+
+.preview-header-text-controls label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.preview-header-text-controls input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--gold);
+}
+
+.preview-canvas-controls {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 20;
+}
+
+.preview-canvas-controls input[type="color"] {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview-canvas-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-canvas-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.preview-canvas-row span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.preview-canvas-controls select {
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 90px;
+}
+
+.preview-canvas-controls label {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.preview-canvas-controls input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--gold);
+}
+
+.preview-canvas-control {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.preview-canvas-controls-panel {
+  position: absolute;
+  bottom: 40px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 6px;
+  width: 200px;
+}
+
+.preview-canvas-controls-panel.hidden {
+  display: none;
+}
+
+.preview-canvas-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-canvas-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.preview-canvas-row input[type="color"] {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.preview-canvas-row span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.preview-canvas-row select {
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 11px;
+  width: 100px;
+}
+
+.preview-canvas-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.preview-canvas-btns button {
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.preview-canvas-btns button.active {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+}
+
+.preview-canvas-controls-left {
+  display: flex;
+  flex-direction: column;
+  
+  gap: 6px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 8px;
+}
+
+.preview-canvas-controls-right {
+  display: flex;
+  align-items: flex-end;
+}
+
+.preview-hide-text-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.preview-hide-text-btn.active {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
 }

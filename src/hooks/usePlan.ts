@@ -4,7 +4,7 @@ import { useAppStore } from '@/stores'
  * Flag global: mientras sea true, TODOS los usuarios tienen acceso premium.
  * Cambiar a false cuando se active el modelo freemium.
  */
-export const PREMIUM_FOR_EVERYONE = false
+export const PREMIUM_FOR_EVERYONE = false 
 
 /** Límite de canciones propias para usuarios free */
 export const FREE_SONG_LIMIT = 10
@@ -42,7 +42,7 @@ export function usePlan() {
   const canSync = isPremium
 
   /** Retorna true si el usuario puede usar fondos multimedia (videos/imágenes) */
-  const canUseMediaBackgrounds = true // Siempre disponible para todos
+  const canUseMediaBackgrounds = isPremium // Siempre disponible para todos
 
   /** Retorna true si el usuario puede exportar reportes de asistencia */
   const canExportReports = isPremium

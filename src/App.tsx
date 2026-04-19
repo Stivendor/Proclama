@@ -19,6 +19,7 @@ import BibleView from "@/pages/BibleView";
 import CountdownView from "@/pages/CountdownView";
 import NotesView from "@/pages/NotesView";
 import TermsView from "@/pages/TermsView";
+import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
@@ -245,6 +246,17 @@ function MainApp() {
     })),
   );
 
+  const { updateTheme, state: projectionState, setHideText } = useProjectionStore(
+    useShallow((s) => ({
+      updateTheme: s.updateTheme,
+      state: s.state,
+      setHideText: s.setHideText,
+    })),
+  );
+
+  const showTextControls = activeView === "fondos";
+  const theme = projectionState.theme;
+
   return (
     <div className={`app-shell ${!isSidebarOpen ? "sidebar-hidden" : ""}`}>
       {!onboardingDone && <OnboardingFlow />}
@@ -258,11 +270,27 @@ function MainApp() {
         {activeView === "countdown" && <CountdownView />}
         {activeView === "notes" && <NotesView />}
         {activeView === "terms" && <TermsView />}
+        {activeView === "fondos" && <FondosView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
       </aside>
-      <ProjectionPreview />
+      <ProjectionPreview 
+        textColor={theme.textColor}
+        fontFamily={theme.fontFamily}
+        textUppercase={theme.textUppercase}
+        textShadow={theme.textShadow}
+        transition={theme.transition}
+        verseReferencePosition={theme.verseReferencePosition}
+        hideText={projectionState.hideText}
+        onTextColorChange={(color) => updateTheme({ textColor: color })}
+        onFontFamilyChange={(font) => updateTheme({ fontFamily: font })}
+        onTextUppercaseChange={(val) => updateTheme({ textUppercase: val })}
+        onTextShadowChange={(val) => updateTheme({ textShadow: val })}
+        onTransitionChange={(val) => updateTheme({ transition: val as any })}
+        onVersePositionChange={(val) => updateTheme({ verseReferencePosition: val as any })}
+        onHideTextChange={(val) => setHideText(val)}
+      />
     </div>
   );
 }
