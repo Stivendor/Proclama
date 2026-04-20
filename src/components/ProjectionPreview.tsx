@@ -7,6 +7,7 @@ import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
 const STORAGE_KEY = 'proclama-preview-collapsed'
+const MEDIA_KEY = 'proclama-preview-media'
 
 interface PreviewState {
   isCollapsed: boolean
@@ -22,6 +23,13 @@ interface ProjectionPreviewProps {
   transition?: string
   verseReferencePosition?: string
   hideText?: boolean
+  backgroundType?: string
+  background?: string
+  backgroundImageUrl?: string
+  backgroundThumbnail?: string
+  backgroundVideoUrl?: string
+  backgroundBlur?: number
+  backgroundOverlayOpacity?: number
   onTextColorChange?: (color: string) => void
   onFontFamilyChange?: (font: string) => void
   onTextUppercaseChange?: (val: boolean) => void
@@ -51,6 +59,25 @@ const saveCollapsedState = (collapsed: boolean): void => {
   }
 }
 
+// Helper: Load media state from localStorage
+const loadMediaState = (): boolean => {
+  try {
+    const stored = localStorage.getItem(MEDIA_KEY)
+    return stored !== 'false'
+  } catch (error) {
+    return true // default to showing media
+  }
+}
+
+// Helper: Save media state to localStorage
+const saveMediaState = (show: boolean): void => {
+  try {
+    localStorage.setItem(MEDIA_KEY, String(show))
+  } catch (error) {
+    console.warn('Failed to persist media state')
+  }
+}
+
 // Helper: Validate projection state
 const validateProjectionState = (state: any): ProjectionState | null => {
   if (!state || typeof state !== 'object') return null
@@ -67,7 +94,7 @@ const validateProjectionState = (state: any): ProjectionState | null => {
   }
 }
 
-function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, transition, verseReferencePosition, hideText, onTextColorChange, onFontFamilyChange, onTextUppercaseChange, onTextShadowChange, onTransitionChange, onVersePositionChange, onHideTextChange }: ProjectionPreviewProps) {
+function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, transition, verseReferencePosition, hideText, backgroundType, background, backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, backgroundBlur, backgroundOverlayOpacity, onTextColorChange, onFontFamilyChange, onTextUppercaseChange, onTextShadowChange, onTransitionChange, onVersePositionChange, onHideTextChange }: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
     projectionState: null,
@@ -75,6 +102,7 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
   })
 
   const [showSyncWarning, setShowSyncWarning] = useState(false)
+  const [showMedia, setShowMedia] = useState(loadMediaState)
 
   // Subscribe to Zustand store for real-time updates
   useEffect(() => {
@@ -154,6 +182,12 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
     })
   }, [])
 
+  const toggleShowMedia = useCallback(() => {
+    const newShowMedia = !showMedia
+    setShowMedia(newShowMedia)
+    saveMediaState(newShowMedia)
+  }, [showMedia])
+
   const { isCollapsed, projectionState, countdownState } = state
   const isCountdownActive = countdownState && countdownState.status !== 'idle'
   const canvas = CANVAS_SIZE
@@ -178,7 +212,40 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
 
     const { slides, currentSlide, theme, songTitle, isBible, hideText } = projectionState
     const slide = slides[currentSlide]
-    if (!slide) return null
+    
+    // Show background even when no slide is loaded
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
+    
+    if (!slide) {
+      return (
+        <>
+          {showMedia && (
+          <>
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: theme.backgroundType === 'image' && theme.backgroundImageUrl
+                ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
+                : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
+              filter: bgFilter, transform: bgTransform,
+            }} />
+            {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
+              <video autoPlay muted loop playsInline style={{ 
+                position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+                filter: bgFilter, transform: bgTransform,
+              }}>
+                <source src={theme.backgroundVideoUrl} type="video/mp4" />
+              </video>
+            )}
+            <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+          </>
+          )}
+          <div className="preview-empty-state">
+            <div style={{ opacity: 0.3, fontSize: '2rem' }}></div>
+          </div>
+        </>
+      )
+    }
 
     const showTitle = !!(isBible && songTitle)
     const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
@@ -188,9 +255,6 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
     const textShadow = theme.textShadow 
       ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
       : 'none'
-
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
-    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
 
     return (
       <>
@@ -316,6 +380,14 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
           {showSyncWarning && (
             <span className="preview-sync-warning" title="Preview may not be synchronized">⚠</span>
           )}
+          <button
+            className={`preview-media-toggle ${showMedia ? 'active' : ''}`}
+            onClick={toggleShowMedia}
+            title={showMedia ? 'Ocultar fondo' : 'Mostrar fondo'}
+            style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border-color)', background: showMedia ? 'var(--gold)' : 'transparent', color: showMedia ? '#000' : 'var(--text-secondary)', cursor: 'pointer', fontSize: 11 }}
+          >
+            Fondo
+          </button>
           {!isCollapsed && projectionState && projectionState.slides.length > 0 && (
             <span className="preview-slide-indicator">
               {projectionState.currentSlide + 1} / {projectionState.slides.length}

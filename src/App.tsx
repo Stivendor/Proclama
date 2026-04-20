@@ -283,6 +283,13 @@ function MainApp() {
         transition={theme.transition}
         verseReferencePosition={theme.verseReferencePosition}
         hideText={projectionState.hideText}
+        backgroundType={theme.backgroundType}
+        background={theme.background}
+        backgroundImageUrl={theme.backgroundImageUrl}
+        backgroundThumbnail={theme.backgroundThumbnail}
+        backgroundVideoUrl={theme.backgroundVideoUrl}
+        backgroundBlur={theme.backgroundBlur}
+        backgroundOverlayOpacity={theme.backgroundOverlayOpacity}
         onTextColorChange={(color) => updateTheme({ textColor: color })}
         onFontFamilyChange={(font) => updateTheme({ fontFamily: font })}
         onTextUppercaseChange={(val) => updateTheme({ textUppercase: val })}
