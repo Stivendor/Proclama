@@ -89,6 +89,7 @@ export interface BackgroundAsset {
   url: string
   thumbnailUrl: string
   type: 'image' | 'video'
+  category?: string
 }
 
 // ─── Contador Regresivo (Countdown) ───────────────────────────────────────────

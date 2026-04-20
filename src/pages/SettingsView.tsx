@@ -406,10 +406,10 @@ export default function SettingsView() {
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de Setlists y Notas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Fondos de video e imágenes</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Uso local ilimitado y fluido</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ 10 canciones propias</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca de 3,000+ canciones completas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Búsqueda global extendida (LRC Lib)</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de reportes CSV</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Sin límite de canciones propias</li>
                 </ul>
               </div>
 
@@ -420,16 +420,17 @@ export default function SettingsView() {
                   {isPremium && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
                 </div>
                 <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$49,900<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · único</span></div>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$ Próximamente<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · único</span></div>
                   <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Acceso de por vida</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todo del plan Básico</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca de 3,000+ canciones completas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda global extendida (LRC Lib)</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda online de letras de canciones</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Exportación de reportes CSV</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Sin límite de canciones propias</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Canciones propias ilimitadas</li>
                 </ul>
                 {!isPremium && (
                   <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
