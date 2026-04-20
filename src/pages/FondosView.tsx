@@ -63,14 +63,37 @@ export default function FondosView() {
   const [displayCount, setDisplayCount] = useState(12);
   const [galleryExpanded, setGalleryExpanded] = useState(false);
   const [textoExpanded, setTextoExpanded] = useState(false);
+  const [videoCategory, setVideoCategory] = useState<string | null>(null);
+  const [imageCategory, setImageCategory] = useState<string | null>(null);
+
+  const IMAGE_CATEGORIES = ["paisajes", "biblia", "abstracto", "anuncios"];
+  const VIDEO_CATEGORIES_BASE = ["bienvenidos", "silencio", "abstracto", "anuncios"];
   const state = { theme, media };
 
-  const displayedBackgrounds = backgrounds.slice(0, galleryExpanded ? backgrounds.length : displayCount);
-  const hasMore = !galleryExpanded && displayCount < backgrounds.length;
+  const filteredBackgrounds = backgrounds.filter((bg) => {
+    if (state.theme.backgroundType === "video") {
+      return (bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)) && (!videoCategory || bg.category === videoCategory)
+    }
+    if (state.theme.backgroundType === "image") {
+      const isVideo = bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)
+      return !isVideo && (!imageCategory || bg.category === imageCategory)
+    }
+    return true
+  })
+  const displayedBackgrounds = filteredBackgrounds.slice(0, galleryExpanded ? filteredBackgrounds.length : displayCount);
+  const hasMore = !galleryExpanded && displayCount < filteredBackgrounds.length;
 
   useEffect(() => {
     fetchBackgrounds();
   }, []);
+
+  const availableImageCategories = IMAGE_CATEGORIES.filter(cat =>
+    backgrounds.some(bg => bg.type === "image" && bg.category === cat)
+  );
+
+  const availableVideoCategories = VIDEO_CATEGORIES_BASE.filter(cat =>
+    backgrounds.some(bg => (bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)) && bg.category === cat)
+  );
 
   return (
     <div className="fondos-view">
@@ -121,12 +144,28 @@ export default function FondosView() {
             {state.theme.backgroundType === "image" && (
               <div className="gallery-container">
                 <label><ImageIcon size={14} /> Galería de Imagenes</label>
+                <div className="category-filters">
+                  <button className={!imageCategory ? "active" : ""} onClick={() => setImageCategory(null)}>Todos</button>
+                  {availableImageCategories.map((cat) => (
+                    <button key={cat} className={imageCategory === cat ? "active" : ""} onClick={() => setImageCategory(cat)}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </button>
+                  ))}
+                </div>
                 <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
                   {displayedBackgrounds.map((bg) => (
                     <div
                       key={bg.id}
                       className={`gallery-item ${state.theme.backgroundImageUrl === bg.url ? "active" : ""}`}
-                      onClick={() => isPremium && updateTheme({ backgroundType: "image", backgroundImageUrl: bg.url, backgroundThumbnail: bg.thumbnailUrl })}
+                      onClick={() => {
+                        if (!isPremium) return
+                        const isVideo = bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)
+                        if (isVideo) {
+                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
+                        } else {
+                          updateTheme({ backgroundType: "image", backgroundImageUrl: bg.url, backgroundThumbnail: bg.thumbnailUrl })
+                        }
+                      }}
                     >
                       <img src={bg.thumbnailUrl || bg.url} alt="background" onError={(e) => { const t = e.target as HTMLImageElement; if (t.src !== bg.url) t.src = bg.url; }} />
                       {state.theme.backgroundImageUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
@@ -157,8 +196,16 @@ export default function FondosView() {
             {state.theme.backgroundType === "video" && (
               <div className="gallery-container">
                 <label><Film size={14} /> Galería de Videos</label>
+                <div className="category-filters">
+                  <button className={!videoCategory ? "active" : ""} onClick={() => setVideoCategory(null)}>Todos</button>
+                  {availableVideoCategories.map((cat) => (
+                    <button key={cat} className={videoCategory === cat ? "active" : ""} onClick={() => setVideoCategory(cat)}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </button>
+                  ))}
+                </div>
                 <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
-                  {displayedBackgrounds.filter((bg) => bg.type === "video").map((bg) => (
+                  {displayedBackgrounds.map((bg) => (
                     <div key={bg.id} className={`gallery-item ${state.theme.backgroundVideoUrl === bg.url ? "active" : ""}`} onClick={() => isPremium && updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })}>
                       <video src={bg.url} muted />
                       {state.theme.backgroundVideoUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
@@ -263,6 +310,9 @@ export default function FondosView() {
       </div>
 
       <style>{`
+        .category-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .category-filters button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .category-filters button.active { background: var(--gold); color: #000; border-color: var(--gold); }
         .fondos-view { padding: 20px; height: 100%; overflow-y: auto; }
         .fondos-content { padding: 20px 0; }
         .fondos-section { margin-bottom: 32px; }
