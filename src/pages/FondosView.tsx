@@ -257,27 +257,8 @@ export default function FondosView() {
                 <input type="checkbox" checked={state.theme.textUppercase === true} onChange={(e) => updateTheme({ textUppercase: e.target.checked })} />
                 <span>Texto en mayúsculas</span>
               </label>
-              <label className="toggle-item">
-                <input type="checkbox" checked={state.theme.showVerseLabel !== false} onChange={(e) => updateTheme({ showVerseLabel: e.target.checked })} />
-                <span>Mostrar referencia del versículo</span>
-              </label>
             </div>
           )}
-        </section>
-
-        <section className="fondos-section">
-          <h2><AlignCenter size={15} /> Título de Canción</h2>
-          <div className="segmented-control">
-            <button className={state.theme.titlePosition === "top" ? "active" : ""} onClick={() => updateTheme({ titlePosition: "top" })}>
-              <ArrowUp size={14} /> Arriba
-            </button>
-            <button className={state.theme.titlePosition === "bottom" ? "active" : ""} onClick={() => updateTheme({ titlePosition: "bottom" })}>
-              <ArrowDown size={14} /> Abajo
-            </button>
-            <button className={state.theme.titlePosition === "none" || !state.theme.titlePosition ? "active" : ""} onClick={() => updateTheme({ titlePosition: "none" })}>
-              Ocultar
-            </button>
-          </div>
         </section>
       </div>
 
