@@ -271,7 +271,8 @@ export default function LandingView() {
             <p>Durante el lanzamiento: todos los beneficios Pro disponibles.</p>
           </div>
 
-          <div className="urgency-banner animate-on-scroll delay-1">
+              {/* ACTIVAR CUANDO SE VAYA A LANZAR EL PRECIO OFICIAL */}
+          {/* <div className="urgency-banner animate-on-scroll delay-1">
             <div className="urgency-col urgency-now">
               <span className="urgency-label">Precio de lanzamiento</span>
               <div className="urgency-price">$49,900 COP</div>
@@ -286,7 +287,7 @@ export default function LandingView() {
               <span className="urgency-badge-later">Próximamente</span>
             </div>
             <p className="urgency-note">Este precio no vuelve. Quienes entren ahora conservan su licencia de por vida.</p>
-          </div>
+          </div> */}
 
           <div className="plans-grid animate-on-scroll delay-2">
             <article className="plan-card">
@@ -298,10 +299,10 @@ export default function LandingView() {
                 <li><Check size={16} /> Gestión de Setlists y Notas</li>
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
+                <li><Check size={16} /> 10 canciones propias</li>
                 <li className="locked"><Lock size={14} /> Biblioteca de 3,000+ canciones completas</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
-                <li className="locked"><Lock size={14} /> Sin límite de canciones propias</li>
               </ul>
               <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
                 acceptTerms(CURRENT_TERMS_VERSION)
@@ -316,7 +317,8 @@ export default function LandingView() {
               {PREMIUM_FOR_EVERYONE ? (
                 <>
                   <span className="plan-sub-badge">Pago único — acceso de por vida</span>
-                  <span className="plan-future-price">Después: $39,900 COP / año</span>
+                  {/* ACTIVAR CUANDO SE TENGA EL PRECIO OFICIAL */}
+                  {/* <span className="plan-future-price">Después: $39,900 COP / año</span> */}
                 </>
               ) : (
                 <span className="plan-sub-badge">Acceso de por vida</span>
@@ -331,6 +333,7 @@ export default function LandingView() {
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
                 <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
+                <li><Check size={16} /> Canciones propias ilimitadas</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
                 <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
