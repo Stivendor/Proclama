@@ -325,7 +325,7 @@ export default function LandingView() {
               )}
               <ul>
                 <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
-                <li><Check size={16} /> Búsqueda global extendida (LRC Lib)</li>
+                <li><Check size={16} /> Búsqueda online de letras de canciones</li>
                 <li><Check size={16} /> Exportación de reportes CSV</li>
                 <li><Check size={16} /> Sin límite de canciones propias</li>
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
