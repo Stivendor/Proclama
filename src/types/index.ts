@@ -139,6 +139,7 @@ export interface AppSettings {
   churchName: string
   churchLogoUrl?: string
   defaultTheme: ProjectionTheme
+  attendanceCategories: string[]
 }
 
 // ─── Biblia ───────────────────────────────────────────────────────────────────
@@ -178,10 +179,11 @@ export interface Notice {
 }
 
 export interface AttendanceBreakdown {
-  caballeros: number
-  damas: number
-  amigos: number
-  ninos: number
+  values?: number[]
+  caballeros?: number
+  damas?: number
+  amigos?: number
+  ninos?: number
 }
 
 /** Asistencia por fecha; Dexie + Supabase `attendance_records` (no mezclar con `church_notes`). */
@@ -191,10 +193,11 @@ export interface AttendanceRecord {
   userId: string
   date: string
   serviceName?: string
-  caballeros: number
-  damas: number
-  amigos: number
-  ninos: number
+  values?: number[]
+  caballeros?: number
+  damas?: number
+  amigos?: number
+  ninos?: number
   createdAt: string
   updatedAt: string
 }

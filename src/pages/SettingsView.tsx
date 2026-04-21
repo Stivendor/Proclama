@@ -15,6 +15,8 @@ import {
   Loader2,
   FileText,
   ShieldCheck,
+  X,
+  Plus,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -67,6 +69,11 @@ export default function SettingsView() {
   const [saved, setSaved] = useState(false);
   const [showTermsForSignup, setShowTermsForSignup] = useState(false);
   const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null);
+  const [attendanceCategories, setAttendanceCategories] = useState<string[]>(
+    settings.attendanceCategories?.length > 0
+      ? settings.attendanceCategories
+      : ['Caballeros', 'Damas', 'Amigos', 'Niños']
+  );
 
   const { isPremium } = usePlan();
   const { openCheckout } = useMercadoPagoCheckout();
@@ -103,6 +110,7 @@ export default function SettingsView() {
     updateSettings({ [key]: value } as any);
 
   const handleSave = () => {
+    updateSettings({ attendanceCategories });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
