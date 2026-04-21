@@ -2,19 +2,9 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CountdownConfig, CountdownState, CountdownTheme } from '@/types'
 import { sendCountdownUpdate } from '@/services/projection'
+import { DEFAULT_THEME } from './index'
 
-export const DEFAULT_COUNTDOWN_THEME: CountdownTheme = {
-  background: '#0a0a0f',
-  backgroundType: 'color',
-  fontFamily: 'Inter, sans-serif',
-  fontSize: 160,
-  textColor: '#ffffff',
-  timerColor: '#ffffff',
-  textShadow: true,
-  backgroundBlur: 0,
-  backgroundDarkness: 0,
-  backgroundOverlayOpacity: 0.3
-}
+export const DEFAULT_COUNTDOWN_THEME: CountdownTheme = DEFAULT_THEME as unknown as CountdownTheme
 
 export const DEFAULT_COUNTDOWN_CONFIG: CountdownConfig = {
   title: 'Tiempo restante',

@@ -1,7 +1,7 @@
 # Diseño: Campos de Asistencia Configurables
 
 ## Objetivo
-Permitir que el usuario defina los nombres de las categorías de asistencia en Ajustes, ya que pueden variar según la iglesia (ej: "Visitas", "Hernanos", etc.)
+Permitir que el usuario defina los nombres de las categorías de asistencia desde la zona de Notas, ya que pueden variar según la iglesia (ej: "Hermanos", "Hermanas", "Visitas", etc.)
 
 ## Estructura de datos
 
@@ -17,41 +17,59 @@ interface AppSettings {
 ### AttendanceBreakdown y AttendanceRecord (`types/index.ts`)
 ```typescript
 interface AttendanceBreakdown {
-  values: number[]  // array paralelo a attendanceCategories
+  values?: number[]  // nuevo formato array
+  caballeros?: number  // backward compat
+  damas?: number
+  amigos?: number
+  ninos?: number
 }
 
 interface AttendanceRecord {
-  // ...campos existentes
-  values: number[]  // mantiene backward compatibility
+  id?: number
+  remoteId?: string
+  userId: string
+  date: string
+  serviceName?: string
+  values?: number[]  // nuevo formato array
+  caballeros?: number  // backward compat
+  damas?: number
+  amigos?: number
+  ninos?: number
+  createdAt: string
+  updatedAt: string
 }
 ```
 
-## UI en Ajustes
+## UI en NotasView (NO en Ajustes)
 
-### Nueva sección "Categorías de Asistencia"
-- Título: "Categorías de Asistencia"
-- Lista editable:
-  - Input de texto para cada nombre
-  - Botón "×" para eliminar
-  - Botón "+" para agregar nuevo campo
-- Validación: mínimo 1 categoría, máximo 10
+### Grid de categorías
+- Tarjetas visuales por categoría con:
+  - Input de texto para nombre (editable inline)
+  - Input de número para valor
+  - Botón "×" para eliminar categoría
+- Botón "+ Agregar" para nueva categoría
+- Layout grid responsive
 
-## NotasView
+### Historial de asistencia
+- Tabla con todas las categorías (sin límite de 4)
+- Total al final a la derecha
+- Soporte dinámico para N categorías
 
-### Renderizado dinámico
-- Lee `settings.attendanceCategories`
-- Mapea índices a inputs
-- Total = suma de todos los values
+### Gráfico de barras
+- Barras segmentadas por color (azul, dorado, verde, púrpura, etc.)
+- Muestra cada categoría proporcionalmente
 
-### Proyección
-- Usa nombres configurados para mostrar asistencia
+## Proyección
+
+### renderizado dinámico
+- Calcula `linesPerSlide = 1 + categories.length + 1` (título + categorías + total)
+- Adapta automáticamente al número de categorías
+
+## Exportación CSV
+- Soporte para array de valores
+- Rellena con ceros si hay menos valores que categorías
 
 ## Backward Compatibility
 - Si `attendanceCategories` no está configurado, usar defecto
-- Datos antiguos (caballeros, damas, amigos, ninos) se migran automáticamente al primer save
-
-## Tareas
-1. Agregar `attendanceCategories` a AppSettings
-2. Agregar UI de configuración en SettingsView
-3. Actualizar NotesView para usar categorías dinámicas
-4. Actualizar proyecciones y reportes
+- Datos antiguos (caballeros, damas, amigos, ninos) funcionan automáticamente
+- Conversión implícita en lecturas

@@ -162,7 +162,6 @@ export default function LandingView() {
         <div className="nav-links">
           <a href="#funciones">Funciones</a>
           <a href="#planes">Planes</a>
-          <a href="#premium-interest">Pro</a>
         </div>
         <div className="nav-actions">
           <FeedbackModal />
@@ -303,6 +302,7 @@ export default function LandingView() {
                 <li className="locked"><Lock size={14} /> Biblioteca de 3,000+ canciones completas</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
+                <li className="locked"><Lock size={14} /> Sin imagenes / videos de fondo</li>
               </ul>
               <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
                 acceptTerms(CURRENT_TERMS_VERSION)
@@ -330,10 +330,10 @@ export default function LandingView() {
                 <li><Check size={16} /> Sin límite de canciones propias</li>
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
                 <li><Check size={16} /> Gestión de Setlists y Notas</li>
-                <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
                 <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
                 <li><Check size={16} /> Canciones propias ilimitadas</li>
+                <li><Check size={16} /> +200 Imagenes / videos de fondo</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
                 <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
