@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock
+  Check, Tv2, BarChart2, Download, Lock, X
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
@@ -55,7 +55,10 @@ function todayISO(): string {
 
 function totalAttendance(a?: AttendanceBreakdown): number {
   if (!a) return 0
-  return (a.caballeros || 0) + (a.damas || 0) + (a.amigos || 0) + (a.ninos || 0)
+  if (a.values?.length) {
+    return a.values.reduce((sum, v) => sum + (v || 0), 0)
+  }
+  return (a.caballeros ?? 0) + (a.damas ?? 0) + (a.amigos ?? 0) + (a.ninos ?? 0)
 }
 
 /** Solo para el gráfico / export (misma forma que antes con `ChurchNote`). */
@@ -65,6 +68,7 @@ function attendanceRecordToChartNote(r: AttendanceRecord): ChurchNote {
     date: r.date,
     serviceName: r.serviceName,
     attendance: {
+      values: r.values,
       caballeros: r.caballeros,
       damas: r.damas,
       amigos: r.amigos,
@@ -83,22 +87,20 @@ function formatDate(iso: string): string {
 
 // ─── Attendance projection slide text ─────────────────────────────────────────
 
-function buildAttendanceLyrics(a: AttendanceBreakdown, date: string, name?: string): string {
-  const total = totalAttendance(a)
+function buildAttendanceLyrics(values: number[], categories: string[], date: string, name?: string): string {
+  const total = values.reduce((sum, v) => sum + v, 0)
   const title = name ? `${name}  ${formatDate(date)}` : `Asistencia  ${formatDate(date)}`
-  return [
-    title,
-    `Caballeros  ${a.caballeros || 0}`,
-    `Damas       ${a.damas || 0}`,
-    `Amigos      ${a.amigos || 0}`,
-    `Niños       ${a.ninos || 0}`,
-    `Total       ${total}`,
-  ].join('\n')
+  const lines = [title]
+  categories.forEach((cat, idx) => {
+    lines.push(`${cat.padEnd(10).slice(0, 10)}  ${values[idx] || 0}`)
+  })
+  lines.push(`Total       ${total}`)
+  return lines.join('\n')
 }
 
 // ─── Mini bar chart (CSS only, no lib) ────────────────────────────────────────
 
-function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
+function AttendanceChart({ records, categories }: { records: AttendanceRecord[], categories: string[] }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState<string>('all')
   const RECORDS_PER_PAGE = 7
@@ -143,9 +145,10 @@ function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
 
   // Calcular max para los registros actuales (para el gráfico)
   const maxTotal = Math.max(
-    ...currentRecords.map(r =>
-      totalAttendance({ caballeros: r.caballeros, damas: r.damas, amigos: r.amigos, ninos: r.ninos })
-    ),
+    ...currentRecords.map(r => {
+      const vals = r.values?.length ? r.values : [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
+      return vals.reduce((sum, v) => sum + (v || 0), 0)
+    }),
     1
   )
 
@@ -187,27 +190,24 @@ function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
       {/* Bar chart - sincronizado con la página actual */}
       <div className="chart-bars-row">
         {currentRecords.map(r => {
-          const a: AttendanceBreakdown = {
-            caballeros: r.caballeros,
-            damas: r.damas,
-            amigos: r.amigos,
-            ninos: r.ninos,
-          }
-          const t = totalAttendance(a)
+          const values = r.values?.length ? r.values : [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
+          const t = values.reduce((sum, v) => sum + (v || 0), 0)
           const pct = Math.round((t / maxTotal) * 100)
-          const cab = t > 0 ? Math.round(((a.caballeros || 0) / t) * 100) : 0
-          const dam = t > 0 ? Math.round(((a.damas || 0) / t) * 100) : 0
-          const ami = t > 0 ? Math.round(((a.amigos || 0) / t) * 100) : 0
-          const nin = t > 0 ? Math.round(((a.ninos || 0) / t) * 100) : 0
+          const colors = ['var(--blue)', 'var(--gold)', 'var(--green)', '#a78bfa', 'var(--text-secondary)', 'var(--orange)']
+          // Calcular segmentos proporcionalmente
+          const segments = values.map((v, idx) => {
+            const color = colors[idx % colors.length]
+            const heightPct = t > 0 ? Math.round((v / t) * 100) : 0
+            return { color, height: heightPct }
+          })
           return (
             <div key={attendanceRowKey(r)} className="chart-col">
               <span className="chart-value">{t}</span>
               <div className="chart-bar-wrap">
                 <div className="chart-bar" style={{ height: `${Math.max(pct, 4)}%` }}>
-                  <div className="chart-bar-segment" style={{ height: `${nin}%`, background: '#a78bfa' }} />
-                  <div className="chart-bar-segment" style={{ height: `${ami}%`, background: 'var(--green)' }} />
-                  <div className="chart-bar-segment" style={{ height: `${dam}%`, background: 'var(--gold)' }} />
-                  <div className="chart-bar-segment" style={{ height: `${cab}%`, background: 'var(--blue)' }} />
+                  {segments.map((seg, idx) => (
+                    <div key={idx} className="chart-bar-segment" style={{ height: `${seg.height}%`, background: seg.color }} />
+                  ))}
                 </div>
               </div>
               <span className="chart-label">{r.date.slice(5)}</span>
@@ -215,47 +215,51 @@ function AttendanceChart({ records }: { records: AttendanceRecord[] }) {
           )
         })}
       </div>
-      {/* Legend */}
+{/* Legend */}
       <div className="chart-legend">
-        <span><span className="legend-dot" style={{ background: 'var(--blue)' }} />Cab.</span>
-        <span><span className="legend-dot" style={{ background: 'var(--gold)' }} />Damas</span>
-        <span><span className="legend-dot" style={{ background: 'var(--green)' }} />Amigos</span>
-        <span><span className="legend-dot" style={{ background: '#a78bfa' }} />Niños</span>
+        {categories.map((cat, idx) => (
+          <span key={idx}>
+            <span className="legend-dot" style={{ 
+              background: idx === 0 ? 'var(--blue)' : 
+              idx === 1 ? 'var(--gold)' : 
+              idx === 2 ? 'var(--green)' : 
+              idx === 3 ? '#a78bfa' : 
+              'var(--text-secondary)'
+            }} />
+            {cat}
+          </span>
+        ))}
       </div>
-      {/* Summary table */}
-      <div className="chart-table">
-        <div className="chart-table-header">
-          <span>Fecha</span>
-          <span>Cab.</span>
-          <span>Damas</span>
-          <span>Amigos</span>
-          <span>Niños</span>
-          <span>Total</span>
+      {/* Summary table - grid con Total al final */}
+        <div style={{ display: "grid", gridTemplateColumns: `120px repeat(${categories.length}, 1fr) 80px`, gap: 4, fontSize: 12 }}>
+          <div style={{ display: "contents", fontWeight: 600, color: "var(--text-secondary)" }}>
+            <span>Fecha</span>
+            {categories.map((cat, idx) => (
+              <span key={idx} style={{ textAlign: "center" }}>{cat}</span>
+            ))}
+            <span style={{ textAlign: "right" }}>Total</span>
+          </div>
+          {currentRecords.map(r => {
+            const values = r.values?.length
+              ? r.values
+              : [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
+            const total = totalAttendance({ values })
+            return (
+              <div key={attendanceRowKey(r)} style={{ display: "contents" }}>
+                <span style={{ fontWeight: 500 }}>
+                  {r.serviceName
+                    ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 10, color: "var(--text-muted)" }}><br />{formatDate(r.date)}</span></>
+                    : formatDate(r.date)
+                  }
+                </span>
+                {categories.map((_, idx) => (
+                  <span key={idx} style={{ textAlign: "center", color: "var(--text-primary)" }}>{values[idx] ?? 0}</span>
+                ))}
+                <span style={{ textAlign: "right", fontWeight: 700, color: "var(--gold)" }}>{total}</span>
+              </div>
+            )
+          })}
         </div>
-        {currentRecords.map(r => {
-          const a: AttendanceBreakdown = {
-            caballeros: r.caballeros,
-            damas: r.damas,
-            amigos: r.amigos,
-            ninos: r.ninos,
-          }
-          return (
-            <div key={attendanceRowKey(r)} className="chart-table-row">
-              <span>
-                {r.serviceName
-                  ? <><strong style={{ color: 'var(--text-primary)' }}>{r.serviceName}</strong><br /><span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{formatDate(r.date)}</span></>
-                  : formatDate(r.date)
-                }
-              </span>
-              <span>{a.caballeros || 0}</span>
-              <span>{a.damas || 0}</span>
-              <span>{a.amigos || 0}</span>
-              <span>{a.ninos || 0}</span>
-              <span className="chart-table-total">{totalAttendance(a)}</span>
-            </div>
-          )
-        })}
-      </div>
 
       {/* Pagination controls */}
       {totalPages > 1 && (
@@ -296,8 +300,8 @@ export default function NotesView() {
   // Service name
   const [serviceName, setServiceName] = useState('')
 
-  // Attendance breakdown inputs
-  const [att, setAtt] = useState({ caballeros: '', damas: '', amigos: '', ninos: '' })
+  // Attendance breakdown inputs (array for dynamic categories)
+  const [att, setAtt] = useState<string[]>([])
   const [attError, setAttError] = useState('')
   /** Evita solapar upserts de asistencia (p. ej. doble clic o guardar mientras otra petición sigue en vuelo). */
 
@@ -310,7 +314,8 @@ export default function NotesView() {
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
 
-  const { user } = useAppStore(useShallow(s => ({ user: s.user })))
+  const { user, settings, updateSettings } = useAppStore(useShallow(s => ({ user: s.user, settings: s.settings, updateSettings: s.updateSettings })))
+  const attendanceCategories = settings.attendanceCategories || ['Caballeros', 'Damas', 'Amigos', 'Niños']
   const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
     projectionState: { songTitle: s.state.songTitle, slides: s.state.slides },
@@ -354,12 +359,18 @@ export default function NotesView() {
   useEffect(() => {
     const a = attendanceRecord
     setServiceName(a?.serviceName ?? '')
-    setAtt({
-      caballeros: a != null ? String(a.caballeros) : '',
-      damas: a != null ? String(a.damas) : '',
-      amigos: a != null ? String(a.amigos) : '',
-      ninos: a != null ? String(a.ninos) : '',
-    })
+    // Support both new array format and legacy field format
+    if (a?.values?.length) {
+      setAtt(a.values.map(String))
+    } else {
+      // Legacy format: map fields to array
+      setAtt([
+        a != null ? String(a.caballeros) : '',
+        a != null ? String(a.damas) : '',
+        a != null ? String(a.amigos) : '',
+        a != null ? String(a.ninos) : '',
+      ])
+    }
     setAttError('')
   }, [attendanceRecord, selectedDate])
 
@@ -403,17 +414,17 @@ export default function NotesView() {
 
 
   async function saveAttendance() {
-    const fields = [att.caballeros, att.damas, att.amigos, att.ninos]
-    if (fields.some(f => !validateAttendance(f))) {
+    if (att.some(v => !validateAttendance(v))) {
       setAttError('Introduce solo números enteros positivos (o deja en blanco)')
       return
     }
     setAttError('')
     const breakdown: AttendanceBreakdown = {
-      caballeros: parseField(att.caballeros),
-      damas: parseField(att.damas),
-      amigos: parseField(att.amigos),
-      ninos: parseField(att.ninos),
+      values: att.map(parseField),
+      caballeros: parseField(att[0] || '0'),
+      damas: parseField(att[1] || '0'),
+      amigos: parseField(att[2] || '0'),
+      ninos: parseField(att[3] || '0'),
     }
     const now = new Date().toISOString()
     const existingAr = attendanceRecord
@@ -421,6 +432,7 @@ export default function NotesView() {
       ...existingAr,
       userId,
       date: selectedDate,
+      values: breakdown.values,
       caballeros: breakdown.caballeros,
       damas: breakdown.damas,
       amigos: breakdown.amigos,
@@ -433,17 +445,19 @@ export default function NotesView() {
   }
 
   function projectAttendance() {
-    const a = attendanceRecord
-      ? {
-        caballeros: attendanceRecord.caballeros,
-        damas: attendanceRecord.damas,
-        amigos: attendanceRecord.amigos,
-        ninos: attendanceRecord.ninos,
-      }
-      : { caballeros: 0, damas: 0, amigos: 0, ninos: 0 }
-    const lyrics = buildAttendanceLyrics(a, selectedDate, attendanceRecord?.serviceName)
-    // Use linesPerSlide=6 so all 6 lines stay in one slide
-    const slides = parseLyrics(lyrics, 6)
+    // Get values: new array format or legacy field format
+    const values = attendanceRecord?.values?.length
+      ? attendanceRecord.values
+      : [
+          attendanceRecord?.caballeros ?? 0,
+          attendanceRecord?.damas ?? 0,
+          attendanceRecord?.amigos ?? 0,
+          attendanceRecord?.ninos ?? 0,
+        ]
+    const lyrics = buildAttendanceLyrics(values, attendanceCategories, selectedDate, attendanceRecord?.serviceName)
+    // Calculate lines per slide based on categories (title + categories + total)
+    const linesPerSlide = 1 + attendanceCategories.length + 1
+    const slides = parseLyrics(lyrics, linesPerSlide)
     const currentState = useProjectionStore.getState().state
     const newState = {
       ...currentState,
@@ -558,18 +572,22 @@ export default function NotesView() {
     // Calcular estadísticas
     const totals = attendanceNotes.map(n => totalAttendance(n.attendance))
     const avgTotal = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length)
-    const maxTotal = Math.max(...totals)
-    const minTotal = Math.min(...totals)
+    const maxTotal = totals.length > 0 ? Math.max(...totals) : 0
+    const minTotal = totals.length > 0 ? Math.min(...totals) : 0
 
-    const allCab = attendanceNotes.map(n => n.attendance!.caballeros || 0)
-    const allDam = attendanceNotes.map(n => n.attendance!.damas || 0)
-    const allAmi = attendanceNotes.map(n => n.attendance!.amigos || 0)
-    const allNin = attendanceNotes.map(n => n.attendance!.ninos || 0)
-
-    const avgCab = Math.round(allCab.reduce((a, b) => a + b, 0) / allCab.length)
-    const avgDam = Math.round(allDam.reduce((a, b) => a + b, 0) / allDam.length)
-    const avgAmi = Math.round(allAmi.reduce((a, b) => a + b, 0) / allAmi.length)
-    const avgNin = Math.round(allNin.reduce((a, b) => a + b, 0) / allNin.length)
+    // Calcular promedios por categoría (soporte array y legacy)
+    const avgByCategory = attendanceCategories.map((_, idx) => {
+      const values = attendanceNotes.map(n => {
+        const a = n.attendance
+        return a?.values?.[idx] ?? (
+          idx === 0 ? a?.caballeros :
+          idx === 1 ? a?.damas :
+          idx === 2 ? a?.amigos :
+          idx === 3 ? a?.ninos : 0
+        ) ?? 0
+      })
+      return Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+    })
 
     // Generar CSV
     const rows = [
@@ -583,22 +601,22 @@ export default function NotesView() {
       ['Mínimo total:', minTotal],
       [''],
       ['PROMEDIOS POR CATEGORÍA'],
-      ['Caballeros:', avgCab],
-      ['Damas:', avgDam],
-      ['Amigos:', avgAmi],
-      ['Niños:', avgNin],
+      ...attendanceCategories.map((cat, idx) => [cat + ':', avgByCategory[idx]]),
       [''],
       ['DETALLE DE ASISTENCIA'],
-      ['Fecha', 'Nombre del Culto', 'Caballeros', 'Damas', 'Amigos', 'Niños', 'Total'],
+      ['Fecha', 'Nombre del Culto', ...attendanceCategories, 'Total'],
       ...attendanceNotes.map(n => {
         const a = n.attendance!
+        const recValues = a.values?.length
+          ? a.values
+          : [a.caballeros ?? 0, a.damas ?? 0, a.amigos ?? 0, a.ninos ?? 0]
+        // Fill with zeros if fewer values than categories
+        const values = [...recValues]
+        while (values.length < attendanceCategories.length) values.push(0)
         return [
           formatDate(n.date),
           n.serviceName || '-',
-          a.caballeros || 0,
-          a.damas || 0,
-          a.amigos || 0,
-          a.ninos || 0,
+          ...values,
           totalAttendance(a)
         ]
       })
@@ -669,7 +687,7 @@ export default function NotesView() {
                 Borrar historial
               </button>
             </div>
-            <AttendanceChart records={chartAttendanceRecords} />
+            <AttendanceChart records={chartAttendanceRecords} categories={attendanceCategories} />
           </section>
         )}
 
@@ -683,11 +701,7 @@ export default function NotesView() {
               <span id="attendance-label">Asistencia al culto</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {savedTotal > 0 && (
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  Total: <strong style={{ color: 'var(--text-primary)' }}>{savedTotal}</strong>
-                </span>
-              )}
+              {savedTotal > 0 }
               <button
                 className={`btn-icon${isAttendanceProjected ? ' notice-project-active' : ''}`}
                 onClick={projectAttendance}
@@ -713,25 +727,63 @@ export default function NotesView() {
             />
           </div>
 
-          <div className="attendance-grid">
-            {(['caballeros', 'damas', 'amigos', 'ninos'] as const).map(field => (
-              <div key={field} className="attendance-field">
-                <label htmlFor={`att-${field}`} className="attendance-field-label">
-                  {field === 'ninos' ? 'Niños' : field.charAt(0).toUpperCase() + field.slice(1)}
-                </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+            {attendanceCategories.map((cat, idx) => (
+              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
                 <input
-                  id={`att-${field}`}
+                  type="text"
+                  className="input"
+                  value={cat}
+                  onChange={e => {
+                    const newCats = [...attendanceCategories]
+                    newCats[idx] = e.target.value
+                    updateSettings({ attendanceCategories: newCats })
+                  }}
+                  placeholder="Nombre"
+                  style={{ flex: 1, fontWeight: 600 }}
+                />
+                <input
+                  id={`att-${idx}`}
                   type="number"
                   className="input"
                   min={0}
                   step={1}
-                  placeholder="0"
-                  value={att[field]}
-                  onChange={e => { setAtt(prev => ({ ...prev, [field]: e.target.value })); setAttError('') }}
+                  placeholder="#"
+                  style={{ width: 60, textAlign: "center" }}
+                  value={att[idx] ?? ''}
+                  onChange={e => { 
+                    const newAtt = [...att]
+                    newAtt[idx] = e.target.value
+                    setAtt(newAtt)
+                    setAttError('') 
+                  }}
                   onKeyDown={e => e.key === 'Enter' && saveAttendance()}
                 />
+                <button
+                  className="btn-icon"
+                  onClick={() => {
+                    const newCats = attendanceCategories.filter((_, i) => i !== idx)
+                    updateSettings({ attendanceCategories: newCats })
+                  }}
+                  disabled={attendanceCategories.length <= 1}
+                  title="Eliminar categoría"
+                >
+                  <X size={14} />
+                </button>
               </div>
             ))}
+            <button
+              className="btn-ghost"
+              onClick={() => {
+                const newCat = `Categoría ${attendanceCategories.length + 1}`
+                updateSettings({ attendanceCategories: [...attendanceCategories, newCat] })
+              }}
+              title="Agregar nueva categoría"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px dashed var(--border)" }}
+            >
+              <Plus size={14} />
+              Agregar
+            </button>
           </div>
 
           <div className="attendance-total-row">
@@ -739,7 +791,7 @@ export default function NotesView() {
             <span className="attendance-total-value">
               {isLoadingAttendance
                 ? <span style={{ opacity: 0.3 }}>–</span>
-                : parseField(att.caballeros) + parseField(att.damas) + parseField(att.amigos) + parseField(att.ninos)
+                : (att || []).reduce((sum: number, v: string) => sum + parseField(v), 0)
               }
             </span>
             <button className="btn-primary" onClick={saveAttendance} style={{ marginLeft: 'auto' }}>
