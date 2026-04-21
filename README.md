@@ -29,7 +29,7 @@ Proclama reúne en una sola aplicación web:
 - Proyección en ventana separada para TV o proyector con auto-ajuste de fuente.
 - Biblia integrada (RVR1960) con búsqueda por texto, libro o referencia.
 - Contador regresivo personalizable con proyección en tiempo real.
-- Sección de Notas: asistencia desglosada por categoría, avisos proyectables e historial.
+- Sección de Notas: asistencia con categorías configurables, avisos proyectables e historial.
 - Fondos personalizables con color, imagen o video.
 - Importación y búsqueda online de letras.
 - Panel de control en vivo con navegación rápida de estrofas y versículos.
@@ -81,10 +81,11 @@ Proclama reúne en una sola aplicación web:
 
 ### Notas del culto
 
-- **Asistencia**: Registro desglosado (Caballeros, Damas, Amigos, Niños) con totales automáticos.
-- **Sincronización**: Los datos se suben a Supabase y se migran automáticamente de invitado a usuario tras el login.
-- **Avisos**: Gestión de anuncios comunitarios con proyección individual de alta legibilidad.
-- **Historial**: Tablas y gráficos estadísticos de los últimos cultos.
+- **Asistencia**: Registro desglosado por categorías personalizables (ej: Hermanos, Hermanas, Niños, Visitas). Cada categoría es editable directamente en la UI.
+- **Categorías configurables**: Agregar/eliminar/editar nombres de categorías desde la misma sección de Notas.
+- **Proyección**: Muestra todas las categorías con totales automáticos.
+- **Historial**: Gráfico de barras segmentado por categoría + tabla con todos los datos.
+- **Exportación CSV**: Reporte completo con estadísticas y promedios por categoría.
 
 ### Estabilidad y Robustez (Core)
 
@@ -127,7 +128,7 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 
 - `Dexie v4` (IndexedDB): canciones, setlists, notas del culto (local/offline).
 - `Zustand persist` (localStorage): configuración, tema, modo invitado, onboarding.
-- `Supabase`: canciones, setlists y asistencia sincronizados en la nube.
+- `Supabase`: canciones y setlists sincronizados en la nube.
 
 ---
 
