@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { supabase } from '@/services/supabase'
 
 interface MercadoPagoCheckoutOptions {
   userId?: string
@@ -11,21 +12,24 @@ export function useMercadoPagoCheckout() {
     const functionUrl = '***REMOVED***/functions/v1/create-mercadopago-preference'
     
     const supabaseAnonKey = '***REMOVED***'
-    
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      alert('Debes iniciar sesión para continuar con el pago.')
+      return
+    }
+
     try {
       const response = await fetch(functionUrl, {
         method: 'POST',
         mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'apikey': supabaseAnonKey
         },
         body: JSON.stringify({
-          userId: options?.userId,
-          userEmail: options?.userEmail,
-          price: 49900,
-          currency: 'COP',
+          userId: session.user.id,
+          userEmail: session.user.email,
           successUrl: origin,
           failureUrl: origin,
           pendingUrl: origin

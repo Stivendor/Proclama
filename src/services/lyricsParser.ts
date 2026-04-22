@@ -11,8 +11,10 @@ export function parseLyrics(lyrics: string, linesPerSlide = 4): Slide[] {
   const slides: Slide[] = []
   let slideIndex = 0
 
-  // Dividir en bloques por líneas en blanco
-  const blocks = lyrics.split(/\n{2,}/).map(b => b.trim()).filter(Boolean)
+  // Dividir en bloques por líneas en blanco y filtrar bloques basura (solo puntos o vacíos)
+  const blocks = lyrics.split(/\n{2,}/)
+    .map(b => b.trim())
+    .filter(b => b && b !== '.')
 
   for (const block of blocks) {
     const lines = block.split('\n').map(l => l.trim()).filter(Boolean)
@@ -59,6 +61,7 @@ export function cleanLyricsText(raw: string): string {
     .replace(/^\s*\d+\s*$/gm, '')           // números de línea solitarios
     .replace(/^Embed$/gim, '')              // Genius watermark
     .replace(/^\d+Contributors.*$/gim, '')  // Genius contributors
+    .replace(/^\s*\.\s*$/gm, '')           // Eliminar líneas que son solo un punto
     .replace(/\n{3,}/g, '\n\n')             // Múltiples líneas en blanco -> doble
     .trim()
 }

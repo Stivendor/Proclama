@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library, LayoutGrid, List } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -521,6 +521,14 @@ const LiveSelection = memo(function LiveSelection() {
     clearSong: s.clearSong,
     hideText: s.state.hideText
   })))
+  const { updateTheme, theme } = useProjectionStore(useShallow(s => ({
+    updateTheme: s.updateTheme,
+    theme: s.state.theme
+  })))
+  const { liveSlidesViewGrid, setLiveSlidesViewGrid } = useAppStore(useShallow(s => ({
+    liveSlidesViewGrid: s.liveSlidesViewGrid,
+    setLiveSlidesViewGrid: s.setLiveSlidesViewGrid
+  })))
 
   if (!songTitle) {
     return (
@@ -539,9 +547,40 @@ const LiveSelection = memo(function LiveSelection() {
           <h2>{songTitle}</h2>
           <div className="live-meta">Estrofas: {slides.length}</div>
         </div>
+        <div className="live-selection-controls">
+          <div className="view-toggle-group">
+            <span className="control-label">Líneas:</span>
+            {[2, 3, 4, 6].map((num) => (
+              <button
+                key={num}
+                className={`toggle-icon-btn text-btn ${theme.linesPerSlide === num ? 'active' : ''}`}
+                onClick={() => updateTheme({ linesPerSlide: num })}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+
+          <div className="view-toggle-group">
+            <button 
+              className={`toggle-icon-btn ${!liveSlidesViewGrid ? 'active' : ''}`}
+              onClick={() => setLiveSlidesViewGrid(false)}
+              title="Vista de lista (filas)"
+            >
+              <List size={16} />
+            </button>
+            <button 
+              className={`toggle-icon-btn ${liveSlidesViewGrid ? 'active' : ''}`}
+              onClick={() => setLiveSlidesViewGrid(true)}
+              title="Vista de cuadrícula"
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="live-slides-grid">
+      <div className={`live-slides-grid ${!liveSlidesViewGrid ? 'as-list' : ''}`}>
         {slides.map((slide, i) => {
           const isActive = i === currentSlide;
           const isHiddenAndActive = isActive && hideText;
@@ -567,6 +606,54 @@ const LiveSelection = memo(function LiveSelection() {
       </div>
 
       <style>{`
+        .live-selection-controls {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .view-toggle-group {
+          display: flex;
+          background: var(--bg-elevated);
+          padding: 3px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          align-items: center;
+          gap: 2px;
+        }
+        .control-label {
+          font-size: 11px;
+          color: var(--text-muted);
+          padding: 0 6px 0 4px;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+        .toggle-icon-btn {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .toggle-icon-btn.text-btn {
+          font-size: 13px;
+          font-weight: 600;
+          width: 32px;
+        }
+        .toggle-icon-btn:hover {
+          color: var(--text-primary);
+        }
+        .toggle-icon-btn.active {
+          background: var(--bg-surface);
+          color: var(--gold);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
         .live-slide-card.is-hidden-preview {
           opacity: 0.5;
           filter: grayscale(1);

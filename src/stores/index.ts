@@ -21,14 +21,14 @@ export const DEFAULT_THEME: ProjectionTheme = {
   showVerseLabel: false,
   backgroundType: 'color',
   backgroundBlur: 0,
-  backgroundDarkness: 0,
   backgroundOverlayOpacity: 0.3,
   backgroundVideoUrl: '',
   fontSizeMax: false,
   titlePosition: 'top',
   verseReferencePosition: 'bottom',
   textUppercase: true,
-  fontScale: 1
+  fontScale: 1,
+  linesPerSlide: 4
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
@@ -76,10 +76,10 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   loadSong: (song, isBible = false, initialSlide = -1) => {
     const newState: ProjectionState = {
       ...get().state,
-      songId: song.id || null,
       songTitle: song.title,
       isBible,
-      slides: parseLyrics(song.lyrics),
+      lyricsRaw: song.lyrics,
+      slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 4),
       currentSlide: initialSlide,
       hideText: false,
     }
@@ -123,7 +123,16 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   },
 
   updateTheme: (theme) => {
-    const newState = { ...get().state, theme: { ...get().state.theme, ...theme } }
+    const currentState = get().state
+    const newTheme = { ...currentState.theme, ...theme }
+    let slides = currentState.slides
+
+    // Si cambió la cantidad de líneas por slide y hay una canción cargada, reparceamos
+    if (theme.linesPerSlide !== undefined && currentState.lyricsRaw && !currentState.isBible) {
+      slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide)
+    }
+
+    const newState = { ...currentState, theme: newTheme, slides }
     set({ state: newState })
     sendProjectionUpdate(newState)
   },
@@ -204,6 +213,9 @@ interface AppStore {
   isSidebarOpen: boolean
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
+  
+  liveSlidesViewGrid: boolean
+  setLiveSlidesViewGrid: (v: boolean) => void
 
 
   // Backgrounds
@@ -262,6 +274,9 @@ export const useAppStore = create<AppStore>()(
       isSidebarOpen: true,
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
+
+      liveSlidesViewGrid: true,
+      setLiveSlidesViewGrid: (v) => set({ liveSlidesViewGrid: v }),
 
 
       backgrounds: [],
@@ -338,6 +353,7 @@ export const useAppStore = create<AppStore>()(
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
         forceLanding: state.forceLanding,
+        liveSlidesViewGrid: state.liveSlidesViewGrid,
       })
     }
   )

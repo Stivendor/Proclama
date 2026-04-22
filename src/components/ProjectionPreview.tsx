@@ -37,6 +37,8 @@ interface ProjectionPreviewProps {
   onTransitionChange?: (val: string) => void
   onVersePositionChange?: (val: string) => void
   onHideTextChange?: (val: boolean) => void
+  onBlurChange?: (val: number) => void
+  onOpacityChange?: (val: number) => void
 }
 
 // Helper: Load collapsed state from localStorage
@@ -94,7 +96,15 @@ const validateProjectionState = (state: any): ProjectionState | null => {
   }
 }
 
-function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, transition, verseReferencePosition, hideText, backgroundType, background, backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, backgroundBlur, backgroundOverlayOpacity, onTextColorChange, onFontFamilyChange, onTextUppercaseChange, onTextShadowChange, onTransitionChange, onVersePositionChange, onHideTextChange }: ProjectionPreviewProps) {
+function ProjectionPreview({ 
+  textColor, fontFamily, textUppercase, textShadow, transition, 
+  verseReferencePosition, hideText, backgroundType, background, 
+  backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, 
+  backgroundBlur, backgroundOverlayOpacity, 
+  onTextColorChange, onFontFamilyChange, onTextUppercaseChange, 
+  onTextShadowChange, onTransitionChange, onVersePositionChange, 
+  onHideTextChange, onBlurChange, onOpacityChange 
+}: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
     projectionState: null,
@@ -214,7 +224,7 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
     const slide = slides[currentSlide]
     
     // Show background even when no slide is loaded
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
     const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
     
     if (!slide) {
@@ -230,12 +240,15 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
               filter: bgFilter, transform: bgTransform,
             }} />
             {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-              <video autoPlay muted loop playsInline style={{ 
-                position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-                filter: bgFilter, transform: bgTransform,
-              }}>
-                <source src={theme.backgroundVideoUrl} type="video/mp4" />
-              </video>
+              <video 
+                key={theme.backgroundVideoUrl}
+                src={theme.backgroundVideoUrl}
+                autoPlay muted loop playsInline 
+                style={{ 
+                  position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+                  filter: bgFilter, transform: bgTransform,
+                }}
+              />
             )}
             <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
           </>
@@ -266,12 +279,15 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
           filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ 
-            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-            filter: bgFilter, transform: bgTransform,
-          }}>
-            <source src={theme.backgroundVideoUrl} type="video/mp4" />
-          </video>
+          <video 
+            key={theme.backgroundVideoUrl}
+            src={theme.backgroundVideoUrl}
+            autoPlay muted loop playsInline 
+            style={{ 
+              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+              filter: bgFilter, transform: bgTransform,
+            }}
+          />
         )}
         <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
         <div key={`${songTitle}-${currentSlide}`} style={{
@@ -307,9 +323,12 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
             transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
           }}>
             {projectionState.media.type === 'video' ? (
-              <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}>
-                <source src={projectionState.media.url} type="video/mp4" />
-              </video>
+              <video 
+                key={projectionState.media.url}
+                src={projectionState.media.url}
+                autoPlay muted loop playsInline 
+                style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}
+              />
             ) : (
               <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }} />
             )}
@@ -322,32 +341,37 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
   // Render countdown content
   const renderCountdownContent = () => {
     if (!countdownState) return null
-    const theme = countdownState.config.theme
-    const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
-    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
+    const countdownTheme = countdownState.config.theme
+    const mainTheme = projectionState?.theme || DEFAULT_THEME
+    const textShadow = countdownTheme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const bgFilter = `blur(${mainTheme.backgroundBlur || 0}px) brightness(${1 - ((mainTheme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = mainTheme.backgroundBlur ? 'scale(1.05)' : 'none'
+    
     return (
       <>
         <div style={{
           position: 'absolute', inset: 0,
-          background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-            ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-            : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
+          background: mainTheme.backgroundType === 'image' && mainTheme.backgroundImageUrl
+            ? `url(${mainTheme.backgroundImageUrl}) center/cover no-repeat`
+            : mainTheme.backgroundType === 'color' || !mainTheme.backgroundType ? mainTheme.background : '#000',
           filter: bgFilter, transform: bgTransform,
         }} />
-        {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ 
-            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-            filter: bgFilter, transform: bgTransform,
-          }}>
-            <source src={theme.backgroundVideoUrl} type="video/mp4" />
-          </video>
+        {mainTheme.backgroundType === 'video' && mainTheme.backgroundVideoUrl && (
+          <video 
+            key={mainTheme.backgroundVideoUrl}
+            src={mainTheme.backgroundVideoUrl}
+            autoPlay muted loop playsInline 
+            style={{ 
+              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+              filter: bgFilter, transform: bgTransform,
+            }}
+          />
         )}
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${mainTheme.backgroundOverlayOpacity ?? 0.3})` }} />
         <div style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          fontFamily: theme.fontFamily, color: theme.textColor,
+          fontFamily: countdownTheme.fontFamily, color: countdownTheme.textColor,
           fontSize: `${canvas.height * 0.18}px`,
         }}>
           {countdownState.config.title && (
@@ -439,18 +463,18 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
           </div>
           <div className="preview-canvas-controls-left">
             <div className="preview-canvas-row">
-              <label>Color de Texto</label>
+              <label><span>Color de Texto</span></label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <input 
                   type="color" 
                   value={textColor || '#ffffff'} 
                   onChange={(e) => onTextColorChange?.(e.target.value)}
                 />
-                <span>{textColor || '#ffffff'}</span>
+                <span className="preview-value-text">{textColor || '#ffffff'}</span>
               </div>
             </div>
             <div className="preview-canvas-row">
-              <label>Fuente</label>
+              <label><span>Fuente</span></label>
               <select 
                 value={fontFamily || 'Montserrat'}
                 onChange={(e) => onFontFamilyChange?.(e.target.value)}
@@ -465,7 +489,7 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
               </select>
             </div>
             <div className="preview-canvas-row">
-              <label>Transición</label>
+              <label><span>Transición</span></label>
               <select 
                 value={transition || 'fade'}
                 onChange={(e) => onTransitionChange?.(e.target.value)}
@@ -504,9 +528,26 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
             </div>
           </div>
           <div className="preview-canvas-controls-right">
+            <div className="preview-canvas-slider-group">
+              <label><span>Blur: </span>{backgroundBlur || 0}px</label>
+              <input 
+                type="range" min="0" max="50" 
+                value={backgroundBlur || 0} 
+                onChange={(e) => onBlurChange?.(Number(e.target.value))} 
+              />
+            </div>
+            <div className="preview-canvas-slider-group">
+              <label><span>Oscurecer: </span>{Math.round((backgroundOverlayOpacity ?? 0.3) * 100)}%</label>
+              <input 
+                type="range" min="0" max="0.9" step="0.05"
+                value={backgroundOverlayOpacity ?? 0.3} 
+                onChange={(e) => onOpacityChange?.(Number(e.target.value))} 
+              />
+            </div>
             <button 
               className={`preview-hide-text-btn ${hideText ? 'active' : ''}`}
               onClick={() => onHideTextChange?.(!hideText)}
+              style={{ marginTop: 'auto' }}
             >
               {hideText ? ' Mostrar Texto' : 'Ocultar Texto'}
             </button>

@@ -94,14 +94,14 @@ export default function ProjectionWindow() {
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
 
   const bgStyle: React.CSSProperties = {
-    background: activeTheme.backgroundType === 'image' && activeTheme.backgroundImageUrl
-      ? `url(${activeTheme.backgroundImageUrl}) center/cover no-repeat`
-      : activeTheme.backgroundType === 'color' || !activeTheme.backgroundType
-        ? activeTheme.background : '#000',
+    background: theme.backgroundType === 'image' && theme.backgroundImageUrl
+      ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
+      : theme.backgroundType === 'color' || !theme.backgroundType
+        ? theme.background : '#000',
   }
 
-  const bgFilter = `blur(${activeTheme.backgroundBlur || 0}px) brightness(${1 - ((activeTheme.backgroundOverlayOpacity ?? 0.3))})`
-  const bgTransform = activeTheme.backgroundBlur ? 'scale(1.05)' : 'none'
+  const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
+  const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
@@ -192,18 +192,18 @@ export default function ProjectionWindow() {
           ...bgStyle
         }} />
 
-        {activeTheme.backgroundType === 'video' && activeTheme.backgroundVideoUrl && (
-          <video key={activeTheme.backgroundVideoUrl} autoPlay muted loop playsInline style={{
+        {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
+          <video key={theme.backgroundVideoUrl} autoPlay muted loop playsInline style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
             filter: bgFilter,
             transform: bgTransform,
           }}>
-            <source src={activeTheme.backgroundVideoUrl} type="video/mp4" />
+            <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}
 
         <div style={{ position: 'absolute', inset: 0, zIndex: 5,
-          backgroundColor: `rgba(0,0,0,${activeTheme.backgroundOverlayOpacity ?? 0.3})` }} />
+          backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
 
         {state.media && (
           <div style={{ 
@@ -213,10 +213,13 @@ export default function ProjectionWindow() {
             transform: state.media.isBackgroundMode ? bgTransform : 'none',
           }}>
             {state.media.type === 'video' ? (
-              <video ref={videoRef} autoPlay loop
-                style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}>
-                <source src={state.media.url} />
-              </video>
+              <video 
+                key={state.media.url}
+                ref={videoRef} 
+                src={state.media.url}
+                autoPlay loop
+                style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+              />
             ) : (
               <img src={state.media.url}
                 style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} />

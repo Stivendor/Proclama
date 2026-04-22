@@ -429,29 +429,7 @@ export async function registerPremiumInterest(email: string, userId: string | nu
   return { success: true, alreadyRegistered: false }
 }
 
-// ─── Funciones para Lemon Squeezy / Pagos ───────────────────────────────────────
-
-export interface LemonSqueezyWebhookPayload {
-  meta: {
-    event_name: 'order_created' | 'subscription_created' | 'subscription_updated' | 'subscription_cancelled'
-    custom_data?: {
-      user_id?: string
-      email?: string
-    }
-  }
-  data: {
-    attributes: {
-      status?: string
-      order_number?: number
-      user_email?: string
-      first_order_item?: {
-        product_id?: number
-        variant_id?: number
-      }
-    }
-    id: string
-  }
-}
+// ─── Funciones para Pagos ───────────────────────────────────────────────────
 
 export async function activatePremiumForUser(userId: string): Promise<boolean> {
   const { error } = await supabase
