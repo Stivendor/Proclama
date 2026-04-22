@@ -28,7 +28,8 @@ export const DEFAULT_THEME: ProjectionTheme = {
   titlePosition: 'top',
   verseReferencePosition: 'bottom',
   textUppercase: true,
-  fontScale: 1
+  fontScale: 1,
+  linesPerSlide: 4
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
@@ -76,10 +77,10 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   loadSong: (song, isBible = false, initialSlide = -1) => {
     const newState: ProjectionState = {
       ...get().state,
-      songId: song.id || null,
       songTitle: song.title,
       isBible,
-      slides: parseLyrics(song.lyrics),
+      lyricsRaw: song.lyrics,
+      slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 4),
       currentSlide: initialSlide,
       hideText: false,
     }
@@ -123,7 +124,16 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   },
 
   updateTheme: (theme) => {
-    const newState = { ...get().state, theme: { ...get().state.theme, ...theme } }
+    const currentState = get().state
+    const newTheme = { ...currentState.theme, ...theme }
+    let slides = currentState.slides
+
+    // Si cambió la cantidad de líneas por slide y hay una canción cargada, reparceamos
+    if (theme.linesPerSlide !== undefined && currentState.lyricsRaw && !currentState.isBible) {
+      slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide)
+    }
+
+    const newState = { ...currentState, theme: newTheme, slides }
     set({ state: newState })
     sendProjectionUpdate(newState)
   },

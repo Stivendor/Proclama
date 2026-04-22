@@ -27,6 +27,7 @@ export default function SongEditor() {
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar, user: s.user, userRole: s.userRole
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
+  const theme = useProjectionStore(s => s.state.theme)
 
   const [form, setForm] = useState<Omit<Song, 'id'>>(editingSong ? { ...editingSong } : { ...EMPTY_SONG })
   const [tagInput, setTagInput] = useState('')
@@ -34,7 +35,7 @@ export default function SongEditor() {
   const [saving, setSaving] = useState(false)
   const [titleError, setTitleError] = useState('')
 
-  const slides = parseLyrics(form.lyrics)
+  const slides = parseLyrics(form.lyrics, theme.linesPerSlide || 4)
 
   useEffect(() => {
     setPreviewSlide(0)
