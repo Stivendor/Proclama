@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Shield, Sparkles, User, Video, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap } from 'lucide-react'
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
@@ -161,7 +161,9 @@ export default function LandingView() {
         </div>
         <div className="nav-links">
           <a href="#funciones">Funciones</a>
+          <a href="#showcase">Showcase</a>
           <a href="#planes">Planes</a>
+          <a href="#interest-form">Actualizaciones</a>
         </div>
         <div className="nav-actions">
           <FeedbackModal />
@@ -212,26 +214,13 @@ export default function LandingView() {
           </div>
 
           <div className="hero-panel animate-pop-in" style={{ animationDelay: '0.4s' }}>
-            <div className="hero-card hero-card-wide">
-              <Cpu size={22} color="#c9a658" />
-              <div>
-                <strong>Arranque instantáneo</strong>
-                <p>Abre la interfaz y empieza a trabajar al segundo.</p>
-              </div>
-            </div>
-            <div className="hero-card">
-              <BookOpen size={20} color="#9ad3ff" />
-              <div>
-                <strong>Biblioteca integrada</strong>
-                <p>Más de 3,000 canciones listas para buscar y proyectar.</p>
-              </div>
-            </div>
-            <div className="hero-card">
-              <Shield size={20} color="#86efac" />
-              <div>
-                <strong>Confiabilidad total</strong>
-                <p>Si el internet falla, tu proyección no se detiene.</p>
-              </div>
+            <div className="hero-screenshot-container">
+              <img 
+                src="/app.jpg" 
+                alt="Proclama Interface" 
+                className="hero-screenshot"
+              />
+              <div className="screenshot-overlay" />
             </div>
           </div>
         </section>
@@ -261,6 +250,81 @@ export default function LandingView() {
               <h3>Biblia multilingüe</h3>
               <p>Consulta y proyecta pasajes en múltiples versiones: Reina Valera 1960, NVI, PDT, LBLA, NTV (español) y KJV, ESV, WEB, NASB, NET (inglés).</p>
             </article>
+          </div>
+        </section>
+
+        <section id="showcase" className="section showcase-section">
+          <div className="section-head animate-on-scroll">
+            <h2>Funciones diseñadas para la iglesia</h2>
+            <p>Cada herramienta ha sido pensada para que nada te distraiga de lo más importante.</p>
+          </div>
+
+          <div className="showcase-grid">
+            {/* Función 1: Biblias */}
+            <div className="showcase-item animate-on-scroll">
+              <div className="showcase-content">
+                <div className="feature-icon"><Globe size={24} color="#c9a658" /></div>
+                <h3>Biblias en múltiples versiones</h3>
+                <p>Accede a una biblioteca espiritual sin fronteras. Incluye las versiones más usadas como Reina Valera 1960, NVI y KJV, con la posibilidad de importar más de 1,000 versiones en cientos de idiomas gratis.</p>
+                <ul className="feature-list">
+                  <li><Check size={16} /> Versiones clave: RV1960, NVI, LBLA, KJV y más</li>
+                  <li><Check size={16} /> +1,000 Biblias adicionales para importar</li>
+                  <li><Check size={16} /> Búsqueda y proyección instantánea</li>
+                </ul>
+              </div>
+              <div className="showcase-visual">
+                <div className="screenshot-reveal reveal-right">
+                  <div className="screenshot-frame">
+                    <img src="/bible.jpg" alt="Biblias Multilingües" />
+                  </div>
+                  <div className="visual-glow" />
+                </div>
+              </div>
+            </div>
+
+            {/* Función 2: Setlists y Confiabilidad */}
+            <div className="showcase-item inverted animate-on-scroll">
+              <div className="showcase-content">
+                <div className="feature-icon"><FileSpreadsheet size={24} color="#c9a658" /></div>
+                <h3>Setlists y Confiabilidad Total</h3>
+                <p>Organiza tu servicio en minutos. Crea listas de reproducción con tus canciones favoritas que funcionan 100% sin conexión.</p>
+                <ul className="feature-list">
+                  <li><Check size={16} /> Arrastrar y soltar canciones</li>
+                  <li><Check size={16} /> Búsqueda rápida en tu biblioteca</li>
+                  <li><Check size={16} /> Funcionamiento local garantizado</li>
+                </ul>
+              </div>
+              <div className="showcase-visual">
+                <div className="screenshot-reveal reveal-left">
+                  <div className="screenshot-frame">
+                    <img src="/setlist.jpg" alt="Gestión de Setlists" />
+                  </div>
+                  <div className="visual-glow" />
+                </div>
+              </div>
+            </div>
+
+            {/* Función 3: Búsqueda Online */}
+            <div className="showcase-item animate-on-scroll">
+              <div className="showcase-content">
+                <div className="feature-icon"><Search size={24} color="#c9a658" /></div>
+                <h3>Búsqueda Online Global</h3>
+                <p>¿No encuentras una canción? Búscala en nuestra base de datos global conectada a internet. Miles de letras listas para proyectar al instante.</p>
+                <ul className="feature-list">
+                  <li><Check size={16} /> Conexión con base de datos global</li>
+                  <li><Check size={16} /> Importación directa a tu biblioteca</li>
+                  <li><Check size={16} /> Letras verificadas y actualizadas</li>
+                </ul>
+              </div>
+              <div className="showcase-visual">
+                <div className="screenshot-reveal reveal-right">
+                  <div className="screenshot-frame">
+                    <img src="/search.jpg" alt="Búsqueda Online de Canciones" />
+                  </div>
+                  <div className="visual-glow" />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -312,8 +376,8 @@ export default function LandingView() {
             </article>
             <article className="plan-card plan-pro">
               <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> {PREMIUM_FOR_EVERYONE ? 'Pro · Gratis ahora' : 'Pro'}</span>
-              <h3>Pro License</h3>
-              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$0' : '$49,900'} <span>/ {PREMIUM_FOR_EVERYONE ? 'ahora' : 'pago único'}</span></div>
+              <h3>Plan Pro</h3>
+              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$119,900'} <span>/ {PREMIUM_FOR_EVERYONE ? 'ahora' : 'pago único'}</span></div>
               {PREMIUM_FOR_EVERYONE ? (
                 <>
                   <span className="plan-sub-badge">Pago único — acceso de por vida</span>
@@ -378,11 +442,14 @@ export default function LandingView() {
       </main>
 
       <footer className="landing-footer">
-  <p style={{ fontStyle: 'italic', marginBottom: '10px', fontSize: '13px' }}>
-    "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
-  </p>
-  <div>© 2026 Proclama</div>
-</footer>
+        <p style={{ fontStyle: 'italic', marginBottom: '12px', fontSize: '13px' }}>
+          "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
+        </p>
+        <div style={{ marginBottom: '16px', color: '#9aa6bb' }}>
+          ¿Dudas o sugerencias? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold' }}>proclamapro@gmail.com</a>
+        </div>
+        <div>© 2026 Proclama</div>
+      </footer>
 
       {showTermsForGuest && (
         <TermsModal
@@ -463,7 +530,7 @@ export default function LandingView() {
           font-weight: 600;
         }
         .landing-logo span span { color: #c9a658; }
-        .nav-links { display: none; gap: 24px; }
+        .nav-links { display: flex; gap: 24px; }
         .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; font-family: 'Outfit', sans-serif; }
         .nav-links a:hover { color: #e7edf8; }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
@@ -536,13 +603,13 @@ export default function LandingView() {
           .animate-on-scroll { transition: none; opacity: 1; transform: none; }
         }
 
-        .landing-main { max-width: 1180px; margin: 0 auto; padding: 24px 5% 96px; }
+        .landing-main { max-width: 1280px; margin: 0 auto; padding: 24px 5% 96px; }
         .hero {
           display: grid;
-          grid-template-columns: 1.1fr 0.9fr;
-          gap: 32px;
+          grid-template-columns: 1fr 1.2fr;
+          gap: 48px;
           align-items: center;
-          min-height: 78vh;
+          min-height: 82vh;
         }
         .pill {
           display: inline-flex;
@@ -575,14 +642,30 @@ export default function LandingView() {
         .interest-card p { color: #9aa6bb; line-height: 1.7; font-size: 16px; }
         .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
         .hero-panel {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
-          padding: 24px;
-          border-radius: 24px;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: linear-gradient(150deg, rgba(14, 18, 28, 0.92), rgba(7, 10, 16, 0.82));
-          box-shadow: 0 34px 90px rgba(0,0,0,0.42);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+          transform: perspective(1000px) rotateY(-4deg) rotateX(2deg);
+          transition: transform 0.5s ease;
+        }
+        .hero-panel:hover {
+          transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+        }
+        .hero-screenshot-container {
+          position: relative;
+          background: #000;
+          line-height: 0;
+        }
+        .hero-screenshot {
+          width: 100%;
+          height: auto;
+          display: block;
+        }
+        .screenshot-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to bottom, transparent 70%, rgba(5, 7, 13, 0.4));
+          pointer-events: none;
         }
         .hero-card {
           display: flex;
@@ -609,6 +692,79 @@ export default function LandingView() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 18px;
+        }
+        /* ── Showcase Section ────────────────────────────────────── */
+        .showcase-section { padding-bottom: 120px; overflow: hidden; }
+        .showcase-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 160px;
+          margin-top: 80px;
+        }
+        .showcase-item {
+          display: grid;
+          grid-template-columns: 1fr 1.3fr;
+          gap: 80px;
+          align-items: center;
+        }
+        .showcase-item.inverted { grid-template-columns: 1.3fr 1fr; }
+        .showcase-item.inverted .showcase-content { order: 2; }
+        .showcase-item.inverted .showcase-visual { order: 1; }
+        
+        .showcase-content h3 {
+          font-size: 36px;
+          margin: 20px 0;
+          font-family: 'Montserrat', sans-serif;
+          color: white;
+        }
+        .showcase-content p { font-size: 17px; margin-bottom: 24px; }
+        .feature-icon {
+          width: 52px;
+          height: 52px;
+          background: rgba(201, 166, 88, 0.12);
+          border: 1px solid rgba(201, 166, 88, 0.2);
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .feature-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+        .feature-list li { display: flex; align-items: center; gap: 12px; color: #9aa6bb; font-size: 15px; }
+        .feature-list li svg { flex-shrink: 0; color: #c9a658; }
+
+        .showcase-visual { position: relative; }
+        .screenshot-frame {
+          position: relative;
+          z-index: 2;
+          border-radius: 20px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+          background: #05070d;
+        }
+        .screenshot-frame img { width: 100%; height: auto; display: block; }
+        .visual-glow {
+          position: absolute;
+          inset: -20px;
+          background: radial-gradient(circle at center, rgba(201, 166, 88, 0.15), transparent 70%);
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        /* Reveal Animations */
+        .screenshot-reveal { transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal-right { transform: translateX(40px); opacity: 0; }
+        .reveal-left { transform: translateX(-40px); opacity: 0; }
+        
+        .is-visible .reveal-right,
+        .is-visible .reveal-left { transform: translateX(0); opacity: 1; }
+
+        @media (max-width: 960px) {
+          .showcase-item, .showcase-item.inverted { grid-template-columns: 1fr; gap: 48px; text-align: center; }
+          .showcase-item.inverted .showcase-content { order: 1; }
+          .showcase-item.inverted .showcase-visual { order: 2; }
+          .feature-list { align-items: center; }
+          .showcase-grid { gap: 100px; }
         }
         .feature-card, .plan-card, .interest-card {
           border-radius: 22px;
