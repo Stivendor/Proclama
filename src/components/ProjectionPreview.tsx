@@ -37,6 +37,8 @@ interface ProjectionPreviewProps {
   onTransitionChange?: (val: string) => void
   onVersePositionChange?: (val: string) => void
   onHideTextChange?: (val: boolean) => void
+  onBlurChange?: (val: number) => void
+  onOpacityChange?: (val: number) => void
 }
 
 // Helper: Load collapsed state from localStorage
@@ -94,7 +96,15 @@ const validateProjectionState = (state: any): ProjectionState | null => {
   }
 }
 
-function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, transition, verseReferencePosition, hideText, backgroundType, background, backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, backgroundBlur, backgroundOverlayOpacity, onTextColorChange, onFontFamilyChange, onTextUppercaseChange, onTextShadowChange, onTransitionChange, onVersePositionChange, onHideTextChange }: ProjectionPreviewProps) {
+function ProjectionPreview({ 
+  textColor, fontFamily, textUppercase, textShadow, transition, 
+  verseReferencePosition, hideText, backgroundType, background, 
+  backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, 
+  backgroundBlur, backgroundOverlayOpacity, 
+  onTextColorChange, onFontFamilyChange, onTextUppercaseChange, 
+  onTextShadowChange, onTransitionChange, onVersePositionChange, 
+  onHideTextChange, onBlurChange, onOpacityChange 
+}: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
     projectionState: null,
@@ -453,18 +463,18 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
           </div>
           <div className="preview-canvas-controls-left">
             <div className="preview-canvas-row">
-              <label>Color de Texto</label>
+              <label><span>Color de Texto</span></label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <input 
                   type="color" 
                   value={textColor || '#ffffff'} 
                   onChange={(e) => onTextColorChange?.(e.target.value)}
                 />
-                <span>{textColor || '#ffffff'}</span>
+                <span className="preview-value-text">{textColor || '#ffffff'}</span>
               </div>
             </div>
             <div className="preview-canvas-row">
-              <label>Fuente</label>
+              <label><span>Fuente</span></label>
               <select 
                 value={fontFamily || 'Montserrat'}
                 onChange={(e) => onFontFamilyChange?.(e.target.value)}
@@ -479,7 +489,7 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
               </select>
             </div>
             <div className="preview-canvas-row">
-              <label>Transición</label>
+              <label><span>Transición</span></label>
               <select 
                 value={transition || 'fade'}
                 onChange={(e) => onTransitionChange?.(e.target.value)}
@@ -518,9 +528,26 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
             </div>
           </div>
           <div className="preview-canvas-controls-right">
+            <div className="preview-canvas-slider-group">
+              <label><span>Blur: </span>{backgroundBlur || 0}px</label>
+              <input 
+                type="range" min="0" max="50" 
+                value={backgroundBlur || 0} 
+                onChange={(e) => onBlurChange?.(Number(e.target.value))} 
+              />
+            </div>
+            <div className="preview-canvas-slider-group">
+              <label><span>Oscurecer: </span>{Math.round((backgroundOverlayOpacity ?? 0.3) * 100)}%</label>
+              <input 
+                type="range" min="0" max="0.9" step="0.05"
+                value={backgroundOverlayOpacity ?? 0.3} 
+                onChange={(e) => onOpacityChange?.(Number(e.target.value))} 
+              />
+            </div>
             <button 
               className={`preview-hide-text-btn ${hideText ? 'active' : ''}`}
               onClick={() => onHideTextChange?.(!hideText)}
+              style={{ marginTop: 'auto' }}
             >
               {hideText ? ' Mostrar Texto' : 'Ocultar Texto'}
             </button>

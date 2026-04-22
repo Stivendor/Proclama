@@ -6,7 +6,6 @@ import { useAppStore, useProjectionStore } from "@/stores";
 import { supabase } from "@/services/supabase";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { onMessage } from "@/services/projection";
-import FontLoader from "@/components/FontLoader";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
 import SongEditor from "@/pages/SongEditor";
@@ -22,7 +21,6 @@ import TermsView from "@/pages/TermsView";
 import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
-import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION =
@@ -49,8 +47,6 @@ function AppContent() {
     setAuthStatus,
     guestMode,
     forceLanding,
-    setForceLanding,
-    termsSyncPending,
     onboardingDone,
   } = useAppStore(
     useShallow((s) => ({
@@ -61,8 +57,6 @@ function AppContent() {
       setAuthStatus: s.setAuthStatus,
       guestMode: s.guestMode,
       forceLanding: s.forceLanding,
-      setForceLanding: s.setForceLanding,
-      termsSyncPending: s.termsSyncPending,
       onboardingDone: s.onboardingDone,
     })),
   );
@@ -85,24 +79,19 @@ function AppContent() {
       return profile;
     };
 
-    // Check initial auth state with a safety timeout
     const authTimeout = setTimeout(
       () => {
         if (useAppStore.getState().authStatus === "loading") {
-          console.warn(
-            "Auth initialization timed out, falling back to unauthenticated.",
-          );
+          console.warn("Auth initialization timed out, falling back to unauthenticated.");
           setAuthStatus("unauthenticated");
         }
       },
-      30000 // Aumentado a 30s para mayor robustez
+      30000
     );
 
     const initAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user ?? null;
 
         if (user) {
@@ -127,59 +116,42 @@ function AppContent() {
 
     initAuth();
 
-    // Listen to changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       try {
-        if (
-          event !== "SIGNED_IN" &&
-          event !== "SIGNED_OUT" &&
-          event !== "INITIAL_SESSION"
-        ) {
+        if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "INITIAL_SESSION") {
           return;
         }
 
         const user = session?.user ?? null;
         setUser(user);
 
-if (user) {
-          void syncProfile(user.id).catch((err) => {
-            console.warn("Profile sync failed:", err);
-          });
-
+        if (user) {
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             try {
-              // Primero verificar si hay términos locales ya aceptados
               const currentTerms = useAppStore.getState().termsAccepted;
               const shouldUpdateTerms = useAppStore.getState().checkTermsVersion();
               
-              // Si ya tiene términos locales actualizados, NO mostrar términos
               if (currentTerms && !shouldUpdateTerms) {
-                // Sincronizar con Supabase si hay pending
                 const { termsSyncPending } = useAppStore.getState();
                 if (termsSyncPending && currentTerms) {
                   const { syncTermsAcceptance } = await import("@/services/supabase");
                   await syncTermsAcceptance(user.id, currentTerms.version, currentTerms.acceptedAt);
                   useAppStore.getState().setTermsSyncPending(false);
                 }
-                return // No mostrar términos
+                return;
               }
 
-              // Descargar términos de Supabase
               const { fetchTermsAcceptance } = await import("@/services/supabase");
               const remoteTerms = await fetchTermsAcceptance(user.id);
               if (remoteTerms) {
                 useAppStore.getState().setTermsAccepted(remoteTerms);
               }
 
-              // Verificar si necesita aceptar
               if (useAppStore.getState().checkTermsVersion()) {
                 useAppStore.getState().setActiveView("terms");
-                return
+                return;
               }
               
-              // Sync pending si hay
               const { termsSyncPending, termsAccepted } = useAppStore.getState();
               if (termsSyncPending && termsAccepted) {
                 const { syncTermsAcceptance } = await import("@/services/supabase");
@@ -214,19 +186,12 @@ if (user) {
       subscription.unsubscribe();
       offMedia();
     };
-  }, [
-    isServer,
-    setAuthStatus,
-    setUser,
-    setUserRole,
-    setUserPlan,
-  ]);
+  }, [isServer, setAuthStatus, setUser, setUserRole, setUserPlan]);
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />;
   }
 
-  // Si somos servidor, no renderizamos nada pesado
   if (isServer) return null;
 
   if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
@@ -254,7 +219,6 @@ function MainApp() {
     })),
   );
 
-  const showTextControls = activeView === "fondos";
   const theme = projectionState.theme;
 
   return (
@@ -297,6 +261,8 @@ function MainApp() {
         onTransitionChange={(val) => updateTheme({ transition: val as any })}
         onVersePositionChange={(val) => updateTheme({ verseReferencePosition: val as any })}
         onHideTextChange={(val) => setHideText(val)}
+        onBlurChange={(val) => updateTheme({ backgroundBlur: val })}
+        onOpacityChange={(val) => updateTheme({ backgroundOverlayOpacity: val })}
       />
     </div>
   );
