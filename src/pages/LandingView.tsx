@@ -274,7 +274,7 @@ export default function LandingView() {
           {/* <div className="urgency-banner animate-on-scroll delay-1">
             <div className="urgency-col urgency-now">
               <span className="urgency-label">Precio de lanzamiento</span>
-              <div className="urgency-price">$49,900 COP</div>
+              <div className="urgency-price">$99,900 COP</div>
               <span className="urgency-sub">pago único · acceso de por vida</span>
               <span className="urgency-badge-active">Precio especial</span>
             </div>
