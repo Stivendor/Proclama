@@ -390,7 +390,7 @@ export default function SettingsView() {
                     onClick={() => setActiveView("terms")}
                   >
                     <FileText size={16} />
-                    <span>Términos y condiciones</span>
+                    <span>Términos y Condiciones</span>
                   </button>
                 </div>
               </div>
@@ -492,7 +492,7 @@ export default function SettingsView() {
             </div>
             <div className="theme-preview">
               {(() => {
-                const bgFilter = `blur(${state.theme.backgroundBlur || 0}px) brightness(${1 - (state.theme.backgroundOverlayOpacity ?? 0.3)})`;
+                const bgFilter = `blur(${state.theme.backgroundBlur || 0}px)`;
                 const bgTransform = state.theme.backgroundBlur
                   ? "scale(1.1)"
                   : "none";

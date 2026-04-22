@@ -100,7 +100,7 @@ export default function ProjectionWindow() {
         ? theme.background : '#000',
   }
 
-  const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+  const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
   const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
 
   const formatTime = (s: number) =>
