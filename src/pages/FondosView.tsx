@@ -66,8 +66,6 @@ export default function FondosView() {
   const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [imageCategory, setImageCategory] = useState<string | null>(null);
 
-  const IMAGE_CATEGORIES = ["paisajes", "biblia", "abstracto", "anuncios"];
-  const VIDEO_CATEGORIES_BASE = ["bienvenidos", "silencio", "abstracto", "anuncios"];
   const state = { theme, media };
 
   const filteredBackgrounds = backgrounds.filter((bg) => {
@@ -87,13 +85,19 @@ export default function FondosView() {
     fetchBackgrounds();
   }, []);
 
-  const availableImageCategories = IMAGE_CATEGORIES.filter(cat =>
-    backgrounds.some(bg => bg.type === "image" && bg.category === cat)
-  );
+  const availableImageCategories = Array.from(new Set(
+    backgrounds
+      .filter(bg => bg.type === "image" || !bg.type)
+      .map(bg => bg.category)
+      .filter(Boolean)
+  )) as string[];
 
-  const availableVideoCategories = VIDEO_CATEGORIES_BASE.filter(cat =>
-    backgrounds.some(bg => (bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)) && bg.category === cat)
-  );
+  const availableVideoCategories = Array.from(new Set(
+    backgrounds
+      .filter(bg => bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/))
+      .map(bg => bg.category)
+      .filter(Boolean)
+  )) as string[];
 
   return (
     <div className="fondos-view">
