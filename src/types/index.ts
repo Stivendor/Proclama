@@ -42,6 +42,7 @@ export interface ProjectionState {
   songId: number | null
   songTitle: string
   slides: Slide[]
+  lyricsRaw?: string
   currentSlide: number
   isBible?: boolean
   theme: ProjectionTheme
@@ -82,6 +83,7 @@ export interface ProjectionTheme {
   textUppercase?: boolean
   maxFontSize?: number  // cap para el auto-fit (px). undefined = sin límite
   fontScale?: number    // multiplicador manual (ej: 0.8 para encoger, 1.2 para agrandar)
+  linesPerSlide?: number // cantidad máxima de líneas por slide
 }
 
 export interface BackgroundAsset {
