@@ -263,7 +263,7 @@ export default function ProjectionWindow() {
           }}>
             <div style={textStyle}>
               {titleAtTop && (
-                <div style={{ opacity: 1, fontSize: '0.85em',
+                <div style={{ opacity: 1, fontSize: '0.7em',
                   marginBottom: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
                   {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>
@@ -272,7 +272,7 @@ export default function ProjectionWindow() {
                 {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
               </div>
               {titleAtBottom && (
-                <div style={{ opacity: 1, fontSize: '0.85em',
+                <div style={{ opacity: 1, fontSize: '0.7em',
                   marginTop: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
                   {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>

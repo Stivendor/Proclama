@@ -37,13 +37,13 @@ export function calcCanvasFontSize(
   const prepare = (t: string) => theme.textUppercase ? t.toUpperCase() : t
 
   // Título solo si es Biblia (es la referencia)
-  if (isBible && songTitle && titleAtTop) rows.push({ text: prepare(songTitle), rel: 0.85 })
+  if (isBible && songTitle && titleAtTop) rows.push({ text: prepare(songTitle), rel: 0.7 })
   
   // Las etiquetas de verso ([Coro], [Verso 1]) ya no se incluyen en el cálculo
   slide.lines.forEach(line => rows.push({ text: prepare(line), rel: 1 }))
 
   // Título (cita) abajo si aplica Biblia
-  if (isBible && songTitle && titleAtBottom) rows.push({ text: prepare(songTitle), rel: 0.85 })
+  if (isBible && songTitle && titleAtBottom) rows.push({ text: prepare(songTitle), rel: 0.7 })
 
   if (rows.length === 0) return 72
 

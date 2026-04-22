@@ -308,7 +308,7 @@ function ProjectionPreview({
           animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
         }}>
             {titleAtTop && (
-              <div style={{ opacity: 1, fontSize: '0.85em', marginBottom: '0.4em', textShadow }}>
+              <div style={{ opacity: 1, fontSize: '0.7em', marginBottom: '0.4em', textShadow }}>
                 {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
               </div>
             )}
@@ -316,7 +316,7 @@ function ProjectionPreview({
               {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
             </div>
             {titleAtBottom && (
-              <div style={{ opacity: 1, fontSize: '0.85em', marginTop: '0.4em', textShadow }}>
+              <div style={{ opacity: 1, fontSize: '0.7em', marginTop: '0.4em', textShadow }}>
                 {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
               </div>
             )}
