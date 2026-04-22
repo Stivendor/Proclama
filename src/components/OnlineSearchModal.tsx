@@ -206,20 +206,6 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 </button>
               </div>
 
-              <div className="search-filters">
-                <div className="lang-tabs">
-                  {(['Cualquiera', 'Español', 'Inglés'] as const).map((language) => (
-                    <button
-                      key={language}
-                      className={`lang-tab ${selectedLanguage === language ? 'active' : ''}`}
-                      onClick={() => setSelectedLanguage(language)}
-                    >
-                      {language}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {!canUseGenius && (
                 <div className="pro-search-hint">
                   <div>
@@ -232,11 +218,6 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 </div>
               )}
 
-              {detectedLang && query.trim().length > 3 && (
-                <div className="search-detected-lang">
-                  Idioma detectado: <strong>{detectedLang}</strong>
-                </div>
-              )}
 
               {error && <div className="search-error" role="alert" aria-live="polite">{error}</div>}
 
