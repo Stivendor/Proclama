@@ -544,7 +544,12 @@ export default function NotesView() {
       lyrics: notice.text, key: '', tags: [], language: 'Español',
       usageCount: 0, isPublic: false, isVerified: false,
       createdAt: new Date(), updatedAt: new Date(),
-    })
+    }, false, 0)
+
+    if (!projectionWindow || projectionWindow.closed) {
+      const w = openProjectionWindow()
+      setProjectionWindow(w)
+    }
   }
 
   const isToday = selectedDate === todayISO()
