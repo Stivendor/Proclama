@@ -45,6 +45,7 @@ export interface ProjectionState {
   lyricsRaw?: string
   currentSlide: number
   isBible?: boolean
+  songArtist?: string
   theme: ProjectionTheme
   media?: {
     url: string
@@ -77,6 +78,7 @@ export interface ProjectionTheme {
   backgroundBlur?: number
   backgroundOverlayOpacity?: number
   fontSizeMax?: boolean
+  showBibleVersion?: boolean
   titlePosition?: 'top' | 'bottom' | 'none'
   verseReferencePosition?: 'top' | 'bottom'
   textUppercase?: boolean

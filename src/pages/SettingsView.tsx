@@ -600,7 +600,7 @@ export default function SettingsView() {
                 className="preview-content"
                 style={{
                   fontFamily: state.theme.fontFamily,
-                  fontSize: "26px",
+                  fontSize: `${26 * (state.theme.fontScale || 1)}px`,
                   color: state.theme.textColor,
                   textShadow: state.theme.textShadow
                     ? "0 2px 10px rgba(0,0,0,0.8)"
@@ -633,7 +633,7 @@ export default function SettingsView() {
                       marginBottom: 2,
                     }}
                   >
-                    Salmos 19:1
+                    Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
                   </div>
                 )}
 
@@ -648,7 +648,7 @@ export default function SettingsView() {
                   <div
                     style={{ opacity: 0.7, fontSize: "0.85em", marginTop: 2 }}
                   >
-                    Salmos 19:1
+                    Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
                   </div>
                 )}
               </div>

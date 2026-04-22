@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+  import { useEffect, useRef, useState, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme } from '@/types'
 import { DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
@@ -82,7 +82,7 @@ export default function ProjectionWindow() {
     document.documentElement.requestFullscreen?.().catch(() => null)
   }, [])
 
-  const { slides, currentSlide, theme, songTitle, isBible, hideText } = state
+  const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = state
   const slide = slides[currentSlide]
   
   // Título solo para Biblia (es la cita bibliográfica)
@@ -265,7 +265,7 @@ export default function ProjectionWindow() {
               {titleAtTop && (
                 <div style={{ opacity: 1, fontSize: '0.85em',
                   marginBottom: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
-                  {songTitle}
+                  {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>
               )}
               <div style={{ textShadow: strongShadow }}>
@@ -274,7 +274,7 @@ export default function ProjectionWindow() {
               {titleAtBottom && (
                 <div style={{ opacity: 1, fontSize: '0.85em',
                   marginTop: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
-                  {songTitle}
+                  {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>
               )}
             </div>

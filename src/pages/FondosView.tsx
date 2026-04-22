@@ -280,6 +280,15 @@ export default function FondosView() {
                 </select>
               </div>
               <div className="form-group">
+                <label>Escala de Texto: {Math.round((state.theme.fontScale || 1) * 100)}%</label>
+                <input 
+                  type="range" min="0.1" max="1" step="0.05" 
+                  value={state.theme.fontScale || 1} 
+                  onChange={(e) => updateTheme({ fontScale: Number(e.target.value) })} 
+                  style={{ width: "100%" }} 
+                />
+              </div>
+              <div className="form-group">
                 <label>Transición</label>
                 <select value={state.theme.transition || "fade"} onChange={(e) => updateTheme({ transition: e.target.value as any })} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-elevated)", color: "var(--text-primary)" }}>
                   {TRANSITIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -307,6 +316,10 @@ export default function FondosView() {
               <label className="toggle-item">
                 <input type="checkbox" checked={state.theme.textUppercase === true} onChange={(e) => updateTheme({ textUppercase: e.target.checked })} />
                 <span>Texto en mayúsculas</span>
+              </label>
+              <label className="toggle-item">
+                <input type="checkbox" checked={state.theme.showBibleVersion !== false} onChange={(e) => updateTheme({ showBibleVersion: e.target.checked })} />
+                <span>Mostrar versión (Biblia)</span>
               </label>
             </div>
           )}
