@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library, LayoutGrid, List } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -521,6 +521,10 @@ const LiveSelection = memo(function LiveSelection() {
     clearSong: s.clearSong,
     hideText: s.state.hideText
   })))
+  const { liveSlidesViewGrid, setLiveSlidesViewGrid } = useAppStore(useShallow(s => ({
+    liveSlidesViewGrid: s.liveSlidesViewGrid,
+    setLiveSlidesViewGrid: s.setLiveSlidesViewGrid
+  })))
 
   if (!songTitle) {
     return (
@@ -539,9 +543,25 @@ const LiveSelection = memo(function LiveSelection() {
           <h2>{songTitle}</h2>
           <div className="live-meta">Estrofas: {slides.length}</div>
         </div>
+        <div className="view-toggle-group">
+          <button 
+            className={`toggle-icon-btn ${!liveSlidesViewGrid ? 'active' : ''}`}
+            onClick={() => setLiveSlidesViewGrid(false)}
+            title="Vista de lista (filas)"
+          >
+            <List size={16} />
+          </button>
+          <button 
+            className={`toggle-icon-btn ${liveSlidesViewGrid ? 'active' : ''}`}
+            onClick={() => setLiveSlidesViewGrid(true)}
+            title="Vista de cuadrícula"
+          >
+            <LayoutGrid size={16} />
+          </button>
+        </div>
       </div>
 
-      <div className="live-slides-grid">
+      <div className={`live-slides-grid ${!liveSlidesViewGrid ? 'as-list' : ''}`}>
         {slides.map((slide, i) => {
           const isActive = i === currentSlide;
           const isHiddenAndActive = isActive && hideText;
@@ -567,6 +587,34 @@ const LiveSelection = memo(function LiveSelection() {
       </div>
 
       <style>{`
+        .view-toggle-group {
+          display: flex;
+          background: var(--bg-elevated);
+          padding: 3px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+        }
+        .toggle-icon-btn {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .toggle-icon-btn:hover {
+          color: var(--text-primary);
+        }
+        .toggle-icon-btn.active {
+          background: var(--bg-surface);
+          color: var(--gold);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
         .live-slide-card.is-hidden-preview {
           opacity: 0.5;
           filter: grayscale(1);
