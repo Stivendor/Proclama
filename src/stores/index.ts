@@ -21,7 +21,6 @@ export const DEFAULT_THEME: ProjectionTheme = {
   showVerseLabel: false,
   backgroundType: 'color',
   backgroundBlur: 0,
-  backgroundDarkness: 0,
   backgroundOverlayOpacity: 0.3,
   backgroundVideoUrl: '',
   fontSizeMax: false,

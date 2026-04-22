@@ -224,7 +224,7 @@ function ProjectionPreview({
     const slide = slides[currentSlide]
     
     // Show background even when no slide is loaded
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
     const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
     
     if (!slide) {

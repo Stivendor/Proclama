@@ -75,7 +75,6 @@ export interface ProjectionTheme {
   backgroundImageUrl?: string
   backgroundThumbnail?: string
   backgroundBlur?: number
-  backgroundDarkness?: number
   backgroundOverlayOpacity?: number
   fontSizeMax?: boolean
   titlePosition?: 'top' | 'bottom' | 'none'
@@ -102,7 +101,6 @@ export interface CountdownTheme {
   backgroundThumbnail?: string
   backgroundVideoUrl?: string
   backgroundBlur?: number
-  backgroundDarkness?: number
   backgroundOverlayOpacity?: number
   fontFamily: string
   fontSize: number

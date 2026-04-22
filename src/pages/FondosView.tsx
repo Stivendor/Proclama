@@ -147,7 +147,7 @@ export default function FondosView() {
           <div className="background-options">
             {state.theme.backgroundType === "image" && (
               <div className="gallery-container">
-                <label><ImageIcon size={14} /> Galería de Imagenes</label>
+                <label><ImageIcon size={14} /> Galería de Imágenes</label>
                 <div className="category-filters">
                   <button className={!imageCategory ? "active" : ""} onClick={() => setImageCategory(null)}>Todos</button>
                   {availableImageCategories.map((cat) => (

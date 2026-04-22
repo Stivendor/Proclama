@@ -79,7 +79,7 @@ export default function Sidebar() {
 
       <button className="btn-new-song" onClick={handleNewSong}>
         <Plus size={16} />
-        Nueva Cancion
+        Nueva Canción
       </button>
 
       <nav className="sidebar-nav">
@@ -106,8 +106,8 @@ export default function Sidebar() {
             <button
               className="btn-icon sm"
               onClick={handleLogout}
-              title="Cerrar sesion"
-              aria-label="Cerrar sesion"
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
             >
               <LogOut size={14} />
             </button>
@@ -127,7 +127,7 @@ export default function Sidebar() {
         <FeedbackModal />
         <button className="btn-projection" onClick={handleOpenProjection}>
           <Tv2 size={16} />
-          Abrir Proyeccion
+          Abrir Proyección
         </button>
       </div>
     </aside>

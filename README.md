@@ -30,9 +30,9 @@ Proclama reúne en una sola aplicación web:
 - Biblia integrada (RVR1960) con búsqueda por texto, libro o referencia.
 - Contador regresivo personalizable con proyección en tiempo real.
 - Sección de Notas: asistencia con categorías configurables, avisos proyectables e historial.
-- Fondos personalizables con color, imagen o video.
-- Importación y búsqueda online de letras.
-- Panel de control en vivo con navegación rápida de estrofas y versículos.
+- Fondos dinámicos personalizables (Color, Imagen, Video) con controles de Blur y Filtro de Oscuridad.
+- Panel de control responsivo con controles de media, ajustes de proyección y vista previa en tiempo real.
+- Panel de control en vivo optimizado con navegación rápida de estrofas y versículos.
 - PWA instalable con soporte offline.
 
 ---
@@ -70,8 +70,9 @@ Proclama reúne en una sola aplicación web:
 - Canvas fijo (1920×1080 / 1024×768) con auto-ajuste de fuente matemático (no-DOM).
 - Navegación inteligente entre estrofas.
 - Pantalla negra (`B`), modo ocultar texto y logo flotante.
-- Fondos personalizables: color, imagen o video con blur, oscuridad y overlay dinámico.
+- Fondos personalizables: color, imagen o video con Blur, Opacidad de Overlay dinámica y detector automático de categorías.
 - Ajuste de escala de fuente manual (0.4x - 1.5x) para optimización en tiempo real.
+- Panel de controles vertical y responsivo que se adapta a diferentes resoluciones y niveles de zoom.
 
 ### Contador regresivo
 
