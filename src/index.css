@@ -2198,8 +2198,9 @@ a:hover { text-decoration: underline; }
 .preview-header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
 .preview-label {
@@ -2223,17 +2224,21 @@ a:hover { text-decoration: underline; }
 }
 
 .preview-header-center {
-  flex: 2;
+  flex: 3;
   text-align: center;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .preview-song-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .preview-collapse-toggle {
@@ -2447,7 +2452,66 @@ a:hover { text-decoration: underline; }
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  gap: 10px;
   z-index: 20;
+}
+
+@media (max-width: 1100px) {
+  .preview-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .preview-canvas-controls-left label span,
+  .preview-canvas-slider-group label span,
+  .preview-value-text {
+    display: none;
+  }
+  
+  .preview-canvas-controls-left {
+    min-width: 0;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 850px) {
+  .preview-canvas-controls-right {
+    min-width: 100px;
+    gap: 6px;
+  }
+  
+  .preview-canvas-slider-group label {
+    font-size: 9px;
+  }
+  
+  .projection-preview-header {
+    padding: 0 8px;
+  }
+}
+
+@media (max-width: 750px) {
+  .preview-canvas-controls-left,
+  .preview-canvas-controls-right {
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  .preview-canvas-controls {
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    gap: 6px;
+  }
+  
+  .preview-canvas-controls select {
+    width: 65px;
+    font-size: 10px;
+  }
+  
+  .preview-song-title {
+    font-size: 11px;
+  }
 }
 
 .preview-canvas-controls input[type="color"] {
@@ -2607,7 +2671,28 @@ a:hover { text-decoration: underline; }
 
 .preview-canvas-controls-right {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 8px;
+  min-width: 140px;
+}
+
+.preview-canvas-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview-canvas-slider-group label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.preview-canvas-slider-group input[type="range"] {
+  width: 100%;
 }
 
 .preview-hide-text-btn {
