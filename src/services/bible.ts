@@ -2,6 +2,7 @@
 import type { BibleBook } from '@/types'
 import { BIBLE_CONTENT, BIBLE_BOOKS as IMPORTED_BIBLE_BOOKS } from '@/data/bible-content'
 import { supabase } from '@/services/supabase'
+import { db } from '@/db'
 
 export const BIBLE_BOOKS: BibleBook[] = [
   // ─── Antiguo Testamento ───
@@ -113,6 +114,45 @@ export interface BibleChapterResult {
   verses: BibleVerseResult[]
 }
 
+// Cache para no consultar la DB de Dexie en cada versículo
+const translationLanguageCache = new Map<string, string>()
+
+async function getTranslationLang(translation: string): Promise<string> {
+  if (translationLanguageCache.has(translation)) {
+    return translationLanguageCache.get(translation)!
+  }
+  
+  const standard = SUPPORTED_TRANSLATIONS.find(t => t.id === translation)
+  if (standard) {
+    translationLanguageCache.set(translation, standard.lang)
+    return standard.lang
+  }
+  
+  // Si no es estándar, buscar en biblias importadas (Dexie)
+  try {
+    const imported = await db.imported_bibles.get(translation)
+    if (imported) {
+      const lang = imported.languageName
+      translationLanguageCache.set(translation, lang)
+      return lang
+    }
+  } catch (e) {
+    console.error("Error al obtener idioma de la traducción:", e)
+  }
+  
+  return 'Español'
+}
+
+async function getBookName(bookId: string, translation: string): Promise<string> {
+  const book = BIBLE_BOOKS.find(b => b.id === bookId)
+  if (!book) return bookId
+  
+  const lang = await getTranslationLang(translation)
+  const isEn = lang.toLowerCase() === 'english' || lang === 'Inglés'
+  
+  return isEn ? (book.nameEn || book.name) : book.name
+}
+
 // Datos locales - Combina BIBLE_CONTENT expandida con datos locales adicionales
 const BIBLE_DATA = BIBLE_CONTENT
 
@@ -217,7 +257,7 @@ export async function fetchChapter(
       return cached
     }
     
-    const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
+    const bookName = await getBookName(bookId, translation)
     
     // Primero intentar datos locales si es RVR1960
     if (translation === 'RVR1960' && BIBLE_DATA[bookId]?.[chapter]) {
@@ -349,7 +389,7 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
     
     // Buscar en datos locales
     for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
-      const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
+      const bookName = await getBookName(bookId, translation)
       for (const [chapterStr, verses] of Object.entries(chapters)) {
         const chapter = Number(chapterStr)
         for (const verse of verses) {
@@ -447,8 +487,9 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
         // Referencia exacta: Libro C:V
         const v = BIBLE_DATA[book.id][chapter]?.find(v => v.verse === verseNum)
         if (v) {
+          const bookName = await getBookName(book.id, translation)
           return [{
-            reference: `${book.name} ${chapter}:${v.verse}`,
+            reference: `${bookName} ${chapter}:${v.verse}`,
             text: v.text,
             translation: 'RVR1960',
             bookId: book.id,
@@ -459,8 +500,9 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
         // Capítulo completo: Libro C
         const chapterVerses = BIBLE_DATA[book.id][chapter]
         if (chapterVerses) {
+          const bookName = await getBookName(book.id, translation)
           return chapterVerses.map(v => ({
-            reference: `${book.name} ${chapter}:${v.verse}`,
+            reference: `${bookName} ${chapter}:${v.verse}`,
             text: v.text,
             translation: 'RVR1960',
             bookId: book.id,
@@ -478,8 +520,9 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
   )
   if (bookOnly && BIBLE_DATA[bookOnly.id]) {
     // Si buscó solo el libro, mostrar los primeros versículos del cap 1
+    const bookName = await getBookName(bookOnly.id, translation)
     return (BIBLE_DATA[bookOnly.id][1] || []).slice(0, 20).map(v => ({
-      reference: `${bookOnly.name} 1:${v.verse}`,
+      reference: `${bookName} 1:${v.verse}`,
       text: v.text,
       translation: 'RVR1960',
       bookId: bookOnly.id,
@@ -492,7 +535,7 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
   const MAX_RESULTS = 50 // Limitar resultados por rendimiento
 
   for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
-    const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name ?? bookId
+    const bookName = await getBookName(bookId, translation)
     for (const [chapterStr, verses] of Object.entries(chapters)) {
       const chapter = Number(chapterStr)
       for (const verse of verses) {
@@ -520,10 +563,10 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
       const res = await fetch(searchUrl)
       if (res.ok) {
         const apiResults = await res.json()
-        apiResults.forEach((v: any) => {
+        for (const v of apiResults) {
           // Evitar duplicados
           const bookId = Object.keys(BOLLS_BOOK_MAP).find(key => BOLLS_BOOK_MAP[key] === v.book) || ''
-          const bookName = BIBLE_BOOKS.find(b => b.id === bookId)?.name || `Libro ${v.book}`
+          const bookName = await getBookName(bookId, translation)
           const ref = `${bookName} ${v.chapter}:${v.verse}`
           
           if (!results.find(r => r.reference === ref)) {
@@ -540,7 +583,7 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
               chapter: v.chapter
             })
           }
-        })
+        }
       }
     } catch (e) {
       console.error('Error in Bolls Life search:', e)
