@@ -629,7 +629,7 @@ export default function SettingsView() {
                   <div
                     style={{
                       opacity: 0.7,
-                      fontSize: "0.85em",
+                      fontSize: "0.7em",
                       marginBottom: 2,
                     }}
                   >
@@ -646,7 +646,7 @@ export default function SettingsView() {
 
                 {state.theme.verseReferencePosition === "bottom" && (
                   <div
-                    style={{ opacity: 0.7, fontSize: "0.85em", marginTop: 2 }}
+                    style={{ opacity: 0.7, fontSize: "0.7em", marginTop: 2 }}
                   >
                     Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
                   </div>
