@@ -254,6 +254,7 @@ function MainApp() {
         backgroundVideoUrl={theme.backgroundVideoUrl}
         backgroundBlur={theme.backgroundBlur}
         backgroundOverlayOpacity={theme.backgroundOverlayOpacity}
+        showBibleVersion={theme.showBibleVersion}
         onTextColorChange={(color) => updateTheme({ textColor: color })}
         onFontFamilyChange={(font) => updateTheme({ fontFamily: font })}
         onTextUppercaseChange={(val) => updateTheme({ textUppercase: val })}
@@ -263,6 +264,7 @@ function MainApp() {
         onHideTextChange={(val) => setHideText(val)}
         onBlurChange={(val) => updateTheme({ backgroundBlur: val })}
         onOpacityChange={(val) => updateTheme({ backgroundOverlayOpacity: val })}
+        onShowBibleVersionChange={(val) => updateTheme({ showBibleVersion: val })}
       />
     </div>
   );

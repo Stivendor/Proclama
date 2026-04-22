@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'
 import { onMessage } from '@/services/projection'
 import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { useCountdownStore } from '@/stores/countdown'
@@ -39,6 +39,8 @@ interface ProjectionPreviewProps {
   onHideTextChange?: (val: boolean) => void
   onBlurChange?: (val: number) => void
   onOpacityChange?: (val: number) => void
+  showBibleVersion?: boolean
+  onShowBibleVersionChange?: (val: boolean) => void
 }
 
 // Helper: Load collapsed state from localStorage
@@ -103,7 +105,8 @@ function ProjectionPreview({
   backgroundBlur, backgroundOverlayOpacity, 
   onTextColorChange, onFontFamilyChange, onTextUppercaseChange, 
   onTextShadowChange, onTransitionChange, onVersePositionChange, 
-  onHideTextChange, onBlurChange, onOpacityChange 
+  onHideTextChange, onBlurChange, onOpacityChange,
+  showBibleVersion, onShowBibleVersionChange
 }: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
@@ -220,7 +223,7 @@ function ProjectionPreview({
       )
     }
 
-    const { slides, currentSlide, theme, songTitle, isBible, hideText } = projectionState
+    const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = projectionState
     const slide = slides[currentSlide]
     
     // Show background even when no slide is loaded
@@ -303,7 +306,7 @@ function ProjectionPreview({
         }}>
             {titleAtTop && (
               <div style={{ opacity: 1, fontSize: '0.85em', marginBottom: '0.4em', textShadow }}>
-                {songTitle}
+                {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
               </div>
             )}
             <div style={{ textShadow }}>
@@ -311,7 +314,7 @@ function ProjectionPreview({
             </div>
             {titleAtBottom && (
               <div style={{ opacity: 1, fontSize: '0.85em', marginTop: '0.4em', textShadow }}>
-                {songTitle}
+                {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
               </div>
             )}
           </div>
@@ -526,6 +529,16 @@ function ProjectionPreview({
                 Texto en mayúsculas
               </label>
             </div>
+            <div className="preview-canvas-row">
+              <label>
+                <input 
+                  type="checkbox" 
+                  checked={showBibleVersion !== false} 
+                  onChange={(e) => onShowBibleVersionChange?.(e.target.checked)}
+                />
+                Mostrar versión (Biblia)
+              </label>
+            </div>
           </div>
           <div className="preview-canvas-controls-right">
             <div className="preview-canvas-slider-group">
@@ -544,12 +557,15 @@ function ProjectionPreview({
                 onChange={(e) => onOpacityChange?.(Number(e.target.value))} 
               />
             </div>
+          </div>
+          <div className="preview-canvas-controls-extra">
             <button 
               className={`preview-hide-text-btn ${hideText ? 'active' : ''}`}
               onClick={() => onHideTextChange?.(!hideText)}
-              style={{ marginTop: 'auto' }}
+              title={hideText ? 'Mostrar Texto' : 'Ocultar Texto'}
             >
-              {hideText ? ' Mostrar Texto' : 'Ocultar Texto'}
+              {hideText ? <Eye size={18} /> : <EyeOff size={18} />}
+              <span>{hideText ? 'Mostrar' : 'Ocultar'}</span>
             </button>
           </div>
         </div>

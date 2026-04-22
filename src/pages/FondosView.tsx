@@ -308,6 +308,10 @@ export default function FondosView() {
                 <input type="checkbox" checked={state.theme.textUppercase === true} onChange={(e) => updateTheme({ textUppercase: e.target.checked })} />
                 <span>Texto en mayúsculas</span>
               </label>
+              <label className="toggle-item">
+                <input type="checkbox" checked={state.theme.showBibleVersion !== false} onChange={(e) => updateTheme({ showBibleVersion: e.target.checked })} />
+                <span>Mostrar versión (Biblia)</span>
+              </label>
             </div>
           )}
         </section>

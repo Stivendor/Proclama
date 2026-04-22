@@ -2291,6 +2291,7 @@ a:hover { text-decoration: underline; }
   justify-content: center;
   overflow: hidden;
   padding: 12px;
+  gap: 12px;
 }
 
 .projection-preview-viewport {
@@ -2667,6 +2668,19 @@ a:hover { text-decoration: underline; }
   padding: 10px;
   background: rgba(0, 0, 0, 0.85);
   border-radius: 8px;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+.preview-canvas-controls-left::-webkit-scrollbar {
+  width: 4px;
+}
+
+.preview-canvas-controls-left::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
 }
 
 .preview-canvas-controls-right {
@@ -2677,6 +2691,30 @@ a:hover { text-decoration: underline; }
   background: rgba(0, 0, 0, 0.85);
   border-radius: 8px;
   min-width: 140px;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+.preview-canvas-controls-extra {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: 8px;
+  min-width: 80px;
+}
+
+.preview-canvas-controls-right::-webkit-scrollbar {
+  width: 4px;
+}
+
+.preview-canvas-controls-right::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
 }
 
 .preview-canvas-slider-group {
@@ -2696,14 +2734,28 @@ a:hover { text-decoration: underline; }
 }
 
 .preview-hide-text-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 12px 8px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 70px;
+  height: 100%;
+  transition: all 0.2s ease;
+}
+
+.preview-hide-text-btn span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .preview-hide-text-btn.active {
