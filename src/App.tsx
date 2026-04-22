@@ -265,6 +265,8 @@ function MainApp() {
         onBlurChange={(val) => updateTheme({ backgroundBlur: val })}
         onOpacityChange={(val) => updateTheme({ backgroundOverlayOpacity: val })}
         onShowBibleVersionChange={(val) => updateTheme({ showBibleVersion: val })}
+        fontScale={theme.fontScale}
+        onFontScaleChange={(val) => updateTheme({ fontScale: val })}
       />
     </div>
   );

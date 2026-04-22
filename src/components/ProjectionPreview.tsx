@@ -41,6 +41,8 @@ interface ProjectionPreviewProps {
   onOpacityChange?: (val: number) => void
   showBibleVersion?: boolean
   onShowBibleVersionChange?: (val: boolean) => void
+  fontScale?: number
+  onFontScaleChange?: (val: number) => void
 }
 
 // Helper: Load collapsed state from localStorage
@@ -106,7 +108,8 @@ function ProjectionPreview({
   onTextColorChange, onFontFamilyChange, onTextUppercaseChange, 
   onTextShadowChange, onTransitionChange, onVersePositionChange, 
   onHideTextChange, onBlurChange, onOpacityChange,
-  showBibleVersion, onShowBibleVersionChange
+  showBibleVersion, onShowBibleVersionChange,
+  fontScale = 1, onFontScaleChange
 }: ProjectionPreviewProps) {
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
@@ -490,6 +493,15 @@ function ProjectionPreview({
                 <option value="Verdana">Verdana</option>
                 <option value="Impact">Impact</option>
               </select>
+            </div>
+            <div className="preview-canvas-row">
+              <label><span>Tamaño: </span>{Math.round(fontScale * 100)}%</label>
+              <input 
+                type="range" min="0.1" max="1.0" step="0.05"
+                value={fontScale} 
+                onChange={(e) => onFontScaleChange?.(Number(e.target.value))} 
+                style={{ width: '80px' }}
+              />
             </div>
             <div className="preview-canvas-row">
               <label><span>Transición</span></label>
