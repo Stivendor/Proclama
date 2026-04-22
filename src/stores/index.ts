@@ -28,6 +28,7 @@ export const DEFAULT_THEME: ProjectionTheme = {
   verseReferencePosition: 'bottom',
   textUppercase: true,
   fontScale: 1,
+  showBibleVersion: true,
   linesPerSlide: 4
 }
 
@@ -77,6 +78,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     const newState: ProjectionState = {
       ...get().state,
       songTitle: song.title,
+      songArtist: song.artist,
       isBible,
       lyricsRaw: song.lyrics,
       slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 4),
