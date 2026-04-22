@@ -292,7 +292,6 @@ export default function FondosView() {
                   </button>
                 </div>
               </div>
-              </div>
             </div>
           )}
           {textoExpanded && (
