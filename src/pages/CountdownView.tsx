@@ -1,5 +1,5 @@
 import { Play, Pause, RotateCcw, Menu } from 'lucide-react'
-import { useAppStore } from '@/stores'
+import { useAppStore, useProjectionStore } from '@/stores'
 import { useShallow } from 'zustand/react/shallow'
 import { useCountdownStore } from '@/stores/countdown'
 
@@ -12,7 +12,8 @@ export default function CountdownView() {
     updateConfig: s.updateConfig, start: s.start, pause: s.pause, reset: s.reset
   })))
   
-  const theme = settings.defaultTheme
+  const projectionTheme = useProjectionStore(s => s.state.theme)
+  const theme = projectionTheme // Use current projection theme for preview
 
   const formatTime = (totalSeconds: number) => {
     const m = Math.floor(totalSeconds / 60)
@@ -24,10 +25,7 @@ export default function CountdownView() {
     if (theme.backgroundType === 'image' && theme.backgroundImageUrl) {
       return { background: `url(${theme.backgroundImageUrl}) center/cover no-repeat` }
     }
-    if (theme.backgroundType === 'video' && theme.backgroundVideoUrl) {
-      return { background: '#000' }
-    }
-    return { background: theme.background }
+    return { background: theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000' }
   }
 
   return (
@@ -128,6 +126,7 @@ export default function CountdownView() {
             {/* Video bg */}
             {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
               <video
+                key={theme.backgroundVideoUrl}
                 src={theme.backgroundVideoUrl}
                 autoPlay muted loop
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}

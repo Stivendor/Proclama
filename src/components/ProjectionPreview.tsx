@@ -230,12 +230,15 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
               filter: bgFilter, transform: bgTransform,
             }} />
             {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-              <video autoPlay muted loop playsInline style={{ 
-                position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-                filter: bgFilter, transform: bgTransform,
-              }}>
-                <source src={theme.backgroundVideoUrl} type="video/mp4" />
-              </video>
+              <video 
+                key={theme.backgroundVideoUrl}
+                src={theme.backgroundVideoUrl}
+                autoPlay muted loop playsInline 
+                style={{ 
+                  position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+                  filter: bgFilter, transform: bgTransform,
+                }}
+              />
             )}
             <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
           </>
@@ -266,12 +269,15 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
           filter: bgFilter, transform: bgTransform,
         }} />
         {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ 
-            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-            filter: bgFilter, transform: bgTransform,
-          }}>
-            <source src={theme.backgroundVideoUrl} type="video/mp4" />
-          </video>
+          <video 
+            key={theme.backgroundVideoUrl}
+            src={theme.backgroundVideoUrl}
+            autoPlay muted loop playsInline 
+            style={{ 
+              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+              filter: bgFilter, transform: bgTransform,
+            }}
+          />
         )}
         <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
         <div key={`${songTitle}-${currentSlide}`} style={{
@@ -307,9 +313,12 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
             transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
           }}>
             {projectionState.media.type === 'video' ? (
-              <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}>
-                <source src={projectionState.media.url} type="video/mp4" />
-              </video>
+              <video 
+                key={projectionState.media.url}
+                src={projectionState.media.url}
+                autoPlay muted loop playsInline 
+                style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}
+              />
             ) : (
               <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }} />
             )}
@@ -322,32 +331,37 @@ function ProjectionPreview({ textColor, fontFamily, textUppercase, textShadow, t
   // Render countdown content
   const renderCountdownContent = () => {
     if (!countdownState) return null
-    const theme = countdownState.config.theme
-    const textShadow = theme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px) brightness(${1 - ((theme.backgroundOverlayOpacity ?? 0.3))})`
-    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
+    const countdownTheme = countdownState.config.theme
+    const mainTheme = projectionState?.theme || DEFAULT_THEME
+    const textShadow = countdownTheme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
+    const bgFilter = `blur(${mainTheme.backgroundBlur || 0}px) brightness(${1 - ((mainTheme.backgroundOverlayOpacity ?? 0.3))})`
+    const bgTransform = mainTheme.backgroundBlur ? 'scale(1.05)' : 'none'
+    
     return (
       <>
         <div style={{
           position: 'absolute', inset: 0,
-          background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-            ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-            : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
+          background: mainTheme.backgroundType === 'image' && mainTheme.backgroundImageUrl
+            ? `url(${mainTheme.backgroundImageUrl}) center/cover no-repeat`
+            : mainTheme.backgroundType === 'color' || !mainTheme.backgroundType ? mainTheme.background : '#000',
           filter: bgFilter, transform: bgTransform,
         }} />
-        {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video autoPlay muted loop playsInline style={{ 
-            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-            filter: bgFilter, transform: bgTransform,
-          }}>
-            <source src={theme.backgroundVideoUrl} type="video/mp4" />
-          </video>
+        {mainTheme.backgroundType === 'video' && mainTheme.backgroundVideoUrl && (
+          <video 
+            key={mainTheme.backgroundVideoUrl}
+            src={mainTheme.backgroundVideoUrl}
+            autoPlay muted loop playsInline 
+            style={{ 
+              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+              filter: bgFilter, transform: bgTransform,
+            }}
+          />
         )}
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${mainTheme.backgroundOverlayOpacity ?? 0.3})` }} />
         <div style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          fontFamily: theme.fontFamily, color: theme.textColor,
+          fontFamily: countdownTheme.fontFamily, color: countdownTheme.textColor,
           fontSize: `${canvas.height * 0.18}px`,
         }}>
           {countdownState.config.title && (
