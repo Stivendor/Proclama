@@ -204,6 +204,9 @@ interface AppStore {
   isSidebarOpen: boolean
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
+  
+  liveSlidesViewGrid: boolean
+  setLiveSlidesViewGrid: (v: boolean) => void
 
 
   // Backgrounds
@@ -262,6 +265,9 @@ export const useAppStore = create<AppStore>()(
       isSidebarOpen: true,
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
+
+      liveSlidesViewGrid: true,
+      setLiveSlidesViewGrid: (v) => set({ liveSlidesViewGrid: v }),
 
 
       backgrounds: [],
@@ -338,6 +344,7 @@ export const useAppStore = create<AppStore>()(
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
         forceLanding: state.forceLanding,
+        liveSlidesViewGrid: state.liveSlidesViewGrid,
       })
     }
   )
