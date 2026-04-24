@@ -1,5 +1,5 @@
 [functions.create_mercadopago_preference]
-verify_jwt = false
+verify_jwt = true
 
 [functions.mercadopago_webhook]
 verify_jwt = false
