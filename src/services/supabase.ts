@@ -496,10 +496,23 @@ export async function registerDevice(
   deviceId: string,
   deviceName: string
 ): Promise<UserDevice[]> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  if (userError) {
+    console.error('[Devices] Error resolving auth user:', userError.message)
+    return []
+  }
+
+  if (!user) {
+    console.warn('[Devices] Skipping device registration: no authenticated user')
+    return []
+  }
+
   const { error: upsertError } = await supabase
     .from('user_devices')
     .upsert(
       {
+        user_id: user.id,
         device_id: deviceId,
         device_name: deviceName,
         last_seen: new Date().toISOString(),
