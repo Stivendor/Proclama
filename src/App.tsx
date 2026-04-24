@@ -21,6 +21,7 @@ import TermsView from "@/pages/TermsView";
 import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
+import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION =
@@ -48,6 +49,7 @@ function AppContent() {
     guestMode,
     forceLanding,
     onboardingDone,
+    deviceBlocked,
   } = useAppStore(
     useShallow((s) => ({
       setUser: s.setUser,
@@ -58,6 +60,7 @@ function AppContent() {
       guestMode: s.guestMode,
       forceLanding: s.forceLanding,
       onboardingDone: s.onboardingDone,
+      deviceBlocked: s.deviceBlocked,
     })),
   );
 
@@ -79,6 +82,39 @@ function AppContent() {
       return profile;
     };
 
+    const checkDeviceLimit = async (plan: string) => {
+      if (plan !== 'premium') return;
+      try {
+        const { getDeviceId, getDeviceName } = await import('@/utils/deviceFingerprint');
+        const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
+        const deviceId = getDeviceId();
+        const deviceName = getDeviceName();
+        const MAX_DEVICES = 2;
+
+        // 1. Consultar dispositivos existentes SIN registrar este
+        const existing = await fetchUserDevices(deviceId);
+        const isAlreadyRegistered = existing.some(d => d.deviceId === deviceId);
+
+        if (isAlreadyRegistered) {
+          // Este dispositivo ya está registrado → actualizar last_seen y permitir
+          const devices = await registerDevice(deviceId, deviceName);
+          useAppStore.getState().setUserDevices(devices);
+          useAppStore.getState().setDeviceBlocked(false);
+        } else if (existing.length >= MAX_DEVICES) {
+          // Dispositivo nuevo pero el límite ya está lleno → BLOQUEAR
+          useAppStore.getState().setUserDevices(existing);
+          useAppStore.getState().setDeviceBlocked(true);
+        } else {
+          // Hay espacio → registrar este dispositivo
+          const devices = await registerDevice(deviceId, deviceName);
+          useAppStore.getState().setUserDevices(devices);
+          useAppStore.getState().setDeviceBlocked(false);
+        }
+      } catch (err) {
+        console.warn('Device check failed:', err);
+      }
+    };
+
     const authTimeout = setTimeout(
       () => {
         if (useAppStore.getState().authStatus === "loading") {
@@ -96,7 +132,9 @@ function AppContent() {
 
         if (user) {
           setUser(user);
-          void syncProfile(user.id).catch((err) => {
+          void syncProfile(user.id).then((profile) => {
+            if (profile) void checkDeviceLimit(profile.plan);
+          }).catch((err) => {
             console.warn("Profile sync failed:", err);
           });
         } else {
@@ -158,6 +196,9 @@ function AppContent() {
                 await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt);
                 useAppStore.getState().setTermsSyncPending(false);
               }
+              // Device limit check for premium users
+              const currentPlan = useAppStore.getState().userPlan;
+              await checkDeviceLimit(currentPlan);
             } catch (err) {
               console.warn("Post-login sync tasks had issues:", err);
             }
@@ -193,6 +234,10 @@ function AppContent() {
   }
 
   if (isServer) return null;
+
+  if (deviceBlocked) {
+    return <DeviceBlockedModal />;
+  }
 
   if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
     return <LandingView />;

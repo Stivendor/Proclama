@@ -476,3 +476,83 @@ export async function isUserPremium(): Promise<boolean> {
   if (error || !data) return false
   return data.plan === 'premium'
 }
+
+// ─── Funciones para Device Control ────────────────────────────────────────────
+
+export type UserDevice = {
+  id: string
+  deviceId: string
+  deviceName: string
+  lastSeen: string
+  createdAt: string
+  isCurrent?: boolean
+}
+
+/**
+ * Registra o actualiza el dispositivo actual mediante upsert.
+ * Devuelve la lista actualizada de dispositivos del usuario (con isCurrent marcado).
+ */
+export async function registerDevice(
+  deviceId: string,
+  deviceName: string
+): Promise<UserDevice[]> {
+  const { error: upsertError } = await supabase
+    .from('user_devices')
+    .upsert(
+      {
+        device_id: deviceId,
+        device_name: deviceName,
+        last_seen: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,device_id' }
+    )
+
+  if (upsertError) {
+    console.error('[Devices] Error upserting device:', upsertError.message)
+    return []
+  }
+
+  return fetchUserDevices(deviceId)
+}
+
+/**
+ * Obtiene todos los dispositivos registrados del usuario autenticado.
+ * Marca con isCurrent = true el dispositivo que coincide con currentDeviceId.
+ */
+export async function fetchUserDevices(currentDeviceId?: string): Promise<UserDevice[]> {
+  const { data, error } = await supabase
+    .from('user_devices')
+    .select('id, device_id, device_name, last_seen, created_at')
+    .order('last_seen', { ascending: false })
+
+  if (error) {
+    console.warn('[Devices] Error fetching devices:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    deviceId: row.device_id,
+    deviceName: row.device_name,
+    lastSeen: row.last_seen,
+    createdAt: row.created_at,
+    isCurrent: currentDeviceId ? row.device_id === currentDeviceId : false,
+  }))
+}
+
+/**
+ * Revoca (elimina) un dispositivo por su UUID de fila.
+ * El RLS garantiza que el usuario solo puede revocar sus propios dispositivos.
+ */
+export async function revokeDevice(deviceRowId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('user_devices')
+    .delete()
+    .eq('id', deviceRowId)
+
+  if (error) {
+    console.error('[Devices] Error revoking device:', error.message)
+    return false
+  }
+  return true
+}
