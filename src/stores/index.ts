@@ -4,6 +4,7 @@ import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, Term
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendMediaCommand } from '@/services/projection'
 import { supabase } from '@/services/supabase'
+import type { UserDevice } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
@@ -237,6 +238,12 @@ interface AppStore {
   setTermsAccepted: (t: TermsAcceptance | null) => void
   setTermsSyncPending: (v: boolean) => void
 
+  // Device control
+  deviceBlocked: boolean
+  setDeviceBlocked: (v: boolean) => void
+  userDevices: UserDevice[]
+  setUserDevices: (devices: UserDevice[]) => void
+
   logout: () => void
   goToLanding: () => void
   forceLanding: boolean
@@ -326,6 +333,11 @@ export const useAppStore = create<AppStore>()(
           }
         }
       },
+
+      deviceBlocked: false,
+      setDeviceBlocked: (v) => set({ deviceBlocked: v }),
+      userDevices: [],
+      setUserDevices: (devices) => set({ userDevices: devices }),
 
       logout: () => set({ 
         user: null, 

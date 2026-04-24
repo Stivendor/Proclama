@@ -27,7 +27,7 @@ export default function Sidebar() {
   }
 
   const nav = [
-    { id: 'library', icon: Library, label: 'Biblioteca' },
+    { id: 'library', icon: Library, label: 'Canciones' },
     { id: 'setlists', icon: List, label: 'Setlists' },
     { id: 'bible', icon: BookIcon, label: 'Biblia' },
     { id: 'countdown', icon: Timer, label: 'Contador' },
