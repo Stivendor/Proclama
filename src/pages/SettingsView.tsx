@@ -32,6 +32,8 @@ import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 import MFAModal from "@/components/MFAModal";
 import { usePlan } from "@/hooks/usePlan";
 import { useMercadoPagoCheckout } from "@/components/MercadoPagoCheckout";
+import DeviceList from "@/components/DeviceList";
+import { Monitor } from "lucide-react";
 
 export default function SettingsView() {
   const {
@@ -480,8 +482,26 @@ export default function SettingsView() {
 
           {showMFAModal && <MFAModal onClose={() => setShowMFAModal(false)} />}
 
-          
-         
+          {/* Dispositivos conectados — Solo para usuarios Premium */}
+          {user && isPremium && (
+            <section className="settings-section">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Monitor size={18} />
+                Dispositivos conectados
+              </h2>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-secondary)",
+                  marginBottom: 12,
+                }}
+              >
+                Tu plan Pro permite hasta <strong style={{ color: 'var(--text-primary)' }}>2 dispositivos</strong>. Puedes revocar el acceso de cualquier equipo desde aquí.
+              </p>
+              <DeviceList />
+            </section>
+          )}
+
         </div>
 
         {/* Columna Derecha de Preview */}
