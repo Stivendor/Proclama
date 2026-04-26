@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap, Instagram } from 'lucide-react'
+
+const TikTokIcon = ({ size = 24, color = 'currentColor' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+  </svg>
+)
 import AuthView from './AuthView'
 import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
@@ -442,13 +448,32 @@ export default function LandingView() {
       </main>
 
       <footer className="landing-footer">
-        <p style={{ fontStyle: 'italic', marginBottom: '12px', fontSize: '13px' }}>
-          "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
-        </p>
-        <div style={{ marginBottom: '16px', color: '#9aa6bb' }}>
-          ¿Dudas o sugerencias? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold' }}>proclamapro@gmail.com</a>
+        <div className="landing-footer-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '24px' }}>
+          
+          <div className="social-section">
+            <h4 style={{ margin: '0 0 16px', color: '#e7edf8', fontSize: '16px', fontWeight: '600' }}>Síguenos en nuestras redes</h4>
+            <div className="social-links" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <a href="https://instagram.com/proclamapro" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Instagram">
+                <Instagram size={24} />
+              </a>
+              <a href="https://tiktok.com/@proclamapro" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="TikTok">
+                <TikTokIcon size={24} />
+              </a>
+            </div>
+          </div>
+
+          <div className="footer-separator" style={{ width: '60px', height: '1px', background: 'rgba(201, 166, 88, 0.3)' }}></div>
+
+          <div className="footer-contact">
+            <p style={{ fontStyle: 'italic', marginBottom: '12px', fontSize: '13px', color: '#8b98b0' }}>
+              "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
+            </p>
+            <div style={{ marginBottom: '16px', color: '#9aa6bb' }}>
+              ¿Dudas o sugerencias? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold', marginLeft: '4px' }}>proclamapro@gmail.com</a>
+            </div>
+            <div style={{ color: '#778398', fontSize: '14px' }}>© 2026 Proclama</div>
+          </div>
         </div>
-        <div>© 2026 Proclama</div>
       </footer>
 
       {showTermsForGuest && (
@@ -597,8 +622,26 @@ export default function LandingView() {
           outline: 2px solid #c9a658;
           outline-offset: 3px;
         }
+        .social-link {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          color: #9aa6bb;
+          transition: all 0.2s ease;
+        }
+        .social-link:hover {
+          color: #c9a658;
+          background: rgba(201, 166, 88, 0.08);
+          border-color: rgba(201, 166, 88, 0.3);
+          transform: translateY(-2px);
+        }
         @media (prefers-reduced-motion: reduce) {
-          .landing-btn-primary:hover { transform: none; }
+          .landing-btn-primary:hover, .social-link:hover { transform: none; }
           .animate-fade-up, .animate-fade-down, .animate-pop-in { animation: none; opacity: 1; transform: none; }
           .animate-on-scroll { transition: none; opacity: 1; transform: none; }
         }

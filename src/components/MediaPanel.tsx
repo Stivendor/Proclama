@@ -231,8 +231,9 @@ export default function MediaPanel() {
           </span>
         </div>
       ) : (
-        <div className="media-gallery">
-          {localMediaList.map((item) => {
+        <div className="media-gallery-container">
+          <div className="media-gallery">
+            {localMediaList.map((item) => {
             const isProjecting = state.media?.url === item.url;
             return (
               <div
@@ -271,6 +272,7 @@ export default function MediaPanel() {
             <Plus size={20} opacity={0.5} />
           </div>
         </div>
+      </div>
       )}
 
       {isDragging && localMediaList.length > 0 && (
@@ -289,6 +291,7 @@ export default function MediaPanel() {
           gap: 12px; 
           position: relative;
           transition: background 0.2s;
+          flex-shrink: 0;
         }
         .media-panel.is-dragging {
           background: rgba(59, 130, 246, 0.03);
@@ -374,10 +377,20 @@ export default function MediaPanel() {
         .media-upload-zone p { font-size: 13px; font-weight: 500; margin: 0; }
         .media-upload-zone span { font-size: 11px; color: var(--text-muted); }
 
+        .media-gallery-container {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 10px;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+
         .media-gallery {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
           gap: 10px;
+          align-content: start;
         }
 
         .media-item-card {
