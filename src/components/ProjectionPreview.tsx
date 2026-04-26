@@ -216,9 +216,8 @@ function ProjectionPreview({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-  // Render slide content usando canvas fijo escalado
   const renderSlideContent = () => {
-    if (!projectionState || projectionState.slides.length === 0) {
+    if (!projectionState) {
       return (
         <div className="preview-empty-state">
           <div style={{ opacity: 0.3, fontSize: '2rem' }}></div>
@@ -229,14 +228,21 @@ function ProjectionPreview({
     const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = projectionState
     const slide = slides[currentSlide]
     
-    // Show background even when no slide is loaded
     const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
     const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
     
-    if (!slide) {
-      return (
-        <>
-          {showMedia && (
+    const showTitle = !!(isBible && songTitle)
+    const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
+    const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
+
+    const fontSize = slide ? calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom) : 0
+    const textShadow = theme.textShadow 
+      ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
+      : 'none'
+
+    return (
+      <>
+        {showMedia && (
           <>
             <div style={{
               position: 'absolute', inset: 0,
@@ -256,57 +262,42 @@ function ProjectionPreview({
                 }}
               />
             )}
-            <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+            <div style={{ position: 'absolute', inset: 0, zIndex: 5, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+            
+            {projectionState.media && (
+              <div style={{ 
+                position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
+                background: projectionState.media.isBackgroundMode ? 'transparent' : '#000',
+                filter: projectionState.media.isBackgroundMode ? bgFilter : 'none',
+                transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
+              }}>
+                {projectionState.media.type === 'video' ? (
+                  <video 
+                    key={projectionState.media.url}
+                    src={projectionState.media.url}
+                    autoPlay muted loop playsInline 
+                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }}
+                  />
+                ) : (
+                  <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }} />
+                )}
+              </div>
+            )}
           </>
-          )}
-          <div className="preview-empty-state">
-            <div style={{ opacity: 0.3, fontSize: '2rem' }}></div>
-          </div>
-        </>
-      )
-    }
-
-    const showTitle = !!(isBible && songTitle)
-    const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
-    const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
-
-    const fontSize = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom)
-    const textShadow = theme.textShadow 
-      ? '0 0 10px rgba(0,0,0,1), -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000, 2px 2px 0px #000' 
-      : 'none'
-
-    return (
-      <>
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-            ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-            : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-          filter: bgFilter, transform: bgTransform,
-        }} />
-        {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video 
-            key={theme.backgroundVideoUrl}
-            src={theme.backgroundVideoUrl}
-            autoPlay muted loop playsInline 
-            style={{ 
-              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-              filter: bgFilter, transform: bgTransform,
-            }}
-          />
         )}
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
-        <div key={`${songTitle}-${currentSlide}`} style={{
-          position: 'absolute', inset: 0, zIndex: 10,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
-          boxSizing: 'border-box', textAlign: 'center',
-          fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
-          lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
-          fontSize: `${fontSize}px`, wordBreak: 'break-word',
-          opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
-          animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
-        }}>
+
+        {slide ? (
+          <div key={`${songTitle}-${currentSlide}`} style={{
+            position: 'absolute', inset: 0, zIndex: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
+            boxSizing: 'border-box', textAlign: 'center',
+            fontFamily: theme.fontFamily, fontWeight: 900, color: theme.textColor,
+            lineHeight: 1.15, textTransform: theme.textUppercase ? 'uppercase' : 'none',
+            fontSize: `${fontSize}px`, wordBreak: 'break-word',
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
+            animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
+          }}>
             {titleAtTop && (
               <div style={{ opacity: 1, fontSize: '0.7em', marginBottom: '0.4em', textShadow }}>
                 {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
@@ -321,23 +312,9 @@ function ProjectionPreview({
               </div>
             )}
           </div>
-        {projectionState.media && (
-          <div style={{ 
-            position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
-            background: projectionState.media.isBackgroundMode ? 'transparent' : '#000',
-            filter: projectionState.media.isBackgroundMode ? bgFilter : 'none',
-            transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
-          }}>
-            {projectionState.media.type === 'video' ? (
-              <video 
-                key={projectionState.media.url}
-                src={projectionState.media.url}
-                autoPlay muted loop playsInline 
-                style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }}
-              />
-            ) : (
-              <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.isBackgroundMode ? 'cover' : 'contain' }} />
-            )}
+        ) : (
+          <div className="preview-empty-state">
+            <div style={{ opacity: 0.3, fontSize: '2rem' }}></div>
           </div>
         )}
       </>
@@ -373,7 +350,7 @@ function ProjectionPreview({
             }}
           />
         )}
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: `rgba(0,0,0,${mainTheme.backgroundOverlayOpacity ?? 0.3})` }} />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 5, backgroundColor: `rgba(0,0,0,${mainTheme.backgroundOverlayOpacity ?? 0.3})` }} />
         <div style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

@@ -51,6 +51,7 @@ export interface ProjectionState {
     url: string
     type: 'image' | 'video'
     isBackgroundMode?: boolean
+    objectFit?: 'cover' | 'contain'
   } | null
   hideText?: boolean
   mediaStatus?: {
@@ -58,6 +59,13 @@ export interface ProjectionState {
     duration: number
     isPlaying: boolean
   }
+}
+
+export interface LocalMedia {
+  id: string;
+  url: string;
+  type: "image" | "video";
+  name: string;
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────

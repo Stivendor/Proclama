@@ -91,16 +91,19 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
   const total = values.reduce((sum, v) => sum + v, 0)
   const title = name ? `${name}  ${formatDate(date)}` : `Asistencia  ${formatDate(date)}`
   const lines = [title]
+  
+  const maxLength = Math.max(10, ...categories.map(c => c.length))
+  
   categories.forEach((cat, idx) => {
-    lines.push(`${cat.padEnd(10).slice(0, 10)}  ${values[idx] || 0}`)
+    lines.push(`${cat.padEnd(maxLength)}  ${values[idx] || 0}`)
   })
-  lines.push(`Total       ${total}`)
+  lines.push(`Total`.padEnd(maxLength) + `  ${total}`)
   return lines.join('\n')
 }
 
 // ─── Mini bar chart (CSS only, no lib) ────────────────────────────────────────
 
-function AttendanceChart({ records, categories }: { records: AttendanceRecord[], categories: string[] }) {
+function AttendanceChart({ records, categories, onEdit, onDelete }: { records: AttendanceRecord[], categories: string[], onEdit: (date: string) => void, onDelete: (r: AttendanceRecord) => void }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState<string>('all')
   const RECORDS_PER_PAGE = 7
@@ -230,36 +233,57 @@ function AttendanceChart({ records, categories }: { records: AttendanceRecord[],
           </span>
         ))}
       </div>
-      {/* Summary table - grid con Total al final */}
-        <div style={{ display: "grid", gridTemplateColumns: `120px repeat(${categories.length}, 1fr) 80px`, gap: 4, fontSize: 12 }}>
-          <div style={{ display: "contents", fontWeight: 600, color: "var(--text-secondary)" }}>
-            <span>Fecha</span>
-            {categories.map((cat, idx) => (
-              <span key={idx} style={{ textAlign: "center" }}>{cat}</span>
-            ))}
-            <span style={{ textAlign: "right" }}>Total</span>
-          </div>
-          {currentRecords.map(r => {
-            const values = r.values?.length
-              ? r.values
-              : [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
-            const total = totalAttendance({ values })
-            return (
-              <div key={attendanceRowKey(r)} style={{ display: "contents" }}>
-                <span style={{ fontWeight: 500 }}>
-                  {r.serviceName
-                    ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 10, color: "var(--text-muted)" }}><br />{formatDate(r.date)}</span></>
-                    : formatDate(r.date)
-                  }
-                </span>
-                {categories.map((_, idx) => (
-                  <span key={idx} style={{ textAlign: "center", color: "var(--text-primary)" }}>{values[idx] ?? 0}</span>
-                ))}
-                <span style={{ textAlign: "right", fontWeight: 700, color: "var(--gold)" }}>{total}</span>
-              </div>
-            )
-          })}
-        </div>
+      {/* Summary table */}
+      <div style={{ overflowX: 'auto', marginTop: 16, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Fecha</th>
+              {categories.map((cat, idx) => (
+                <th key={idx} style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>{cat}</th>
+              ))}
+              <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>Total</th>
+              <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentRecords.map((r, i) => {
+              const values = r.values?.length
+                ? r.values
+                : [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
+              const total = totalAttendance({ values })
+              return (
+                <tr key={attendanceRowKey(r)} style={{ borderBottom: i === currentRecords.length - 1 ? 'none' : '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: 500 }}>
+                    {r.serviceName
+                      ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 11, color: "var(--text-muted)", display: 'block', marginTop: 2 }}>{formatDate(r.date)}</span></>
+                      : formatDate(r.date)
+                    }
+                  </td>
+                  {categories.map((_, idx) => (
+                    <td key={idx} style={{ padding: '12px 8px', textAlign: 'center', color: 'var(--text-primary)' }}>
+                      {values[idx] ?? 0}
+                    </td>
+                  ))}
+                  <td style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 700, color: 'var(--gold)' }}>
+                    {total}
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                      <button className="btn-icon" style={{ padding: 6 }} onClick={() => onEdit(r.date)} title="Editar">
+                        <Pencil size={14} />
+                      </button>
+                      <button className="btn-icon" style={{ padding: 6, color: 'var(--red)' }} onClick={() => onDelete(r)} title="Eliminar">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination controls */}
       {totalPages > 1 && (
@@ -692,7 +716,23 @@ export default function NotesView() {
                 Borrar historial
               </button>
             </div>
-            <AttendanceChart records={chartAttendanceRecords} categories={attendanceCategories} />
+            <AttendanceChart 
+              records={chartAttendanceRecords} 
+              categories={attendanceCategories} 
+              onEdit={(date) => {
+                setSelectedDate(date)
+                setShowDashboard(false)
+              }}
+              onDelete={async (r) => {
+                if (window.confirm(`¿Estás seguro de que deseas eliminar el registro del ${formatDate(r.date)}?`)) {
+                  if (r.id) {
+                    await db.attendance_records.delete(r.id)
+                  } else {
+                    await db.attendance_records.where({ date: r.date, userId: r.userId }).delete()
+                  }
+                }
+              }}
+            />
           </section>
         )}
 
@@ -732,7 +772,7 @@ export default function NotesView() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {attendanceCategories.map((cat, idx) => (
               <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
                 <input
