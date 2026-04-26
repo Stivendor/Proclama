@@ -191,9 +191,10 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     set(s => {
       if (!s.state.media) return s
       const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'cover' : 'contain')
+      const newFit = currentFit === 'cover' ? 'contain' : 'cover'
       const newState = { 
         ...s.state, 
-        media: { ...s.state.media, objectFit: currentFit === 'cover' ? 'contain' : 'cover' } 
+        media: { ...s.state.media, objectFit: newFit as 'cover' | 'contain' } 
       }
       sendProjectionUpdate(newState)
       return { state: newState }
