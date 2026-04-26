@@ -57,6 +57,9 @@ interface ProjectionStore {
   setMediaStatus: (status: ProjectionState['mediaStatus']) => void
   sendMediaCommand: (action: 'play' | 'pause' | 'seek', value?: number) => void
   toggleMediaBackground: () => void
+  localMediaList: import('@/types').LocalMedia[]
+  setLocalMediaList: (list: import('@/types').LocalMedia[] | ((prev: import('@/types').LocalMedia[]) => import('@/types').LocalMedia[])) => void
+  toggleMediaObjectFit: () => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -72,6 +75,11 @@ const initialProjectionState: ProjectionState = {
 export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   state: initialProjectionState,
   projectionWindow: null,
+  localMediaList: [],
+
+  setLocalMediaList: (updater) => set((s) => ({
+    localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
+  })),
 
   setProjectionWindow: (w) => set({ projectionWindow: w }),
 
@@ -136,6 +144,13 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
     }
 
     const newState = { ...currentState, theme: newTheme, slides }
+    
+    // Si el usuario cambia el tipo de fondo desde la galería, quitamos el media local activo
+    // para asegurar que el nuevo fondo sea visible.
+    if (theme.backgroundType !== undefined) {
+      newState.media = null
+    }
+
     set({ state: newState })
     sendProjectionUpdate(newState)
   },
@@ -166,6 +181,19 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       const newState = { 
         ...s.state, 
         media: { ...s.state.media, isBackgroundMode: !s.state.media.isBackgroundMode } 
+      }
+      sendProjectionUpdate(newState)
+      return { state: newState }
+    })
+  },
+
+  toggleMediaObjectFit: () => {
+    set(s => {
+      if (!s.state.media) return s
+      const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'cover' : 'contain')
+      const newState = { 
+        ...s.state, 
+        media: { ...s.state.media, objectFit: currentFit === 'cover' ? 'contain' : 'cover' } 
       }
       sendProjectionUpdate(newState)
       return { state: newState }

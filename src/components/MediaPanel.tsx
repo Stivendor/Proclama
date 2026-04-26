@@ -14,17 +14,12 @@ import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
 
-interface LocalMedia {
-  id: string;
-  url: string;
-  type: "image" | "video";
-  name: string;
-}
+import { LocalMedia } from "@/types";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export default function MediaPanel() {
-  const { media, songId, isBible, setMedia, toggleMediaBackground } =
+  const { media, songId, isBible, setMedia, toggleMediaBackground, localMediaList, setLocalMediaList, toggleMediaObjectFit } =
     useProjectionStore(
       useShallow((s) => ({
         media: s.state.media,
@@ -32,11 +27,13 @@ export default function MediaPanel() {
         isBible: s.state.isBible,
         setMedia: s.setMedia,
         toggleMediaBackground: s.toggleMediaBackground,
+        localMediaList: s.localMediaList,
+        setLocalMediaList: s.setLocalMediaList,
+        toggleMediaObjectFit: s.toggleMediaObjectFit,
       })),
     );
   const state = { media, songId, isBible };
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mediaList, setMediaList] = useState<LocalMedia[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +73,7 @@ export default function MediaPanel() {
       name: file.name,
     }));
 
-    setMediaList((prev) => [...prev, ...newItems]);
+    setLocalMediaList((prev) => [...prev, ...newItems]);
   };
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,19 +107,17 @@ export default function MediaPanel() {
     if (state.media?.url === item.url) {
       setMedia(null);
     } else {
-      // Default to background mode if a song or Bible passage is being projected
-      const isSongActive = state.songId || state.isBible;
       setMedia({
         url: item.url,
         type: item.type,
-        isBackgroundMode: !!isSongActive,
+        isBackgroundMode: true,
       });
     }
   };
 
   const removeMedia = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const item = mediaList.find((m) => m.id === id);
+    const item = localMediaList.find((m) => m.id === id);
     if (!item) return;
 
     if (state.media?.url === item.url) {
@@ -130,7 +125,7 @@ export default function MediaPanel() {
     }
 
     URL.revokeObjectURL(item.url);
-    setMediaList((prev) => prev.filter((m) => m.id !== id));
+    setLocalMediaList((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (
@@ -147,7 +142,7 @@ export default function MediaPanel() {
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <MonitorPlay size={14} /> Anuncios / Media Local
         </div>
-        {mediaList.length > 0 && (
+        {localMediaList.length > 0 && (
           <button
             className="btn-add-mini"
             onClick={() => fileInputRef.current?.click()}
@@ -194,12 +189,27 @@ export default function MediaPanel() {
               ? "Fondo Dinámico Activo"
               : "Usar como Fondo"}
           </button>
+          
+          <button
+            className={`btn-media-toggle ${(state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover' ? "active" : ""}`}
+            onClick={toggleMediaObjectFit}
+            title={
+              (state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover'
+                ? "Ajustar imagen (sin recortar)"
+                : "Estirar imagen (llenar pantalla)"
+            }
+          >
+            <Image size={14} />
+            {(state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover'
+              ? "Estirado"
+              : "Ajustado"}
+          </button>
         </div>
       )}
 
       {state.media?.type === "video" && <VideoControls />}
 
-      {mediaList.length === 0 ? (
+      {localMediaList.length === 0 ? (
         <div
           className={`media-upload-zone ${isDragging ? "dragging" : ""}`}
           onClick={() => fileInputRef.current?.click()}
@@ -222,7 +232,7 @@ export default function MediaPanel() {
         </div>
       ) : (
         <div className="media-gallery">
-          {mediaList.map((item) => {
+          {localMediaList.map((item) => {
             const isProjecting = state.media?.url === item.url;
             return (
               <div
@@ -263,7 +273,7 @@ export default function MediaPanel() {
         </div>
       )}
 
-      {isDragging && mediaList.length > 0 && (
+      {isDragging && localMediaList.length > 0 && (
         <div className="drag-overlay">
           <Upload size={32} />
           <p>Suelta para añadir archivos</p>
