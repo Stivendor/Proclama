@@ -218,11 +218,11 @@ export default function ProjectionWindow() {
                 ref={videoRef} 
                 src={state.media.url}
                 autoPlay loop
-                style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }}
+                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }}
               />
             ) : (
               <img src={state.media.url}
-                style={{ width: '100%', height: '100%', objectFit: state.media.isBackgroundMode ? 'cover' : 'contain' }} />
+                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }} />
             )}
           </div>
         )}
