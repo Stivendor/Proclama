@@ -369,9 +369,11 @@ export default function LandingView() {
                 <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
                 <li><Check size={16} /> 10 canciones propias</li>
+                <li><Check size={16} /> Hasta 5 archivos de media local</li>
                 <li className="locked"><Lock size={14} /> Biblioteca de 3,000+ canciones completas</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
                 <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
+                <li className="locked"><Lock size={14} /> Gestión de carpetas en media local</li>
                 <li className="locked"><Lock size={14} /> Sin imagenes / videos de fondo</li>
               </ul>
               <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
@@ -403,6 +405,8 @@ export default function LandingView() {
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
                 <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
                 <li><Check size={16} /> Canciones propias ilimitadas</li>
+                <li><Check size={16} /> Gestión de carpetas en media local</li>
+                <li><Check size={16} /> Hasta 25 archivos de media local</li>
                 <li><Check size={16} /> +200 Imagenes / videos de fondo</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>

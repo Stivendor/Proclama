@@ -417,9 +417,11 @@ export default function SettingsView() {
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Fondos de video e imágenes</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Uso local ilimitado y fluido</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ 10 canciones propias</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 5 archivos de media local</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca de 3,000+ canciones completas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Búsqueda global extendida (LRC Lib)</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de reportes CSV</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Gestión de carpetas en media local</li>
                 </ul>
               </div>
 
@@ -441,6 +443,8 @@ export default function SettingsView() {
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Sin límite de canciones propias</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Canciones propias ilimitadas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de carpetas en media local</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 25 archivos de media local</li>
                 </ul>
                 {!isPremium && (
                   <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
