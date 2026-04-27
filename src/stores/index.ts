@@ -60,6 +60,7 @@ interface ProjectionStore {
   localMediaList: import('@/types').LocalMedia[]
   setLocalMediaList: (list: import('@/types').LocalMedia[] | ((prev: import('@/types').LocalMedia[]) => import('@/types').LocalMedia[])) => void
   toggleMediaObjectFit: () => void
+  currentSong: import('@/types').Song | null
 }
 
 const initialProjectionState: ProjectionState = {
@@ -76,6 +77,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   state: initialProjectionState,
   projectionWindow: null,
   localMediaList: [],
+  currentSong: null,
 
   setLocalMediaList: (updater) => set((s) => ({
     localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
@@ -94,7 +96,7 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       currentSlide: initialSlide,
       hideText: false,
     }
-    set({ state: newState })
+    set({ state: newState, currentSong: isBible ? null : song })
     sendProjectionUpdate(newState)
   },
 
@@ -105,6 +107,12 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
         const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
         const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
         sendProjectionUpdate(newState)
+        
+        // Add to history only when presenting
+        if (s.currentSong) {
+          useAppStore.getState().addRecentSong(s.currentSong)
+        }
+
         return { state: newState }
       }
       return s
@@ -116,6 +124,11 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       if (s.state.currentSlide > 0) {
         const newState = { ...s.state, currentSlide: s.state.currentSlide - 1, hideText: false }
         sendProjectionUpdate(newState)
+        
+        if (s.currentSong) {
+          useAppStore.getState().addRecentSong(s.currentSong)
+        }
+
         return { state: newState }
       }
       return s
@@ -127,6 +140,11 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
       if (index >= 0 && index < s.state.slides.length) {
         const newState = { ...s.state, currentSlide: index, hideText: false }
         sendProjectionUpdate(newState)
+        
+        if (s.currentSong) {
+          useAppStore.getState().addRecentSong(s.currentSong)
+        }
+
         return { state: newState }
       }
       return s
@@ -277,6 +295,10 @@ interface AppStore {
   goToLanding: () => void
   forceLanding: boolean
   setForceLanding: (v: boolean) => void
+
+  recentSongs: Song[]
+  addRecentSong: (song: Song) => void
+  clearRecentSongs: () => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -299,6 +321,13 @@ export const useAppStore = create<AppStore>()(
 
       activeView: 'library',
       setActiveView: (v) => set({ activeView: v }),
+
+      recentSongs: [],
+      addRecentSong: (song) => set(s => {
+        const updated = [song, ...s.recentSongs.filter(rs => rs.id !== song.id)].slice(0, 10)
+        return { recentSongs: updated }
+      }),
+      clearRecentSongs: () => set({ recentSongs: [] }),
 
       editingSong: null,
       setEditingSong: (s) => set({ editingSong: s }),
