@@ -386,6 +386,33 @@ a:hover { text-decoration: underline; }
 }
 .search-box input:focus { border: none; }
 .filter-select { width: auto; flex-shrink: 0; font-size: 13px; padding: 6px 8px; }
+
+.recent-songs-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.1);
+}
+.recent-songs-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.recent-songs-list {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+}
+.recent-songs-list::-webkit-scrollbar { height: 4px; }
+.recent-songs-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.btn-recent-song {
+  display: inline-flex; align-items: center;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: 99px;
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  white-space: nowrap; cursor: pointer; transition: all 0.15s;
+}
+.btn-recent-song:hover {
+  background: var(--bg-hover); border-color: var(--gold-dim); color: var(--gold);
+}
 .library-empty {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;

@@ -12,11 +12,13 @@ import { usePlan, FREE_SONG_LIMIT, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan
 import { containsIgnoreAccents } from '@/utils/text'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus } = useAppStore(useShallow(s => ({
+  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
     searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery, setActiveView: s.setActiveView, 
     setEditingSong: s.setEditingSong, user: s.user, userRole: s.userRole, 
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar,
-    authStatus: s.authStatus
+    authStatus: s.authStatus,
+    recentSongs: s.recentSongs,
+    clearRecentSongs: s.clearRecentSongs
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
   const { canCreateSong, canUseGenius, canProjectSong, isPremium } = usePlan()
@@ -62,6 +64,7 @@ export default function LibraryView() {
     return () => clearTimeout(timer)
   }, [blockedMessage])
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
+  const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
 
   useEffect(() => {
@@ -283,7 +286,7 @@ export default function LibraryView() {
             </button>
           )}
           <div>
-            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Biblioteca</h1>
+            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Canciones</h1>
             <span className="song-count">
               {songs.length} de {totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}
               {totalRemoteSongs && totalRemoteSongs > songs.length && '+'} canciones
@@ -348,6 +351,32 @@ export default function LibraryView() {
             </div>
           )}
 
+          {!localSearch && filter === 'all' && recentSongs && recentSongs.length > 0 && (
+            <div className="recent-songs-section">
+              <div className="recent-songs-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={12} opacity={0.6} />
+                  <span>Utilizadas recientemente</span>
+                </div>
+                <button 
+                  className="btn-icon-xs danger" 
+                  onClick={() => setShowConfirmClear(true)} 
+                  title="Borrar historial"
+                  style={{ marginLeft: 'auto', background: 'transparent' }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+              <div className="recent-songs-list">
+                {recentSongs.map(rs => (
+                  <button key={rs.id} className="btn-recent-song" onClick={() => handleLoad(rs)} title={`Cargar ${rs.title}`}>
+                    {rs.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="song-list-scroll">
             {songs.length === 0 ? (
               <div className="library-empty">
@@ -398,6 +427,16 @@ export default function LibraryView() {
           message={`¿Eliminar "${confirmDelete.title}"?`}
           onConfirm={confirmDeleteSong}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {showConfirmClear && (
+        <ConfirmDialog
+          message="¿Seguro que quieres eliminar el historial de canciones?"
+          onConfirm={() => {
+            clearRecentSongs()
+            setShowConfirmClear(false)
+          }}
+          onCancel={() => setShowConfirmClear(false)}
         />
       )}
       {importStatus && (
