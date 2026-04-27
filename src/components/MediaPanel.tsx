@@ -1,5 +1,5 @@
 import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
-import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from "lucide-react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
@@ -11,7 +11,20 @@ import { LocalMedia } from "@/types";
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export default function MediaPanel() {
-  const { media, songId, isBible, setMedia, toggleMediaBackground, localMediaList, setLocalMediaList, toggleMediaObjectFit } =
+  const {
+    media,
+    songId,
+    isBible,
+    setMedia,
+    toggleMediaBackground,
+    localMediaList,
+    setLocalMediaList,
+    localMediaFolders,
+    setLocalMediaFolders,
+    selectedMediaFolderId,
+    setSelectedMediaFolderId,
+    toggleMediaObjectFit,
+  } =
     useProjectionStore(
       useShallow((s) => ({
         media: s.state.media,
@@ -21,17 +34,22 @@ export default function MediaPanel() {
         toggleMediaBackground: s.toggleMediaBackground,
         localMediaList: s.localMediaList,
         setLocalMediaList: s.setLocalMediaList,
+        localMediaFolders: s.localMediaFolders,
+        setLocalMediaFolders: s.setLocalMediaFolders,
+        selectedMediaFolderId: s.selectedMediaFolderId,
+        setSelectedMediaFolderId: s.setSelectedMediaFolderId,
         toggleMediaObjectFit: s.toggleMediaObjectFit,
       })),
     );
   const state = { media, songId, isBible };
-  const { isPremium, mediaLimits } = usePlan();
+  const { isPremium, mediaLimits, canManageMediaFolders } = usePlan();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlsRef = useRef<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"newest" | "name" | "size">("newest");
+  const [showFolderPremiumInfo, setShowFolderPremiumInfo] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,7 +57,10 @@ export default function MediaPanel() {
     const loadPersistedMedia = async () => {
       setLoading(true);
       try {
-        const rows = await db.local_media.toArray();
+        const [rows, folders] = await Promise.all([
+          db.local_media.toArray(),
+          db.local_media_folders.orderBy("name").toArray(),
+        ]);
         if (cancelled) return;
 
         const loaded: LocalMedia[] = rows.map((row) => {
@@ -52,9 +73,11 @@ export default function MediaPanel() {
             name: row.name,
             size: row.size,
             createdAt: row.createdAt,
+            folderId: row.folderId ?? null,
           };
         });
         setLocalMediaList(loaded);
+        setLocalMediaFolders(folders);
       } catch (err) {
         console.error("Error loading local media:", err);
         setError("No se pudo cargar la media local guardada.");
@@ -70,7 +93,13 @@ export default function MediaPanel() {
       Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
       objectUrlsRef.current = {};
     };
-  }, [setLocalMediaList]);
+  }, [setLocalMediaFolders, setLocalMediaList]);
+
+  useEffect(() => {
+    if (selectedMediaFolderId && !localMediaFolders.some((folder) => folder.id === selectedMediaFolderId)) {
+      setSelectedMediaFolderId(null);
+    }
+  }, [localMediaFolders, selectedMediaFolderId, setSelectedMediaFolderId]);
 
   const currentTotalBytes = useMemo(
     () => localMediaList.reduce((acc, item) => acc + (item.size || 0), 0),
@@ -78,11 +107,12 @@ export default function MediaPanel() {
   );
 
   const sortedMediaList = useMemo(() => {
-    const clone = [...localMediaList];
+    const scoped = localMediaList.filter((item) => (item.folderId ?? null) === selectedMediaFolderId);
+    const clone = [...scoped];
     if (sortBy === "name") return clone.sort((a, b) => a.name.localeCompare(b.name, "es"));
     if (sortBy === "size") return clone.sort((a, b) => b.size - a.size);
     return clone.sort((a, b) => b.createdAt - a.createdAt);
-  }, [localMediaList, sortBy]);
+  }, [localMediaList, selectedMediaFolderId, sortBy]);
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -169,6 +199,7 @@ export default function MediaPanel() {
           size: file.size,
           createdAt: now,
           file,
+          folderId: selectedMediaFolderId,
         });
         const url = URL.createObjectURL(file);
         objectUrlsRef.current[id] = url;
@@ -179,6 +210,7 @@ export default function MediaPanel() {
           name: file.name,
           size: file.size,
           createdAt: now,
+          folderId: selectedMediaFolderId,
         });
       }
 
@@ -189,6 +221,104 @@ export default function MediaPanel() {
     } catch (err) {
       console.error("Error persisting media:", err);
       setError("No se pudo guardar la media local.");
+    }
+  };
+
+  const promptFolderName = (title: string, initial = "", excludeId?: string) => {
+    const value = window.prompt(title, initial)?.trim();
+    if (!value) return null;
+    if (value.length > 40) {
+      setError("El nombre de carpeta no puede superar 40 caracteres.");
+      return null;
+    }
+    const duplicated = localMediaFolders.some(
+      (folder) => folder.id !== excludeId && folder.name.toLowerCase() === value.toLowerCase(),
+    );
+    if (duplicated) {
+      setError("Ya existe una carpeta con ese nombre.");
+      return null;
+    }
+    return value;
+  };
+
+  const createFolder = async () => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const name = promptFolderName("Nombre de la nueva carpeta");
+    if (!name) return;
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    const folder = { id, name, createdAt: now, updatedAt: now };
+    try {
+      await db.local_media_folders.add(folder);
+      setLocalMediaFolders((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name, "es")));
+      setSelectedMediaFolderId(id);
+    } catch (err) {
+      console.error("Error creating media folder:", err);
+      setError("No se pudo crear la carpeta.");
+    }
+  };
+
+  const renameFolder = async (folderId: string) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const current = localMediaFolders.find((folder) => folder.id === folderId);
+    if (!current) return;
+    const name = promptFolderName("Nuevo nombre de carpeta", current.name, current.id);
+    if (!name || name.toLowerCase() === current.name.toLowerCase()) return;
+    const updatedAt = Date.now();
+    try {
+      await db.local_media_folders.update(folderId, { name, updatedAt });
+      setLocalMediaFolders((prev) =>
+        prev
+          .map((folder) => (folder.id === folderId ? { ...folder, name, updatedAt } : folder))
+          .sort((a, b) => a.name.localeCompare(b.name, "es")),
+      );
+    } catch (err) {
+      console.error("Error renaming media folder:", err);
+      setError("No se pudo renombrar la carpeta.");
+    }
+  };
+
+  const deleteFolder = async (folderId: string) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const current = localMediaFolders.find((folder) => folder.id === folderId);
+    if (!current) return;
+    if (!window.confirm(`¿Eliminar carpeta "${current.name}"? Los archivos volverán a Raíz.`)) return;
+    try {
+      await db.transaction("rw", db.local_media, db.local_media_folders, async () => {
+        await db.local_media.where("folderId").equals(folderId).modify({ folderId: null });
+        await db.local_media_folders.delete(folderId);
+      });
+      setLocalMediaList((prev) =>
+        prev.map((item) => (item.folderId === folderId ? { ...item, folderId: null } : item)),
+      );
+      setLocalMediaFolders((prev) => prev.filter((folder) => folder.id !== folderId));
+      if (selectedMediaFolderId === folderId) setSelectedMediaFolderId(null);
+    } catch (err) {
+      console.error("Error deleting media folder:", err);
+      setError("No se pudo eliminar la carpeta.");
+    }
+  };
+
+  const moveMediaToFolder = async (id: string, folderId: string | null) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    try {
+      await db.local_media.update(id, { folderId });
+      setLocalMediaList((prev) => prev.map((item) => (item.id === id ? { ...item, folderId } : item)));
+    } catch (err) {
+      console.error("Error moving media file:", err);
+      setError("No se pudo mover el archivo.");
     }
   };
 
@@ -310,6 +440,71 @@ export default function MediaPanel() {
         )}
       </div>
 
+      <div className="media-folders-row">
+        <button
+          className={`media-folder-chip ${selectedMediaFolderId === null ? "active" : ""}`}
+          onClick={() => setSelectedMediaFolderId(null)}
+          title="Ver archivos en raíz"
+        >
+          <Folder size={12} /> Raíz
+        </button>
+        {localMediaFolders.map((folder) => (
+          <div key={folder.id} className={`media-folder-chip-wrap ${selectedMediaFolderId === folder.id ? "active" : ""}`}>
+            <button
+              className={`media-folder-chip ${selectedMediaFolderId === folder.id ? "active" : ""}`}
+              onClick={() => setSelectedMediaFolderId(folder.id)}
+              title={`Abrir carpeta ${folder.name}`}
+            >
+              <Folder size={12} /> {folder.name}
+            </button>
+            {canManageMediaFolders && (
+              <>
+                <button className="media-folder-action" title="Renombrar carpeta" onClick={() => void renameFolder(folder.id)}>
+                  <Pencil size={10} />
+                </button>
+                <button className="media-folder-action danger" title="Eliminar carpeta" onClick={() => void deleteFolder(folder.id)}>
+                  <FolderX size={10} />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        {canManageMediaFolders && (
+          <button className="media-folder-add" title="Nueva carpeta" onClick={createFolder}>
+            <FolderPlus size={12} /> Nueva
+          </button>
+        )}
+        {!canManageMediaFolders && (
+          <button
+            className="media-folder-premium-info-trigger"
+            title="Ver ventajas premium para carpetas"
+            onClick={() => setShowFolderPremiumInfo((prev) => !prev)}
+          >
+            <FolderPlus size={12} /> Ventajas Premium
+          </button>
+        )}
+      </div>
+      {!canManageMediaFolders && showFolderPremiumInfo && (
+        <div className="media-premium-popup" role="status">
+          <div className="media-premium-popup-header">
+            <strong>Gestion de carpetas Premium</strong>
+            <button
+              className="media-premium-popup-close"
+              onClick={() => setShowFolderPremiumInfo(false)}
+              title="Cerrar"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <ul className="media-premium-popup-list">
+            <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
+            <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
+            <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
+            <li>Con Premium puedes subir hasta 25 archivos de media local.</li>
+          </ul>
+        </div>
+      )}
+
       <div className="media-limits">
         <span>
           {localMediaList.length}/{mediaLimits.maxFiles} archivos
@@ -380,7 +575,7 @@ export default function MediaPanel() {
         <div className="media-upload-zone">
           <p>Cargando media local...</p>
         </div>
-      ) : localMediaList.length === 0 ? (
+      ) : sortedMediaList.length === 0 ? (
         <div
           className={`media-upload-zone ${isDragging ? "dragging" : ""}`}
           onClick={() => fileInputRef.current?.click()}
@@ -429,6 +624,24 @@ export default function MediaPanel() {
                 </div>
                 <div className="media-item-meta" title={`${item.name} · ${formatBytes(item.size)}`}>
                   <span>{item.name}</span>
+                  {canManageMediaFolders && (
+                    <select
+                      className="media-move-select"
+                      value={item.folderId ?? "__root__"}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const nextFolderId = e.target.value === "__root__" ? null : e.target.value;
+                        void moveMediaToFolder(item.id, nextFolderId);
+                      }}
+                    >
+                      <option value="__root__">Raíz</option>
+                      {localMediaFolders.map((folder) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             );
@@ -471,17 +684,19 @@ export default function MediaPanel() {
           display: flex;
           gap: 8px;
           margin-bottom: 4px;
+          flex-wrap: nowrap;
         }
 
         .btn-media-toggle {
-          flex: 1;
+          flex: 1 1 0;
+          min-width: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 8px;
+          gap: 6px;
+          padding: 6px 10px;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           border: 1px solid var(--border);
@@ -543,6 +758,123 @@ export default function MediaPanel() {
           color: var(--text-muted);
           flex-wrap: wrap;
         }
+        .media-folders-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .media-folder-chip-wrap {
+          display: inline-flex;
+          align-items: center;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          overflow: hidden;
+          background: var(--bg-elevated);
+        }
+        .media-folder-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          padding: 4px 10px;
+          font-size: 11px;
+          cursor: pointer;
+        }
+        .media-folder-chip.active,
+        .media-folder-chip-wrap.active .media-folder-chip {
+          color: var(--blue);
+          font-weight: 700;
+        }
+        .media-folder-action {
+          border: none;
+          border-left: 1px solid var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          width: 22px;
+          height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .media-folder-action:hover { color: var(--blue); }
+        .media-folder-action.danger:hover { color: var(--red); }
+        .media-folder-add {
+          border: 1px dashed var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 11px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        }
+        .media-folder-add:hover {
+          border-color: var(--blue);
+          color: var(--blue);
+        }
+        .media-folder-premium-info-trigger {
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          background: rgba(212, 175, 55, 0.12);
+          color: var(--gold);
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 11px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        }
+        .media-folder-premium-info-trigger:hover {
+          border-color: var(--gold);
+          background: rgba(212, 175, 55, 0.2);
+        }
+        .media-premium-popup {
+          border: 1px solid rgba(212, 175, 55, 0.45);
+          background: rgba(212, 175, 55, 0.1);
+          border-radius: 8px;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          animation: slideIn 0.2s ease;
+        }
+        .media-premium-popup-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          color: var(--gold);
+          font-size: 12px;
+        }
+        .media-premium-popup-close {
+          width: 20px;
+          height: 20px;
+          border-radius: 4px;
+          border: 1px solid rgba(212, 175, 55, 0.45);
+          background: transparent;
+          color: var(--gold);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .media-premium-popup-close:hover {
+          background: rgba(212, 175, 55, 0.2);
+        }
+        .media-premium-popup-list {
+          margin: 0;
+          padding-left: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          font-size: 11px;
+          color: #f5e8b2;
+        }
         .media-premium-badge {
           background: rgba(212, 175, 55, 0.2);
           color: var(--gold);
@@ -596,9 +928,7 @@ export default function MediaPanel() {
           background: #000;
           cursor: pointer;
           border: 1px solid var(--border);
-          transition: all 0.2s;
         }
-        .media-item-card:hover { transform: scale(1.05); border-color: var(--blue); }
         .media-item-card.projecting { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); border-width: 2px; }
 
         .media-item-thumb { width: 100%; height: 100%; position: relative; }
@@ -633,6 +963,22 @@ export default function MediaPanel() {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          justify-content: space-between;
+        }
+        .media-item-meta span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .media-move-select {
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 4px;
+          font-size: 9px;
+          max-width: 70px;
         }
 
         .media-item-add {
@@ -641,7 +987,6 @@ export default function MediaPanel() {
           border-radius: 6px;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: var(--text-muted);
-          transition: all 0.2s;
         }
         .media-item-add:hover, .media-item-add.dragging { 
           border-color: var(--blue); 

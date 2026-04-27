@@ -10,7 +10,8 @@ export class ProclamaDB extends Dexie {
   imported_bibles!: Table<ImportedBibleReference>
   bible_books_cache!: Table<{ bibleId: string; books: any[] }>
   bible_chapters_cache!: Table<{ bibleId: string; bookId: string; chapterId: string; verses: any[] }>
-  local_media!: Table<{ id: string; name: string; type: 'image' | 'video'; size: number; createdAt: number; file: Blob }>
+  local_media!: Table<{ id: string; name: string; type: 'image' | 'video'; size: number; createdAt: number; file: Blob; folderId?: string | null }>
+  local_media_folders!: Table<{ id: string; name: string; createdAt: number; updatedAt: number }>
 
 
   constructor() {
@@ -36,6 +37,10 @@ export class ProclamaDB extends Dexie {
     })
     this.version(8).stores({
       local_media: 'id, name, type, createdAt'
+    })
+    this.version(9).stores({
+      local_media: 'id, name, type, createdAt, folderId',
+      local_media_folders: 'id, name, createdAt'
     })
   }
 }

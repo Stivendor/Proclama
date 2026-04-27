@@ -4,13 +4,13 @@ import { useAppStore } from '@/stores'
  * Flag global: mientras sea true, TODOS los usuarios tienen acceso premium.
  * Cambiar a false cuando se active el modelo freemium.
  */
-export const PREMIUM_FOR_EVERYONE = true 
+export const PREMIUM_FOR_EVERYONE = false 
 
 /** Límite de canciones propias para usuarios free */
 export const FREE_SONG_LIMIT = 10
 
 /** Límite de canciones de Supabase que usuarios free pueden proyectar */
-export const FREE_PROJECTION_LIMIT = 100
+export const FREE_PROJECTION_LIMIT = 50
 export const FREE_MEDIA_MAX_FILES = 5
 export const FREE_MEDIA_MAX_TOTAL_BYTES = 200 * 1024 * 1024 // 200MB
 export const PREMIUM_MEDIA_MAX_FILES = 25
@@ -48,6 +48,9 @@ export function usePlan() {
   /** Retorna true si el usuario puede usar fondos multimedia (videos/imágenes) */
   const canUseMediaBackgrounds = isPremium // Siempre disponible para todos
 
+  /** Retorna true si el usuario puede gestionar carpetas de media local */
+  const canManageMediaFolders = isPremium
+
   const mediaLimits = isPremium
     ? { maxFiles: PREMIUM_MEDIA_MAX_FILES, maxTotalBytes: PREMIUM_MEDIA_MAX_TOTAL_BYTES }
     : { maxFiles: FREE_MEDIA_MAX_FILES, maxTotalBytes: FREE_MEDIA_MAX_TOTAL_BYTES }
@@ -63,6 +66,7 @@ export function usePlan() {
     canUseGenius,
     canSync,
     canUseMediaBackgrounds,
+    canManageMediaFolders,
     mediaLimits,
     canExportReports,
   }

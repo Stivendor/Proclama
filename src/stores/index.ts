@@ -59,6 +59,10 @@ interface ProjectionStore {
   toggleMediaBackground: () => void
   localMediaList: import('@/types').LocalMedia[]
   setLocalMediaList: (list: import('@/types').LocalMedia[] | ((prev: import('@/types').LocalMedia[]) => import('@/types').LocalMedia[])) => void
+  localMediaFolders: import('@/types').LocalMediaFolder[]
+  setLocalMediaFolders: (list: import('@/types').LocalMediaFolder[] | ((prev: import('@/types').LocalMediaFolder[]) => import('@/types').LocalMediaFolder[])) => void
+  selectedMediaFolderId: string | null
+  setSelectedMediaFolderId: (folderId: string | null) => void
   toggleMediaObjectFit: () => void
   currentSong: import('@/types').Song | null
 }
@@ -77,11 +81,19 @@ export const useProjectionStore = create<ProjectionStore>((set, get) => ({
   state: initialProjectionState,
   projectionWindow: null,
   localMediaList: [],
+  localMediaFolders: [],
+  selectedMediaFolderId: null,
   currentSong: null,
 
   setLocalMediaList: (updater) => set((s) => ({
     localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
   })),
+
+  setLocalMediaFolders: (updater) => set((s) => ({
+    localMediaFolders: typeof updater === 'function' ? updater(s.localMediaFolders) : updater
+  })),
+
+  setSelectedMediaFolderId: (folderId) => set({ selectedMediaFolderId: folderId }),
 
   setProjectionWindow: (w) => set({ projectionWindow: w }),
 
