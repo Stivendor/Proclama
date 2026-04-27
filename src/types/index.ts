@@ -66,6 +66,16 @@ export interface LocalMedia {
   url: string;
   type: "image" | "video";
   name: string;
+  size: number;
+  createdAt: number;
+  folderId?: string | null;
+}
+
+export interface LocalMediaFolder {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────

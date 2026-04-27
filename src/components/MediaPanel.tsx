@@ -1,25 +1,30 @@
-import { useRef, useState, DragEvent } from "react";
-import {
-  Image,
-  Film,
-  X,
-  Upload,
-  MonitorPlay,
-  Zap,
-  Plus,
-  Trash2,
-  AlertCircle,
-} from "lucide-react";
+import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
+import { db } from "@/db";
+import { usePlan } from "@/hooks/usePlan";
 
 import { LocalMedia } from "@/types";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 export default function MediaPanel() {
-  const { media, songId, isBible, setMedia, toggleMediaBackground, localMediaList, setLocalMediaList, toggleMediaObjectFit } =
+  const {
+    media,
+    songId,
+    isBible,
+    setMedia,
+    toggleMediaBackground,
+    localMediaList,
+    setLocalMediaList,
+    localMediaFolders,
+    setLocalMediaFolders,
+    selectedMediaFolderId,
+    setSelectedMediaFolderId,
+    toggleMediaObjectFit,
+  } =
     useProjectionStore(
       useShallow((s) => ({
         media: s.state.media,
@@ -29,15 +34,94 @@ export default function MediaPanel() {
         toggleMediaBackground: s.toggleMediaBackground,
         localMediaList: s.localMediaList,
         setLocalMediaList: s.setLocalMediaList,
+        localMediaFolders: s.localMediaFolders,
+        setLocalMediaFolders: s.setLocalMediaFolders,
+        selectedMediaFolderId: s.selectedMediaFolderId,
+        setSelectedMediaFolderId: s.setSelectedMediaFolderId,
         toggleMediaObjectFit: s.toggleMediaObjectFit,
       })),
     );
   const state = { media, songId, isBible };
+  const { isPremium, mediaLimits, canManageMediaFolders } = usePlan();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"newest" | "name" | "size">("newest");
+  const [showFolderPremiumInfo, setShowFolderPremiumInfo] = useState(false);
 
-  const processFiles = (files: File[]) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPersistedMedia = async () => {
+      setLoading(true);
+      try {
+        const [rows, folders] = await Promise.all([
+          db.local_media.toArray(),
+          db.local_media_folders.orderBy("name").toArray(),
+        ]);
+        if (cancelled) return;
+
+        const loaded: LocalMedia[] = rows.map((row) => {
+          const url = URL.createObjectURL(row.file);
+          objectUrlsRef.current[row.id] = url;
+          return {
+            id: row.id,
+            url,
+            type: row.type,
+            name: row.name,
+            size: row.size,
+            createdAt: row.createdAt,
+            folderId: row.folderId ?? null,
+          };
+        });
+        setLocalMediaList(loaded);
+        setLocalMediaFolders(folders);
+      } catch (err) {
+        console.error("Error loading local media:", err);
+        setError("No se pudo cargar la media local guardada.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadPersistedMedia();
+
+    return () => {
+      cancelled = true;
+      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = {};
+    };
+  }, [setLocalMediaFolders, setLocalMediaList]);
+
+  useEffect(() => {
+    if (selectedMediaFolderId && !localMediaFolders.some((folder) => folder.id === selectedMediaFolderId)) {
+      setSelectedMediaFolderId(null);
+    }
+  }, [localMediaFolders, selectedMediaFolderId, setSelectedMediaFolderId]);
+
+  const currentTotalBytes = useMemo(
+    () => localMediaList.reduce((acc, item) => acc + (item.size || 0), 0),
+    [localMediaList],
+  );
+
+  const sortedMediaList = useMemo(() => {
+    const scoped = localMediaList.filter((item) => (item.folderId ?? null) === selectedMediaFolderId);
+    const clone = [...scoped];
+    if (sortBy === "name") return clone.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    if (sortBy === "size") return clone.sort((a, b) => b.size - a.size);
+    return clone.sort((a, b) => b.createdAt - a.createdAt);
+  }, [localMediaList, selectedMediaFolderId, sortBy]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const processFiles = async (files: File[]) => {
     setError(null);
     const validFiles: File[] = [];
     const rejectedFiles: string[] = [];
@@ -66,19 +150,181 @@ export default function MediaPanel() {
 
     if (validFiles.length === 0) return;
 
-    const newItems: LocalMedia[] = validFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith("video/") ? "video" : "image",
-      name: file.name,
-    }));
+    const existingByName = new Map(localMediaList.map((m) => [m.name.toLowerCase(), m]));
+    const filesToPersist: File[] = [];
+    const idsToReplace: string[] = [];
 
-    setLocalMediaList((prev) => [...prev, ...newItems]);
+    validFiles.forEach((file) => {
+      const existing = existingByName.get(file.name.toLowerCase());
+      if (existing && isPremium) {
+        idsToReplace.push(existing.id);
+      }
+      if (!existing || isPremium) {
+        filesToPersist.push(file);
+      }
+    });
+
+    const bytesToRemove = idsToReplace.reduce((acc, id) => {
+      const item = localMediaList.find((m) => m.id === id);
+      return acc + (item?.size || 0);
+    }, 0);
+    const finalBytes = currentTotalBytes - bytesToRemove + filesToPersist.reduce((acc, file) => acc + file.size, 0);
+    const finalFilesCount = localMediaList.length - idsToReplace.length + filesToPersist.length;
+
+    if (finalFilesCount > mediaLimits.maxFiles) {
+      setError(`Límite alcanzado: máximo ${mediaLimits.maxFiles} archivos en tu plan.`);
+      return;
+    }
+    if (finalBytes > mediaLimits.maxTotalBytes) {
+      setError(`Límite de espacio alcanzado (${formatBytes(mediaLimits.maxTotalBytes)}).`);
+      return;
+    }
+
+    try {
+      for (const id of idsToReplace) {
+        await db.local_media.delete(id);
+        const oldUrl = objectUrlsRef.current[id];
+        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        delete objectUrlsRef.current[id];
+      }
+
+      const now = Date.now();
+      const newItems: LocalMedia[] = [];
+      for (const file of filesToPersist) {
+        const id = crypto.randomUUID();
+        await db.local_media.put({
+          id,
+          name: file.name,
+          type: file.type.startsWith("video/") ? "video" : "image",
+          size: file.size,
+          createdAt: now,
+          file,
+          folderId: selectedMediaFolderId,
+        });
+        const url = URL.createObjectURL(file);
+        objectUrlsRef.current[id] = url;
+        newItems.push({
+          id,
+          url,
+          type: file.type.startsWith("video/") ? "video" : "image",
+          name: file.name,
+          size: file.size,
+          createdAt: now,
+          folderId: selectedMediaFolderId,
+        });
+      }
+
+      setLocalMediaList((prev) => {
+        const replaced = prev.filter((item) => !idsToReplace.includes(item.id));
+        return [...replaced, ...newItems];
+      });
+    } catch (err) {
+      console.error("Error persisting media:", err);
+      setError("No se pudo guardar la media local.");
+    }
+  };
+
+  const promptFolderName = (title: string, initial = "", excludeId?: string) => {
+    const value = window.prompt(title, initial)?.trim();
+    if (!value) return null;
+    if (value.length > 40) {
+      setError("El nombre de carpeta no puede superar 40 caracteres.");
+      return null;
+    }
+    const duplicated = localMediaFolders.some(
+      (folder) => folder.id !== excludeId && folder.name.toLowerCase() === value.toLowerCase(),
+    );
+    if (duplicated) {
+      setError("Ya existe una carpeta con ese nombre.");
+      return null;
+    }
+    return value;
+  };
+
+  const createFolder = async () => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const name = promptFolderName("Nombre de la nueva carpeta");
+    if (!name) return;
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    const folder = { id, name, createdAt: now, updatedAt: now };
+    try {
+      await db.local_media_folders.add(folder);
+      setLocalMediaFolders((prev) => [...prev, folder].sort((a, b) => a.name.localeCompare(b.name, "es")));
+      setSelectedMediaFolderId(id);
+    } catch (err) {
+      console.error("Error creating media folder:", err);
+      setError("No se pudo crear la carpeta.");
+    }
+  };
+
+  const renameFolder = async (folderId: string) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const current = localMediaFolders.find((folder) => folder.id === folderId);
+    if (!current) return;
+    const name = promptFolderName("Nuevo nombre de carpeta", current.name, current.id);
+    if (!name || name.toLowerCase() === current.name.toLowerCase()) return;
+    const updatedAt = Date.now();
+    try {
+      await db.local_media_folders.update(folderId, { name, updatedAt });
+      setLocalMediaFolders((prev) =>
+        prev
+          .map((folder) => (folder.id === folderId ? { ...folder, name, updatedAt } : folder))
+          .sort((a, b) => a.name.localeCompare(b.name, "es")),
+      );
+    } catch (err) {
+      console.error("Error renaming media folder:", err);
+      setError("No se pudo renombrar la carpeta.");
+    }
+  };
+
+  const deleteFolder = async (folderId: string) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    const current = localMediaFolders.find((folder) => folder.id === folderId);
+    if (!current) return;
+    if (!window.confirm(`¿Eliminar carpeta "${current.name}"? Los archivos volverán a Raíz.`)) return;
+    try {
+      await db.transaction("rw", db.local_media, db.local_media_folders, async () => {
+        await db.local_media.where("folderId").equals(folderId).modify({ folderId: null });
+        await db.local_media_folders.delete(folderId);
+      });
+      setLocalMediaList((prev) =>
+        prev.map((item) => (item.folderId === folderId ? { ...item, folderId: null } : item)),
+      );
+      setLocalMediaFolders((prev) => prev.filter((folder) => folder.id !== folderId));
+      if (selectedMediaFolderId === folderId) setSelectedMediaFolderId(null);
+    } catch (err) {
+      console.error("Error deleting media folder:", err);
+      setError("No se pudo eliminar la carpeta.");
+    }
+  };
+
+  const moveMediaToFolder = async (id: string, folderId: string | null) => {
+    if (!canManageMediaFolders) {
+      setError("La gestión de carpetas es una función premium.");
+      return;
+    }
+    try {
+      await db.local_media.update(id, { folderId });
+      setLocalMediaList((prev) => prev.map((item) => (item.id === id ? { ...item, folderId } : item)));
+    } catch (err) {
+      console.error("Error moving media file:", err);
+      setError("No se pudo mover el archivo.");
+    }
   };
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    processFiles(files);
+    void processFiles(files);
     e.target.value = "";
   };
 
@@ -100,7 +346,7 @@ export default function MediaPanel() {
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
+    void processFiles(files);
   };
 
   const toggleProjection = (item: LocalMedia) => {
@@ -115,7 +361,7 @@ export default function MediaPanel() {
     }
   };
 
-  const removeMedia = (id: string, e: React.MouseEvent) => {
+  const removeMedia = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const item = localMediaList.find((m) => m.id === id);
     if (!item) return;
@@ -124,8 +370,30 @@ export default function MediaPanel() {
       setMedia(null);
     }
 
+    try {
+      await db.local_media.delete(id);
+    } catch (err) {
+      console.error("Error deleting local media:", err);
+    }
+
     URL.revokeObjectURL(item.url);
+    delete objectUrlsRef.current[id];
     setLocalMediaList((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const clearAllMedia = async () => {
+    if (!isPremium) return;
+    if (!window.confirm("¿Eliminar todos los anuncios guardados?")) return;
+    try {
+      await db.local_media.clear();
+      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = {};
+      setMedia(null);
+      setLocalMediaList([]);
+    } catch (err) {
+      console.error("Error clearing media:", err);
+      setError("No se pudo limpiar la media local.");
+    }
   };
 
   return (
@@ -143,14 +411,108 @@ export default function MediaPanel() {
           <MonitorPlay size={14} /> Anuncios / Media Local
         </div>
         {localMediaList.length > 0 && (
-          <button
-            className="btn-add-mini"
-            onClick={() => fileInputRef.current?.click()}
-            title="Añadir más"
-          >
-            <Plus size={14} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isPremium && (
+              <>
+                <select
+                  className="media-sort-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "newest" | "name" | "size")}
+                  title="Ordenar media"
+                >
+                  <option value="newest">Recientes</option>
+                  <option value="name">Nombre</option>
+                  <option value="size">Peso</option>
+                </select>
+                <button className="btn-add-mini danger" onClick={clearAllMedia} title="Limpiar todo">
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+            <button
+              className="btn-add-mini"
+              onClick={() => fileInputRef.current?.click()}
+              title="Añadir más"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="media-folders-row">
+        <button
+          className={`media-folder-chip ${selectedMediaFolderId === null ? "active" : ""}`}
+          onClick={() => setSelectedMediaFolderId(null)}
+          title="Ver archivos en raíz"
+        >
+          <Folder size={12} /> Raíz
+        </button>
+        {localMediaFolders.map((folder) => (
+          <div key={folder.id} className={`media-folder-chip-wrap ${selectedMediaFolderId === folder.id ? "active" : ""}`}>
+            <button
+              className={`media-folder-chip ${selectedMediaFolderId === folder.id ? "active" : ""}`}
+              onClick={() => setSelectedMediaFolderId(folder.id)}
+              title={`Abrir carpeta ${folder.name}`}
+            >
+              <Folder size={12} /> {folder.name}
+            </button>
+            {canManageMediaFolders && (
+              <>
+                <button className="media-folder-action" title="Renombrar carpeta" onClick={() => void renameFolder(folder.id)}>
+                  <Pencil size={10} />
+                </button>
+                <button className="media-folder-action danger" title="Eliminar carpeta" onClick={() => void deleteFolder(folder.id)}>
+                  <FolderX size={10} />
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        {canManageMediaFolders && (
+          <button className="media-folder-add" title="Nueva carpeta" onClick={createFolder}>
+            <FolderPlus size={12} /> Nueva
           </button>
         )}
+        {!canManageMediaFolders && (
+          <button
+            className="media-folder-premium-info-trigger"
+            title="Ver ventajas premium para carpetas"
+            onClick={() => setShowFolderPremiumInfo((prev) => !prev)}
+          >
+            <FolderPlus size={12} /> Ventajas Premium
+          </button>
+        )}
+      </div>
+      {!canManageMediaFolders && showFolderPremiumInfo && (
+        <div className="media-premium-popup" role="status">
+          <div className="media-premium-popup-header">
+            <strong>Gestion de carpetas Premium</strong>
+            <button
+              className="media-premium-popup-close"
+              onClick={() => setShowFolderPremiumInfo(false)}
+              title="Cerrar"
+            >
+              <X size={12} />
+            </button>
+          </div>
+          <ul className="media-premium-popup-list">
+            <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
+            <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
+            <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
+            <li>Con Premium puedes subir hasta 25 archivos de media local.</li>
+          </ul>
+        </div>
+      )}
+
+      <div className="media-limits">
+        <span>
+          {localMediaList.length}/{mediaLimits.maxFiles} archivos
+        </span>
+        <span>
+          {formatBytes(currentTotalBytes)} / {formatBytes(mediaLimits.maxTotalBytes)}
+        </span>
+        {isPremium && <span className="media-premium-badge">Premium</span>}
       </div>
 
       <input
@@ -209,7 +571,11 @@ export default function MediaPanel() {
 
       {state.media?.type === "video" && <VideoControls />}
 
-      {localMediaList.length === 0 ? (
+      {loading ? (
+        <div className="media-upload-zone">
+          <p>Cargando media local...</p>
+        </div>
+      ) : sortedMediaList.length === 0 ? (
         <div
           className={`media-upload-zone ${isDragging ? "dragging" : ""}`}
           onClick={() => fileInputRef.current?.click()}
@@ -233,7 +599,7 @@ export default function MediaPanel() {
       ) : (
         <div className="media-gallery-container">
           <div className="media-gallery">
-            {localMediaList.map((item) => {
+            {sortedMediaList.map((item) => {
             const isProjecting = state.media?.url === item.url;
             return (
               <div
@@ -252,13 +618,30 @@ export default function MediaPanel() {
                       <Zap size={10} fill="currentColor" /> EN VIVO
                     </div>
                   )}
-                  <button
-                    className="media-item-delete"
-                    onClick={(e) => removeMedia(item.id, e)}
-                    title="Eliminar"
-                  >
+                  <button className="media-item-delete" onClick={(e) => void removeMedia(item.id, e)} title="Eliminar">
                     <X size={12} />
                   </button>
+                </div>
+                <div className="media-item-meta" title={`${item.name} · ${formatBytes(item.size)}`}>
+                  <span>{item.name}</span>
+                  {canManageMediaFolders && (
+                    <select
+                      className="media-move-select"
+                      value={item.folderId ?? "__root__"}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        const nextFolderId = e.target.value === "__root__" ? null : e.target.value;
+                        void moveMediaToFolder(item.id, nextFolderId);
+                      }}
+                    >
+                      <option value="__root__">Raíz</option>
+                      {localMediaFolders.map((folder) => (
+                        <option key={folder.id} value={folder.id}>
+                          {folder.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
             );
@@ -301,17 +684,19 @@ export default function MediaPanel() {
           display: flex;
           gap: 8px;
           margin-bottom: 4px;
+          flex-wrap: nowrap;
         }
 
         .btn-media-toggle {
-          flex: 1;
+          flex: 1 1 0;
+          min-width: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 8px;
+          gap: 6px;
+          padding: 6px 10px;
           border-radius: 6px;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           border: 1px solid var(--border);
@@ -356,6 +741,148 @@ export default function MediaPanel() {
           cursor: pointer; display: flex; align-items: center;
         }
         .btn-add-mini:hover { color: var(--blue); border-color: var(--blue); }
+        .btn-add-mini.danger:hover { color: var(--red); border-color: var(--red); }
+        .media-sort-select {
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          font-size: 11px;
+          padding: 3px 6px;
+        }
+        .media-limits {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 11px;
+          color: var(--text-muted);
+          flex-wrap: wrap;
+        }
+        .media-folders-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .media-folder-chip-wrap {
+          display: inline-flex;
+          align-items: center;
+          border: 1px solid var(--border);
+          border-radius: 999px;
+          overflow: hidden;
+          background: var(--bg-elevated);
+        }
+        .media-folder-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          padding: 4px 10px;
+          font-size: 11px;
+          cursor: pointer;
+        }
+        .media-folder-chip.active,
+        .media-folder-chip-wrap.active .media-folder-chip {
+          color: var(--blue);
+          font-weight: 700;
+        }
+        .media-folder-action {
+          border: none;
+          border-left: 1px solid var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          width: 22px;
+          height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .media-folder-action:hover { color: var(--blue); }
+        .media-folder-action.danger:hover { color: var(--red); }
+        .media-folder-add {
+          border: 1px dashed var(--border);
+          background: transparent;
+          color: var(--text-muted);
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 11px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        }
+        .media-folder-add:hover {
+          border-color: var(--blue);
+          color: var(--blue);
+        }
+        .media-folder-premium-info-trigger {
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          background: rgba(212, 175, 55, 0.12);
+          color: var(--gold);
+          border-radius: 999px;
+          padding: 4px 10px;
+          font-size: 11px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+        }
+        .media-folder-premium-info-trigger:hover {
+          border-color: var(--gold);
+          background: rgba(212, 175, 55, 0.2);
+        }
+        .media-premium-popup {
+          border: 1px solid rgba(212, 175, 55, 0.45);
+          background: rgba(212, 175, 55, 0.1);
+          border-radius: 8px;
+          padding: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          animation: slideIn 0.2s ease;
+        }
+        .media-premium-popup-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          color: var(--gold);
+          font-size: 12px;
+        }
+        .media-premium-popup-close {
+          width: 20px;
+          height: 20px;
+          border-radius: 4px;
+          border: 1px solid rgba(212, 175, 55, 0.45);
+          background: transparent;
+          color: var(--gold);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        .media-premium-popup-close:hover {
+          background: rgba(212, 175, 55, 0.2);
+        }
+        .media-premium-popup-list {
+          margin: 0;
+          padding-left: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          font-size: 11px;
+          color: #f5e8b2;
+        }
+        .media-premium-badge {
+          background: rgba(212, 175, 55, 0.2);
+          color: var(--gold);
+          border: 1px solid rgba(212, 175, 55, 0.4);
+          border-radius: 999px;
+          padding: 1px 8px;
+          font-weight: 700;
+        }
 
         .media-upload-zone {
           border: 2px dashed var(--border);
@@ -401,9 +928,7 @@ export default function MediaPanel() {
           background: #000;
           cursor: pointer;
           border: 1px solid var(--border);
-          transition: all 0.2s;
         }
-        .media-item-card:hover { transform: scale(1.05); border-color: var(--blue); }
         .media-item-card.projecting { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); border-width: 2px; }
 
         .media-item-thumb { width: 100%; height: 100%; position: relative; }
@@ -426,6 +951,35 @@ export default function MediaPanel() {
         }
         .media-item-card:hover .media-item-delete { opacity: 1; }
         .media-item-delete:hover { background: var(--red); border-color: var(--red); }
+        .media-item-meta {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+          color: white;
+          font-size: 9px;
+          padding: 8px 6px 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          justify-content: space-between;
+        }
+        .media-item-meta span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .media-move-select {
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 4px;
+          font-size: 9px;
+          max-width: 70px;
+        }
 
         .media-item-add {
           aspect-ratio: 16/10;
@@ -433,7 +987,6 @@ export default function MediaPanel() {
           border-radius: 6px;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: var(--text-muted);
-          transition: all 0.2s;
         }
         .media-item-add:hover, .media-item-add.dragging { 
           border-color: var(--blue); 
