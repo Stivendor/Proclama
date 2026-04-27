@@ -11,6 +11,10 @@ export const FREE_SONG_LIMIT = 10
 
 /** Límite de canciones de Supabase que usuarios free pueden proyectar */
 export const FREE_PROJECTION_LIMIT = 100
+export const FREE_MEDIA_MAX_FILES = 5
+export const FREE_MEDIA_MAX_TOTAL_BYTES = 200 * 1024 * 1024 // 200MB
+export const PREMIUM_MEDIA_MAX_FILES = 25
+export const PREMIUM_MEDIA_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024 // 2GB
 
 export function usePlan() {
   const { userPlan, userRole } = useAppStore()
@@ -44,6 +48,10 @@ export function usePlan() {
   /** Retorna true si el usuario puede usar fondos multimedia (videos/imágenes) */
   const canUseMediaBackgrounds = isPremium // Siempre disponible para todos
 
+  const mediaLimits = isPremium
+    ? { maxFiles: PREMIUM_MEDIA_MAX_FILES, maxTotalBytes: PREMIUM_MEDIA_MAX_TOTAL_BYTES }
+    : { maxFiles: FREE_MEDIA_MAX_FILES, maxTotalBytes: FREE_MEDIA_MAX_TOTAL_BYTES }
+
   /** Retorna true si el usuario puede exportar reportes de asistencia */
   const canExportReports = isPremium
 
@@ -55,6 +63,7 @@ export function usePlan() {
     canUseGenius,
     canSync,
     canUseMediaBackgrounds,
+    mediaLimits,
     canExportReports,
   }
 }

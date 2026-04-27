@@ -66,6 +66,8 @@ export interface LocalMedia {
   url: string;
   type: "image" | "video";
   name: string;
+  size: number;
+  createdAt: number;
 }
 
 // ─── Tema visual ──────────────────────────────────────────────────────────────

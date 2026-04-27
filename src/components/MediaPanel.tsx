@@ -1,18 +1,10 @@
-import { useRef, useState, DragEvent } from "react";
-import {
-  Image,
-  Film,
-  X,
-  Upload,
-  MonitorPlay,
-  Zap,
-  Plus,
-  Trash2,
-  AlertCircle,
-} from "lucide-react";
+import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
+import { db } from "@/db";
+import { usePlan } from "@/hooks/usePlan";
 
 import { LocalMedia } from "@/types";
 
@@ -33,11 +25,73 @@ export default function MediaPanel() {
       })),
     );
   const state = { media, songId, isBible };
+  const { isPremium, mediaLimits } = usePlan();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const objectUrlsRef = useRef<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<"newest" | "name" | "size">("newest");
 
-  const processFiles = (files: File[]) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPersistedMedia = async () => {
+      setLoading(true);
+      try {
+        const rows = await db.local_media.toArray();
+        if (cancelled) return;
+
+        const loaded: LocalMedia[] = rows.map((row) => {
+          const url = URL.createObjectURL(row.file);
+          objectUrlsRef.current[row.id] = url;
+          return {
+            id: row.id,
+            url,
+            type: row.type,
+            name: row.name,
+            size: row.size,
+            createdAt: row.createdAt,
+          };
+        });
+        setLocalMediaList(loaded);
+      } catch (err) {
+        console.error("Error loading local media:", err);
+        setError("No se pudo cargar la media local guardada.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadPersistedMedia();
+
+    return () => {
+      cancelled = true;
+      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = {};
+    };
+  }, [setLocalMediaList]);
+
+  const currentTotalBytes = useMemo(
+    () => localMediaList.reduce((acc, item) => acc + (item.size || 0), 0),
+    [localMediaList],
+  );
+
+  const sortedMediaList = useMemo(() => {
+    const clone = [...localMediaList];
+    if (sortBy === "name") return clone.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    if (sortBy === "size") return clone.sort((a, b) => b.size - a.size);
+    return clone.sort((a, b) => b.createdAt - a.createdAt);
+  }, [localMediaList, sortBy]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const processFiles = async (files: File[]) => {
     setError(null);
     const validFiles: File[] = [];
     const rejectedFiles: string[] = [];
@@ -66,19 +120,81 @@ export default function MediaPanel() {
 
     if (validFiles.length === 0) return;
 
-    const newItems: LocalMedia[] = validFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      url: URL.createObjectURL(file),
-      type: file.type.startsWith("video/") ? "video" : "image",
-      name: file.name,
-    }));
+    const existingByName = new Map(localMediaList.map((m) => [m.name.toLowerCase(), m]));
+    const filesToPersist: File[] = [];
+    const idsToReplace: string[] = [];
 
-    setLocalMediaList((prev) => [...prev, ...newItems]);
+    validFiles.forEach((file) => {
+      const existing = existingByName.get(file.name.toLowerCase());
+      if (existing && isPremium) {
+        idsToReplace.push(existing.id);
+      }
+      if (!existing || isPremium) {
+        filesToPersist.push(file);
+      }
+    });
+
+    const bytesToRemove = idsToReplace.reduce((acc, id) => {
+      const item = localMediaList.find((m) => m.id === id);
+      return acc + (item?.size || 0);
+    }, 0);
+    const finalBytes = currentTotalBytes - bytesToRemove + filesToPersist.reduce((acc, file) => acc + file.size, 0);
+    const finalFilesCount = localMediaList.length - idsToReplace.length + filesToPersist.length;
+
+    if (finalFilesCount > mediaLimits.maxFiles) {
+      setError(`Límite alcanzado: máximo ${mediaLimits.maxFiles} archivos en tu plan.`);
+      return;
+    }
+    if (finalBytes > mediaLimits.maxTotalBytes) {
+      setError(`Límite de espacio alcanzado (${formatBytes(mediaLimits.maxTotalBytes)}).`);
+      return;
+    }
+
+    try {
+      for (const id of idsToReplace) {
+        await db.local_media.delete(id);
+        const oldUrl = objectUrlsRef.current[id];
+        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        delete objectUrlsRef.current[id];
+      }
+
+      const now = Date.now();
+      const newItems: LocalMedia[] = [];
+      for (const file of filesToPersist) {
+        const id = crypto.randomUUID();
+        await db.local_media.put({
+          id,
+          name: file.name,
+          type: file.type.startsWith("video/") ? "video" : "image",
+          size: file.size,
+          createdAt: now,
+          file,
+        });
+        const url = URL.createObjectURL(file);
+        objectUrlsRef.current[id] = url;
+        newItems.push({
+          id,
+          url,
+          type: file.type.startsWith("video/") ? "video" : "image",
+          name: file.name,
+          size: file.size,
+          createdAt: now,
+        });
+      }
+
+      setLocalMediaList((prev) => {
+        const replaced = prev.filter((item) => !idsToReplace.includes(item.id));
+        return [...replaced, ...newItems];
+      });
+    } catch (err) {
+      console.error("Error persisting media:", err);
+      setError("No se pudo guardar la media local.");
+    }
   };
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    processFiles(files);
+    void processFiles(files);
     e.target.value = "";
   };
 
@@ -100,7 +216,7 @@ export default function MediaPanel() {
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
-    processFiles(files);
+    void processFiles(files);
   };
 
   const toggleProjection = (item: LocalMedia) => {
@@ -115,7 +231,7 @@ export default function MediaPanel() {
     }
   };
 
-  const removeMedia = (id: string, e: React.MouseEvent) => {
+  const removeMedia = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const item = localMediaList.find((m) => m.id === id);
     if (!item) return;
@@ -124,8 +240,30 @@ export default function MediaPanel() {
       setMedia(null);
     }
 
+    try {
+      await db.local_media.delete(id);
+    } catch (err) {
+      console.error("Error deleting local media:", err);
+    }
+
     URL.revokeObjectURL(item.url);
+    delete objectUrlsRef.current[id];
     setLocalMediaList((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const clearAllMedia = async () => {
+    if (!isPremium) return;
+    if (!window.confirm("¿Eliminar todos los anuncios guardados?")) return;
+    try {
+      await db.local_media.clear();
+      Object.values(objectUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      objectUrlsRef.current = {};
+      setMedia(null);
+      setLocalMediaList([]);
+    } catch (err) {
+      console.error("Error clearing media:", err);
+      setError("No se pudo limpiar la media local.");
+    }
   };
 
   return (
@@ -143,14 +281,43 @@ export default function MediaPanel() {
           <MonitorPlay size={14} /> Anuncios / Media Local
         </div>
         {localMediaList.length > 0 && (
-          <button
-            className="btn-add-mini"
-            onClick={() => fileInputRef.current?.click()}
-            title="Añadir más"
-          >
-            <Plus size={14} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isPremium && (
+              <>
+                <select
+                  className="media-sort-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "newest" | "name" | "size")}
+                  title="Ordenar media"
+                >
+                  <option value="newest">Recientes</option>
+                  <option value="name">Nombre</option>
+                  <option value="size">Peso</option>
+                </select>
+                <button className="btn-add-mini danger" onClick={clearAllMedia} title="Limpiar todo">
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+            <button
+              className="btn-add-mini"
+              onClick={() => fileInputRef.current?.click()}
+              title="Añadir más"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
         )}
+      </div>
+
+      <div className="media-limits">
+        <span>
+          {localMediaList.length}/{mediaLimits.maxFiles} archivos
+        </span>
+        <span>
+          {formatBytes(currentTotalBytes)} / {formatBytes(mediaLimits.maxTotalBytes)}
+        </span>
+        {isPremium && <span className="media-premium-badge">Premium</span>}
       </div>
 
       <input
@@ -209,7 +376,11 @@ export default function MediaPanel() {
 
       {state.media?.type === "video" && <VideoControls />}
 
-      {localMediaList.length === 0 ? (
+      {loading ? (
+        <div className="media-upload-zone">
+          <p>Cargando media local...</p>
+        </div>
+      ) : localMediaList.length === 0 ? (
         <div
           className={`media-upload-zone ${isDragging ? "dragging" : ""}`}
           onClick={() => fileInputRef.current?.click()}
@@ -233,7 +404,7 @@ export default function MediaPanel() {
       ) : (
         <div className="media-gallery-container">
           <div className="media-gallery">
-            {localMediaList.map((item) => {
+            {sortedMediaList.map((item) => {
             const isProjecting = state.media?.url === item.url;
             return (
               <div
@@ -252,13 +423,12 @@ export default function MediaPanel() {
                       <Zap size={10} fill="currentColor" /> EN VIVO
                     </div>
                   )}
-                  <button
-                    className="media-item-delete"
-                    onClick={(e) => removeMedia(item.id, e)}
-                    title="Eliminar"
-                  >
+                  <button className="media-item-delete" onClick={(e) => void removeMedia(item.id, e)} title="Eliminar">
                     <X size={12} />
                   </button>
+                </div>
+                <div className="media-item-meta" title={`${item.name} · ${formatBytes(item.size)}`}>
+                  <span>{item.name}</span>
                 </div>
               </div>
             );
@@ -356,6 +526,31 @@ export default function MediaPanel() {
           cursor: pointer; display: flex; align-items: center;
         }
         .btn-add-mini:hover { color: var(--blue); border-color: var(--blue); }
+        .btn-add-mini.danger:hover { color: var(--red); border-color: var(--red); }
+        .media-sort-select {
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          font-size: 11px;
+          padding: 3px 6px;
+        }
+        .media-limits {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 11px;
+          color: var(--text-muted);
+          flex-wrap: wrap;
+        }
+        .media-premium-badge {
+          background: rgba(212, 175, 55, 0.2);
+          color: var(--gold);
+          border: 1px solid rgba(212, 175, 55, 0.4);
+          border-radius: 999px;
+          padding: 1px 8px;
+          font-weight: 700;
+        }
 
         .media-upload-zone {
           border: 2px dashed var(--border);
@@ -426,6 +621,19 @@ export default function MediaPanel() {
         }
         .media-item-card:hover .media-item-delete { opacity: 1; }
         .media-item-delete:hover { background: var(--red); border-color: var(--red); }
+        .media-item-meta {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+          color: white;
+          font-size: 9px;
+          padding: 8px 6px 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
 
         .media-item-add {
           aspect-ratio: 16/10;
