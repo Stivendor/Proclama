@@ -66,16 +66,22 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
 
 // ─── Funciones para Songs ──────────────────────────────────────────────────
 export async function fetchSongs(): Promise<Song[]> {
+  const { data: { user } } = await supabase.auth.getUser()
+  const userId = user?.id
+
   const allData: SupabaseSongRow[] = []
   let from = 0
   const step = 1000
 
   while (true) {
-    const { data, error } = await supabase
+    const query = supabase
       .from('songs')
       .select('*')
+      .or(`user_id.eq.${userId},is_public.eq.true`)
       .range(from, from + step - 1)
       .order('created_at', { ascending: false })
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching songs:', error)
@@ -179,6 +185,12 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
 }
 
 export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>): Promise<Song | null> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    console.error('User not authenticated for update')
+    return null
+  }
+
   const currentUpdatedAt = updates.updatedAt ?? new Date()
   const payload = {
     ...(updates.title !== undefined && { title: updates.title }),
@@ -199,6 +211,7 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     .from('songs')
     .update(payload)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single()
 
@@ -210,10 +223,17 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
 }
 
 export async function deleteSong(id: number) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) {
+    console.error('User not authenticated for delete')
+    return
+  }
+
   const { error } = await supabase
     .from('songs')
     .delete()
     .eq('id', id)
+    .eq('user_id', user.id)
 
   if (error) console.error('Error deleting song:', error)
 }
@@ -236,10 +256,14 @@ function mapRowToSetlist(row: any): Setlist {
 }
 
 export async function fetchSetlists(): Promise<Setlist[]> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  if (userError || !user) return []
+
   try {
     const { data, error } = await supabase
       .from('setlists')
       .select('*')
+      .eq('user_id', user.id)
       .order('date', { ascending: false })
     if (error) throw error
     return (data || []).map(mapRowToSetlist)
