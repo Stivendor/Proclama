@@ -8,10 +8,10 @@ interface MercadoPagoCheckoutOptions {
 
 export function useMercadoPagoCheckout() {
   const openCheckout = useCallback(async (options?: MercadoPagoCheckoutOptions) => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://proclama.lat'
-    const functionUrl = '***REMOVED***/functions/v1/create-mercadopago-preference'
-    
-    const supabaseAnonKey = '***REMOVED***'
+    const functionUrl = `${supabaseUrl}/functions/v1/create-mercadopago-preference`
+
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
       alert('Debes iniciar sesión para continuar con el pago.')
@@ -24,8 +24,7 @@ export function useMercadoPagoCheckout() {
         mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': supabaseAnonKey
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           userId: session.user.id,
