@@ -65,10 +65,13 @@ export default function FondosView() {
   const [textoExpanded, setTextoExpanded] = useState(false);
   const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [imageCategory, setImageCategory] = useState<string | null>(null);
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
 
   const state = { theme, media };
 
   const filteredBackgrounds = backgrounds.filter((bg) => {
+    if (brokenImageIds.has(bg.id)) return false;
+
     if (state.theme.backgroundType === "video") {
       return (bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)) && (!videoCategory || bg.category === videoCategory)
     }
@@ -171,7 +174,22 @@ export default function FondosView() {
                         }
                       }}
                     >
-                      <img src={bg.thumbnailUrl || bg.url} alt="background" onError={(e) => { const t = e.target as HTMLImageElement; if (t.src !== bg.url) t.src = bg.url; }} />
+                      <img 
+                        src={bg.thumbnailUrl || bg.url} 
+                        alt="background" 
+                        onError={(e) => { 
+                          const t = e.target as HTMLImageElement; 
+                          if (t.src !== bg.url) {
+                            t.src = bg.url; 
+                          } else {
+                            setBrokenImageIds(prev => {
+                              const next = new Set(prev);
+                              next.add(bg.id);
+                              return next;
+                            });
+                          }
+                        }} 
+                      />
                       {state.theme.backgroundImageUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
                       {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
                     </div>
@@ -186,7 +204,7 @@ export default function FondosView() {
                 </div>
                 {hasMore && isPremium && (
                   <button className="load-more-btn" onClick={() => setDisplayCount((c) => c + 12)}>
-                    Cargar más ({backgrounds.length - displayCount} restantes)
+                    Cargar más ({filteredBackgrounds.length - displayCount} restantes)
                   </button>
                 )}
                 {galleryExpanded && (
@@ -211,7 +229,17 @@ export default function FondosView() {
                 <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
                   {displayedBackgrounds.map((bg) => (
                     <div key={bg.id} className={`gallery-item ${state.theme.backgroundVideoUrl === bg.url ? "active" : ""}`} onClick={() => isPremium && updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })}>
-                      <video src={bg.url} muted />
+                      <video 
+                        src={bg.url} 
+                        muted 
+                        onError={() => {
+                          setBrokenImageIds(prev => {
+                            const next = new Set(prev);
+                            next.add(bg.id);
+                            return next;
+                          });
+                        }}
+                      />
                       {state.theme.backgroundVideoUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
                       {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
                     </div>
@@ -224,6 +252,11 @@ export default function FondosView() {
                     </div>
                   )}
                 </div>
+                {hasMore && isPremium && (
+                  <button className="load-more-btn" onClick={() => setDisplayCount((c) => c + 12)}>
+                    Cargar más ({filteredBackgrounds.length - displayCount} restantes)
+                  </button>
+                )}
               </div>
             )}
 
