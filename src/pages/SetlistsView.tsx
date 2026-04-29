@@ -1,5 +1,5 @@
-import { useState, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil } from 'lucide-react'
+import { useState, useMemo, memo, useEffect, useRef } from 'react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -11,6 +11,7 @@ import type { Setlist, Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
+import { LiveSelection } from '@/components/LiveSelection'
 
 const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate, onEdit }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void; onEdit: (s: Song) => void }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
@@ -34,14 +35,14 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {song?.key && <span className="song-key-sm">{song.key}</span>}
         <button
-          className="btn-icon sm"
+          className="btn-icon-xs"
           onClick={(e) => { e.stopPropagation(); song && onEdit(song); }}
           title="Editar canción"
         >
           <Pencil size={12} />
         </button>
         <button
-          className="btn-icon danger sm"
+          className="btn-icon-xs danger"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           title="Quitar de la lista"
         >
@@ -86,7 +87,6 @@ export default function SetlistsView() {
     }
   }) ?? []
 
-  // Batch load all songs for the editing setlist
   const setlistSongs = useLiveQuery(
     async () => {
       try {
@@ -220,7 +220,7 @@ export default function SetlistsView() {
       {showNew && (
         <div className="new-setlist-form">
           <input
-            type="text" placeholder='Nombre del setlist (ej. "Domingo 9 Mar — Mañana")'
+            type="text" placeholder='Nombre del setlist (ej. "Domingo 9 Mar")'
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && createSetlist()}
             autoFocus
@@ -233,14 +233,14 @@ export default function SetlistsView() {
         </div>
       )}
 
-      <div className="setlists-body">
-        {/* Lista de setlists */}
-        <div className="setlists-list">
-          {setlists.length === 0 && (
+      <div className={`setlists-body-grid ${editingSetlist ? 'with-editor' : ''}`}>
+        {/* Lista de setlists (Lateral izquierdo) */}
+        <div className="setlists-sidebar-panel">
+          {!editingSetlist && setlists.length === 0 && (
             <div className="library-empty">
               <List size={48} opacity={0.2} style={{ marginBottom: 12 }} />
               <h3>Aún no tienes Setlists</h3>
-              <p>Agrupa canciones para tu próximo servicio o evento, manteniendo un orden listo para proyectar.</p>
+              <p>Agrupa canciones para tu próximo servicio o evento.</p>
               <div style={{ marginTop: '16px' }}>
                 <button className="btn-primary" onClick={() => setShowNew(true)}>
                   <Plus size={16} /> Crear Setlist
@@ -248,113 +248,216 @@ export default function SetlistsView() {
               </div>
             </div>
           )}
-          {setlists.map(sl => (
-            <div key={sl.id} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
-              <div className="setlist-card-info" onClick={() => setEditingSetlist(sl)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="setlist-name">{sl.name}</div>
+          
+          <div className="setlist-cards-container">
+            {setlists.map(sl => (
+              <div key={sl.id} className={`setlist-card-compact ${editingSetlist?.id === sl.id ? 'active' : ''}`} onClick={() => setEditingSetlist(sl)}>
+                <div className="setlist-card-content">
+                  <div className="setlist-name-row">
+                    <span className="name">{sl.name}</span>
+                    {editingSetlist?.id === sl.id && <Play size={12} color="var(--gold)" />}
+                  </div>
+                  <div className="setlist-meta-row">
+                    <Calendar size={10} />
+                    <span>{new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</span>
+                    <span className="dot">·</span>
+                    <span>{sl.songIds.length} temas</span>
+                  </div>
                 </div>
-                <div className="setlist-meta">
-                  <Calendar size={12} />
-                  {new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  · {sl.songIds.length} canciones
+                <div className="setlist-card-actions">
+                   <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); activateSetlist(sl); }} title="Activar setlist"><Play size={12} /></button>
+                   <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); deleteSetlist(sl); }}><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div className="song-card-actions">
-                <button className="btn-icon" onClick={() => activateSetlist(sl)} title="Activar en vivo">
-                  <Play size={14} />
-                </button>
-                <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
-                  <Edit2 size={14} />
-                </button>
-                <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Editor de setlist */}
+        {/* Editor de setlist (Centro) */}
         {editingSetlist && (
-          <div className="setlist-editor">
-            <div className="editor-header-row">
-              <h3>{editingSetlist.name}</h3>
-              <button className="btn-icon sm" onClick={() => setEditingSetlist(null)} title="Cerrar editor">
-                <X size={16} />
-              </button>
+          <div className="setlist-songs-panel">
+            <div className="panel-header">
+              <div className="title-section">
+                 <button className="btn-icon-xs" onClick={() => setEditingSetlist(null)} style={{ marginRight: 8 }}><X size={14} /></button>
+                 <h3>{editingSetlist.name}</h3>
+              </div>
+              <div className="panel-actions">
+                 <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)} title="Buscar canciones online"><Globe size={14} /></button>
+              </div>
             </div>
 
-            {/* Orden de canciones con drag & drop */}
-            <div className="setlist-songs-section">
-              <h4>Orden del servicio</h4>
-              {editingSetlist.songIds.length === 0 ? (
-                <p className="empty-hint">Agrega canciones buscando abajo</p>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
-                    {editingSetlist.songIds.map((id, index) => {
-                      const song = setlistSongs[index]
-                      return (
-                        <SortableSongItem
-                          key={id}
-                          songId={id}
-                          song={song}
-                          onRemove={() => removeSongFromSetlist(id)}
-                          onActivate={loadSong}
-                          onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
-                        />
-                      )
-                    })}
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-
-            {/* Agregar canciones */}
-            <div className="setlist-add-section">
-              <div className="add-section-toolbar">
-                <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)}>
-                  <Globe size={14} /> Buscar online
-                </button>
+            <div className="setlist-content-scroll">
+              <div className="search-box-container">
                 <div className="search-box sm">
-                  <Search size={14} className="search-icon" />
+                  <Search size={14} />
                   <input
                     type="text"
-                    placeholder="Buscar canción..."
+                    placeholder="Agregar canción al set..."
                     value={songSearch}
                     onChange={e => setSongSearch(e.target.value)}
                   />
-                  {songSearch && (
-                    <button className="clear-search" onClick={() => setSongSearch('')}>
-                      <X size={12} />
-                    </button>
-                  )}
+                  {songSearch && <button onClick={() => setSongSearch('')}><X size={12} /></button>}
                 </div>
               </div>
 
-              <div className="add-songs-list highlight">
-                {filteredSongs.length === 0 ? (
-                  <p className="empty-hint">No se encontraron canciones</p>
+              {songSearch && (
+                <div className="search-results-overlay">
+                   {filteredSongs.map(s => (
+                     <button key={s.id} className="search-result-item" onClick={() => { addSongToSetlist(s.id!); setSongSearch(''); }}>
+                       <Plus size={12} />
+                       <div className="info">
+                         <span className="t">{s.title}</span>
+                         <span className="a">{s.artist}</span>
+                       </div>
+                       {s.key && <span className="k">{s.key}</span>}
+                     </button>
+                   ))}
+                </div>
+              )}
+
+              <div className="order-section">
+                <div className="section-title">ORDEN DEL SERVICIO</div>
+                {editingSetlist.songIds.length === 0 ? (
+                  <div className="empty-state">No hay canciones. Usa la búsqueda arriba para añadir.</div>
                 ) : (
-                  filteredSongs.map(s => (
-                    <button key={s.id} className="add-song-btn-large" onClick={() => addSongToSetlist(s.id!)}>
-                      <div className="add-song-btn-main">
-                        <Plus size={14} className="add-icon" />
-                        <div className="song-info">
-                          <span className="title">{s.title}</span>
-                          <span className="artist">{s.artist || 'Sin artista'}</span>
-                        </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
+                      <div className="sortable-list">
+                        {editingSetlist.songIds.map((id, index) => (
+                          <SortableSongItem
+                            key={id}
+                            songId={id}
+                            song={setlistSongs[index]}
+                            onRemove={() => removeSongFromSetlist(id)}
+                            onActivate={loadSong}
+                            onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
+                          />
+                        ))}
                       </div>
-                      {s.key && <span className="song-key-sm">{s.key}</span>}
-                    </button>
-                  ))
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             </div>
           </div>
         )}
+
+        {/* Control en Vivo (Derecha) */}
+        {editingSetlist && (
+          <div className="setlist-live-panel">
+            <LiveSelection />
+          </div>
+        )}
       </div>
+
+      <style>{`
+        .setlists-body-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+          height: 100%;
+        }
+        .setlists-body-grid.with-editor {
+          grid-template-columns: 240px 320px 1fr;
+        }
+
+        .setlists-sidebar-panel {
+          border-right: 1px solid var(--border);
+          overflow-y: auto;
+          background: var(--bg-surface);
+          height: 100%;
+        }
+        .setlist-cards-container {
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .setlist-card-compact {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+        }
+        .setlist-card-compact:hover { background: var(--bg-hover); }
+        .setlist-card-compact.active { background: var(--bg-elevated); border-color: var(--gold-dim); }
+        .setlist-card-content { flex: 1; min-width: 0; }
+        .setlist-name-row { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; }
+        .setlist-name-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .setlist-meta-row { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .setlist-card-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.2s; }
+        .setlist-card-compact:hover .setlist-card-actions { opacity: 1; }
+
+        .setlist-songs-panel {
+          border-right: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-surface);
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .panel-header {
+          flex-shrink: 0;
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .panel-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+        .setlist-content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .search-box-container { padding: 12px; position: sticky; top: 0; background: var(--bg-surface); z-index: 10; }
+        .search-results-overlay { background: var(--bg-elevated); border-bottom: 1px solid var(--border); max-height: 200px; overflow-y: auto; }
+        .search-result-item {
+          width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+          border: none; background: none; color: var(--text-primary); text-align: left; cursor: pointer; font-size: 13px;
+        }
+        .search-result-item:hover { background: var(--bg-hover); }
+        .search-result-item .info { flex: 1; display: flex; flex-direction: column; }
+        .search-result-item .t { font-weight: 500; }
+        .search-result-item .a { font-size: 11px; color: var(--text-muted); }
+        .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(212, 168, 67, 0.1); padding: 1px 4px; border-radius: 4px; }
+
+        .order-section { padding: 12px; }
+        .section-title { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; }
+        .sortable-list { display: flex; flex-direction: column; gap: 4px; }
+        .empty-state { font-size: 12px; color: var(--text-muted); text-align: center; padding: 24px 12px; font-style: italic; }
+
+        .setlist-live-panel {
+          flex: 1;
+          min-width: 0;
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+          background: var(--bg-base);
+        }
+
+        .setlist-song-item {
+          display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+          background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .setlist-song-item:hover { border-color: var(--border-light); background: var(--bg-hover); }
+        .setlist-song-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(212, 168, 67, 0.1); }
+        .drag-handle { color: var(--text-muted); cursor: grab; padding: 4px; display: flex; align-items: center; }
+        .setlist-song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .setlist-song-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .setlist-song-artist { font-size: 11px; color: var(--text-muted); }
+        .song-key-sm { font-size: 10px; font-weight: 600; color: var(--gold); padding: 1px 4px; border-radius: 4px; }
+
+        @media (max-width: 1100px) { .setlists-body-grid.with-editor { grid-template-columns: 200px 280px 1fr; } }
+        @media (max-width: 900px) {
+          .setlists-body-grid.with-editor { grid-template-columns: 1fr; }
+          .setlists-sidebar-panel, .setlist-songs-panel { display: none; }
+        }
+      `}</style>
+
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
       {confirmDeleteSl && (
         <ConfirmDialog
@@ -363,7 +466,6 @@ export default function SetlistsView() {
           onCancel={() => setConfirmDeleteSl(null)}
         />
       )}
-
     </div>
   )
 }

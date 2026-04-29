@@ -30,7 +30,7 @@ export const DEFAULT_THEME: ProjectionTheme = {
   textUppercase: true,
   fontScale: 1,
   showBibleVersion: true,
-  linesPerSlide: 4
+  linesPerSlide: 2
 }
 
 // ─── Default settings ──────────────────────────────────────────────────────────
@@ -77,168 +77,182 @@ const initialProjectionState: ProjectionState = {
   hideText: false
 }
 
-export const useProjectionStore = create<ProjectionStore>((set, get) => ({
-  state: initialProjectionState,
-  projectionWindow: null,
-  localMediaList: [],
-  localMediaFolders: [],
-  selectedMediaFolderId: null,
-  currentSong: null,
+export const useProjectionStore = create<ProjectionStore>()(
+  persist(
+    (set, get) => ({
+      state: initialProjectionState,
+      projectionWindow: null,
+      localMediaList: [],
+      localMediaFolders: [],
+      selectedMediaFolderId: null,
+      currentSong: null,
 
-  setLocalMediaList: (updater) => set((s) => ({
-    localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
-  })),
+      setLocalMediaList: (updater) => set((s) => ({
+        localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
+      })),
 
-  setLocalMediaFolders: (updater) => set((s) => ({
-    localMediaFolders: typeof updater === 'function' ? updater(s.localMediaFolders) : updater
-  })),
+      setLocalMediaFolders: (updater) => set((s) => ({
+        localMediaFolders: typeof updater === 'function' ? updater(s.localMediaFolders) : updater
+      })),
 
-  setSelectedMediaFolderId: (folderId) => set({ selectedMediaFolderId: folderId }),
+      setSelectedMediaFolderId: (folderId) => set({ selectedMediaFolderId: folderId }),
 
-  setProjectionWindow: (w) => set({ projectionWindow: w }),
+      setProjectionWindow: (w) => set({ projectionWindow: w }),
 
-  loadSong: (song, isBible = false, initialSlide = -1) => {
-    const newState: ProjectionState = {
-      ...get().state,
-      songTitle: song.title,
-      songArtist: song.artist,
-      isBible,
-      lyricsRaw: song.lyrics,
-      slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 4),
-      currentSlide: initialSlide,
-      hideText: false,
-    }
-    set({ state: newState, currentSong: isBible ? null : song })
-    sendProjectionUpdate(newState)
-  },
-
-  nextSlide: () => {
-    set(s => {
-      const { currentSlide, slides } = s.state
-      if (currentSlide < slides.length - 1) {
-        const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
-        const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
+      loadSong: (song, isBible = false, initialSlide = -1) => {
+        const newState: ProjectionState = {
+          ...get().state,
+          songId: isBible ? null : song.id || null,
+          songTitle: song.title,
+          songArtist: song.artist,
+          isBible,
+          lyricsRaw: song.lyrics,
+          slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 2),
+          currentSlide: initialSlide,
+          hideText: false,
+        }
+        set({ state: newState, currentSong: isBible ? null : song })
         sendProjectionUpdate(newState)
-        
-        // Add to history only when presenting
-        if (s.currentSong) {
-          useAppStore.getState().addRecentSong(s.currentSong)
+      },
+
+      nextSlide: () => {
+        set(s => {
+          const { currentSlide, slides } = s.state
+          if (currentSlide < slides.length - 1) {
+            const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
+            const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
+            sendProjectionUpdate(newState)
+            
+            // Add to history only when presenting
+            if (s.currentSong) {
+              useAppStore.getState().addRecentSong(s.currentSong)
+            }
+
+            return { state: newState }
+          }
+          return s
+        })
+      },
+
+      prevSlide: () => {
+        set(s => {
+          if (s.state.currentSlide > 0) {
+            const newState = { ...s.state, currentSlide: s.state.currentSlide - 1, hideText: false }
+            sendProjectionUpdate(newState)
+            
+            if (s.currentSong) {
+              useAppStore.getState().addRecentSong(s.currentSong)
+            }
+
+            return { state: newState }
+          }
+          return s
+        })
+      },
+
+      goToSlide: (index) => {
+        set(s => {
+          if (index >= 0 && index < s.state.slides.length) {
+            const newState = { ...s.state, currentSlide: index, hideText: false }
+            sendProjectionUpdate(newState)
+            
+            if (s.currentSong) {
+              useAppStore.getState().addRecentSong(s.currentSong)
+            }
+
+            return { state: newState }
+          }
+          return s
+        })
+      },
+
+      updateTheme: (theme) => {
+        const currentState = get().state
+        const newTheme = { ...currentState.theme, ...theme }
+        let slides = currentState.slides
+
+        // Si cambió la cantidad de líneas por slide y hay una canción cargada, reparceamos
+        if (theme.linesPerSlide !== undefined && currentState.lyricsRaw && !currentState.isBible) {
+          slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide)
         }
 
-        return { state: newState }
-      }
-      return s
-    })
-  },
-
-  prevSlide: () => {
-    set(s => {
-      if (s.state.currentSlide > 0) {
-        const newState = { ...s.state, currentSlide: s.state.currentSlide - 1, hideText: false }
-        sendProjectionUpdate(newState)
+        const newState = { ...currentState, theme: newTheme, slides }
         
-        if (s.currentSong) {
-          useAppStore.getState().addRecentSong(s.currentSong)
+        // Si el usuario cambia el tipo de fondo desde la galería, quitamos el media local activo
+        // para asegurar que el nuevo fondo sea visible.
+        if (theme.backgroundType !== undefined) {
+          newState.media = null
         }
 
-        return { state: newState }
-      }
-      return s
-    })
-  },
-
-  goToSlide: (index) => {
-    set(s => {
-      if (index >= 0 && index < s.state.slides.length) {
-        const newState = { ...s.state, currentSlide: index, hideText: false }
+        set({ state: newState })
         sendProjectionUpdate(newState)
-        
-        if (s.currentSong) {
-          useAppStore.getState().addRecentSong(s.currentSong)
+      },
+
+      clearSong: () => {
+        const newState = { ...initialProjectionState, theme: get().state.theme }
+        set({ state: newState })
+        sendProjectionUpdate(newState)
+      },
+
+      setMedia: (media) => {
+        set(s => {
+          const newState = { ...s.state, media, mediaStatus: undefined }
+          sendProjectionUpdate(newState)
+          return { state: newState }
+        })
+      },
+
+      setHideText: (v) => {
+        const newState = { ...get().state, hideText: v }
+        set({ state: newState })
+        sendProjectionUpdate(newState)
+      },
+
+      toggleMediaBackground: () => {
+        set(s => {
+          if (!s.state.media) return s
+          const newState = { 
+            ...s.state, 
+            media: { ...s.state.media, isBackgroundMode: !s.state.media.isBackgroundMode } 
+          }
+          sendProjectionUpdate(newState)
+          return { state: newState }
+        })
+      },
+
+      toggleMediaObjectFit: () => {
+        set(s => {
+          if (!s.state.media) return s
+          const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'cover' : 'contain')
+          const newFit = currentFit === 'cover' ? 'contain' : 'cover'
+          const newState = { 
+            ...s.state, 
+            media: { ...s.state.media, objectFit: newFit as 'cover' | 'contain' } 
+          }
+          sendProjectionUpdate(newState)
+          return { state: newState }
+        })
+      },
+
+      setMediaStatus: (mediaStatus) => {
+        set(s => ({ state: { ...s.state, mediaStatus } }))
+      },
+
+      sendMediaCommand: (action, value) => {
+        sendMediaCommand(action, value)
+      }
+    }),
+    {
+      name: 'proclama-projection',
+      partialize: (s) => ({
+        state: {
+          ...initialProjectionState,
+          theme: s.state.theme
         }
-
-        return { state: newState }
-      }
-      return s
-    })
-  },
-
-  updateTheme: (theme) => {
-    const currentState = get().state
-    const newTheme = { ...currentState.theme, ...theme }
-    let slides = currentState.slides
-
-    // Si cambió la cantidad de líneas por slide y hay una canción cargada, reparceamos
-    if (theme.linesPerSlide !== undefined && currentState.lyricsRaw && !currentState.isBible) {
-      slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide)
+      })
     }
-
-    const newState = { ...currentState, theme: newTheme, slides }
-    
-    // Si el usuario cambia el tipo de fondo desde la galería, quitamos el media local activo
-    // para asegurar que el nuevo fondo sea visible.
-    if (theme.backgroundType !== undefined) {
-      newState.media = null
-    }
-
-    set({ state: newState })
-    sendProjectionUpdate(newState)
-  },
-
-  clearSong: () => {
-    const newState = { ...initialProjectionState, theme: get().state.theme }
-    set({ state: newState })
-    sendProjectionUpdate(newState)
-  },
-
-  setMedia: (media) => {
-    set(s => {
-      const newState = { ...s.state, media, mediaStatus: undefined }
-      sendProjectionUpdate(newState)
-      return { state: newState }
-    })
-  },
-
-  setHideText: (v) => {
-    const newState = { ...get().state, hideText: v }
-    set({ state: newState })
-    sendProjectionUpdate(newState)
-  },
-
-  toggleMediaBackground: () => {
-    set(s => {
-      if (!s.state.media) return s
-      const newState = { 
-        ...s.state, 
-        media: { ...s.state.media, isBackgroundMode: !s.state.media.isBackgroundMode } 
-      }
-      sendProjectionUpdate(newState)
-      return { state: newState }
-    })
-  },
-
-  toggleMediaObjectFit: () => {
-    set(s => {
-      if (!s.state.media) return s
-      const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'cover' : 'contain')
-      const newFit = currentFit === 'cover' ? 'contain' : 'cover'
-      const newState = { 
-        ...s.state, 
-        media: { ...s.state.media, objectFit: newFit as 'cover' | 'contain' } 
-      }
-      sendProjectionUpdate(newState)
-      return { state: newState }
-    })
-  },
-
-  setMediaStatus: (mediaStatus) => {
-    set(s => ({ state: { ...s.state, mediaStatus } }))
-  },
-
-  sendMediaCommand: (action, value) => {
-    sendMediaCommand(action, value)
-  }
-}))
+  )
+)
 
 // ─── App Store (settings + UI state) ──────────────────────────────────────────
 interface AppStore {
