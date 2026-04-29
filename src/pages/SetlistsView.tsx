@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useEffect, useRef } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid, Lock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -12,8 +12,25 @@ import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/LiveSelection'
+import { usePlan, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 
-const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate, onEdit }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void; onEdit: (s: Song) => void }) {
+const SortableSongItem = memo(function SortableSongItem({ 
+  songId, 
+  song, 
+  onRemove, 
+  onActivate, 
+  onEdit,
+  onBlocked,
+  isBlocked 
+}: { 
+  songId: number; 
+  song: Song | undefined; 
+  onRemove: () => void; 
+  onActivate: (s: Song) => void; 
+  onEdit: (s: Song) => void;
+  onBlocked?: () => void;
+  isBlocked?: boolean;
+}) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
 
@@ -24,12 +41,21 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
     <div
       ref={setNodeRef}
       style={style}
-      className={`setlist-song-item ${isActive ? 'active' : ''}`}
-      onClick={() => song && onActivate(song)}
+      className={`setlist-song-item ${isActive ? 'active' : ''} ${isBlocked ? 'blocked' : ''}`}
+      onClick={() => {
+        if (isBlocked) {
+          onBlocked?.();
+          return;
+        }
+        song && onActivate(song);
+      }}
     >
       <span className="drag-handle" {...attributes} {...listeners} title="Reordenar"><GripVertical size={14} /></span>
       <div className="setlist-song-info">
-        <span className="setlist-song-name">{song?.title ?? '...'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="setlist-song-name">{song?.title ?? '...'}</span>
+          {isBlocked && <span title="Contenido Premium"><Lock size={12} className="status-icon-blocked" /></span>}
+        </div>
         {song?.artist && <span className="setlist-song-artist">{song.artist}</span>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -70,6 +96,8 @@ export default function SetlistsView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
+  const { isPremium } = usePlan()
 
   const localSetlists = useLiveQuery(async () => {
     try {
@@ -78,6 +106,26 @@ export default function SetlistsView() {
       return []
     }
   }) ?? []
+
+  const songRanking = useLiveQuery(async () => {
+    try {
+      const all = await db.songs.toArray();
+      // Ordenar por uso (desc) y luego por título para consistencia
+      const sorted = all.sort((a, b) => {
+        const usageDiff = (b.usageCount || 0) - (a.usageCount || 0);
+        if (usageDiff !== 0) return usageDiff;
+        return a.title.localeCompare(b.title, 'es');
+      });
+      
+      const rankMap = new Map<number, number>();
+      sorted.forEach((s, i) => {
+        if (s.id) rankMap.set(s.id, i + 1);
+      });
+      return rankMap;
+    } catch {
+      return new Map<number, number>();
+    }
+  }) || new Map<number, number>();
 
   const allSongs = useLiveQuery(async () => {
     try {
@@ -155,10 +203,20 @@ export default function SetlistsView() {
     }
   }
 
-  const addSongToSetlist = async (songId: number) => {
-    if (!editingSetlist?.id) return
-    if (editingSetlist.songIds.includes(songId)) return
-    const updatedIds = [...editingSetlist.songIds, songId]
+  const addSongToSetlist = async (song: Song) => {
+    if (!editingSetlist?.id || !song.id) return
+    
+    // Validar si es una canción bloqueada (Premium)
+    const rank = song.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+    const isSongBlocked = !isPremium && song.userId !== user?.id && rank > FREE_PROJECTION_LIMIT
+    
+    if (isSongBlocked) {
+      setBlockedMessage(`Esta canción es parte de la biblioteca Pro (+3,000 canciones). Mejora tu plan para añadirla.`)
+      return
+    }
+
+    if (editingSetlist.songIds.includes(song.id)) return
+    const updatedIds = [...editingSetlist.songIds, song.id]
     await updateSetlistInState(editingSetlist.id, { songIds: updatedIds, updatedAt: new Date() })
   }
 
@@ -183,7 +241,11 @@ export default function SetlistsView() {
     setActiveSetlist(sl)
     if (sl.songIds.length > 0) {
       const song = await db.songs.get(sl.songIds[0])
-      if (song) loadSong(song)
+      if (song) {
+        const rank = song.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+        const isSongBlocked = !isPremium && song.userId !== user?.id && rank > FREE_PROJECTION_LIMIT
+        if (!isSongBlocked) loadSong(song)
+      }
     }
   }
 
@@ -300,20 +362,35 @@ export default function SetlistsView() {
                 </div>
               </div>
 
-              {songSearch && (
-                <div className="search-results-overlay">
-                   {filteredSongs.map(s => (
-                     <button key={s.id} className="search-result-item" onClick={() => { addSongToSetlist(s.id!); setSongSearch(''); }}>
-                       <Plus size={12} />
-                       <div className="info">
-                         <span className="t">{s.title}</span>
-                         <span className="a">{s.artist}</span>
-                       </div>
-                       {s.key && <span className="k">{s.key}</span>}
-                     </button>
-                   ))}
-                </div>
-              )}
+                  {songSearch && (
+                    <div className="search-results-overlay">
+                       {filteredSongs.map(s => {
+                         const rank = s.id ? (songRanking.get(s.id) ?? Infinity) : Infinity
+                         const isSongBlocked = !isPremium && (s.userId !== user?.id || !s.userId) && rank > FREE_PROJECTION_LIMIT
+                         return (
+                           <button 
+                             key={s.id} 
+                             className={`search-result-item ${isSongBlocked ? 'blocked' : ''}`} 
+                             onClick={() => { 
+                               if (isSongBlocked) {
+                                 setBlockedMessage(`Esta canción es parte de la biblioteca Pro (+3,000 canciones).`)
+                                 return
+                               }
+                               addSongToSetlist(s); 
+                               setSongSearch(''); 
+                             }}
+                           >
+                             {isSongBlocked ? <Lock size={12} className="status-icon-blocked" /> : <Plus size={12} />}
+                             <div className="info">
+                               <span className="t">{s.title}</span>
+                               <span className="a">{s.artist}</span>
+                             </div>
+                             {s.key && <span className="k">{s.key}</span>}
+                           </button>
+                         )
+                       })}
+                    </div>
+                  )}
 
               <div className="order-section">
                 <div className="section-title">ORDEN DEL SERVICIO</div>
@@ -323,16 +400,23 @@ export default function SetlistsView() {
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
                       <div className="sortable-list">
-                        {editingSetlist.songIds.map((id, index) => (
-                          <SortableSongItem
-                            key={id}
-                            songId={id}
-                            song={setlistSongs[index]}
-                            onRemove={() => removeSongFromSetlist(id)}
-                            onActivate={loadSong}
-                            onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
-                          />
-                        ))}
+                        {editingSetlist.songIds.map((id, index) => {
+                          const song = setlistSongs[index]
+                          const rank = song?.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+                          const isBlocked = !isPremium && song && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
+                          return (
+                            <SortableSongItem
+                              key={id}
+                              songId={id}
+                              song={song}
+                              isBlocked={!!isBlocked}
+                              onRemove={() => removeSongFromSetlist(id)}
+                              onActivate={(s) => loadSong(s)}
+                              onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
+                              onBlocked={() => setBlockedMessage("Esta canción requiere el Plan Pro para ser proyectada.")}
+                            />
+                          )
+                        })}
                       </div>
                     </SortableContext>
                   </DndContext>
@@ -456,7 +540,25 @@ export default function SetlistsView() {
           .setlists-body-grid.with-editor { grid-template-columns: 1fr; }
           .setlists-sidebar-panel, .setlist-songs-panel { display: none; }
         }
+        .setlist-song-item.blocked { opacity: 0.6; cursor: not-allowed; border-style: dashed; }
+        .setlist-song-item.blocked:hover { background: var(--bg-elevated); border-color: var(--border); }
+        .search-result-item.blocked { opacity: 0.5; cursor: not-allowed; background: rgba(0,0,0,0.05); }
+        .search-result-item.blocked .t { text-decoration: line-through; opacity: 0.7; }
+        .status-icon-blocked { color: var(--gold); flex-shrink: 0; }
       `}</style>
+      {blockedMessage && (
+        <ConfirmDialog
+          message={blockedMessage}
+          onConfirm={() => {
+            setBlockedMessage(null)
+            useAppStore.getState().setForceLanding(true, 'planes')
+          }}
+          onCancel={() => setBlockedMessage(null)}
+          confirmLabel="Ver Planes Pro"
+          cancelLabel="Cerrar"
+          icon={<Lock size={20} color="var(--gold)" />}
+        />
+      )}
 
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
       {confirmDeleteSl && (
@@ -464,6 +566,8 @@ export default function SetlistsView() {
           message={`¿Eliminar "${confirmDeleteSl.name}"?`}
           onConfirm={confirmDeleteSetlist}
           onCancel={() => setConfirmDeleteSl(null)}
+          danger={true}
+          confirmLabel="Eliminar"
         />
       )}
     </div>

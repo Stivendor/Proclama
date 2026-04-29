@@ -57,7 +57,7 @@ export default function FondosView() {
   const { isPremium } = usePlan();
 
   const handleUpgrade = useCallback(() => {
-    window.location.href = "/settings?upgrade=premium";
+    useAppStore.getState().setForceLanding(true, 'planes')
   }, []);
 
   const [displayCount, setDisplayCount] = useState(12);
@@ -70,6 +70,7 @@ export default function FondosView() {
   const state = { theme, media };
 
   const filteredBackgrounds = backgrounds.filter((bg) => {
+    // No mostrar si sabemos que está rota
     if (brokenImageIds.has(bg.id)) return false;
 
     if (state.theme.backgroundType === "video") {
@@ -133,16 +134,24 @@ export default function FondosView() {
                 <Sliders size={14} /> Color
               </button>
               <button
-                className={state.theme.backgroundType === "image" ? "active" : ""}
-                onClick={() => updateTheme({ backgroundType: "image" })}
+                className={`${state.theme.backgroundType === "image" ? "active" : ""} ${!isPremium ? "disabled-pro" : ""}`}
+                onClick={() => {
+                  if (!isPremium) return
+                  updateTheme({ backgroundType: "image" })
+                }}
+                title={!isPremium ? "Función Proclama Pro" : ""}
               >
-                <ImageIcon size={14} /> Imagen
+                {isPremium ? <ImageIcon size={14} /> : <Lock size={14} />} Imagen
               </button>
               <button
-                className={state.theme.backgroundType === "video" ? "active" : ""}
-                onClick={() => updateTheme({ backgroundType: "video" })}
+                className={`${state.theme.backgroundType === "video" ? "active" : ""} ${!isPremium ? "disabled-pro" : ""}`}
+                onClick={() => {
+                  if (!isPremium) return
+                  updateTheme({ backgroundType: "video" })
+                }}
+                title={!isPremium ? "Función Proclama Pro" : ""}
               >
-                <Film size={14} /> Video
+                {isPremium ? <Film size={14} /> : <Lock size={14} />} Video
               </button>
             </div>
           </div>
@@ -151,13 +160,28 @@ export default function FondosView() {
             {state.theme.backgroundType === "image" && (
               <div className="gallery-container">
                 <label><ImageIcon size={14} /> Galería de Imágenes</label>
-                <div className="category-filters">
-                  <button className={!imageCategory ? "active" : ""} onClick={() => setImageCategory(null)}>Todos</button>
-                  {availableImageCategories.map((cat) => (
-                    <button key={cat} className={imageCategory === cat ? "active" : ""} onClick={() => setImageCategory(cat)}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                <div className="gallery-filters-header">
+                  <div className="category-pills">
+                    <button 
+                      className={`pill ${!imageCategory ? "active" : ""}`} 
+                      onClick={() => setImageCategory(null)}
+                    >
+                      Todos
                     </button>
-                  ))}
+                    {availableImageCategories.map((cat) => {
+                      const count = backgrounds.filter(bg => bg.category === cat && (bg.type === 'image' || !bg.type)).length;
+                      return (
+                        <button 
+                          key={cat} 
+                          className={`pill ${imageCategory === cat ? "active" : ""}`} 
+                          onClick={() => setImageCategory(cat)}
+                        >
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          <span className="pill-count">{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
                   {displayedBackgrounds.map((bg) => (
@@ -197,7 +221,7 @@ export default function FondosView() {
                   {!isPremium && (
                     <div className="gallery-premium-promo">
                       <Lock size={20} />
-                      <span>100+ fondos exclusivos para Premium</span>
+                      <span>+50 fondos exclusivos para Premium</span>
                       <button onClick={handleUpgrade}>Mejorar a Premium</button>
                     </div>
                   )}
@@ -218,13 +242,28 @@ export default function FondosView() {
             {state.theme.backgroundType === "video" && (
               <div className="gallery-container">
                 <label><Film size={14} /> Galería de Videos</label>
-                <div className="category-filters">
-                  <button className={!videoCategory ? "active" : ""} onClick={() => setVideoCategory(null)}>Todos</button>
-                  {availableVideoCategories.map((cat) => (
-                    <button key={cat} className={videoCategory === cat ? "active" : ""} onClick={() => setVideoCategory(cat)}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                <div className="gallery-filters-header">
+                  <div className="category-pills">
+                    <button 
+                      className={`pill ${!videoCategory ? "active" : ""}`} 
+                      onClick={() => setVideoCategory(null)}
+                    >
+                      Todos
                     </button>
-                  ))}
+                    {availableVideoCategories.map((cat) => {
+                      const count = backgrounds.filter(bg => bg.category === cat && (bg.type === 'video' || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/))).length;
+                      return (
+                        <button 
+                          key={cat} 
+                          className={`pill ${videoCategory === cat ? "active" : ""}`} 
+                          onClick={() => setVideoCategory(cat)}
+                        >
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          <span className="pill-count">{count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
                   {displayedBackgrounds.map((bg) => (
@@ -360,9 +399,23 @@ export default function FondosView() {
       </div>
 
       <style>{`
-        .category-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-        .category-filters button { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s; }
-        .category-filters button.active { background: var(--gold); color: #000; border-color: var(--gold); }
+        .gallery-filters-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+        .search-box { position: relative; display: flex; align-items: center; }
+        .search-box input { width: 100%; padding: 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-primary); font-size: 14px; transition: all 0.3s; }
+        .search-box input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1); }
+        .search-icon { position: absolute; left: 14px; color: var(--text-muted); }
+        .clear-search { position: absolute; right: 14px; color: var(--text-muted); cursor: pointer; }
+        .category-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+        .category-pills::-webkit-scrollbar { display: none; }
+        .pill { 
+          display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 99px; 
+          background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); 
+          font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; 
+        }
+        .pill:hover { border-color: var(--gold); color: var(--text-primary); }
+        .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2); }
+        .pill-count { font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; }
+        .pill.active .pill-count { background: rgba(255,255,255,0.2); }
         .fondos-view { padding: 20px; height: 100%; overflow-y: auto; }
         .fondos-content { padding: 20px 0; }
         .fondos-section { margin-bottom: 32px; }
@@ -395,6 +448,8 @@ export default function FondosView() {
         .gallery-premium-promo { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; background: rgba(201, 166, 88, 0.1); border-radius: 12px; border: 1px dashed var(--gold); }
         .gallery-premium-promo span { color: var(--text-secondary); font-size: 14px; }
         .gallery-premium-promo button { margin-top: 8px; padding: 8px 16px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .segmented-control button.disabled-pro { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+        .segmented-control button.disabled-pro:hover { border-color: var(--border-color); color: var(--text-secondary); }
       `}</style>
     </div>
   );

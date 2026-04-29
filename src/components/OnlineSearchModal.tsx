@@ -29,7 +29,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
   const [songLanguage, setSongLanguage] = useState<'Español' | 'Inglés'>('Español')
   const [saving, setSaving] = useState(false)
 
-  const { canUseGenius, canSync } = usePlan()
+  const { isPremium, canUseGenius, canSync } = usePlan()
   const { user, userRole, setActiveView } = useAppStore()
 
   const detectedLang = query.trim().length > 3 ? detectLanguage(query) : null
@@ -102,6 +102,11 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
     }
 
     if (item.isInternal && item.internalSong) {
+      if (!isPremium) {
+        setShowPremiumModal(true)
+        return
+      }
+
       setImportedLyrics({
         song: item,
         lyrics: item.internalSong.lyrics,
