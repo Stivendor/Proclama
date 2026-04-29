@@ -320,7 +320,8 @@ interface AppStore {
   logout: () => void
   goToLanding: () => void
   forceLanding: boolean
-  setForceLanding: (v: boolean) => void
+  setForceLanding: (v: boolean, section?: string | null) => void
+  forceLandingSection: string | null
 
   recentSongs: Song[]
   addRecentSong: (song: Song) => void
@@ -437,7 +438,8 @@ export const useAppStore = create<AppStore>()(
       goToLanding: () => set({ forceLanding: true }),
 
       forceLanding: false,
-      setForceLanding: (v) => set({ forceLanding: v }),
+      forceLandingSection: null,
+      setForceLanding: (v, section) => set({ forceLanding: v, forceLandingSection: section ?? null }),
     }),
     {
       name: 'proclama-app',

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Search, Lock, Download, Check } from 'lucide-react'
 import { usePlan } from '@/hooks/usePlan'
 import { useBibleAPI } from '@/hooks/useBibleAPI'
+import { useAppStore } from '@/stores'
 import { db } from '@/db'
 import type { HelloAOBibleInfo, ImportedBibleReference } from '@/types'
 
@@ -12,6 +13,7 @@ interface ImportBibleModalProps {
 
 export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBibleModalProps) {
   const { isPremium } = usePlan()
+  const setActiveView = useAppStore(s => s.setActiveView)
   const { fetchBibles, loading, error } = useBibleAPI()
 
   const [bibles, setBibles] = useState<HelloAOBibleInfo[]>([])
@@ -148,8 +150,21 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px', maxWidth: '400px', lineHeight: 1.5 }}>
               Desbloquea el acceso a cientos de traducciones bíblicas en docenas de idiomas instantáneamente.
             </p>
-            <button className="btn-primary" style={{ padding: '12px 32px', fontSize: '1.1rem', background: '#d4a843', color: '#0d1117', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-              Actualizar a Premium
+            <button 
+              className="btn-primary" 
+              onClick={() => { useAppStore.getState().setForceLanding(true, 'planes'); onClose(); }}
+              style={{ 
+                padding: '12px 32px', 
+                fontSize: '1.1rem', 
+                background: '#d4a843', 
+                color: '#0d1117', 
+                borderRadius: '8px', 
+                border: 'none', 
+                cursor: 'pointer', 
+                fontWeight: 600 
+              }}
+            >
+              Ver Planes Pro
             </button>
           </div>
         ) : (

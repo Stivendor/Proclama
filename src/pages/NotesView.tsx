@@ -775,7 +775,7 @@ export default function NotesView() {
         ['Asistencia Máxima Registrada', String(maxTotal)],
       ],
       theme: 'striped',
-      headStyles: { fillStyle: [212, 175, 55] } // Gold
+      headStyles: { fillColor: [212, 175, 55] } // Gold
     })
 
     // 2. GRÁFICO (Últimos 12 registros)

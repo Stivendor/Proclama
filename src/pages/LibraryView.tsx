@@ -123,11 +123,15 @@ export default function LibraryView() {
 
   const [filter, setFilter] = useState<'all' | 'pending'>('all')
 
-  // Obtener ranking de canciones por uso
   const songRanking = useLiveQuery(async () => {
     const all = await db.songs.toArray()
-    // Ordenar por uso descendente
-    all.sort((a, b) => (b.usageCount ?? 0) - (a.usageCount ?? 0))
+    // Ordenar por uso descendente y luego alfabético para consistencia
+    all.sort((a, b) => {
+      const usageA = a.usageCount ?? 0
+      const usageB = b.usageCount ?? 0
+      if (usageB !== usageA) return usageB - usageA
+      return a.title.localeCompare(b.title, 'es')
+    })
     // Crear mapa de id -> rank
     const rankMap = new Map<number, number>()
     all.forEach((song, index) => {
@@ -213,6 +217,14 @@ export default function LibraryView() {
   }
 
   const handleLoad = async (song: Song) => {
+    const rank = songRanking.get(song.id ?? 0) ?? Infinity
+    const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
+    
+    if (blocked) {
+      setBlockedMessage(`Esta canción requiere el Plan Pro. Solo puedes proyectar las 50 más populares gratis.`)
+      return
+    }
+    
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
@@ -369,11 +381,21 @@ export default function LibraryView() {
                 </button>
               </div>
               <div className="recent-songs-list">
-                {recentSongs.map(rs => (
-                  <button key={rs.id} className="btn-recent-song" onClick={() => handleLoad(rs)} title={`Cargar ${rs.title}`}>
-                    {rs.title}
-                  </button>
-                ))}
+                {recentSongs.map(rs => {
+                  const rank = songRanking.get(rs.id ?? 0) ?? Infinity
+                  const blocked = !isPremium && (rs.userId !== user?.id || !rs.userId) && rank > FREE_PROJECTION_LIMIT
+                  return (
+                    <button 
+                      key={rs.id} 
+                      className={`btn-recent-song ${blocked ? 'blocked' : ''}`} 
+                      onClick={() => handleLoad(rs)} 
+                      title={blocked ? 'Esta canción requiere el Plan Pro' : `Cargar ${rs.title}`}
+                    >
+                      {blocked && <Lock size={10} style={{ marginRight: 4 }} />}
+                      {rs.title}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -395,8 +417,8 @@ export default function LibraryView() {
               </div>
             ) : (
               songs.map(song => {
-                const rank = songRanking.get(song.id ?? 0) ?? 0
-                const blocked = !isPremium && rank > FREE_PROJECTION_LIMIT
+                const rank = songRanking.get(song.id ?? 0) ?? Infinity
+                const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
                 return (
                 <SongListItem 
                   key={song.id} 
@@ -428,6 +450,8 @@ export default function LibraryView() {
           message={`¿Eliminar "${confirmDelete.title}"?`}
           onConfirm={confirmDeleteSong}
           onCancel={() => setConfirmDelete(null)}
+          danger={true}
+          confirmLabel="Eliminar"
         />
       )}
       {showConfirmClear && (
@@ -438,6 +462,22 @@ export default function LibraryView() {
             setShowConfirmClear(false)
           }}
           onCancel={() => setShowConfirmClear(false)}
+          danger={true}
+          confirmLabel="Eliminar"
+        />
+      )}
+
+      {blockedMessage && (
+        <ConfirmDialog
+          message={blockedMessage}
+          onConfirm={() => {
+            setBlockedMessage(null)
+            useAppStore.getState().setForceLanding(true, 'planes')
+          }}
+          onCancel={() => setBlockedMessage(null)}
+          confirmLabel="Ver Planes Pro"
+          cancelLabel="Cerrar"
+          icon={<Lock size={20} color="var(--gold)" />}
         />
       )}
       {importStatus && (
@@ -448,19 +488,6 @@ export default function LibraryView() {
           zIndex: 2000, boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
         }}>
           {importStatus}
-        </div>
-      )}
-      {blockedMessage && (
-        <div role="alert" aria-live="assertive" style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: 'var(--bg-elevated)', border: '1px solid var(--red)',
-          borderRadius: 'var(--radius)', padding: '12px 20px', fontSize: 13,
-          zIndex: 2000, boxShadow: '0 4px 20px rgba(220,38,38,0.3)',
-          display: 'flex', alignItems: 'center', gap: '10px',
-          color: 'var(--red)'
-        }}>
-          <Lock size={16} />
-          {blockedMessage}
         </div>
       )}
     </div>
