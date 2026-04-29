@@ -600,33 +600,32 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
 export function getBookSuggestion(query: string): { id: string; name: string; nameEn: string } | null {
   if (!query.trim()) return null
   
-  // Helper function to remove accents/diacritics
   const removeAccents = (str: string) => {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   }
   
-  const queryLower = removeAccents(query.toLowerCase())
+  // Normalizar búsqueda: sin acentos, sin espacios, minúsculas
+  const queryClean = removeAccents(query.toLowerCase()).replace(/\s/g, '')
   
-  // Buscar libros que comiencen con la query (ignorando tildes) en ambos idiomas
-  const matches = BIBLE_BOOKS.filter(b => 
-    removeAccents(b.name.toLowerCase()).startsWith(queryLower) ||
-    removeAccents(b.nameEn.toLowerCase()).startsWith(queryLower)
-  )
+  // Buscar libros que comiencen con la query (ignorando tildes y espacios)
+  const matches = BIBLE_BOOKS.filter(b => {
+    const nameClean = removeAccents(b.name.toLowerCase()).replace(/\s/g, '')
+    const nameEnClean = removeAccents(b.nameEn.toLowerCase()).replace(/\s/g, '')
+    return nameClean.startsWith(queryClean) || nameEnClean.startsWith(queryClean)
+  })
   
-  // Si hay exactamente una coincidencia, devolverla
   if (matches.length === 1) {
     return { id: matches[0].id, name: matches[0].name, nameEn: matches[0].nameEn }
   }
   
-  // Si hay mltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
+  // Si hay múltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
   const wordMatches = BIBLE_BOOKS.filter(b => {
     const partsEs = removeAccents(b.name.toLowerCase()).split(' ')
     const partsEn = removeAccents(b.nameEn.toLowerCase()).split(' ')
-    return partsEs.some(part => part.startsWith(queryLower)) || 
-           partsEn.some(part => part.startsWith(queryLower))
+    return partsEs.some(part => removeAccents(part.toLowerCase()).startsWith(queryClean)) || 
+           partsEn.some(part => removeAccents(part.toLowerCase()).startsWith(queryClean))
   })
   
-  // Si solo hay una coincidencia de palabra, devolverla
   if (wordMatches.length === 1 && matches.length > 1) {
     return { id: wordMatches[0].id, name: wordMatches[0].name, nameEn: wordMatches[0].nameEn }
   }
