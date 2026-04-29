@@ -113,8 +113,8 @@ export default function BibleView() {
       // Only trigger if not typing in an input/textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       
-      // Check if it's a letter key
-      if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+      // Check if it's a letter or number key
+      if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         e.preventDefault()
         setQuickSearchBook(e.key.toLowerCase())
         setQuickSearchChapter('')
@@ -140,11 +140,12 @@ export default function BibleView() {
       setParsedBook({ name: displayName, id: suggestion.id })
       
       // AUTO-LOCK: Si ya es una coincidencia única y han escrito al menos 2 caracteres
-      // Esto permite que al escribir "Sal" se bloquee "Salmos" automáticamente
       const query = quickSearchBook.trim().toLowerCase()
       if (query.length >= 2) {
         setQuickSearchBook(displayName)
         setIsBookLocked(true)
+        // Reset chapter for numbered books autocompletion (Option B)
+        setQuickSearchChapter('')
         setTimeout(() => quickSearchChapterRef.current?.focus(), 10)
       }
     } else {
@@ -158,9 +159,23 @@ export default function BibleView() {
     
     // Check if user is typing a number - auto-lock the book
     if (/\d/.test(value) && parsedBook) {
+      // PREVENCIÓN: No bloquear si el valor sigue siendo un prefijo válido del libro sugerido
+      // Esto evita que el "1" en "1 Pedro" dispare el bloqueo del capítulo prematuramente.
+      const removeAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      const nameClean = removeAccents(parsedBook.name.toLowerCase()).replace(/\s/g, '')
+      const valClean = removeAccents(value.toLowerCase()).replace(/\s/g, '')
+      
+      if (nameClean.startsWith(valClean)) {
+        setQuickSearchBook(value)
+        return
+      }
+
       setQuickSearchBook(parsedBook.name)
       setIsBookLocked(true)
-      setQuickSearchChapter(value.match(/\d+/)?.[0] || '')
+      
+      // Extraer capítulo inteligentemente (excluyendo el prefijo del libro si es necesario)
+      const chapterPart = value.substring(parsedBook.name.length).trim() || value.match(/\d+$/)?.[0] || ''
+      setQuickSearchChapter(chapterPart)
       quickSearchChapterRef.current?.focus()
       return
     }

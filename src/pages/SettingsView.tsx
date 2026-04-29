@@ -414,13 +414,13 @@ export default function SettingsView() {
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Proyección de alto rendimiento</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de Setlists y Notas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Fondos de video e imágenes</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Uso local ilimitado y fluido</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ 10 canciones propias</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Acceso a 50 canciones de biblioteca</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 5 archivos de media local</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca de 3,000+ canciones completas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Búsqueda global extendida (LRC Lib)</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de reportes CSV</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca completa (3,000+ canciones)</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 +50 Fondos exclusivos (Imágenes y Videos)</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de asistencia CSV y PDF con estadísticas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Gestión de carpetas en media local</li>
                 </ul>
               </div>
@@ -436,23 +436,18 @@ export default function SettingsView() {
                   <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Acceso de por vida</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todo del plan Básico</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca de 3,000+ canciones completas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca completa (3,000+ canciones)</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda online de letras de canciones</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Exportación de reportes CSV</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Sin límite de canciones propias</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Exportación de asistencia CSV y PDF con estadísticas</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Canciones propias ilimitadas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ +50 Fondos exclusivos (Imágenes y Videos)</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de carpetas en media local</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 25 archivos de media local</li>
                 </ul>
                 {!isPremium && (
                   <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
-                    if (user?.id) {
-                      openCheckout({ userId: user.id, userEmail: user.email || undefined })
-                    } else {
-                      openCheckout({})
-                    }
+                    useAppStore.getState().setForceLanding(true, 'planes')
                   }}>
                     Mejorar a Premium
                   </button>

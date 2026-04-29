@@ -191,6 +191,10 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     return null
   }
 
+  // Verificar si es admin para decidir si filtrar por user_id
+  const profile = await fetchProfile(user.id)
+  const isAdmin = profile?.role === 'admin'
+
   const currentUpdatedAt = updates.updatedAt ?? new Date()
   const payload = {
     ...(updates.title !== undefined && { title: updates.title }),
@@ -207,13 +211,14 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     updated_at: currentUpdatedAt.toISOString()
   }
 
-  const { data, error } = await supabase
-    .from('songs')
-    .update(payload)
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .select()
-    .single()
+  let query = supabase.from('songs').update(payload).eq('id', id)
+
+  // Si no es admin, solo puede editar sus propias canciones
+  if (!isAdmin) {
+    query = query.eq('user_id', user.id)
+  }
+
+  const { data, error } = await query.select().single()
 
   if (error) {
     console.error('Error updating song in Supabase:', error.message)
@@ -229,11 +234,17 @@ export async function deleteSong(id: number) {
     return
   }
 
-  const { error } = await supabase
-    .from('songs')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', user.id)
+  const profile = await fetchProfile(user.id)
+  const isAdmin = profile?.role === 'admin'
+
+  let query = supabase.from('songs').delete().eq('id', id)
+
+  // Si no es admin, solo puede borrar sus propias canciones
+  if (!isAdmin) {
+    query = query.eq('user_id', user.id)
+  }
+
+  const { error } = await query
 
   if (error) console.error('Error deleting song:', error)
 }
@@ -589,6 +600,21 @@ export async function revokeDevice(deviceRowId: string): Promise<boolean> {
 
   if (error) {
     console.error('[Devices] Error revoking device:', error.message)
+    return false
+  }
+  return true
+}
+
+export async function createSongReport(songId: number, reason: string, details: string, userId: string | null): Promise<boolean> {
+  const { error } = await supabase.from('song_reports').insert({
+    song_id: songId,
+    reason,
+    details,
+    user_id: userId,
+  })
+
+  if (error) {
+    console.error('[SongReport] Error al enviar:', error.message)
     return false
   }
   return true

@@ -1,5 +1,5 @@
-import { useState, useMemo, memo } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil } from 'lucide-react'
+import { useState, useMemo, memo, useEffect, useRef } from 'react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid, Lock } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -11,8 +11,26 @@ import type { Setlist, Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
+import { LiveSelection } from '@/components/LiveSelection'
+import { usePlan, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 
-const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove, onActivate, onEdit }: { songId: number; song: Song | undefined; onRemove: () => void; onActivate: (s: Song) => void; onEdit: (s: Song) => void }) {
+const SortableSongItem = memo(function SortableSongItem({ 
+  songId, 
+  song, 
+  onRemove, 
+  onActivate, 
+  onEdit,
+  onBlocked,
+  isBlocked 
+}: { 
+  songId: number; 
+  song: Song | undefined; 
+  onRemove: () => void; 
+  onActivate: (s: Song) => void; 
+  onEdit: (s: Song) => void;
+  onBlocked?: () => void;
+  isBlocked?: boolean;
+}) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: songId })
 
@@ -23,25 +41,34 @@ const SortableSongItem = memo(function SortableSongItem({ songId, song, onRemove
     <div
       ref={setNodeRef}
       style={style}
-      className={`setlist-song-item ${isActive ? 'active' : ''}`}
-      onClick={() => song && onActivate(song)}
+      className={`setlist-song-item ${isActive ? 'active' : ''} ${isBlocked ? 'blocked' : ''}`}
+      onClick={() => {
+        if (isBlocked) {
+          onBlocked?.();
+          return;
+        }
+        song && onActivate(song);
+      }}
     >
       <span className="drag-handle" {...attributes} {...listeners} title="Reordenar"><GripVertical size={14} /></span>
       <div className="setlist-song-info">
-        <span className="setlist-song-name">{song?.title ?? '...'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span className="setlist-song-name">{song?.title ?? '...'}</span>
+          {isBlocked && <span title="Contenido Premium"><Lock size={12} className="status-icon-blocked" /></span>}
+        </div>
         {song?.artist && <span className="setlist-song-artist">{song.artist}</span>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {song?.key && <span className="song-key-sm">{song.key}</span>}
         <button
-          className="btn-icon sm"
+          className="btn-icon-xs"
           onClick={(e) => { e.stopPropagation(); song && onEdit(song); }}
           title="Editar canción"
         >
           <Pencil size={12} />
         </button>
         <button
-          className="btn-icon danger sm"
+          className="btn-icon-xs danger"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           title="Quitar de la lista"
         >
@@ -69,6 +96,8 @@ export default function SetlistsView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
+  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
+  const { isPremium } = usePlan()
 
   const localSetlists = useLiveQuery(async () => {
     try {
@@ -78,6 +107,26 @@ export default function SetlistsView() {
     }
   }) ?? []
 
+  const songRanking = useLiveQuery(async () => {
+    try {
+      const all = await db.songs.toArray();
+      // Ordenar por uso (desc) y luego por título para consistencia
+      const sorted = all.sort((a, b) => {
+        const usageDiff = (b.usageCount || 0) - (a.usageCount || 0);
+        if (usageDiff !== 0) return usageDiff;
+        return a.title.localeCompare(b.title, 'es');
+      });
+      
+      const rankMap = new Map<number, number>();
+      sorted.forEach((s, i) => {
+        if (s.id) rankMap.set(s.id, i + 1);
+      });
+      return rankMap;
+    } catch {
+      return new Map<number, number>();
+    }
+  }) || new Map<number, number>();
+
   const allSongs = useLiveQuery(async () => {
     try {
       return await db.songs.orderBy('title').toArray()
@@ -86,7 +135,6 @@ export default function SetlistsView() {
     }
   }) ?? []
 
-  // Batch load all songs for the editing setlist
   const setlistSongs = useLiveQuery(
     async () => {
       try {
@@ -155,10 +203,20 @@ export default function SetlistsView() {
     }
   }
 
-  const addSongToSetlist = async (songId: number) => {
-    if (!editingSetlist?.id) return
-    if (editingSetlist.songIds.includes(songId)) return
-    const updatedIds = [...editingSetlist.songIds, songId]
+  const addSongToSetlist = async (song: Song) => {
+    if (!editingSetlist?.id || !song.id) return
+    
+    // Validar si es una canción bloqueada (Premium)
+    const rank = song.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+    const isSongBlocked = !isPremium && song.userId !== user?.id && rank > FREE_PROJECTION_LIMIT
+    
+    if (isSongBlocked) {
+      setBlockedMessage(`Esta canción es parte de la biblioteca Pro (+3,000 canciones). Mejora tu plan para añadirla.`)
+      return
+    }
+
+    if (editingSetlist.songIds.includes(song.id)) return
+    const updatedIds = [...editingSetlist.songIds, song.id]
     await updateSetlistInState(editingSetlist.id, { songIds: updatedIds, updatedAt: new Date() })
   }
 
@@ -183,7 +241,11 @@ export default function SetlistsView() {
     setActiveSetlist(sl)
     if (sl.songIds.length > 0) {
       const song = await db.songs.get(sl.songIds[0])
-      if (song) loadSong(song)
+      if (song) {
+        const rank = song.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+        const isSongBlocked = !isPremium && song.userId !== user?.id && rank > FREE_PROJECTION_LIMIT
+        if (!isSongBlocked) loadSong(song)
+      }
     }
   }
 
@@ -220,7 +282,7 @@ export default function SetlistsView() {
       {showNew && (
         <div className="new-setlist-form">
           <input
-            type="text" placeholder='Nombre del setlist (ej. "Domingo 9 Mar — Mañana")'
+            type="text" placeholder='Nombre del setlist (ej. "Domingo 9 Mar")'
             value={newName} onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && createSetlist()}
             autoFocus
@@ -233,14 +295,14 @@ export default function SetlistsView() {
         </div>
       )}
 
-      <div className="setlists-body">
-        {/* Lista de setlists */}
-        <div className="setlists-list">
-          {setlists.length === 0 && (
+      <div className={`setlists-body-grid ${editingSetlist ? 'with-editor' : ''}`}>
+        {/* Lista de setlists (Lateral izquierdo) */}
+        <div className="setlists-sidebar-panel">
+          {!editingSetlist && setlists.length === 0 && (
             <div className="library-empty">
               <List size={48} opacity={0.2} style={{ marginBottom: 12 }} />
               <h3>Aún no tienes Setlists</h3>
-              <p>Agrupa canciones para tu próximo servicio o evento, manteniendo un orden listo para proyectar.</p>
+              <p>Agrupa canciones para tu próximo servicio o evento.</p>
               <div style={{ marginTop: '16px' }}>
                 <button className="btn-primary" onClick={() => setShowNew(true)}>
                   <Plus size={16} /> Crear Setlist
@@ -248,122 +310,266 @@ export default function SetlistsView() {
               </div>
             </div>
           )}
-          {setlists.map(sl => (
-            <div key={sl.id} className={`setlist-card ${editingSetlist?.id === sl.id ? 'selected' : ''}`}>
-              <div className="setlist-card-info" onClick={() => setEditingSetlist(sl)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="setlist-name">{sl.name}</div>
+          
+          <div className="setlist-cards-container">
+            {setlists.map(sl => (
+              <div key={sl.id} className={`setlist-card-compact ${editingSetlist?.id === sl.id ? 'active' : ''}`} onClick={() => setEditingSetlist(sl)}>
+                <div className="setlist-card-content">
+                  <div className="setlist-name-row">
+                    <span className="name">{sl.name}</span>
+                    {editingSetlist?.id === sl.id && <Play size={12} color="var(--gold)" />}
+                  </div>
+                  <div className="setlist-meta-row">
+                    <Calendar size={10} />
+                    <span>{new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</span>
+                    <span className="dot">·</span>
+                    <span>{sl.songIds.length} temas</span>
+                  </div>
                 </div>
-                <div className="setlist-meta">
-                  <Calendar size={12} />
-                  {new Date(sl.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  · {sl.songIds.length} canciones
+                <div className="setlist-card-actions">
+                   <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); activateSetlist(sl); }} title="Activar setlist"><Play size={12} /></button>
+                   <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); deleteSetlist(sl); }}><Trash2 size={12} /></button>
                 </div>
               </div>
-              <div className="song-card-actions">
-                <button className="btn-icon" onClick={() => activateSetlist(sl)} title="Activar en vivo">
-                  <Play size={14} />
-                </button>
-                <button className="btn-icon" onClick={() => setEditingSetlist(sl)} title="Editar">
-                  <Edit2 size={14} />
-                </button>
-                <button className="btn-icon danger" onClick={() => deleteSetlist(sl)}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Editor de setlist */}
+        {/* Editor de setlist (Centro) */}
         {editingSetlist && (
-          <div className="setlist-editor">
-            <div className="editor-header-row">
-              <h3>{editingSetlist.name}</h3>
-              <button className="btn-icon sm" onClick={() => setEditingSetlist(null)} title="Cerrar editor">
-                <X size={16} />
-              </button>
+          <div className="setlist-songs-panel">
+            <div className="panel-header">
+              <div className="title-section">
+                 <button className="btn-icon-xs" onClick={() => setEditingSetlist(null)} style={{ marginRight: 8 }}><X size={14} /></button>
+                 <h3>{editingSetlist.name}</h3>
+              </div>
+              <div className="panel-actions">
+                 <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)} title="Buscar canciones online"><Globe size={14} /></button>
+              </div>
             </div>
 
-            {/* Orden de canciones con drag & drop */}
-            <div className="setlist-songs-section">
-              <h4>Orden del servicio</h4>
-              {editingSetlist.songIds.length === 0 ? (
-                <p className="empty-hint">Agrega canciones buscando abajo</p>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
-                    {editingSetlist.songIds.map((id, index) => {
-                      const song = setlistSongs[index]
-                      return (
-                        <SortableSongItem
-                          key={id}
-                          songId={id}
-                          song={song}
-                          onRemove={() => removeSongFromSetlist(id)}
-                          onActivate={loadSong}
-                          onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
-                        />
-                      )
-                    })}
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
-
-            {/* Agregar canciones */}
-            <div className="setlist-add-section">
-              <div className="add-section-toolbar">
-                <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)}>
-                  <Globe size={14} /> Buscar online
-                </button>
+            <div className="setlist-content-scroll">
+              <div className="search-box-container">
                 <div className="search-box sm">
-                  <Search size={14} className="search-icon" />
+                  <Search size={14} />
                   <input
                     type="text"
-                    placeholder="Buscar canción..."
+                    placeholder="Agregar canción al set..."
                     value={songSearch}
                     onChange={e => setSongSearch(e.target.value)}
                   />
-                  {songSearch && (
-                    <button className="clear-search" onClick={() => setSongSearch('')}>
-                      <X size={12} />
-                    </button>
-                  )}
+                  {songSearch && <button onClick={() => setSongSearch('')}><X size={12} /></button>}
                 </div>
               </div>
 
-              <div className="add-songs-list highlight">
-                {filteredSongs.length === 0 ? (
-                  <p className="empty-hint">No se encontraron canciones</p>
+                  {songSearch && (
+                    <div className="search-results-overlay">
+                       {filteredSongs.map(s => {
+                         const rank = s.id ? (songRanking.get(s.id) ?? Infinity) : Infinity
+                         const isSongBlocked = !isPremium && (s.userId !== user?.id || !s.userId) && rank > FREE_PROJECTION_LIMIT
+                         return (
+                           <button 
+                             key={s.id} 
+                             className={`search-result-item ${isSongBlocked ? 'blocked' : ''}`} 
+                             onClick={() => { 
+                               if (isSongBlocked) {
+                                 setBlockedMessage(`Esta canción es parte de la biblioteca Pro (+3,000 canciones).`)
+                                 return
+                               }
+                               addSongToSetlist(s); 
+                               setSongSearch(''); 
+                             }}
+                           >
+                             {isSongBlocked ? <Lock size={12} className="status-icon-blocked" /> : <Plus size={12} />}
+                             <div className="info">
+                               <span className="t">{s.title}</span>
+                               <span className="a">{s.artist}</span>
+                             </div>
+                             {s.key && <span className="k">{s.key}</span>}
+                           </button>
+                         )
+                       })}
+                    </div>
+                  )}
+
+              <div className="order-section">
+                <div className="section-title">ORDEN DEL SERVICIO</div>
+                {editingSetlist.songIds.length === 0 ? (
+                  <div className="empty-state">No hay canciones. Usa la búsqueda arriba para añadir.</div>
                 ) : (
-                  filteredSongs.map(s => (
-                    <button key={s.id} className="add-song-btn-large" onClick={() => addSongToSetlist(s.id!)}>
-                      <div className="add-song-btn-main">
-                        <Plus size={14} className="add-icon" />
-                        <div className="song-info">
-                          <span className="title">{s.title}</span>
-                          <span className="artist">{s.artist || 'Sin artista'}</span>
-                        </div>
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={editingSetlist.songIds} strategy={verticalListSortingStrategy}>
+                      <div className="sortable-list">
+                        {editingSetlist.songIds.map((id, index) => {
+                          const song = setlistSongs[index]
+                          const rank = song?.id ? (songRanking.get(song.id) ?? Infinity) : Infinity
+                          const isBlocked = !isPremium && song && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
+                          return (
+                            <SortableSongItem
+                              key={id}
+                              songId={id}
+                              song={song}
+                              isBlocked={!!isBlocked}
+                              onRemove={() => removeSongFromSetlist(id)}
+                              onActivate={(s) => loadSong(s)}
+                              onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
+                              onBlocked={() => setBlockedMessage("Esta canción requiere el Plan Pro para ser proyectada.")}
+                            />
+                          )
+                        })}
                       </div>
-                      {s.key && <span className="song-key-sm">{s.key}</span>}
-                    </button>
-                  ))
+                    </SortableContext>
+                  </DndContext>
                 )}
               </div>
             </div>
           </div>
         )}
+
+        {/* Control en Vivo (Derecha) */}
+        {editingSetlist && (
+          <div className="setlist-live-panel">
+            <LiveSelection />
+          </div>
+        )}
       </div>
+
+      <style>{`
+        .setlists-body-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          flex: 1;
+          min-height: 0;
+          overflow: hidden;
+          height: 100%;
+        }
+        .setlists-body-grid.with-editor {
+          grid-template-columns: 240px 320px 1fr;
+        }
+
+        .setlists-sidebar-panel {
+          border-right: 1px solid var(--border);
+          overflow-y: auto;
+          background: var(--bg-surface);
+          height: 100%;
+        }
+        .setlist-cards-container {
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .setlist-card-compact {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+        }
+        .setlist-card-compact:hover { background: var(--bg-hover); }
+        .setlist-card-compact.active { background: var(--bg-elevated); border-color: var(--gold-dim); }
+        .setlist-card-content { flex: 1; min-width: 0; }
+        .setlist-name-row { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 13px; }
+        .setlist-name-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .setlist-meta-row { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .setlist-card-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.2s; }
+        .setlist-card-compact:hover .setlist-card-actions { opacity: 1; }
+
+        .setlist-songs-panel {
+          border-right: 1px solid var(--border);
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-surface);
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .panel-header {
+          flex-shrink: 0;
+          padding: 16px;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .panel-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+        .setlist-content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .search-box-container { padding: 12px; position: sticky; top: 0; background: var(--bg-surface); z-index: 10; }
+        .search-results-overlay { background: var(--bg-elevated); border-bottom: 1px solid var(--border); max-height: 200px; overflow-y: auto; }
+        .search-result-item {
+          width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+          border: none; background: none; color: var(--text-primary); text-align: left; cursor: pointer; font-size: 13px;
+        }
+        .search-result-item:hover { background: var(--bg-hover); }
+        .search-result-item .info { flex: 1; display: flex; flex-direction: column; }
+        .search-result-item .t { font-weight: 500; }
+        .search-result-item .a { font-size: 11px; color: var(--text-muted); }
+        .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(212, 168, 67, 0.1); padding: 1px 4px; border-radius: 4px; }
+
+        .order-section { padding: 12px; }
+        .section-title { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; }
+        .sortable-list { display: flex; flex-direction: column; gap: 4px; }
+        .empty-state { font-size: 12px; color: var(--text-muted); text-align: center; padding: 24px 12px; font-style: italic; }
+
+        .setlist-live-panel {
+          flex: 1;
+          min-width: 0;
+          height: 100%;
+          min-height: 0;
+          overflow: hidden;
+          background: var(--bg-base);
+        }
+
+        .setlist-song-item {
+          display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+          background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .setlist-song-item:hover { border-color: var(--border-light); background: var(--bg-hover); }
+        .setlist-song-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(212, 168, 67, 0.1); }
+        .drag-handle { color: var(--text-muted); cursor: grab; padding: 4px; display: flex; align-items: center; }
+        .setlist-song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .setlist-song-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .setlist-song-artist { font-size: 11px; color: var(--text-muted); }
+        .song-key-sm { font-size: 10px; font-weight: 600; color: var(--gold); padding: 1px 4px; border-radius: 4px; }
+
+        @media (max-width: 1100px) { .setlists-body-grid.with-editor { grid-template-columns: 200px 280px 1fr; } }
+        @media (max-width: 900px) {
+          .setlists-body-grid.with-editor { grid-template-columns: 1fr; }
+          .setlists-sidebar-panel, .setlist-songs-panel { display: none; }
+        }
+        .setlist-song-item.blocked { opacity: 0.6; cursor: not-allowed; border-style: dashed; }
+        .setlist-song-item.blocked:hover { background: var(--bg-elevated); border-color: var(--border); }
+        .search-result-item.blocked { opacity: 0.5; cursor: not-allowed; background: rgba(0,0,0,0.05); }
+        .search-result-item.blocked .t { text-decoration: line-through; opacity: 0.7; }
+        .status-icon-blocked { color: var(--gold); flex-shrink: 0; }
+      `}</style>
+      {blockedMessage && (
+        <ConfirmDialog
+          message={blockedMessage}
+          onConfirm={() => {
+            setBlockedMessage(null)
+            useAppStore.getState().setForceLanding(true, 'planes')
+          }}
+          onCancel={() => setBlockedMessage(null)}
+          confirmLabel="Ver Planes Pro"
+          cancelLabel="Cerrar"
+          icon={<Lock size={20} color="var(--gold)" />}
+        />
+      )}
+
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
       {confirmDeleteSl && (
         <ConfirmDialog
           message={`¿Eliminar "${confirmDeleteSl.name}"?`}
           onConfirm={confirmDeleteSetlist}
           onCancel={() => setConfirmDeleteSl(null)}
+          danger={true}
+          confirmLabel="Eliminar"
         />
       )}
-
     </div>
   )
 }

@@ -29,7 +29,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, user } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, forceLandingSection, user } = useAppStore()
   const { isPremium } = usePlan()
   const { openCheckout } = useMercadoPagoCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
@@ -39,6 +39,19 @@ export default function LandingView() {
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
   const [canInstall, setCanInstall] = useState(false)
   const observerRef = useRef<IntersectionObserver | null>(null)
+
+  // Handle section scrolling
+  useEffect(() => {
+    if (forceLandingSection) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(forceLandingSection)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [forceLandingSection])
 
   const handleSignOut = async () => {
     const store = useAppStore.getState()
@@ -96,7 +109,13 @@ export default function LandingView() {
   }
 
   const handleBuyPro = async () => {
-    console.log('handleBuyPro called', { isPremium, user: user?.id })
+    if (PREMIUM_FOR_EVERYONE) {
+      acceptTerms(CURRENT_TERMS_VERSION)
+      setForceLanding(false)
+      setActiveView('library')
+      return
+    }
+    
     if (isPremium) {
       setActiveView('library')
       return
@@ -106,7 +125,6 @@ export default function LandingView() {
       setShowAuth(true)
       return
     }
-    console.log('Opening checkout for', user.id, user.email)
     openCheckout({
       userId: user.id,
       userEmail: user.email || undefined
@@ -366,15 +384,15 @@ export default function LandingView() {
               <ul>
                 <li><Check size={16} /> Proyección de alto rendimiento</li>
                 <li><Check size={16} /> Gestión de Setlists y Notas</li>
-                <li><Check size={16} /> Fondos de video e imágenes</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
                 <li><Check size={16} /> 10 canciones propias</li>
+                <li><Check size={16} /> Acceso a 50 canciones de biblioteca</li>
                 <li><Check size={16} /> Hasta 5 archivos de media local</li>
-                <li className="locked"><Lock size={14} /> Biblioteca de 3,000+ canciones completas</li>
+                <li className="locked"><Lock size={14} /> Biblioteca completa (3,000+ canciones)</li>
+                <li className="locked"><Lock size={14} /> +50 Fondos exclusivos (Imágenes y Videos)</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
-                <li className="locked"><Lock size={14} /> Exportación de reportes CSV</li>
+                <li className="locked"><Lock size={14} /> Exportación de asistencia CSV y PDF con estadísticas</li>
                 <li className="locked"><Lock size={14} /> Gestión de carpetas en media local</li>
-                <li className="locked"><Lock size={14} /> Sin imagenes / videos de fondo</li>
               </ul>
               <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
                 acceptTerms(CURRENT_TERMS_VERSION)
@@ -398,19 +416,16 @@ export default function LandingView() {
               <ul>
                 <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
                 <li><Check size={16} /> Búsqueda online de letras de canciones</li>
-                <li><Check size={16} /> Exportación de reportes CSV</li>
-                <li><Check size={16} /> Sin límite de canciones propias</li>
-                <li><Check size={16} /> Proyección de alto rendimiento</li>
-                <li><Check size={16} /> Gestión de Setlists y Notas</li>
-                <li><Check size={16} /> Uso local ilimitado y fluido</li>
-                <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
+                <li><Check size={16} /> Exportación de asistencia CSV y PDF con estadísticas</li>
                 <li><Check size={16} /> Canciones propias ilimitadas</li>
+                <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
+                <li><Check size={16} /> +50 Fondos exclusivos (Imágenes y Videos)</li>
                 <li><Check size={16} /> Gestión de carpetas en media local</li>
                 <li><Check size={16} /> Hasta 25 archivos de media local</li>
-                <li><Check size={16} /> +200 Imagenes / videos de fondo</li>
+                <li><Check size={16} /> Uso local ilimitado y fluido</li>
               </ul>
               <button className="landing-btn-primary" onClick={handleBuyPro}>
-                <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Obtener Pro Gratis' : 'Actualizar a Pro'}
+                <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Usar Pro Gratis' : 'Actualizar a Pro'}
               </button>
             </article>
           </div>

@@ -19,7 +19,7 @@ export default function PremiumFeatureModal({
   const setActiveView = useAppStore((s) => s.setActiveView)
 
   const handleUpgrade = () => {
-    setActiveView('settings')
+    useAppStore.getState().setForceLanding(true, 'planes')
     onClose()
   }
 
