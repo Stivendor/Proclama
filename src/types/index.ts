@@ -213,6 +213,7 @@ export interface AttendanceRecord {
   userId: string
   date: string
   serviceName?: string
+  categoryNames?: string[]
   values?: number[]
   caballeros?: number
   damas?: number
@@ -249,7 +250,7 @@ export interface HelloAOBibleInfo {
 
 export interface ImportedBibleReference {
   id: string      // ID from HelloAO (usually short like BSB, AAB)
-  name: string    
+  name: string
   languageId: string
   languageName: string
   importedAt: number

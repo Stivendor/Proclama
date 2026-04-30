@@ -78,6 +78,14 @@ function AppContent() {
       if (profile) {
         setUserRole(profile.role);
         setUserPlan(profile.plan);
+
+        // Auto-sync attendance when user is premium (covers all scenarios:
+        // login, reload, upgrade, guest migration)
+        if (profile.plan === "premium" || profile.role === "admin") {
+          import("@/services/attendanceSync").then(({ syncAttendanceRecords }) => {
+            syncAttendanceRecords(userId).catch(() => {});
+          }).catch(() => {});
+        }
       }
       return profile;
     };
@@ -166,6 +174,20 @@ function AppContent() {
         if (user) {
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             try {
+              // ── Always run: device check + guest migration ──
+              const currentPlan = useAppStore.getState().userPlan;
+              await checkDeviceLimit(currentPlan);
+
+              // Migrate guest attendance records to this user
+              // (sync to Supabase is handled by syncProfile if premium)
+              try {
+                const { migrateGuestRecords } = await import("@/services/attendanceSync");
+                await migrateGuestRecords(user.id);
+              } catch (err) {
+                console.warn("Guest record migration failed:", err);
+              }
+
+              // ── Terms sync ──
               const currentTerms = useAppStore.getState().termsAccepted;
               const shouldUpdateTerms = useAppStore.getState().checkTermsVersion();
               
@@ -196,9 +218,6 @@ function AppContent() {
                 await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt);
                 useAppStore.getState().setTermsSyncPending(false);
               }
-              // Device limit check for premium users
-              const currentPlan = useAppStore.getState().userPlan;
-              await checkDeviceLimit(currentPlan);
             } catch (err) {
               console.warn("Post-login sync tasks had issues:", err);
             }

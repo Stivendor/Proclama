@@ -121,16 +121,16 @@ export async function searchSongs(query: string, publicOnly = false, targetLangu
 
   try {
     const { data, error } = await supabase
-      .rpc('search_songs_community', { 
-        search_term: query, 
+      .rpc('search_songs_community', {
+        search_term: query,
         public_only: publicOnly,
-        target_language: targetLanguage 
+        target_language: targetLanguage
       })
 
     if (!error && data) {
       return (data as SupabaseSongRow[]).map(mapRowToSong)
     }
-    
+
     // Si hay error en el RPC (p. ej. no existe la función aún), caer en el fallback
     if (error) console.warn('RPC search error, falling back to basic search:', error.message)
   } catch (err) {
@@ -469,7 +469,7 @@ export async function registerPremiumInterest(email: string, userId: string | nu
 export async function activatePremiumForUser(userId: string): Promise<boolean> {
   const { error } = await supabase
     .from('profiles')
-    .update({ 
+    .update({
       plan: 'premium',
       updated_at: new Date().toISOString()
     })
@@ -485,7 +485,7 @@ export async function activatePremiumForUser(userId: string): Promise<boolean> {
 export async function deactivatePremiumForUser(userId: string): Promise<boolean> {
   const { error } = await supabase
     .from('profiles')
-    .update({ 
+    .update({
       plan: 'free',
       updated_at: new Date().toISOString()
     })

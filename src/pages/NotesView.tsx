@@ -93,9 +93,9 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
   const total = values.reduce((sum, v) => sum + v, 0)
   const title = name ? `${name}  ${formatDate(date)}` : `Asistencia  ${formatDate(date)}`
   const lines = [title]
-  
+
   const maxLength = Math.max(10, ...categories.map(c => c.length))
-  
+
   categories.forEach((cat, idx) => {
     lines.push(`${cat.padEnd(maxLength)}  ${values[idx] || 0}`)
   })
@@ -220,16 +220,16 @@ function AttendanceChart({ records, categories, onEdit, onDelete }: { records: A
           )
         })}
       </div>
-{/* Legend */}
+      {/* Legend */}
       <div className="chart-legend">
         {categories.map((cat, idx) => (
           <span key={idx}>
-            <span className="legend-dot" style={{ 
-              background: idx === 0 ? 'var(--blue)' : 
-              idx === 1 ? 'var(--gold)' : 
-              idx === 2 ? 'var(--green)' : 
-              idx === 3 ? '#a78bfa' : 
-              'var(--text-secondary)'
+            <span className="legend-dot" style={{
+              background: idx === 0 ? 'var(--blue)' :
+                idx === 1 ? 'var(--gold)' :
+                  idx === 2 ? 'var(--green)' :
+                    idx === 3 ? '#a78bfa' :
+                      'var(--text-secondary)'
             }} />
             {cat}
           </span>
@@ -488,11 +488,11 @@ export default function NotesView() {
     const values = attendanceRecord?.values?.length
       ? attendanceRecord.values
       : [
-          attendanceRecord?.caballeros ?? 0,
-          attendanceRecord?.damas ?? 0,
-          attendanceRecord?.amigos ?? 0,
-          attendanceRecord?.ninos ?? 0,
-        ]
+        attendanceRecord?.caballeros ?? 0,
+        attendanceRecord?.damas ?? 0,
+        attendanceRecord?.amigos ?? 0,
+        attendanceRecord?.ninos ?? 0,
+      ]
     const lyrics = buildAttendanceLyrics(values, attendanceCategories, selectedDate, attendanceRecord?.serviceName)
     // Calculate lines per slide based on categories (title + categories + total)
     const linesPerSlide = 1 + attendanceCategories.length + 1
@@ -625,9 +625,9 @@ export default function NotesView() {
         const a = n.attendance
         return a?.values?.[idx] ?? (
           idx === 0 ? a?.caballeros :
-          idx === 1 ? a?.damas :
-          idx === 2 ? a?.amigos :
-          idx === 3 ? a?.ninos : 0
+            idx === 1 ? a?.damas :
+              idx === 2 ? a?.amigos :
+                idx === 3 ? a?.ninos : 0
         ) ?? 0
       })
       return Math.round(values.reduce((a, b) => a + b, 0) / values.length)
@@ -716,7 +716,7 @@ export default function NotesView() {
       grad.addColorStop(0, '#3b82f6')
       grad.addColorStop(1, '#1d4ed8')
       ctx.fillStyle = grad
-      
+
       // Dibujar barra redondeada (opcional, aquí simple)
       ctx.fillRect(x, y, barWidth, h)
 
@@ -746,53 +746,182 @@ export default function NotesView() {
 
     const doc = new jsPDF()
     const now = new Date()
-    
-    // Título y Estilo
-    doc.setFillColor(30, 41, 59) // Dark blue header
-    doc.rect(0, 0, 210, 40, 'F')
-    
+
+    // ─── Datos pre-calculados ─────────────────────────────────────────────────
+    const totals = attendanceNotes.map(n => totalAttendance(n.attendance))
+    const avgTotal = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length)
+    const maxTotal = Math.max(...totals)
+    const minTotal = Math.min(...totals)
+
+    // Rango de fechas
+    const firstDate = attendanceNotes[0].date
+    const lastDate = attendanceNotes[attendanceNotes.length - 1].date
+
+    // Culto con más asistencia
+    const maxIdx = totals.indexOf(maxTotal)
+    const maxNote = attendanceNotes[maxIdx]
+    const maxLabel = maxNote.serviceName
+      ? `${maxNote.serviceName} (${formatDate(maxNote.date)})`
+      : formatDate(maxNote.date)
+
+    // Culto con menos asistencia
+    const minIdx = totals.indexOf(minTotal)
+    const minNote = attendanceNotes[minIdx]
+    const minLabel = minNote.serviceName
+      ? `${minNote.serviceName} (${formatDate(minNote.date)})`
+      : formatDate(minNote.date)
+
+    // Promedio por categoría
+    const categoryAvgs = attendanceCategories.map((_, catIdx) => {
+      const vals = attendanceNotes.map(n => {
+        const a = n.attendance
+        if (!a) return 0
+        if (a.values?.length) return a.values[catIdx] || 0
+        return [a.caballeros ?? 0, a.damas ?? 0, a.amigos ?? 0, a.ninos ?? 0][catIdx] || 0
+      })
+      return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)
+    })
+
+    // Tendencia de crecimiento (comparar primera mitad vs segunda mitad)
+    const half = Math.floor(totals.length / 2)
+    let growthText = '-'
+    if (totals.length >= 4) {
+      const firstHalf = totals.slice(0, half)
+      const secondHalf = totals.slice(half)
+      const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length
+      const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
+      if (avgFirst > 0) {
+        const growth = ((avgSecond - avgFirst) / avgFirst) * 100
+        growthText = `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`
+      }
+    }
+
+    // Día de la semana con más asistencia
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    const dayTotals: Record<number, { sum: number; count: number }> = {}
+    attendanceNotes.forEach((n, i) => {
+      const dayOfWeek = new Date(n.date + 'T12:00:00').getDay()
+      if (!dayTotals[dayOfWeek]) dayTotals[dayOfWeek] = { sum: 0, count: 0 }
+      dayTotals[dayOfWeek].sum += totals[i]
+      dayTotals[dayOfWeek].count++
+    })
+    let bestDay = 'N/A'
+    let bestDayAvg = 0
+    Object.entries(dayTotals).forEach(([day, { sum, count }]) => {
+      const avg = sum / count
+      if (avg > bestDayAvg) {
+        bestDayAvg = avg
+        bestDay = dayNames[Number(day)]
+      }
+    })
+
+    // Asistencia total acumulada
+    const grandTotal = totals.reduce((a, b) => a + b, 0)
+
+    // Cultos por nombre de servicio
+    const serviceStats: Record<string, { count: number; totalAtt: number }> = {}
+    attendanceNotes.forEach((n, i) => {
+      const name = n.serviceName || 'Sin nombre'
+      if (!serviceStats[name]) serviceStats[name] = { count: 0, totalAtt: 0 }
+      serviceStats[name].count++
+      serviceStats[name].totalAtt += totals[i]
+    })
+
+    // ─── PÁGINA 1: Resumen ────────────────────────────────────────────────────
+
+    // Header
+    doc.setFillColor(30, 41, 59)
+    doc.rect(0, 0, 210, 45, 'F')
+
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(22)
-    doc.text('REPORTE DE ASISTENCIA', 105, 20, { align: 'center' })
+    doc.text('REPORTE DE ASISTENCIA', 105, 18, { align: 'center' })
     doc.setFontSize(10)
-    doc.text(`Generado: ${now.toLocaleString('es-ES')}`, 105, 30, { align: 'center' })
+    doc.text(`Período: ${formatDate(firstDate)} — ${formatDate(lastDate)}`, 105, 28, { align: 'center' })
+    doc.setFontSize(9)
+    doc.setTextColor(180, 180, 180)
+    doc.text(`Generado: ${now.toLocaleString('es-ES')}`, 105, 36, { align: 'center' })
 
     // 1. RESUMEN ESTADÍSTICO
     doc.setTextColor(30, 41, 59)
     doc.setFontSize(14)
-    doc.text('RESUMEN GENERAL', 14, 55)
-    
-    const totals = attendanceNotes.map(n => totalAttendance(n.attendance))
-    const avgTotal = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length)
-    const maxTotal = Math.max(...totals)
-    
+    doc.text('RESUMEN GENERAL', 14, 58)
+
     autoTable(doc, {
-      startY: 60,
+      startY: 63,
       head: [['Métrica', 'Valor']],
       body: [
         ['Total de Cultos Registrados', String(attendanceNotes.length)],
-        ['Promedio de Asistencia General', String(avgTotal)],
-        ['Asistencia Máxima Registrada', String(maxTotal)],
+        ['Asistencia Total Acumulada', String(grandTotal)],
+        ['Promedio de Asistencia por Culto', String(avgTotal)],
+        ['Asistencia Máxima', `${maxTotal} — ${maxLabel}`],
+        ['Asistencia Mínima', `${minTotal} — ${minLabel}`],
+        ['Día con Mayor Asistencia', `${bestDay} (prom. ${Math.round(bestDayAvg)})`],
+        ['Tendencia de Crecimiento', growthText],
       ],
       theme: 'striped',
-      headStyles: { fillColor: [212, 175, 55] } // Gold
+      headStyles: { fillColor: [212, 175, 55] },
+      columnStyles: { 0: { fontStyle: 'bold' } },
+      styles: { fontSize: 10 },
     })
 
-    // 2. GRÁFICO (Últimos 12 registros)
+    // 2. PROMEDIO POR CATEGORÍA
+    const afterSummary = (doc as any).lastAutoTable.finalY + 12
+    doc.text('PROMEDIO POR CATEGORÍA', 14, afterSummary)
+
+    autoTable(doc, {
+      startY: afterSummary + 5,
+      head: [attendanceCategories],
+      body: [categoryAvgs.map(String)],
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246], halign: 'center' },
+      bodyStyles: { halign: 'center', fontStyle: 'bold', fontSize: 12 },
+    })
+
+    // 3. DESGLOSE POR TIPO DE CULTO (si hay más de 1 tipo)
+    const serviceNames = Object.keys(serviceStats)
+    if (serviceNames.length > 1) {
+      const afterCategory = (doc as any).lastAutoTable.finalY + 12
+      doc.text('DESGLOSE POR TIPO DE CULTO', 14, afterCategory)
+
+      const serviceBody = serviceNames
+        .sort((a, b) => serviceStats[b].totalAtt - serviceStats[a].totalAtt)
+        .map(name => [
+          name,
+          String(serviceStats[name].count),
+          String(Math.round(serviceStats[name].totalAtt / serviceStats[name].count)),
+          String(serviceStats[name].totalAtt),
+        ])
+
+      autoTable(doc, {
+        startY: afterCategory + 5,
+        head: [['Culto', 'Veces', 'Prom. Asistencia', 'Total Acumulado']],
+        body: serviceBody,
+        theme: 'striped',
+        headStyles: { fillColor: [30, 41, 59] },
+        styles: { fontSize: 10 },
+      })
+    }
+
+    // 4. GRÁFICO (Últimos 12 registros)
     const lastN = attendanceNotes.slice(-12)
     const chartData = lastN.map(n => totalAttendance(n.attendance))
     const chartLabels = lastN.map(n => n.date.slice(5).split('-').reverse().join('/'))
     const chartImg = generateChartImage(chartData, chartLabels)
-    
+
     if (chartImg) {
-      doc.text('TENDENCIA DE ASISTENCIA (Últimos cultos)', 14, (doc as any).lastAutoTable.finalY + 15)
-      doc.addImage(chartImg, 'PNG', 14, (doc as any).lastAutoTable.finalY + 20, 180, 80)
+      const chartY = (doc as any).lastAutoTable.finalY + 15
+      // Si no cabe en esta página, agregar nueva
+      if (chartY + 100 > 280) doc.addPage()
+      const finalY = chartY + 100 > 280 ? 20 : chartY
+      doc.text('TENDENCIA DE ASISTENCIA (Últimos cultos)', 14, finalY)
+      doc.addImage(chartImg, 'PNG', 14, finalY + 5, 180, 80)
     }
 
-    // 3. TABLA DETALLADA
+    // 5. TABLA DETALLADA (nueva página)
     doc.addPage()
     doc.text('DETALLE COMPLETO DE ASISTENCIA', 14, 20)
-    
+
     const tableBody = attendanceNotes.map(n => {
       const a = n.attendance!
       const values = a.values?.length ? a.values : [a.caballeros ?? 0, a.damas ?? 0, a.amigos ?? 0, a.ninos ?? 0]
@@ -862,7 +991,7 @@ export default function NotesView() {
                   Exportar
                   <X size={10} style={{ marginLeft: 4, transform: showExportMenu ? 'rotate(0deg)' : 'rotate(45deg)', transition: 'transform 0.2s' }} />
                 </button>
-                
+
                 {showExportMenu && (
                   <div style={{
                     position: 'absolute',
@@ -943,9 +1072,9 @@ export default function NotesView() {
                 Borrar historial
               </button>
             </div>
-            <AttendanceChart 
-              records={chartAttendanceRecords} 
-              categories={attendanceCategories} 
+            <AttendanceChart
+              records={chartAttendanceRecords}
+              categories={attendanceCategories}
               onEdit={(date) => {
                 setSelectedDate(date)
                 setShowDashboard(false)
@@ -973,7 +1102,7 @@ export default function NotesView() {
               <span id="attendance-label">Asistencia al culto</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {savedTotal > 0 }
+              {savedTotal > 0}
               <button
                 className={`btn-icon${isAttendanceProjected ? ' notice-project-active' : ''}`}
                 onClick={projectAttendance}
@@ -1023,11 +1152,11 @@ export default function NotesView() {
                   placeholder="#"
                   style={{ width: 60, textAlign: "center" }}
                   value={att[idx] ?? ''}
-                  onChange={e => { 
+                  onChange={e => {
                     const newAtt = [...att]
                     newAtt[idx] = e.target.value
                     setAtt(newAtt)
-                    setAttError('') 
+                    setAttError('')
                   }}
                   onKeyDown={e => e.key === 'Enter' && saveAttendance()}
                 />
