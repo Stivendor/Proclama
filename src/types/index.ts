@@ -160,6 +160,7 @@ export interface AppSettings {
   churchLogoUrl?: string
   defaultTheme: ProjectionTheme
   attendanceCategories: string[]
+  serviceNameTemplates: string[]
 }
 
 // ─── Biblia ───────────────────────────────────────────────────────────────────
