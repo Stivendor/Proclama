@@ -38,7 +38,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   churchName: '',
   churchLogoUrl: '',
   defaultTheme: DEFAULT_THEME,
-  attendanceCategories: ['Caballeros', 'Damas', 'Amigos', 'Niños']
+  attendanceCategories: ['Caballeros', 'Damas', 'Amigos', 'Niños'],
+  serviceNameTemplates: []
 }
 
 // ─── Projection Store ──────────────────────────────────────────────────────────

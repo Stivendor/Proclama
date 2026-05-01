@@ -77,6 +77,7 @@ export default function SettingsView() {
       : ['Caballeros', 'Damas', 'Amigos', 'Niños']
   );
 
+
   const { isPremium } = usePlan();
   const { openCheckout } = useMercadoPagoCheckout();
 
@@ -455,6 +456,8 @@ export default function SettingsView() {
               </div>
             </div>
           </section>
+
+
 
           {/* Seguridad */}
           {user && (

@@ -79,11 +79,15 @@ function AppContent() {
         setUserRole(profile.role);
         setUserPlan(profile.plan);
 
-        // Auto-sync attendance when user is premium (covers all scenarios:
-        // login, reload, upgrade, guest migration)
+        // Bidirectional attendance sync for premium users:
+        // 1) Pull remote → local (download records from other devices)
+        // 2) Push local → remote (upload pending records)
         if (profile.plan === "premium" || profile.role === "admin") {
-          import("@/services/attendanceSync").then(({ syncAttendanceRecords }) => {
-            syncAttendanceRecords(userId).catch(() => {});
+          import("@/services/attendanceSync").then(async ({ pullRemoteRecords, syncAttendanceRecords }) => {
+            try {
+              await pullRemoteRecords(userId);
+              await syncAttendanceRecords(userId);
+            } catch {}
           }).catch(() => {});
         }
       }
