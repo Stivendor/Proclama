@@ -4,7 +4,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock, X, FileText
+  Check, Tv2, BarChart2, Download, Lock, X, FileText, ChevronDown, Tag
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
@@ -336,6 +336,17 @@ export default function NotesView() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Close service name dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
+        setShowServiceDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   // Service name
   const [serviceName, setServiceName] = useState('')
 
@@ -355,6 +366,10 @@ export default function NotesView() {
 
   const { user, settings, updateSettings } = useAppStore(useShallow(s => ({ user: s.user, settings: s.settings, updateSettings: s.updateSettings })))
   const attendanceCategories = settings.attendanceCategories || ['Caballeros', 'Damas', 'Amigos', 'Niños']
+  const serviceNameTemplates = settings.serviceNameTemplates || []
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false)
+  const [newTemplateName, setNewTemplateName] = useState('')
+  const serviceDropdownRef = useRef<HTMLDivElement>(null)
   const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
     projectionState: { songTitle: s.state.songTitle, slides: s.state.slides },
@@ -1117,15 +1132,120 @@ export default function NotesView() {
 
           <div className="attendance-service-row">
             <label htmlFor="service-name" className="attendance-field-label">Nombre del culto</label>
-            <input
-              id="service-name"
-              type="text"
-              className="input"
-              placeholder="Ej. Culto Dominical, Vigilia, Ayuno..."
-              value={serviceName}
-              onChange={e => setServiceName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveAttendance()}
-            />
+            <div className="service-name-combo" ref={serviceDropdownRef}>
+              <div
+                className={`service-name-selector${showServiceDropdown ? ' open' : ''}`}
+                onClick={() => setShowServiceDropdown(v => !v)}
+              >
+                <span className={serviceName ? 'service-name-value' : 'service-name-placeholder'}>
+                  {serviceName || 'Seleccionar o escribir nombre...'}
+                </span>
+                <ChevronDown size={14} className={`service-chevron${showServiceDropdown ? ' rotated' : ''}`} />
+              </div>
+              {showServiceDropdown && (
+                <div className="service-name-dropdown">
+                  {/* Saved templates */}
+                  {serviceNameTemplates.length > 0 && (
+                    <>
+                      <div className="service-dropdown-section-label">Plantillas guardadas</div>
+                      {serviceNameTemplates.map((tpl, idx) => (
+                        <div key={idx} className={`service-name-option-row${serviceName === tpl ? ' selected' : ''}`}>
+                          <button
+                            className="service-name-option-btn"
+                            onClick={() => {
+                              setServiceName(tpl)
+                              setShowServiceDropdown(false)
+                            }}
+                          >
+                            {tpl}
+                            {serviceName === tpl && <Check size={13} />}
+                          </button>
+                          <button
+                            className="btn-icon service-name-option-delete"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const updated = serviceNameTemplates.filter((_, i) => i !== idx)
+                              updateSettings({ serviceNameTemplates: updated })
+                              if (serviceName === tpl) setServiceName('')
+                            }}
+                            title="Eliminar plantilla"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="service-name-divider" />
+                    </>
+                  )}
+
+                  {/* Add new template */}
+                  <div className="service-dropdown-section-label">
+                    <Tag size={11} />
+                    Añadir plantilla
+                  </div>
+                  <div className="service-name-add-row">
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Ej. Culto Dominical..."
+                      value={newTemplateName}
+                      onChange={e => setNewTemplateName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && newTemplateName.trim()) {
+                          const name = newTemplateName.trim()
+                          if (!serviceNameTemplates.includes(name)) {
+                            updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })
+                            setServiceName(name)
+                          }
+                          setNewTemplateName('')
+                          setShowServiceDropdown(false)
+                        }
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    />
+                    <button
+                      className="btn-icon"
+                      disabled={!newTemplateName.trim() || serviceNameTemplates.includes(newTemplateName.trim())}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const name = newTemplateName.trim()
+                        if (name && !serviceNameTemplates.includes(name)) {
+                          updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })
+                          setServiceName(name)
+                        }
+                        setNewTemplateName('')
+                        setShowServiceDropdown(false)
+                      }}
+                      title="Guardar como plantilla"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+
+                  <div className="service-name-divider" />
+
+                  {/* Manual one-off name */}
+                  <div className="service-dropdown-section-label">Nombre manual (sin guardar)</div>
+                  <div className="service-name-manual">
+                    <input
+                      id="service-name"
+                      type="text"
+                      className="input"
+                      placeholder="Escribir nombre para esta vez..."
+                      value={serviceNameTemplates.includes(serviceName) ? '' : serviceName}
+                      onChange={e => setServiceName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setShowServiceDropdown(false)
+                          saveAttendance()
+                        }
+                      }}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>

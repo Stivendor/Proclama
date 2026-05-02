@@ -102,6 +102,97 @@ export async function syncAttendanceRecords(
   return { synced, failed }
 }
 
+// ─── Pull (Supabase → Local) ──────────────────────────────────────────────────
+
+/**
+ * Descarga todos los registros de asistencia de Supabase para este usuario
+ * y los merges en el IndexedDB local (Dexie).
+ *
+ * Estrategia de deduplicación:
+ *  - Si ya existe un registro local con el mismo `remoteId`, se omite.
+ *  - Si ya existe un registro local con el mismo (userId, date, serviceName)
+ *    sin `remoteId`, se le asigna el remoteId remoto (lo vincula).
+ *  - Si no existe, se inserta como nuevo.
+ *
+ * @returns `{ pulled, skipped }` conteos.
+ */
+export async function pullRemoteRecords(
+  userId: string
+): Promise<{ pulled: number; skipped: number }> {
+  // 1. Fetch all remote records for this user
+  const { data: remoteRows, error } = await supabase
+    .from('attendance_records')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.warn('[AttendanceSync] Pull failed:', error.message)
+    return { pulled: 0, skipped: 0 }
+  }
+
+  if (!remoteRows || remoteRows.length === 0) {
+    console.log('[AttendanceSync] No remote records to pull.')
+    return { pulled: 0, skipped: 0 }
+  }
+
+  // 2. Load all local records for this user (for dedup)
+  const localRecords = await db.attendance_records
+    .where('userId')
+    .equals(userId)
+    .toArray()
+
+  // Build lookup sets for fast dedup
+  const localByRemoteId = new Set(
+    localRecords.filter(r => r.remoteId).map(r => r.remoteId!)
+  )
+  const localByKey = new Map(
+    localRecords.map(r => [`${r.date}|${r.serviceName || ''}`, r])
+  )
+
+  let pulled = 0
+  let skipped = 0
+
+  for (const row of remoteRows) {
+    const remoteId = row.id as string
+    const date = row.date as string
+    const serviceName = (row.service_name as string) || ''
+
+    // Already linked locally → skip
+    if (localByRemoteId.has(remoteId)) {
+      skipped++
+      continue
+    }
+
+    // Local record with same key exists but no remoteId → link it
+    const key = `${date}|${serviceName}`
+    const existing = localByKey.get(key)
+    if (existing && !existing.remoteId && existing.id != null) {
+      await db.attendance_records.update(existing.id, { remoteId })
+      skipped++
+      continue
+    }
+
+    // No local match → insert new record
+    const newRecord: AttendanceRecord = {
+      userId,
+      date,
+      serviceName,
+      categoryNames: (row.category_names as string[]) || [],
+      values: (row.category_values as number[]) || [],
+      remoteId,
+      createdAt: row.created_at || new Date().toISOString(),
+      updatedAt: row.updated_at || new Date().toISOString(),
+    }
+
+    await db.attendance_records.add(newRecord)
+    pulled++
+  }
+
+  console.log(`[AttendanceSync] Pull complete: ${pulled} pulled, ${skipped} skipped (already local)`)
+  return { pulled, skipped }
+}
+
 // ─── Guest → User migration ──────────────────────────────────────────────────
 
 /**
