@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Play, Eye, Tag, Plus, Menu, Cloud, CloudOff } from 'lucide-react'
+import { Save, X, Play, Eye, Tag, Plus, Menu, Cloud, CloudOff, Trash2 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import type { Song } from '@/types'
-import { createSong, updateSong } from '@/services/supabase'
+import { createSong, updateSong, deleteSong } from '@/services/supabase'
 import { usePlan } from '@/hooks/usePlan'
 
 const VERSE_LABELS = ['[Verso 1]', '[Verso 2]', '[Coro]', '[Pre-Coro]', '[Puente]', '[Final]', '[Intro]']
@@ -78,6 +78,7 @@ export default function SongEditor() {
       const isVerified = userRole === 'admin' ? form.isPublic : false
 
       if (editingSong?.id) {
+        const songId = editingSong.id;
         // Actualizar canción existente
         const updates = { 
           ...form, 
@@ -86,12 +87,27 @@ export default function SongEditor() {
           userId: user?.id 
         }
         
-        // Siempre actualizar en Dexie
-        await db.songs.update(editingSong.id, { ...updates, id: editingSong.id })
+        // Usamos un timeout de seguridad para Dexie y Supabase
+        let timeoutId: any;
+        const timeout = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Timeout')), 8000);
+        });
         
-        // Solo sincronizar con Supabase si el usuario puede
-        if (canSync && user) {
-          await updateSong(editingSong.id, updates)
+        try {
+          await Promise.race([
+            (async () => {
+              // Siempre actualizar en Dexie
+              await db.songs.update(songId, { ...updates, id: songId })
+              
+              // Solo sincronizar con Supabase si el usuario puede
+              if (canSync && user) {
+                await updateSong(songId, updates)
+              }
+            })(),
+            timeout
+          ]);
+        } finally {
+          clearTimeout(timeoutId);
         }
       } else {
         // Crear nueva canción
@@ -103,22 +119,59 @@ export default function SongEditor() {
           userId: user?.id 
         }
         
-        // Solo sincronizar con Supabase si el usuario puede
-        if (canSync && user) {
-          const created = await createSong(payload)
-          if (created) {
-            await db.songs.add(created)
-          } else {
-            await db.songs.add(payload)
-          }
-        } else {
-          // Usuario free: solo guardar localmente
-          await db.songs.add(payload)
+        let timeoutId: any;
+        const timeout = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Timeout')), 8000);
+        });
+        
+        try {
+          await Promise.race([
+            (async () => {
+              // Solo sincronizar con Supabase si el usuario puede
+              if (canSync && user) {
+                const created = await createSong(payload)
+                if (created) {
+                  await db.songs.add(created)
+                } else {
+                  await db.songs.add(payload)
+                }
+              } else {
+                // Usuario free: solo guardar localmente
+                await db.songs.add(payload)
+              }
+            })(),
+            timeout
+          ]);
+        } finally {
+          clearTimeout(timeoutId);
         }
       }
       
       setEditingSong(null)
       setActiveView('library')
+    } catch (err) {
+      console.error('Error saving song:', err)
+      alert('Hubo un error al guardar la canción. Por favor intenta de nuevo.');
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!editingSong?.id) return
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta canción? Esta acción no se puede deshacer.')) return
+    
+    setSaving(true)
+    try {
+      if (canSync && user) {
+        await deleteSong(editingSong.id)
+      }
+      await db.songs.delete(editingSong.id)
+      setEditingSong(null)
+      setActiveView('library')
+    } catch (err) {
+      console.error('Error deleting song:', err)
+      alert('Error al eliminar la canción.')
     } finally {
       setSaving(false)
     }
@@ -142,6 +195,11 @@ export default function SongEditor() {
           <h1>{editingSong ? 'Editar Canción' : 'Nueva Canción'}</h1>
         </div>
         <div className="header-actions">
+          {editingSong?.id && (
+            <button className="btn-icon danger" onClick={handleDelete} disabled={saving} title="Eliminar canción">
+              <Trash2 size={15} />
+            </button>
+          )}
           <button className="btn-ghost" onClick={() => { setEditingSong(null); setActiveView('library') }}>
             <X size={15} /> Cancelar
           </button>
