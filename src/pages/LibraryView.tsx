@@ -121,8 +121,6 @@ export default function LibraryView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, authStatus])
 
-  const [filter, setFilter] = useState<'all' | 'pending'>('all')
-
   const songRanking = useLiveQuery(async () => {
     const all = await db.songs.toArray()
     // Ordenar por uso descendente y luego alfabético para consistencia
@@ -164,13 +162,6 @@ export default function LibraryView() {
       )
       results = [...titleMatches, ...lyricMatches]
     }
-
-    // 2. Filter by Moderation Status (Pending)
-    if (filter === 'pending') {
-      results = results.filter(s => s.isPublic && !s.isVerified)
-    }
-
-    // 3. Filter by Tags
     if (selectedTag) {
       results = results.filter(s => s.tags.includes(selectedTag))
     }
@@ -183,7 +174,7 @@ export default function LibraryView() {
     // 5. Apply view limit (slice) as the final step
     // This ensures we always find matches in the full local database
     return results.slice(0, 50)
-  }, [searchQuery, selectedTag, selectedLang, filter]) ?? []
+  }, [searchQuery, selectedTag, selectedLang]) ?? []
 
   const allTags = useLiveQuery(async () => {
     const all = await db.songs.toArray()
@@ -230,28 +221,6 @@ export default function LibraryView() {
       const newUsage = (song.usageCount || 0) + 1
       await updateSongRemote(song.id, { usageCount: newUsage })
       await db.songs.update(song.id, { usageCount: newUsage })
-    }
-  }
-
-  const handleApprove = async (song: Song) => {
-    if (song.id == null) return
-    try {
-      await updateSongRemote(song.id, { isVerified: true })
-      await db.songs.update(song.id, { isVerified: true })
-    } catch (err) {
-      console.error('Error approving song:', err)
-      setRemoteError('Error al aprobar la canción.')
-    }
-  }
-
-  const handleReject = async (song: Song) => {
-    if (song.id == null) return
-    try {
-      await updateSongRemote(song.id, { isPublic: false, isVerified: false })
-      await db.songs.update(song.id, { isPublic: false, isVerified: false })
-    } catch (err) {
-      console.error('Error rejecting song:', err)
-      setRemoteError('Error al rechazar la canción.')
     }
   }
 
@@ -344,27 +313,7 @@ export default function LibraryView() {
             </div>
           </div>
 
-          {userRole === 'admin' && (
-            <div className="moderation-tab-selector">
-              <button 
-                type="button"
-                className={`tab-btn ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => setFilter('all')}
-              >
-                Catálogo
-              </button>
-              <button 
-                type="button"
-                className={`tab-btn ${filter === 'pending' ? 'active' : ''}`}
-                onClick={() => setFilter('pending')}
-                aria-label="Ver canciones pendientes de moderación"
-              >
-                Pendientes {songs.filter(s => s.isPublic && !s.isVerified).length > 0 && <span className="notifier"></span>}
-              </button>
-            </div>
-          )}
-
-          {!localSearch && filter === 'all' && recentSongs && recentSongs.length > 0 && (
+          {!localSearch && recentSongs && recentSongs.length > 0 && (
             <div className="recent-songs-section">
               <div className="recent-songs-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -428,8 +377,6 @@ export default function LibraryView() {
                   onEdit={handleEdit} 
                   onLoad={handleLoad} 
                   onDelete={handleDelete}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
                   onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
                 />
               )
@@ -495,7 +442,7 @@ export default function LibraryView() {
 }
 
 const SongListItem = memo(function SongListItem({ 
-  song, rank, blocked, onEdit, onLoad, onDelete, onApprove, onReject, onBlocked 
+  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked 
 }: { 
   song: Song, 
   rank?: number,
@@ -503,8 +450,6 @@ const SongListItem = memo(function SongListItem({
   onEdit: (s: Song) => void, 
   onLoad: (s: Song) => void, 
   onDelete: (s: Song) => void,
-  onApprove: (s: Song) => void,
-  onReject: (s: Song) => void,
   onBlocked?: () => void
 }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
@@ -543,26 +488,6 @@ const SongListItem = memo(function SongListItem({
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
       <div className="song-card-actions-mini">
-        {/* Acciones de Moderación (Solo Admin & Solo si está pendiente) */}
-        {userRole === 'admin' && isPending && (
-          <>
-            <button 
-              className="btn-icon-xs success" 
-              onClick={(e) => { e.stopPropagation(); onApprove(song); }} 
-              title="Aprobar y verificar"
-            >
-              <Check size={12} />
-            </button>
-            <button 
-              className="btn-icon-xs warning" 
-              onClick={(e) => { e.stopPropagation(); onReject(song); }} 
-              title="Rechazar (volver privada)"
-            >
-              <X size={12} />
-            </button>
-          </>
-        )}
-
         {(userRole === 'admin' || user?.id === song.userId) && (
           <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />

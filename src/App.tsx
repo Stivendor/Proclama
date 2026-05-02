@@ -22,6 +22,7 @@ import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
+import ReportsView from "@/pages/ReportsView";
 
 // Detectar si somos la ventana de proyección
 const IS_PROJECTION =
@@ -101,27 +102,10 @@ function AppContent() {
         const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
         const deviceId = getDeviceId();
         const deviceName = getDeviceName();
-        const MAX_DEVICES = 2;
-
-        // 1. Consultar dispositivos existentes SIN registrar este
-        const existing = await fetchUserDevices(deviceId);
-        const isAlreadyRegistered = existing.some(d => d.deviceId === deviceId);
-
-        if (isAlreadyRegistered) {
-          // Este dispositivo ya está registrado → actualizar last_seen y permitir
-          const devices = await registerDevice(deviceId, deviceName);
-          useAppStore.getState().setUserDevices(devices);
-          useAppStore.getState().setDeviceBlocked(false);
-        } else if (existing.length >= MAX_DEVICES) {
-          // Dispositivo nuevo pero el límite ya está lleno → BLOQUEAR
-          useAppStore.getState().setUserDevices(existing);
-          useAppStore.getState().setDeviceBlocked(true);
-        } else {
-          // Hay espacio → registrar este dispositivo
-          const devices = await registerDevice(deviceId, deviceName);
-          useAppStore.getState().setUserDevices(devices);
-          useAppStore.getState().setDeviceBlocked(false);
-        }
+        // Siempre registrar el dispositivo y permitir el acceso
+        const devices = await registerDevice(deviceId, deviceName);
+        useAppStore.getState().setUserDevices(devices);
+        useAppStore.getState().setDeviceBlocked(false);
       } catch (err) {
         console.warn('Device check failed:', err);
       }
@@ -303,6 +287,7 @@ function MainApp() {
         {activeView === "notes" && <NotesView />}
         {activeView === "terms" && <TermsView />}
         {activeView === "fondos" && <FondosView />}
+        {activeView === "reports" && <ReportsView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
