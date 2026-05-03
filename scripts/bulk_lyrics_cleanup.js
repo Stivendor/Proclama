@@ -1,9 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { loadSupabaseEnv } from './supabaseEnv.js'
 
-const VITE_SUPABASE_URL = "***REMOVED***"
-const VITE_SUPABASE_ANON_KEY = "***REMOVED***"
-
-const supabase = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
+const { supabaseUrl, supabaseAnonKey } = loadSupabaseEnv()
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 const LABEL_REGEX = /^\[?(fin(?:\s+del?)?\s+)?(coro|chorus|chorous|verse|verso|v\d+|estrofa|puente|bridge|intro|outro|instrumental|fin|final|solista|todos|hizo|sube|repite|repetir|x\d+)(\s+\d+)?\]?:?\s*$/gim;
 

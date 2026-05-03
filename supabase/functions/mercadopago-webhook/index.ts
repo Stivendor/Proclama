@@ -11,7 +11,7 @@ import {
 } from '../_shared/payments.ts'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://proclama.lat',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
