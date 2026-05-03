@@ -81,6 +81,38 @@ export default function SettingsView() {
   const { isPremium } = usePlan();
   const { openCheckout } = useMercadoPagoCheckout();
 
+  const [receptionPin, setReceptionPin] = useState<string | null>(null);
+  const [loadingPin, setLoadingPin] = useState(false);
+
+  useEffect(() => {
+    if (user && isPremium) {
+      setLoadingPin(true);
+      supabase
+        .from('church_access_codes')
+        .select('pin')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) setReceptionPin(data.pin);
+          setLoadingPin(false);
+        });
+    }
+  }, [user, isPremium]);
+
+  const handleGeneratePin = async () => {
+    if (!user) return;
+    const newPin = Math.floor(1000 + Math.random() * 9000).toString(); // 4 dígitos
+    
+    const { data: existing } = await supabase.from('church_access_codes').select('id').eq('user_id', user.id).limit(1).single();
+    
+    if (existing) {
+      await supabase.from('church_access_codes').update({ pin: newPin }).eq('id', existing.id);
+    } else {
+      await supabase.from('church_access_codes').insert({ user_id: user.id, pin: newPin, label: 'Proclama Principal' });
+    }
+    setReceptionPin(newPin);
+  };
+
   useEffect(() => {
     fetchBackgrounds();
   }, []);
@@ -456,6 +488,8 @@ export default function SettingsView() {
               </div>
             </div>
           </section>
+
+
 
 
 

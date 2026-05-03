@@ -10,6 +10,7 @@ interface AttendanceFormProps {
   isLoading: boolean
   error: string
   onClearError: () => void
+  readonlyCategories?: boolean
 }
 
 export default function AttendanceForm({
@@ -21,6 +22,7 @@ export default function AttendanceForm({
   isLoading,
   error,
   onClearError,
+  readonlyCategories = false,
 }: AttendanceFormProps) {
   
   const total = values.reduce((sum, v) => sum + parseField(v), 0)
@@ -35,12 +37,14 @@ export default function AttendanceForm({
               className="input"
               value={cat}
               onChange={e => {
+                if (readonlyCategories) return;
                 const newCats = [...categories]
                 newCats[idx] = e.target.value
                 onUpdateCategories(newCats)
               }}
               placeholder="Nombre"
-              style={{ flex: 1, fontWeight: 600 }}
+              readOnly={readonlyCategories}
+              style={{ flex: 1, fontWeight: 600, border: readonlyCategories ? 'none' : undefined, background: readonlyCategories ? 'transparent' : undefined }}
             />
             <input
               id={`att-${idx}`}
@@ -59,32 +63,36 @@ export default function AttendanceForm({
               }}
               onKeyDown={e => e.key === 'Enter' && onSave()}
             />
-            <button
-              className="btn-icon"
-              onClick={() => {
-                const newCats = categories.filter((_, i) => i !== idx)
-                onUpdateCategories(newCats)
-              }}
-              disabled={categories.length <= 1}
-              title="Eliminar categoría"
-            >
-              <X size={14} />
-            </button>
+            {!readonlyCategories && (
+              <button
+                className="btn-icon"
+                onClick={() => {
+                  const newCats = categories.filter((_, i) => i !== idx)
+                  onUpdateCategories(newCats)
+                }}
+                disabled={categories.length <= 1}
+                title="Eliminar categoría"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         ))}
         
-        <button
-          className="btn-ghost"
-          onClick={() => {
-            const newCat = `Categoría ${categories.length + 1}`
-            onUpdateCategories([...categories, newCat])
-          }}
-          title="Agregar nueva categoría"
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px dashed var(--border)" }}
-        >
-          <Plus size={14} />
-          Agregar
-        </button>
+        {!readonlyCategories && (
+          <button
+            className="btn-ghost"
+            onClick={() => {
+              const newCat = `Categoría ${categories.length + 1}`
+              onUpdateCategories([...categories, newCat])
+            }}
+            title="Agregar nueva categoría"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px 16px", borderRadius: 8, border: "1px dashed var(--border)" }}
+          >
+            <Plus size={14} />
+            Agregar
+          </button>
+        )}
       </div>
 
       <div className="attendance-total-row">
