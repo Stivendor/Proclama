@@ -5,7 +5,8 @@
       "disabled": false,
       "autoApprove": [
         "execute_sql",
-        "get_advisors"
+        "get_advisors",
+        "apply_migration"
       ]
     }
   }
