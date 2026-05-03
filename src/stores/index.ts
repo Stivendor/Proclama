@@ -337,12 +337,13 @@ export const useAppStore = create<AppStore>()(
       updateSettings: async (s) => {
         set(state => ({ settings: { ...state.settings, ...s } }))
         
-        // Sync to cloud if logged in
-        const { user, settings } = get()
+        // Sync to cloud if logged in — use get() AFTER set() to get updated settings
+        const { user } = get()
+        const updatedSettings = get().settings
         if (user?.id) {
           try {
             const { updateUserSettings } = await import('@/services/supabase')
-            await updateUserSettings(user.id, settings)
+            await updateUserSettings(user.id, updatedSettings)
           } catch (err) {
             console.error('[Store] Error syncing settings to cloud:', err)
           }
@@ -365,8 +366,8 @@ export const useAppStore = create<AppStore>()(
           if (cloudSettings && Object.keys(cloudSettings).length > 0) {
             // Merge cloud settings into local
             set(state => ({ settings: { ...state.settings, ...cloudSettings } }))
-          } else if (settings.serviceNameTemplates.length > 0 || settings.attendanceCategories.length > 4) {
-            // Initial migration: Push local settings to cloud
+          } else {
+            // Cloud settings are empty — push local settings to cloud (initial sync)
             await updateUserSettings(user.id, settings)
           }
         } catch (err) {
