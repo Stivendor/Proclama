@@ -57,7 +57,6 @@ export function usePlan() {
 
   /** Retorna true si el usuario puede exportar reportes de asistencia */
   const canExportReports = isPremium
-  const canUseReception = isPremium
 
   return {
     isPremium,
@@ -70,6 +69,5 @@ export function usePlan() {
     canManageMediaFolders,
     mediaLimits,
     canExportReports,
-    canUseReception,
   }
 }
