@@ -33,8 +33,12 @@ export default function Sidebar() {
     { id: 'countdown', icon: Timer, label: 'Contador' },
     { id: 'notes', icon: ClipboardEdit, label: 'Notas' },
     { id: 'fondos', icon: Image, label: 'Fondos / Estilos' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' }
+    { id: 'settings', icon: Settings, label: 'Ajustes' },
+    { id: 'reports', icon: ClipboardEdit, label: 'Reportes', adminOnly: true }
   ] as const
+
+  const userRole = useAppStore(s => s.userRole)
+  const visibleNav = nav.filter(item => !('adminOnly' in item) || userRole === 'admin')
 
   const handleLogoClick = () => {
     useAppStore.getState().setForceLanding(true)
@@ -83,7 +87,7 @@ export default function Sidebar() {
       </button>
 
       <nav className="sidebar-nav">
-        {nav.map(({ id, icon: Icon, label }) => (
+        {visibleNav.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             className={`nav-item ${activeView === id ? 'active' : ''}`}

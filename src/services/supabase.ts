@@ -66,7 +66,8 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
 
 // ─── Funciones para Songs ──────────────────────────────────────────────────
 export async function fetchSongs(): Promise<Song[]> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   const userId = user?.id
 
   const allData: SupabaseSongRow[] = []
@@ -110,6 +111,14 @@ export async function fetchSongsCount(): Promise<number> {
   return count ?? 0
 }
 
+function sanitizeSearchTerm(query: string): string {
+  return query
+    .trim()
+    .slice(0, 80)
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+}
+
 /**
  * Busca canciones por texto en título, artista o letra.
  * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
@@ -138,10 +147,13 @@ export async function searchSongs(query: string, publicOnly = false, targetLangu
   }
 
   // Fallback: Búsqueda básica (sensible a acentos)
+  const safeQuery = sanitizeSearchTerm(query)
+  if (!safeQuery) return []
+
   let request = supabase
     .from('songs')
     .select('*')
-    .or(`title.ilike.%${query}%,artist.ilike.%${query}%,lyrics.fts.${query}`)
+    .or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,lyrics.fts.${safeQuery}`)
     .order('usage_count', { ascending: false })
     .limit(20)
 
@@ -185,7 +197,8 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
 }
 
 export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>): Promise<Song | null> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const { data: { session }, error: userError } = await supabase.auth.getSession();
+  const user = session?.user;
   if (userError || !user) {
     console.error('User not authenticated for update')
     return null
@@ -227,15 +240,28 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
   return mapRowToSong(data as SupabaseSongRow)
 }
 
-export async function deleteSong(id: number) {
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+export async function deleteSong(id: number): Promise<boolean> {
+  const { data: { session }, error: userError } = await supabase.auth.getSession();
+  const user = session?.user;
   if (userError || !user) {
     console.error('User not authenticated for delete')
-    return
+    return false
   }
 
   const profile = await fetchProfile(user.id)
   const isAdmin = profile?.role === 'admin'
+
+  // Primero borrar reportes asociados para evitar error de llave foránea
+  // Solo los admins pueden borrar reportes de otras canciones, pero si es dueño, 
+  // idealmente la base de datos debería tener ON DELETE CASCADE. 
+  // Por si no lo tiene, lo intentamos hacer manualmente.
+  if (isAdmin) {
+    await supabase.from('song_reports').delete().eq('song_id', id)
+  } else {
+    // Si no es admin, solo borramos los reportes si la canción es suya. 
+    // Para simplificar, asumimos que si puede borrar la canción, el RLS de song_reports (o la base de datos) lo permitirá o ignorará.
+    await supabase.from('song_reports').delete().eq('song_id', id)
+  }
 
   let query = supabase.from('songs').delete().eq('id', id)
 
@@ -246,7 +272,11 @@ export async function deleteSong(id: number) {
 
   const { error } = await query
 
-  if (error) console.error('Error deleting song:', error)
+  if (error) {
+    console.error('Error deleting song:', error)
+    return false
+  }
+  return true
 }
 
 // ─── Funciones para Setlists ──────────────────────────────────────────────
@@ -267,7 +297,8 @@ function mapRowToSetlist(row: any): Setlist {
 }
 
 export async function fetchSetlists(): Promise<Setlist[]> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const { data: { session }, error: userError } = await supabase.auth.getSession();
+  const user = session?.user;
   if (userError || !user) return []
 
   try {
@@ -499,7 +530,8 @@ export async function deactivatePremiumForUser(userId: string): Promise<boolean>
 }
 
 export async function isUserPremium(): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return false
 
   const { data, error } = await supabase
@@ -531,7 +563,8 @@ export async function registerDevice(
   deviceId: string,
   deviceName: string
 ): Promise<UserDevice[]> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const { data: { session }, error: userError } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (userError) {
     console.error('[Devices] Error resolving auth user:', userError.message)
@@ -618,4 +651,45 @@ export async function createSongReport(songId: number, reason: string, details: 
     return false
   }
   return true
+}
+
+export type SongReport = {
+  id: number;
+  song_id: number;
+  user_id: string | null;
+  reason: string;
+  details: string;
+  status: string;
+  created_at: string;
+  songs?: {
+    title: string;
+    artist: string;
+  };
+};
+
+export async function fetchSongReports(): Promise<SongReport[]> {
+  const { data, error } = await supabase
+    .from('song_reports')
+    .select('*, songs(title, artist)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching song reports:', error.message);
+    return [];
+  }
+  return data as unknown as SongReport[];
+}
+
+export async function fetchSongById(id: number): Promise<Song | null> {
+  const { data, error } = await supabase
+    .from('songs')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    console.error('Error fetching song by ID:', error?.message);
+    return null;
+  }
+  return mapRowToSong(data as SupabaseSongRow);
 }
