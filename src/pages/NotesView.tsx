@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock, X, FileText
+  Check, Tv2, BarChart2, Download, Lock, X, FileText, Smartphone
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
@@ -17,6 +17,8 @@ import { useAttendance } from '@/features/attendance/hooks/useAttendance'
 import AttendanceHistory from '@/features/attendance/components/AttendanceHistory'
 import ServiceNameSelector from '@/features/attendance/components/ServiceNameSelector'
 import AttendanceForm from '@/features/attendance/components/AttendanceForm'
+import { ReceptionPinModal } from '@/features/attendance/components/ReceptionPinModal'
+import PremiumFeatureModal from '@/components/PremiumFeatureModal'
 import { exportAttendanceCSV, exportAttendancePDF } from '@/features/attendance/utils/pdf'
 import { validateNoticeText, todayISO, formatDate, resolveValues } from '@/features/attendance/utils/validation'
 
@@ -35,8 +37,19 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
 }
 
 export default function NotesView() {
-  const { canExportReports } = usePlan()
-  const { user, settings, updateSettings } = useAppStore(useShallow(s => ({ user: s.user, settings: s.settings, updateSettings: s.updateSettings })))
+  const { canExportReports, canUseReception } = usePlan()
+  const { user, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({ 
+    user: s.user, 
+    settings: s.settings, 
+    updateSettings: s.updateSettings,
+    fetchCloudSettings: s.fetchCloudSettings
+  })))
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchCloudSettings()
+    }
+  }, [user?.id, fetchCloudSettings])
   const userId = user?.id ?? 'guest'
 
   const attendanceCategories = settings.attendanceCategories || ['Caballeros', 'Damas', 'Amigos', 'Niños']
@@ -57,6 +70,8 @@ export default function NotesView() {
   } = useAttendance(userId)
 
   const [showDashboard, setShowDashboard] = useState(false)
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
@@ -233,6 +248,20 @@ export default function NotesView() {
         </div>
         <div className="header-actions">
           <button
+            className={`btn-ghost${showPinModal ? ' active' : ''}`}
+            onClick={() => {
+              if (!canUseReception) {
+                setShowPremiumModal(true)
+                return
+              }
+              setShowPinModal(true)
+            }}
+            title="Configurar vista móvil para recepcionistas"
+          >
+            {canUseReception ? <Smartphone size={15} /> : <Lock size={15} color="var(--gold)" />}
+            Recepción Móvil
+          </button>
+          <button
             className={`btn-ghost${showDashboard ? ' active' : ''}`}
             onClick={() => setShowDashboard(v => !v)}
             title="Ver historial"
@@ -351,8 +380,8 @@ export default function NotesView() {
                 Borrar historial
               </button>
             </div>
-            
-            <AttendanceHistory 
+
+            <AttendanceHistory
               records={historyRecords}
               categories={attendanceCategories}
               onEdit={(date) => {
@@ -591,6 +620,25 @@ export default function NotesView() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {showPinModal && (
+        <ReceptionPinModal userId={userId} onClose={() => setShowPinModal(false)} />
+      )}
+
+      {showPremiumModal && (
+        <PremiumFeatureModal
+          title="Recepción Móvil"
+          description="Delega el registro de asistencia sin compartir tu cuenta principal."
+          benefits={[
+            'Acceso exclusivo para tu equipo de recepción a través de su celular',
+            'Sincronización en tiempo real con tu PC (Realtime)',
+            'PIN numérico seguro, fácil de recordar',
+            'Actualización automática de gráficos y estadísticas'
+          ]}
+          icon={Smartphone}
+          onClose={() => setShowPremiumModal(false)}
+        />
+      )}
     </div>
   )
 }
