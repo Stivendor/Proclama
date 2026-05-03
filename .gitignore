@@ -49,3 +49,11 @@ coverage/
 # Worktrees
 .worktrees/
 
+# Supabase local metadata
+supabase/.temp/
+
+# Generated operational outputs
+bulk_cleanup_log.txt
+dry_run_output*.txt
+results.txt
+

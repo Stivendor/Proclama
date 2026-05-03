@@ -1,14 +1,30 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildInitialMercadoPagoPayment } from '../_shared/payments.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Expose-Headers': 'content-type',
+const allowedOrigins = (
+  Deno.env.get('ALLOWED_CORS_ORIGINS') ??
+  'https://proclama.lat,http://localhost:5173,http://localhost:4173'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+function buildCorsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') ?? ''
+  const allowOrigin = allowedOrigins.includes(origin) ? origin : 'https://proclama.lat'
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Expose-Headers': 'content-type',
+    'Vary': 'Origin',
+  }
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
+
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -55,15 +71,13 @@ Deno.serve(async (req) => {
     }
 
     const mercadoPagoAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
-    const mercadoPagoWebhookUrl =
-      Deno.env.get('MERCADOPAGO_WEBHOOK_URL') ??
-      'https://ydyozanakkzpgldqcdjj.supabase.co/functions/v1/mercadopago-webhook'
+    const mercadoPagoWebhookUrl = Deno.env.get('MERCADOPAGO_WEBHOOK_URL')
     const envPrice = Deno.env.get('PRO_PLAN_PRICE')
     const price = envPrice ? parseInt(envPrice, 10) : 99900
     const currency = 'COP'
 
-    if (!mercadoPagoAccessToken) {
-      return new Response(JSON.stringify({ error: 'MercadoPago access token not configured' }), {
+    if (!mercadoPagoAccessToken || !mercadoPagoWebhookUrl) {
+      return new Response(JSON.stringify({ error: 'MercadoPago server configuration is incomplete' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

@@ -111,6 +111,14 @@ export async function fetchSongsCount(): Promise<number> {
   return count ?? 0
 }
 
+function sanitizeSearchTerm(query: string): string {
+  return query
+    .trim()
+    .slice(0, 80)
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+}
+
 /**
  * Busca canciones por texto en título, artista o letra.
  * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
@@ -139,10 +147,13 @@ export async function searchSongs(query: string, publicOnly = false, targetLangu
   }
 
   // Fallback: Búsqueda básica (sensible a acentos)
+  const safeQuery = sanitizeSearchTerm(query)
+  if (!safeQuery) return []
+
   let request = supabase
     .from('songs')
     .select('*')
-    .or(`title.ilike.%${query}%,artist.ilike.%${query}%,lyrics.fts.${query}`)
+    .or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,lyrics.fts.${safeQuery}`)
     .order('usage_count', { ascending: false })
     .limit(20)
 

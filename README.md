@@ -15,8 +15,9 @@ Funciona directamente en el navegador, sin instalación, con soporte para uso lo
 6. [Instalación](#instalación)
 7. [Variables de Entorno](#variables-de-entorno)
 8. [Base de Datos Supabase](#base-de-datos-supabase)
-9. [Scripts](#scripts)
-10. [Atajos de Teclado](#atajos-de-teclado)
+9. [Seguridad y Operacion](#seguridad-y-operacion)
+10. [Scripts](#scripts)
+11. [Atajos de Teclado](#atajos-de-teclado)
 
 ---
 
@@ -215,6 +216,13 @@ VITE_SUPABASE_URL=tu_url_de_supabase
 VITE_SUPABASE_ANON_KEY=tu_anon_key
 ```
 
+Notas de seguridad:
+
+- Las variables con prefijo `VITE_` son publicas para el navegador.
+- No guardes tokens privados, service role keys ni access tokens de pagos con prefijo `VITE_`.
+- Los secretos de MercadoPago, API Bible y Service Role deben configurarse como secretos de Supabase Edge Functions, no en el frontend.
+- Para checkout en Edge Functions, usa `ALLOWED_CORS_ORIGINS` con la lista explicita de origenes permitidos.
+
 - Supabase es necesario para autenticación y sincronización en la nube.
 - La app funciona completamente sin login en modo invitado (datos locales).
 
@@ -231,6 +239,19 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 > [!NOTE]
 > **Privacidad Local**: Las funciones de **Notas del Culto** y **Registro de Asistencia** son estrictamente locales (IndexedDB/Dexie). Estos datos NO se sincronizan con Supabase por privacidad y preferencia del usuario.
+
+---
+
+## Seguridad y Operacion
+
+- Auditoria vigente: [docs/security-audit-2026-05-02.md](docs/security-audit-2026-05-02.md).
+- Ejecuta `npm audit --omit=dev` antes de publicar una version.
+- Manten `supabase/.temp/`, `.env.local`, logs locales y dumps fuera del control de versiones.
+- Las funciones premium del cliente son controles de interfaz; cualquier permiso real debe validarse con RLS, Supabase Auth o Edge Functions.
+- Las tablas con datos por usuario deben tener RLS activo y policies versionadas en migraciones.
+- Los webhooks de pago deben validar firma, monto, moneda, producto y usuario antes de activar planes.
+- El checkout de MercadoPago restringe CORS con `ALLOWED_CORS_ORIGINS`; evita volver a `Access-Control-Allow-Origin: *`.
+- IndexedDB y localStorage no estan cifrados: evita guardar secretos o datos que no deban quedar en el dispositivo.
 
 ---
 
