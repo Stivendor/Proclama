@@ -454,6 +454,8 @@ a:hover { text-decoration: underline; }
   display: flex; flex-direction: column; gap: 10px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .control-panel.empty {
   flex: 1; align-items: center; justify-content: center; min-height: 300px;
@@ -471,10 +473,6 @@ a:hover { text-decoration: underline; }
 .progress-fill { height: 100%; background: var(--gold); transition: width 0.3s; }
 .slides-list { 
   display: flex; flex-direction: column; gap: 4px; 
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 4px;
 }
 .slide-item {
   display: flex; flex-direction: column; gap: 2px;
