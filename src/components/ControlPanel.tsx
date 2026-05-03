@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Trash2, Type, Eye } from 'lucide-react'
+import { Type, Eye } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
 import MediaPanel from './MediaPanel'
@@ -35,16 +35,6 @@ export default function ControlPanel() {
         <div className="control-song-title">{songTitle}</div>
       </div>
 
-      <div className="control-nav">
-        <button className="btn-nav" onClick={prevSlide} disabled={currentSlide <= 0}>
-          <ChevronLeft size={20} />
-          Anterior
-        </button>
-        <button className="btn-nav primary" onClick={nextSlide} disabled={slides.length === 0 || currentSlide >= slides.length - 1}>
-          Siguiente
-          <ChevronRight size={20} />
-        </button>
-      </div>
 
       <div className="control-special">
         <button
@@ -63,47 +53,6 @@ export default function ControlPanel() {
           background: rgba(59, 130, 246, 0.2) !important;
           border-color: var(--blue) !important;
           color: var(--blue) !important;
-        }
-      `}</style>
-
-      <div className="slides-list">
-        {slides.map((slide, i) => {
-          const isActive = i === currentSlide;
-          const isHiddenAndActive = isActive && hideText;
-          
-          return (
-            <button
-              key={i}
-              className={`slide-item ${isActive ? 'active' : ''} ${isHiddenAndActive ? 'is-hidden' : ''}`}
-              onClick={() => goToSlide(i)}
-              title={isHiddenAndActive ? "Presiona para mostrar el texto" : ""}
-            >
-              {slide.label && <span className="slide-label">{slide.label}</span>}
-              <div className="slide-preview">
-                 {slide.lines.slice(0, 2).join(' / ')}
-              </div>
-              {isHiddenAndActive && <div className="hidden-indicator">Oculto</div>}
-            </button>
-          );
-        })}
-      </div>
-
-      <style>{`
-        .slide-item.is-hidden {
-          opacity: 0.6;
-          border-style: dashed !important;
-        }
-        .hidden-indicator {
-          position: absolute;
-          top: 4px;
-          right: 8px;
-          font-size: 10px;
-          background: var(--red);
-          color: white;
-          padding: 1px 4px;
-          border-radius: 4px;
-          font-weight: bold;
-          text-transform: uppercase;
         }
       `}</style>
 
