@@ -693,3 +693,29 @@ export async function fetchSongById(id: number): Promise<Song | null> {
   }
   return mapRowToSong(data as SupabaseSongRow);
 }
+export async function fetchUserSettings(userId: string): Promise<any | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('settings')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('Error fetching user settings:', error.message)
+    return null
+  }
+  return data?.settings || null
+}
+
+export async function updateUserSettings(userId: string, settings: any): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ settings, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error updating user settings:', error.message)
+    return false
+  }
+  return true
+}

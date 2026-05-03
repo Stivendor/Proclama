@@ -23,12 +23,14 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import ReportsView from "@/pages/ReportsView";
+import RecepcionView from "@/pages/RecepcionView";
 
-// Detectar si somos la ventana de proyección
 const IS_PROJECTION =
   typeof window !== "undefined" &&
   (window.name === "proclama-projection" ||
     window.location.pathname === "/projection");
+
+const IS_RECEPCION = typeof window !== "undefined" && window.location.pathname === "/recepcion";
 
 export default function App() {
   return (
@@ -238,6 +240,10 @@ function AppContent() {
 
   if (IS_PROJECTION) {
     return <ProjectionWindow />;
+  }
+
+  if (IS_RECEPCION) {
+    return <RecepcionView />;
   }
 
   if (isServer) return null;

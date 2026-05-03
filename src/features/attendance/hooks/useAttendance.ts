@@ -4,10 +4,16 @@ import { db } from '@/db'
 import type { AttendanceRecord } from '@/types'
 import { todayISO, validateAttendance, parseField } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
+import { usePlan } from '@/hooks/usePlan'
+import { useAttendanceRealtime } from './useAttendanceRealtime'
 
 export function useAttendance(userId: string) {
   const [selectedDate, setSelectedDate] = useState<string>(todayISO())
   const [error, setError] = useState('')
+  const { isPremium } = usePlan()
+
+  // Sincronización en tiempo real desde Supabase -> Dexie
+  useAttendanceRealtime(userId, isPremium)
 
   const attendanceRecord = useLiveQuery(
     async () => {

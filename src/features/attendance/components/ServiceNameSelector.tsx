@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check, X, Tag, Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 
 interface ServiceNameSelectorProps {
   serviceName: string
@@ -7,7 +6,7 @@ interface ServiceNameSelectorProps {
   serviceNameTemplates: string[]
   onAddTemplate: (name: string) => void
   onDeleteTemplate: (name: string) => void
-  onEnter?: () => void
+  onEnter: () => void
 }
 
 export default function ServiceNameSelector({
@@ -16,134 +15,84 @@ export default function ServiceNameSelector({
   serviceNameTemplates,
   onAddTemplate,
   onDeleteTemplate,
-  onEnter,
+  onEnter
 }: ServiceNameSelectorProps) {
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [newTemplateName, setNewTemplateName] = useState('')
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
   return (
-    <div className="service-name-combo" ref={dropdownRef}>
-      <div
-        className={`service-name-selector${showDropdown ? ' open' : ''}`}
-        onClick={() => setShowDropdown(v => !v)}
-      >
-        <span className={serviceName ? 'service-name-value' : 'service-name-placeholder'}>
-          {serviceName || 'Seleccionar o escribir nombre...'}
-        </span>
-        <ChevronDown size={14} className={`service-chevron${showDropdown ? ' rotated' : ''}`} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          id="service-name-manual"
+          type="text"
+          className="input"
+          placeholder="Nombre del culto..."
+          value={serviceName}
+          onChange={e => setServiceName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onEnter()}
+          style={{ flex: 1 }}
+        />
+        <button
+          className="btn-ghost"
+          onClick={() => {
+            const trimmed = serviceName.trim()
+            if (trimmed && !serviceNameTemplates.includes(trimmed)) {
+              onAddTemplate(trimmed)
+            }
+          }}
+          disabled={!serviceName.trim() || serviceNameTemplates.includes(serviceName.trim())}
+          title="Guardar etiqueta"
+          style={{ 
+            height: '38px', 
+            width: '38px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)'
+          }}
+        >
+          <Plus size={16} />
+        </button>
       </div>
-      
-      {showDropdown && (
-        <div className="service-name-dropdown">
-          {/* Saved templates */}
-          {serviceNameTemplates.length > 0 && (
-            <>
-              <div className="service-dropdown-section-label">Plantillas guardadas</div>
-              {serviceNameTemplates.map((tpl, idx) => (
-                <div key={idx} className={`service-name-option-row${serviceName === tpl ? ' selected' : ''}`}>
-                  <button
-                    className="service-name-option-btn"
-                    onClick={() => {
-                      setServiceName(tpl)
-                      setShowDropdown(false)
-                    }}
-                  >
-                    {tpl}
-                    {serviceName === tpl && <Check size={13} />}
-                  </button>
-                  <button
-                    className="btn-icon service-name-option-delete"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteTemplate(tpl)
-                      if (serviceName === tpl) setServiceName('')
-                    }}
-                    title="Eliminar plantilla"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-              <div className="service-name-divider" />
-            </>
-          )}
 
-          {/* Add new template */}
-          <div className="service-dropdown-section-label">
-            <Tag size={11} />
-            Añadir plantilla
-          </div>
-          <div className="service-name-add-row">
-            <input
-              type="text"
-              className="input"
-              placeholder="Ej. Culto Dominical..."
-              value={newTemplateName}
-              onChange={e => setNewTemplateName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && newTemplateName.trim()) {
-                  const name = newTemplateName.trim()
-                  if (!serviceNameTemplates.includes(name)) {
-                    onAddTemplate(name)
-                    setServiceName(name)
-                  }
-                  setNewTemplateName('')
-                  setShowDropdown(false)
-                }
+      {serviceNameTemplates.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {serviceNameTemplates.map(template => (
+            <div
+              key={template}
+              onClick={() => setServiceName(template)}
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                background: serviceName === template ? 'rgba(212, 168, 67, 0.15)' : 'var(--bg-elevated)',
+                color: serviceName === template ? 'var(--gold)' : 'var(--text-secondary)',
+                border: `1px solid ${serviceName === template ? 'var(--gold)' : 'var(--border)'}`,
+                transition: 'all 0.1s ease',
               }}
-              onClick={e => e.stopPropagation()}
-            />
-            <button
-              className="btn-icon"
-              disabled={!newTemplateName.trim() || serviceNameTemplates.includes(newTemplateName.trim())}
-              onClick={(e) => {
-                e.stopPropagation()
-                const name = newTemplateName.trim()
-                if (name && !serviceNameTemplates.includes(name)) {
-                  onAddTemplate(name)
-                  setServiceName(name)
-                }
-                setNewTemplateName('')
-                setShowDropdown(false)
-              }}
-              title="Guardar como plantilla"
             >
-              <Plus size={14} />
-            </button>
-          </div>
-
-          <div className="service-name-divider" />
-
-          {/* Manual one-off name */}
-          <div className="service-dropdown-section-label">Nombre manual (sin guardar)</div>
-          <div className="service-name-manual">
-            <input
-              id="service-name-manual"
-              type="text"
-              className="input"
-              placeholder="Escribir nombre para esta vez..."
-              value={serviceNameTemplates.includes(serviceName) ? '' : serviceName}
-              onChange={e => setServiceName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  setShowDropdown(false)
-                  onEnter?.()
-                }
-              }}
-              onClick={e => e.stopPropagation()}
-            />
-          </div>
+              {template}
+              <button
+                style={{
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  opacity: 0.5,
+                  color: 'inherit'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDeleteTemplate(template)
+                }}
+              >
+                <X size={10} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

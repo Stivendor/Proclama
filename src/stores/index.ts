@@ -263,6 +263,7 @@ interface AppStore {
   // Auth
   user: any | null
   setUser: (u: any | null) => void
+  fetchCloudSettings: () => Promise<void>
   userRole: 'admin' | 'user' | null
   setUserRole: (r: 'admin' | 'user' | null) => void
   userPlan: 'free' | 'premium'
@@ -333,10 +334,45 @@ export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
       settings: DEFAULT_SETTINGS,
-      updateSettings: (s) => set(state => ({ settings: { ...state.settings, ...s } })),
+      updateSettings: async (s) => {
+        set(state => ({ settings: { ...state.settings, ...s } }))
+        
+        // Sync to cloud if logged in
+        const { user, settings } = get()
+        if (user?.id) {
+          try {
+            const { updateUserSettings } = await import('@/services/supabase')
+            await updateUserSettings(user.id, settings)
+          } catch (err) {
+            console.error('[Store] Error syncing settings to cloud:', err)
+          }
+        }
+      },
 
       user: null,
-      setUser: (u) => set({ user: u }),
+      setUser: (u) => {
+        set({ user: u })
+        if (u) get().fetchCloudSettings()
+      },
+
+      fetchCloudSettings: async () => {
+        const { user, settings } = get()
+        if (!user?.id) return
+        try {
+          const { fetchUserSettings, updateUserSettings } = await import('@/services/supabase')
+          const cloudSettings = await fetchUserSettings(user.id)
+          
+          if (cloudSettings && Object.keys(cloudSettings).length > 0) {
+            // Merge cloud settings into local
+            set(state => ({ settings: { ...state.settings, ...cloudSettings } }))
+          } else if (settings.serviceNameTemplates.length > 0 || settings.attendanceCategories.length > 4) {
+            // Initial migration: Push local settings to cloud
+            await updateUserSettings(user.id, settings)
+          }
+        } catch (err) {
+          console.error('[Store] Error fetching cloud settings:', err)
+        }
+      },
       userRole: null,
       setUserRole: (r) => set({ userRole: r }),
       userPlan: 'free',
