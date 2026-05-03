@@ -909,13 +909,11 @@ export default function MediaPanel() {
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           padding: 10px;
-          max-height: 300px;
-          overflow-y: auto;
         }
 
         .media-gallery {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+          grid-template-columns: repeat(2, 1fr);
           gap: 10px;
           align-content: start;
         }
