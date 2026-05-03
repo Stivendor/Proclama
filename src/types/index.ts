@@ -156,8 +156,6 @@ export type BroadcastMessage =
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {
-  churchName: string
-  churchLogoUrl?: string
   defaultTheme: ProjectionTheme
   attendanceCategories: string[]
   serviceNameTemplates: string[]
