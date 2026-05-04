@@ -3,6 +3,7 @@
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
+  remoteId?: number       // ID original de Supabase (si viene de la nube)
   userId?: string         // UUID del usuario propietario (Supabase)
   title: string
   artist: string

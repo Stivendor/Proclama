@@ -44,41 +44,77 @@ export default function SongEditorModal() {
   const set = (key: keyof typeof form, value: any) =>
     setForm(f => ({ ...f, [key]: value }))
 
+  const isOwner = user && editingSong?.userId === user.id;
+  const isAdmin = userRole === 'admin';
+  const canEditRemote = isOwner || isAdmin;
+  // Si tiene remoteId pero no somos dueños/admin, es una canción de la comunidad que estamos "personalizando"
+  const isCloning = editingSong?.remoteId && !canEditRemote;
+
   const handleSave = async () => {
     if (!form.title.trim()) { setTitleError('El título es requerido'); return }
     setTitleError('')
     setSaving(true)
+    
     try {
       const now = new Date()
-      const isVerified = userRole === 'admin' ? form.isPublic : (editingSong?.isVerified ?? false)
+      // Si somos admin, el estado de verificado depende de si la marcamos como pública.
+      // Si somos usuarios normales y estamos clonando, la copia nace como PRIVADA (isPublic: false)
+      // para que el usuario sepa que es su versión personal y no espere verificación.
+      const isPublic = isAdmin ? form.isPublic : (isCloning ? false : form.isPublic)
+      const isVerified = isAdmin ? form.isPublic : (isCloning ? false : (editingSong?.isVerified ?? false))
 
       if (editingSong?.id) {
+        // --- CASO 1: Actualizar canción existente ---
         const songId = editingSong.id;
         const updates = { 
           ...form, 
+          isPublic,
           isVerified,
           updatedAt: now, 
           userId: user?.id 
         }
         
-        await db.songs.update(songId, { ...updates, id: songId })
-        if (canSync && user) {
-          await updateSong(songId, updates)
+        // Actualizar local (siempre)
+        await db.songs.update(songId, updates)
+        
+        // Sincronizar con la nube SOLO si somos el dueño o admin
+        // Si es "isCloning" (canción de otro), NO sincronizamos para no crear spam de moderación
+        if (canSync && user && editingSong.remoteId && !isCloning) {
+          try {
+            await Promise.race([
+              updateSong(editingSong.remoteId, updates),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+            ])
+          } catch (cloudErr) {
+            console.warn('[Editor] Error o timeout sincronizando cambios:', cloudErr)
+          }
         }
       } else {
+        // --- CASO 2: Crear una canción TOTALMENTE NUEVA desde cero ---
         const payload: Omit<Song, 'id'> = { 
           ...form, 
-          isVerified: userRole === 'admin' ? form.isPublic : false,
+          remoteId: undefined, 
+          isPublic,
+          isVerified,
           createdAt: now, 
           updatedAt: now, 
           userId: user?.id 
         }
         
         if (canSync && user) {
-          const created = await createSong(payload)
-          if (created) {
-            await db.songs.add(created)
-          } else {
+          try {
+            const created = await Promise.race([
+              createSong(payload),
+              new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+            ])
+            
+            if (created) {
+              await db.songs.add(created)
+            } else {
+              await db.songs.add(payload)
+            }
+          } catch (cloudErr) {
+            console.warn('[Editor] Error o timeout creando en nube, guardando solo local:', cloudErr)
             await db.songs.add(payload)
           }
         } else {
@@ -88,8 +124,8 @@ export default function SongEditorModal() {
       
       closeEditor()
     } catch (err) {
-      console.error('Error saving song:', err)
-      alert('Hubo un error al guardar la canción.');
+      console.error('[Editor] Error fatal al guardar:', err)
+      alert('Error al guardar la canción localmente. Verifica el espacio en disco.');
     } finally {
       setSaving(false)
     }
@@ -101,7 +137,9 @@ export default function SongEditorModal() {
     
     setSaving(true)
     try {
-      if (canSync && user) await deleteSong(editingSong.id)
+      if (canSync && user && editingSong.remoteId && canEditRemote) {
+        await deleteSong(editingSong.remoteId)
+      }
       await db.songs.delete(editingSong.id)
       closeEditor()
     } catch (err) {
@@ -122,12 +160,32 @@ export default function SongEditorModal() {
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.25rem' }}>
             <Music size={20} color="var(--blue)" />
-            {editingSong ? 'Editar Canción' : 'Nueva Canción'}
+            {editingSong ? (isCloning ? 'Personalizar Canción' : 'Editar Canción') : 'Nueva Canción'}
           </h2>
           <button className="btn-icon" onClick={closeEditor} aria-label="Cerrar">
             <X size={20} />
           </button>
         </div>
+
+        {isCloning && (
+          <div style={{ 
+            background: 'rgba(52, 152, 219, 0.1)', 
+            border: '1px solid rgba(52, 152, 219, 0.2)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            margin: '0 24px 16px',
+            fontSize: '0.9rem',
+            color: 'var(--text-primary)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center'
+          }}>
+            <Globe size={18} color="var(--blue)" />
+            <p style={{ margin: 0, lineHeight: 1.4 }}>
+              Esta canción es de la comunidad. Tus ediciones se guardarán como una <strong>copia personal</strong> en tu biblioteca local.
+            </p>
+          </div>
+        )}
 
         <div className="modal-body" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', overflowY: 'auto', flex: 1 }}>
           {/* Main Info Row */}
