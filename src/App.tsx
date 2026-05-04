@@ -101,11 +101,24 @@ function AppContent() {
       try {
         const { getDeviceId, getDeviceName } = await import('@/utils/deviceFingerprint');
         const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
+        const { MAX_DEVICES_PREMIUM } = await import('@/constants/plans');
         const deviceId = getDeviceId();
         const deviceName = getDeviceName();
-        // Siempre registrar el dispositivo y permitir el acceso
-        const devices = await registerDevice(deviceId, deviceName);
-        useAppStore.getState().setUserDevices(devices);
+        
+        // 1. Obtener dispositivos actuales
+        const devices = await fetchUserDevices(deviceId);
+        const isAlreadyRegistered = devices.some(d => d.deviceId === deviceId);
+        
+        // 2. Si no está registrado y ya hay el máximo permitido o más, bloquear
+        if (!isAlreadyRegistered && devices.length >= MAX_DEVICES_PREMIUM) {
+          useAppStore.getState().setUserDevices(devices);
+          useAppStore.getState().setDeviceBlocked(true);
+          return;
+        }
+
+        // 3. Registrar/Actualizar y permitir
+        const updatedDevices = await registerDevice(deviceId, deviceName);
+        useAppStore.getState().setUserDevices(updatedDevices);
         useAppStore.getState().setDeviceBlocked(false);
       } catch (err) {
         console.warn('Device check failed:', err);

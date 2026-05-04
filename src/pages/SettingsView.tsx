@@ -22,6 +22,7 @@ import { usePlan } from "@/hooks/usePlan";
 import { useMercadoPagoCheckout } from "@/components/MercadoPagoCheckout";
 import DeviceList from "@/components/DeviceList";
 import { Monitor } from "lucide-react";
+import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
 
 export default function SettingsView() {
   const {
@@ -347,7 +348,7 @@ export default function SettingsView() {
                   marginBottom: 12,
                 }}
               >
-                Tu plan Pro permite hasta <strong style={{ color: 'var(--text-primary)' }}>2 dispositivos</strong>. Puedes revocar el acceso de cualquier equipo desde aquí.
+                Tu plan Pro permite hasta <strong style={{ color: 'var(--text-primary)' }}>{MAX_DEVICES_PREMIUM} dispositivos</strong>. Puedes revocar el acceso de cualquier equipo desde aquí.
               </p>
               <DeviceList />
             </section>
