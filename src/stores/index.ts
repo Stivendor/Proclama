@@ -272,7 +272,7 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports'
+  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'
   setActiveView: (v: AppStore['activeView']) => void
 
   isEditorOpen: boolean;
@@ -326,6 +326,9 @@ interface AppStore {
   forceLanding: boolean
   setForceLanding: (v: boolean, section?: string | null) => void
   forceLandingSection: string | null
+
+  landingShowAuth: boolean
+  setLandingShowAuth: (v: boolean) => void
 
   recentSongs: Song[]
   addRecentSong: (song: Song) => void
@@ -484,6 +487,9 @@ export const useAppStore = create<AppStore>()(
       forceLanding: false,
       forceLandingSection: null,
       setForceLanding: (v, section) => set({ forceLanding: v, forceLandingSection: section ?? null }),
+
+      landingShowAuth: false,
+      setLandingShowAuth: (v) => set({ landingShowAuth: v }),
     }),
     {
       name: 'proclama-app',

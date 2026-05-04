@@ -1,30 +1,18 @@
 import { useEffect, useState } from "react";
 import {
   Save,
-  Eye,
-  EyeOff,
   Sliders,
-  LogIn,
   LogOut,
-  CheckCircle,
   Menu,
-  Image as ImageIcon,
-  Film,
-  UserPlus,
   Cloud,
-  Loader2,
   FileText,
   ShieldCheck,
   X,
-  Plus,
+  Loader2,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
   useAppStore,
-  useProjectionStore,
-  DEFAULT_THEME,
-  CANVAS_SIZE,
-  useAppStore as useStore,
 } from "@/stores";
 import { supabase } from "@/services/supabase";
 import TermsModal from "@/components/TermsModal";
@@ -59,18 +47,7 @@ export default function SettingsView() {
       setActiveView: s.setActiveView,
     })),
   );
-  const { updateTheme, theme, media } = useProjectionStore(
-    useShallow((s) => ({
-      updateTheme: s.updateTheme,
-      theme: s.state.theme,
-      media: s.state.media,
-    })),
-  );
-  const state = { theme, media }; // Polyfill to avoid modifying all 'state.theme' accesses
-  const [showSecret, setShowSecret] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [showTermsForSignup, setShowTermsForSignup] = useState(false);
-  const [pendingSignup, setPendingSignup] = useState<(() => void) | null>(null);
   const [attendanceCategories, setAttendanceCategories] = useState<string[]>(
     settings.attendanceCategories?.length > 0
       ? settings.attendanceCategories
@@ -86,12 +63,8 @@ export default function SettingsView() {
   }, []);
 
   // Auth states
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [loadingAuth, setLoadingAuth] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authError, setAuthError] = useState("");
 
   // MFA states
   const [showMFAModal, setShowMFAModal] = useState(false);
@@ -221,139 +194,13 @@ export default function SettingsView() {
                   Continuar con Google
                 </button>
 
-                <div
-                  style={{
-                    marginTop: 20,
-                    padding: 16,
-                    textAlign: "center",
-                    color: "#9aa6bb",
-                    fontSize: 14,
-                    background: "rgba(255,255,255,0.04)",
-                    borderRadius: 10,
-                  }}
-                >
-                  📧 Email y contraseña temporalmente deshabilitados.
-                  <br />
-                  Usa "Continuar con Google" para entrar.
-                </div>
-
-                <div className="auth-toggle">
-                  <button
-                    className={`toggle-btn ${isLoginMode ? "active" : ""}`}
-                    onClick={() => setIsLoginMode(true)}
-                  >
-                    Iniciar Sesión
-                  </button>
-                  <button
-                    className={`toggle-btn ${!isLoginMode ? "active" : ""}`}
-                    onClick={() => setIsLoginMode(false)}
-                  >
-                    Crear Cuenta
-                  </button>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Correo Electrónico</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="tu@email.com"
-                      autoComplete="email"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Contraseña</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={
-                        isLoginMode ? "••••••••" : "Mínimo 6 caracteres"
-                      }
-                      autoComplete={
-                        isLoginMode ? "current-password" : "new-password"
-                      }
-                    />
-                  </div>
-                </div>
                 {authError && (
                   <div
-                    style={{ color: "#ff4d4f", fontSize: 13, marginBottom: 12 }}
+                    style={{ color: "#ff4d4f", fontSize: 13, marginTop: 12, textAlign: 'center' }}
                   >
                     {authError}
                   </div>
                 )}
-                <button
-                  className="btn-primary"
-                  disabled={loadingAuth || !email || !password}
-                  onClick={async () => {
-                    setLoadingAuth(true);
-                    setAuthError("");
-
-                    if (isLoginMode) {
-                      const { error } = await supabase.auth.signInWithPassword({
-                        email,
-                        password,
-                      });
-                      if (error) setAuthError(error.message);
-                    } else {
-                      setPendingSignup(() => async () => {
-                        setLoadingAuth(true);
-                        const { error } = await supabase.auth.signUp({
-                          email,
-                          password,
-                          options: {
-                            data: { email },
-                          },
-                        });
-                        if (error) {
-                          setAuthError(error.message);
-                        } else {
-                          setAuthError("");
-                        }
-                        setLoadingAuth(false);
-                      });
-                      setShowTermsForSignup(true);
-                      setLoadingAuth(false);
-                      return;
-                    }
-                    setLoadingAuth(false);
-                  }}
-                >
-                  {isLoginMode ? <LogIn size={15} /> : <UserPlus size={15} />}
-                  {loadingAuth
-                    ? "Cargando…"
-                    : isLoginMode
-                      ? "Iniciar Sesión"
-                      : "Crear Cuenta"}
-                </button>
-                <p className="auth-hint">
-                  {isLoginMode ? (
-                    '¿No tienes cuenta? Usa "Crear Cuenta" para registrarte.'
-                  ) : (
-                    <>
-                      ¡Gratis! Al crear una cuenta aceptas nuestros{" "}
-                      <button
-                        type="button"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "var(--gold)",
-                          cursor: "pointer",
-                          padding: 0,
-                          fontSize: "inherit",
-                          textDecoration: "underline",
-                        }}
-                        onClick={() => setActiveView("terms")}
-                      >
-                        Términos y Condiciones
-                      </button>
-                      .
-                    </>
-                  )}
-                </p>
               </div>
             ) : (
               <div className="session-card">
@@ -507,295 +354,27 @@ export default function SettingsView() {
           )}
 
         </div>
-
-        {/* Columna Derecha de Preview */}
-        <div className="settings-preview-col">
-          <section className="settings-section preview-section">
-            <div className="theme-preview-header">
-              Vista Previa de Proyección
-            </div>
-            <div className="theme-preview">
-              {(() => {
-                const bgFilter = `blur(${state.theme.backgroundBlur || 0}px)`;
-                const bgTransform = state.theme.backgroundBlur
-                  ? "scale(1.1)"
-                  : "none";
-
-                return (
-                  <>
-                    <div
-                      className="preview-background-layer"
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        filter: bgFilter,
-                        transform: bgTransform,
-                        background:
-                          state.theme.backgroundType === "image" &&
-                          state.theme.backgroundImageUrl
-                            ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
-                            : state.theme.backgroundType === "color" ||
-                                !state.theme.backgroundType
-                              ? state.theme.background
-                              : "#000",
-                      }}
-                    >
-                      {state.theme.backgroundType === "video" &&
-                        state.theme.backgroundVideoUrl && (
-                          <video
-                            key={state.theme.backgroundVideoUrl}
-                            src={state.theme.backgroundVideoUrl}
-                            autoPlay
-                            muted
-                            loop
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        )}
-                    </div>
-
-                    {/* Proyección de Media (Fondo Dinámico) en la vista previa */}
-                    {state.media && (
-                      <div
-                        className="preview-media-layer"
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          zIndex: state.media.isBackgroundMode ? 2 : 20,
-                          background: state.media.isBackgroundMode
-                            ? "transparent"
-                            : "#000",
-                          filter: state.media.isBackgroundMode
-                            ? bgFilter
-                            : "none",
-                          transform: state.media.isBackgroundMode
-                            ? bgTransform
-                            : "none",
-                        }}
-                      >
-                        {state.media.type === "video" ? (
-                          <video
-                            autoPlay
-                            loop
-                            muted
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: state.media.isBackgroundMode
-                                ? "cover"
-                                : "contain",
-                            }}
-                            src={state.media.url}
-                          />
-                        ) : (
-                          <img
-                            src={state.media.url}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: state.media.isBackgroundMode
-                                ? "cover"
-                                : "contain",
-                            }}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-
-              {/* Capa de oscurecimiento */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: `rgba(0,0,0,${state.theme.backgroundOverlayOpacity ?? 0.3})`,
-                  zIndex: 5,
-                }}
-              />
-
-              <div
-                className="preview-content"
-                style={{
-                  fontFamily: state.theme.fontFamily,
-                  fontSize: `${26 * (state.theme.fontScale || 1)}px`,
-                  color: state.theme.textColor,
-                  textShadow: state.theme.textShadow
-                    ? "0 2px 10px rgba(0,0,0,0.8)"
-                    : "none",
-                  textTransform: state.theme.textUppercase
-                    ? "uppercase"
-                    : "none",
-                  textAlign: "center",
-                  lineHeight: 1.15,
-                  padding: "12px",
-                  position: "relative",
-                  zIndex: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "2px",
-                  width: "100%",
-                  fontWeight: 900,
-                  maxWidth: "100%",
-                  maxHeight: "100%",
-                  wordBreak: "break-word",
-                  overflow: "hidden",
-                  justifyContent: "center",
-                }}
-              >
-                {state.theme.verseReferencePosition !== "bottom" && (
-                  <div
-                    style={{
-                      opacity: 0.7,
-                      fontSize: "0.7em",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
-                  </div>
-                )}
-
-                <div style={{ width: "100%" }}>
-                  <div>Señor mi Dios</div>
-                  <div>al contemplar los cielos</div>
-                  <div>El firmamento</div>
-                  <div>y las estrellas mil</div>
-                </div>
-
-                {state.theme.verseReferencePosition === "bottom" && (
-                  <div
-                    style={{ opacity: 0.7, fontSize: "0.7em", marginTop: 2 }}
-                  >
-                    Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ marginTop: "24px" }}>
-              <button
-                className="btn-primary large"
-                style={{ width: "100%", justifyContent: "center" }}
-                onClick={handleSave}
-              >
-                <Save size={16} />{" "}
-                {saved ? "¡Cambios guardados!" : "Guardar todos los ajustes"}
-              </button>
-            </div>
-          </section>
-        </div>
       </div>
 
-      {showTermsForSignup && (
-        <TermsModal
-          mode="optional"
-          onAccept={async () => {
-            await acceptTerms(CURRENT_TERMS_VERSION);
-            setShowTermsForSignup(false);
-            pendingSignup?.();
-            setPendingSignup(null);
-          }}
-          onClose={() => {
-            setShowTermsForSignup(false);
-            setPendingSignup(null);
-          }}
-        />
-      )}
-
       <style>{`
+        .settings-body {
           flex: 1;
           overflow-y: auto;
           padding: 24px 32px;
-          display: grid;
-          grid-template-columns: 1fr 450px;
+          display: flex;
+          flex-direction: column;
           gap: 40px;
-          align-items: start;
+          align-items: center;
           padding-bottom: 60px;
-        }
-
-        @media (max-width: 1024px) {
-          .settings-body {
-            grid-template-columns: 1fr;
-          }
         }
 
         .settings-config-col {
           display: flex;
           flex-direction: column;
           gap: 24px;
+          max-width: 800px;
+          width: 100%;
         }
-
-        .settings-preview-col {
-          position: sticky;
-          top: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .preview-section {
-          padding: 0;
-          background: var(--bg-default);
-          border: none;
-          position: sticky;
-          top: -24px;
-          z-index: 50;
-          padding-top: 24px;
-          margin-top: -24px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .segmented-control {
-          display: flex;
-          background: rgba(255,255,255,0.05);
-          padding: 4px;
-          border-radius: 8px;
-          gap: 4px;
-        }
-        .segmented-control button {
-          flex: 1;
-          border: none;
-          background: none;
-          color: var(--text-muted);
-          padding: 8px;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          transition: all 0.2s;
-        }
-        .segmented-control button:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-        .segmented-control button.active {
-          background: var(--gold);
-          color: black;
-          box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
-        }
-
-        .theme-preview-container { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
-        .theme-preview-header { font-size: 12px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
-        .theme-preview {
-          aspect-ratio: 16/9;
-          border-radius: 12px;
-          overflow: hidden;
-          position: relative;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-          border: 4px solid var(--bg-elevated);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .preview-content { width: 100%; transition: all 0.3s; }
 
         .background-options { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
         .gallery-container { display: flex; flex-direction: column; gap: 12px; }

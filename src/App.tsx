@@ -23,6 +23,8 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import ReportsView from "@/pages/ReportsView";
+import AdminUsersView from "@/pages/AdminUsersView";
+import PremiumBanner from "@/components/PremiumBanner";
 
 const IS_PROJECTION =
   typeof window !== "undefined" &&
@@ -246,10 +248,20 @@ function AppContent() {
   }
 
   if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
-    return <LandingView />;
+    return (
+      <div className="landing-banner-container">
+        <PremiumBanner />
+        <LandingView />
+      </div>
+    );
   }
 
-  return <MainApp />;
+  return (
+    <div className="app-main-wrapper">
+      <PremiumBanner />
+      <MainApp />
+    </div>
+  );
 }
 
 function MainApp() {
@@ -287,6 +299,7 @@ function MainApp() {
         {activeView === "terms" && <TermsView />}
         {activeView === "fondos" && <FondosView />}
         {activeView === "reports" && <ReportsView />}
+        {activeView === "admin-users" && <AdminUsersView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
