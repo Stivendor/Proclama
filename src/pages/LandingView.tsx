@@ -29,11 +29,10 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, forceLandingSection, user } = useAppStore()
+  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, forceLandingSection, user, landingShowAuth, setLandingShowAuth } = useAppStore()
   const { isPremium } = usePlan()
   const { openCheckout } = useMercadoPagoCheckout()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
-  const [showAuth, setShowAuth] = useState(false)
   
   const [interestEmail, setInterestEmail] = useState('')
   const [interestStatus, setInterestStatus] = useState<'idle' | 'loading' | 'success' | 'duplicate' | 'error'>('idle')
@@ -159,10 +158,10 @@ export default function LandingView() {
     checkPendingCheckout()
   }, [user, isPremium])
 
-  if (showAuth) {
+  if (landingShowAuth) {
     return (
       <div className="landing-auth">
-        <button className="back-btn" onClick={() => setShowAuth(false)}>
+        <button className="back-btn" onClick={() => setLandingShowAuth(false)}>
           <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> Volver
         </button>
         <AuthView />
@@ -202,7 +201,7 @@ export default function LandingView() {
               </button>
             </div>
           ) : (
-            <button className="landing-btn-line" onClick={() => setShowAuth(true)}>Acceder</button>
+            <button className="landing-btn-line" onClick={() => setLandingShowAuth(true)}>Acceder</button>
           )}
         </div>
       </nav>
@@ -513,8 +512,11 @@ export default function LandingView() {
         /* Prefijo landing- para aislar estilos del sistema global   */
 
         .landing-root {
-          height: 100vh;
-          min-height: 100vh;
+          height: 100%;
+          min-height: 0;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
           background: #05070d;
           color: white;
           font-family: 'Outfit', sans-serif;

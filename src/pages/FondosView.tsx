@@ -10,6 +10,7 @@ import {
   ArrowDown,
   ArrowUp,
   Palette,
+  Save,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -36,6 +37,132 @@ const TRANSITIONS = [
   { value: "instant", label: "Instant" },
 ];
 
+const FONDOS_STYLES = `
+  .gallery-filters-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+  .search-box { position: relative; display: flex; align-items: center; }
+  .search-box input { width: 100%; padding: 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-primary); font-size: 14px; transition: all 0.3s; }
+  .search-box input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1); }
+  .search-icon { position: absolute; left: 14px; color: var(--text-muted); }
+  .clear-search { position: absolute; right: 14px; color: var(--text-muted); cursor: pointer; }
+  .category-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+  .category-pills::-webkit-scrollbar { display: none; }
+  .pill { 
+    display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 99px; 
+    background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); 
+    font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; 
+  }
+  .pill:hover { border-color: var(--gold); color: var(--text-primary); }
+  .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2); }
+  .pill-count { font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; }
+  .pill.active .pill-count { background: rgba(255,255,255,0.2); }
+  
+  .fondos-view { 
+    padding: 0;
+    height: 100%; 
+    display: flex;
+    flex-direction: column;
+  }
+
+  .fondos-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 450px;
+    gap: 40px;
+    align-items: start;
+  }
+
+  @media (max-width: 1024px) {
+    .fondos-body {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .fondos-content { 
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .fondos-preview-col {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .preview-section {
+    padding: 0;
+    background: var(--bg-default);
+    border: none;
+    position: sticky;
+    top: -24px;
+    z-index: 50;
+    padding-top: 24px;
+    margin-top: -24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .theme-preview-header { 
+    font-size: 12px; 
+    font-weight: 600; 
+    color: var(--gold); 
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    margin-bottom: 12px;
+  }
+
+  .theme-preview {
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+    border: 4px solid var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .preview-content { width: 100%; transition: all 0.3s; }
+
+  .fondos-section { margin-bottom: 32px; }
+  .section-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-header-row h2 { margin: 0; }
+  .fondos-section h2 { font-size: 1.1rem; margin: 0 0 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+  .segmented-control { display: flex; gap: 8px; flex-wrap: wrap; }
+  .segmented-control button { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .segmented-control button.active { background: var(--gold); color: #000; border-color: var(--gold); }
+  .options-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .form-group label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+  .form-group input[type="text"], .form-group select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary); font-size: 14px; }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
+  .gallery-container label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; }
+  .backgrounds-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+  .gallery-item { position: relative; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+  .gallery-item:hover { border-color: var(--gold); }
+  .gallery-item.active { border-color: var(--gold); }
+  .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; }
+  .gallery-item .active-overlay { position: absolute; inset: 0; background: rgba(201, 166, 88, 0.3); display: flex; align-items: center; justify-content: center; color: var(--gold); }
+  .load-more-btn { display: block; margin: 16px auto 0; padding: 10px 24px; border-radius: 8px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-color); cursor: pointer; font-size: 14px; transition: all 0.2s; }
+  .load-more-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .toggle-options { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
+  .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
+  .toggle-item input { width: 18px; height: 18px; accent-color: var(--gold); }
+  .background-options { margin-top: 20px; }
+  .backgrounds-gallery.restricted .gallery-item { filter: blur(8px); pointer-events: none; }
+  .backgrounds-gallery.restricted .gallery-item:first-child { filter: none; pointer-events: auto; }
+  .gallery-blur { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 600; }
+  .gallery-premium-promo { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; background: rgba(201, 166, 88, 0.1); border-radius: 12px; border: 1px dashed var(--gold); }
+  .gallery-premium-promo span { color: var(--text-secondary); font-size: 14px; }
+  .gallery-premium-promo button { margin-top: 8px; padding: 8px 16px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .segmented-control button.disabled-pro { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
+  .segmented-control button.disabled-pro:hover { border-color: var(--border-color); color: var(--text-secondary); }
+`;
+
 export default function FondosView() {
   const { backgrounds, fetchBackgrounds, isSidebarOpen, toggleSidebar } = useAppStore(
     useShallow((s) => ({
@@ -43,6 +170,7 @@ export default function FondosView() {
       fetchBackgrounds: s.fetchBackgrounds,
       isSidebarOpen: s.isSidebarOpen,
       toggleSidebar: s.toggleSidebar,
+      updateSettings: s.updateSettings,
     })),
   );
 
@@ -66,6 +194,12 @@ export default function FondosView() {
   const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [imageCategory, setImageCategory] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const state = { theme, media };
 
@@ -118,8 +252,8 @@ export default function FondosView() {
           </h1>
         </div>
       </div>
-
-      <div className="fondos-content">
+      <div className="fondos-body">
+        <div className="fondos-content">
         <section className="fondos-section">
           <h2>
             <Palette size={15} /> Fondo
@@ -398,59 +532,187 @@ export default function FondosView() {
         </section>
       </div>
 
-      <style>{`
-        .gallery-filters-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-        .search-box { position: relative; display: flex; align-items: center; }
-        .search-box input { width: 100%; padding: 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-primary); font-size: 14px; transition: all 0.3s; }
-        .search-box input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1); }
-        .search-icon { position: absolute; left: 14px; color: var(--text-muted); }
-        .clear-search { position: absolute; right: 14px; color: var(--text-muted); cursor: pointer; }
-        .category-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
-        .category-pills::-webkit-scrollbar { display: none; }
-        .pill { 
-          display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 99px; 
-          background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-secondary); 
-          font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; 
-        }
-        .pill:hover { border-color: var(--gold); color: var(--text-primary); }
-        .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2); }
-        .pill-count { font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; }
-        .pill.active .pill-count { background: rgba(255,255,255,0.2); }
-        .fondos-view { padding: 20px; height: 100%; overflow-y: auto; }
-        .fondos-content { padding: 20px 0; }
-        .fondos-section { margin-bottom: 32px; }
-        .section-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-        .section-header-row h2 { margin: 0; }
-        .fondos-section h2 { font-size: 1.1rem; margin: 0 0 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-        .segmented-control { display: flex; gap: 8px; flex-wrap: wrap; }
-        .segmented-control button { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .segmented-control button.active { background: var(--gold); color: #000; border-color: var(--gold); }
-        .options-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-        .form-group label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
-        .form-group input[type="text"], .form-group select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary); font-size: 14px; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
-        .gallery-container label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; }
-        .backgrounds-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
-        .gallery-item { position: relative; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
-        .gallery-item:hover { border-color: var(--gold); }
-        .gallery-item.active { border-color: var(--gold); }
-        .gallery-item img, .gallery-item video { width: 100%; height: 100%; object-fit: cover; }
-        .gallery-item .active-overlay { position: absolute; inset: 0; background: rgba(201, 166, 88, 0.3); display: flex; align-items: center; justify-content: center; color: var(--gold); }
-        .load-more-btn { display: block; margin: 16px auto 0; padding: 10px 24px; border-radius: 8px; background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-color); cursor: pointer; font-size: 14px; transition: all 0.2s; }
-        .load-more-btn:hover { border-color: var(--gold); color: var(--gold); }
-        .toggle-options { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; }
-        .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
-        .toggle-item input { width: 18px; height: 18px; accent-color: var(--gold); }
-        .background-options { margin-top: 20px; }
-        .backgrounds-gallery.restricted .gallery-item { filter: blur(8px); pointer-events: none; }
-        .backgrounds-gallery.restricted .gallery-item:first-child { filter: none; pointer-events: auto; }
-        .gallery-blur { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 600; }
-        .gallery-premium-promo { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; background: rgba(201, 166, 88, 0.1); border-radius: 12px; border: 1px dashed var(--gold); }
-        .gallery-premium-promo span { color: var(--text-secondary); font-size: 14px; }
-        .gallery-premium-promo button { margin-top: 8px; padding: 8px 16px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .segmented-control button.disabled-pro { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
-        .segmented-control button.disabled-pro:hover { border-color: var(--border-color); color: var(--text-secondary); }
-      `}</style>
+      <div className="fondos-preview-col">
+        <section className="fondos-section preview-section">
+          <div className="theme-preview-header">
+            Vista Previa de Proyección
+          </div>
+          <div className="theme-preview">
+            {(() => {
+              const bgFilter = `blur(${state.theme.backgroundBlur || 0}px)`;
+              const bgTransform = state.theme.backgroundBlur
+                ? "scale(1.1)"
+                : "none";
+
+              return (
+                <>
+                  <div
+                    className="preview-background-layer"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      filter: bgFilter,
+                      transform: bgTransform,
+                      background:
+                        state.theme.backgroundType === "image" &&
+                        state.theme.backgroundImageUrl
+                          ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
+                          : state.theme.backgroundType === "color" ||
+                              !state.theme.backgroundType
+                            ? state.theme.background
+                            : "#000",
+                    }}
+                  >
+                    {state.theme.backgroundType === "video" &&
+                      state.theme.backgroundVideoUrl && (
+                        <video
+                          key={state.theme.backgroundVideoUrl}
+                          src={state.theme.backgroundVideoUrl}
+                          autoPlay
+                          muted
+                          loop
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      )}
+                  </div>
+
+                  {state.media && (
+                    <div
+                      className="preview-media-layer"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        zIndex: state.media.isBackgroundMode ? 2 : 20,
+                        background: state.media.isBackgroundMode
+                          ? "transparent"
+                          : "#000",
+                        filter: state.media.isBackgroundMode
+                          ? bgFilter
+                          : "none",
+                        transform: state.media.isBackgroundMode
+                          ? bgTransform
+                          : "none",
+                      }}
+                    >
+                      {state.media.type === "video" ? (
+                        <video
+                          autoPlay
+                          loop
+                          muted
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: state.media.isBackgroundMode
+                              ? "cover"
+                              : "contain",
+                          }}
+                          src={state.media.url}
+                        />
+                      ) : (
+                        <img
+                          src={state.media.url}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: state.media.isBackgroundMode
+                              ? "cover"
+                              : "contain",
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                backgroundColor: `rgba(0,0,0,${state.theme.backgroundOverlayOpacity ?? 0.3})`,
+                zIndex: 5,
+              }}
+            />
+
+            <div
+              className="preview-content"
+              style={{
+                fontFamily: state.theme.fontFamily,
+                fontSize: `${26 * (state.theme.fontScale || 1)}px`,
+                color: state.theme.textColor,
+                textShadow: state.theme.textShadow
+                  ? "0 2px 10px rgba(0,0,0,0.8)"
+                  : "none",
+                textTransform: state.theme.textUppercase
+                  ? "uppercase"
+                  : "none",
+                textAlign: "center",
+                lineHeight: 1.15,
+                padding: "12px",
+                position: "relative",
+                zIndex: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                width: "100%",
+                fontWeight: 900,
+                maxWidth: "100%",
+                maxHeight: "100%",
+                wordBreak: "break-word",
+                overflow: "hidden",
+                justifyContent: "center",
+              }}
+            >
+              {state.theme.verseReferencePosition !== "bottom" && (
+                <div
+                  style={{
+                    opacity: 0.7,
+                    fontSize: "0.7em",
+                    marginBottom: 2,
+                  }}
+                >
+                  Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
+                </div>
+              )}
+
+              <div style={{ width: "100%" }}>
+                <div>Señor mi Dios</div>
+                <div>al contemplar los cielos</div>
+                <div>El firmamento</div>
+                <div>y las estrellas mil</div>
+              </div>
+
+              {state.theme.verseReferencePosition === "bottom" && (
+                <div
+                  style={{ opacity: 0.7, fontSize: "0.7em", marginTop: 2 }}
+                >
+                  Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ marginTop: "24px" }}>
+            <button
+              className="btn-primary large"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={handleSave}
+            >
+              <Save size={16} />{" "}
+              {saved ? "¡Estilos guardados!" : "Guardar todos los estilos"}
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+      <style>{FONDOS_STYLES}</style>
     </div>
   );
 }
