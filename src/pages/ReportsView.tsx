@@ -14,6 +14,7 @@ export default function ReportsView() {
   const [previewSong, setPreviewSong] = useState<Song | null>(null);
   const userRole = useAppStore(s => s.userRole);
   const setForceLanding = useAppStore(s => s.setForceLanding);
+  const openEditor = useAppStore(s => s.openEditor);
 
   const pendingSongs = useLiveQuery(async () => {
     const all = await db.songs.toArray();
@@ -538,7 +539,7 @@ export default function ReportsView() {
                   if (previewSong.id) {
                     setLoadingSongId(previewSong.id);
                     try {
-                      store.openEditor(previewSong);
+                      openEditor(previewSong);
                     } finally {
                       setLoadingSongId(null);
                     }
