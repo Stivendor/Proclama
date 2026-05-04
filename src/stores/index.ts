@@ -272,7 +272,7 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports'
+  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'
   setActiveView: (v: AppStore['activeView']) => void
 
   isEditorOpen: boolean;

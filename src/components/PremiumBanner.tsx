@@ -42,11 +42,11 @@ export default function PremiumBanner() {
             <div className="banner-content-rows">
               <div className="banner-row-primary">
                 <span className="premium-banner-text-highlight">
-                  Acceso Premium Gratuito
+                  Oferta de Lanzamiento
                 </span>
                 <span className="premium-banner-separator">•</span>
                 <span className="premium-banner-text-body">
-                  Todas las funciones desbloqueadas hasta el <strong>1 de junio, 2026</strong>
+                  Válido solo hasta el <strong>1 de junio, 2026</strong>
                 </span>
               </div>
               
@@ -54,12 +54,12 @@ export default function PremiumBanner() {
                 {isLoggedIn ? (
                   <span className="discount-msg success">
                     <Sparkles size={12} />
-                    ¡Sesión iniciada! Has asegurado tu <strong>descuento exclusivo</strong> para el futuro.
+                    ¡Felicidades! Al registrarte antes del 1 de junio, has asegurado tu cuenta <strong>Premium de por vida</strong>.
                   </span>
                 ) : (
                   <button className="discount-msg login-trigger" onClick={handleLoginRedirect}>
                     <ArrowRight size={12} />
-                    <span>Inicia sesión ahora y asegura un <strong>descuento exclusivo</strong> cuando finalice el periodo gratuito.</span>
+                    <span>Inicia sesión <strong>antes del 1 de junio</strong> y asegura tu cuenta <strong>Premium de por vida</strong>.</span>
                   </button>
                 )}
               </div>

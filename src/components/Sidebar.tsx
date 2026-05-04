@@ -1,4 +1,4 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
@@ -33,7 +33,8 @@ export default function Sidebar() {
     { id: 'notes', icon: ClipboardEdit, label: 'Notas' },
     { id: 'fondos', icon: Image, label: 'Fondos / Estilos' },
     { id: 'settings', icon: Settings, label: 'Ajustes' },
-    { id: 'reports', icon: ClipboardEdit, label: 'Reportes', adminOnly: true }
+    { id: 'reports', icon: ClipboardEdit, label: 'Reportes', adminOnly: true },
+    { id: 'admin-users', icon: Users, label: 'Usuarios', adminOnly: true }
   ] as const
 
   const userRole = useAppStore(s => s.userRole)

@@ -23,6 +23,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import ReportsView from "@/pages/ReportsView";
+import AdminUsersView from "@/pages/AdminUsersView";
 import PremiumBanner from "@/components/PremiumBanner";
 
 const IS_PROJECTION =
@@ -298,6 +299,7 @@ function MainApp() {
         {activeView === "terms" && <TermsView />}
         {activeView === "fondos" && <FondosView />}
         {activeView === "reports" && <ReportsView />}
+        {activeView === "admin-users" && <AdminUsersView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />
