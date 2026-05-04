@@ -121,7 +121,7 @@ export default function LandingView() {
     }
     if (!user?.id) {
       localStorage.setItem('pendingCheckout', 'true')
-      setShowAuth(true)
+      setLandingShowAuth(true)
       return
     }
     openCheckout({
