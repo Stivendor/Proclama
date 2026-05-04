@@ -8,6 +8,7 @@ import {
   FileText,
   ShieldCheck,
   X,
+  Loader2,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
