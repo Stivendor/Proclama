@@ -327,6 +327,9 @@ interface AppStore {
   setForceLanding: (v: boolean, section?: string | null) => void
   forceLandingSection: string | null
 
+  landingShowAuth: boolean
+  setLandingShowAuth: (v: boolean) => void
+
   recentSongs: Song[]
   addRecentSong: (song: Song) => void
   clearRecentSongs: () => void
@@ -484,6 +487,9 @@ export const useAppStore = create<AppStore>()(
       forceLanding: false,
       forceLandingSection: null,
       setForceLanding: (v, section) => set({ forceLanding: v, forceLandingSection: section ?? null }),
+
+      landingShowAuth: false,
+      setLandingShowAuth: (v) => set({ landingShowAuth: v }),
     }),
     {
       name: 'proclama-app',
