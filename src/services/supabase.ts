@@ -29,7 +29,7 @@ type SupabaseSongRow = {
 
 function mapRowToSong(row: SupabaseSongRow): Song {
   return {
-    id: row.id,
+    remoteId: row.id,
     userId: row.user_id ?? undefined,
     title: row.title,
     artist: row.artist ?? '',
@@ -75,11 +75,15 @@ export async function fetchSongs(): Promise<Song[]> {
   const step = 1000
 
   while (true) {
-    const query = supabase
-      .from('songs')
-      .select('*')
-      .or(`user_id.eq.${userId},is_public.eq.true`)
-      .range(from, from + step - 1)
+    let query = supabase.from('songs').select('*')
+
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},is_public.eq.true`)
+    } else {
+      query = query.eq('is_public', true)
+    }
+
+    query = query.range(from, from + step - 1)
       .order('created_at', { ascending: false })
 
     const { data, error } = await query
