@@ -4,6 +4,7 @@ import { useAppStore } from '@/stores'
 import { revokeDevice, registerDevice, fetchUserDevices } from '@/services/supabase'
 import { getDeviceId, getDeviceName } from '@/utils/deviceFingerprint'
 import { supabase } from '@/services/supabase'
+import { MAX_DEVICES_PREMIUM } from '@/constants/plans'
 
 export default function DeviceBlockedModal() {
   const { userDevices, setUserDevices, setDeviceBlocked, logout } = useAppStore()
@@ -18,7 +19,7 @@ export default function DeviceBlockedModal() {
       setUserDevices(updated)
       // Si ahora hay espacio, desbloquear y registrar este dispositivo
       const otherDevices = updated.filter(d => !d.isCurrent)
-      if (otherDevices.length < 2) {
+      if (otherDevices.length < MAX_DEVICES_PREMIUM) {
         setDeviceBlocked(false)
         await registerDevice(currentDeviceId, getDeviceName())
       }
@@ -45,7 +46,7 @@ export default function DeviceBlockedModal() {
           Límite de dispositivos alcanzado
         </h2>
         <p className="device-blocked-desc">
-          Tu cuenta Pro ya está activa en <strong>2 dispositivos</strong>. 
+          Tu cuenta Pro ya está activa en <strong>{MAX_DEVICES_PREMIUM} dispositivos</strong>. 
           Para usar Proclama en este equipo, revoca el acceso de uno de los dispositivos actuales.
         </p>
 
