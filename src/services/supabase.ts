@@ -654,12 +654,11 @@ export async function createSongReport(songId: number, reason: string, details: 
 }
 
 export type SongReport = {
-  id: number;
+  id: string;
   song_id: number;
   user_id: string | null;
   reason: string;
   details: string;
-  status: string;
   created_at: string;
   songs?: {
     title: string;
@@ -674,7 +673,7 @@ export async function fetchSongReports(): Promise<SongReport[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching song reports:', error.message);
+    console.error('Error fetching song reports:', error);
     return [];
   }
   return data as unknown as SongReport[];

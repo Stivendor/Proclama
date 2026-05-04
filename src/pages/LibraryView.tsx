@@ -219,7 +219,11 @@ export default function LibraryView() {
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
-      await updateSongRemote(song.id, { usageCount: newUsage })
+      try {
+        await updateSongRemote(song.id, { usageCount: newUsage })
+      } catch (err) {
+        console.warn('Could not update remote usage count (likely RLS):', err)
+      }
       await db.songs.update(song.id, { usageCount: newUsage })
     }
   }
