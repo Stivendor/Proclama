@@ -13,18 +13,15 @@ export async function getPendingRecords(userId: string): Promise<AttendanceRecor
     .where('userId')
     .equals(userId)
     .toArray()
-  return all.filter(r => !r.remoteId)
+  return all.filter(r => !r.remoteId || !r.lastSyncedAt || r.lastSyncedAt < r.updatedAt)
 }
 
 /**
  * Retorna la cantidad de registros pendientes de sincronizar.
  */
 export async function getPendingCount(userId: string): Promise<number> {
-  const all = await db.attendance_records
-    .where('userId')
-    .equals(userId)
-    .toArray()
-  return all.filter(r => !r.remoteId).length
+  const pending = await getPendingRecords(userId)
+  return pending.length
 }
 
 // ─── Sync ─────────────────────────────────────────────────────────────────────
@@ -37,9 +34,10 @@ export async function getPendingCount(userId: string): Promise<number> {
  * @returns `{ synced, failed }` con los conteos de resultados.
  */
 export async function syncAttendanceRecords(
-  userId: string
+  userId: string,
+  specificRecord?: AttendanceRecord
 ): Promise<{ synced: number; failed: number }> {
-  const pending = await getPendingRecords(userId)
+  const pending = specificRecord ? [specificRecord] : await getPendingRecords(userId)
   if (pending.length === 0) return { synced: 0, failed: 0 }
 
   let synced = 0
@@ -63,7 +61,7 @@ export async function syncAttendanceRecords(
         ? record.categoryNames
         : ['Caballeros', 'Damas', 'Amigos', 'Niños'].slice(0, values.length)
 
-      const payload = {
+      const payload: any = {
         user_id: userId,
         date: record.date,
         service_name: record.serviceName || '',
@@ -72,12 +70,21 @@ export async function syncAttendanceRecords(
         created_at: record.createdAt,
         updated_at: record.updatedAt,
       }
+      
+      // Si ya tiene ID remoto, lo usamos para asegurar que se actualice el mismo registro
+      // incluso si cambia el service_name u otros campos de la clave única.
+      const upsertOptions: { onConflict: string } = {
+        onConflict: 'user_id,date,service_name'
+      }
+
+      if (record.remoteId) {
+        payload.id = record.remoteId
+        upsertOptions.onConflict = 'id'
+      }
 
       const { data, error } = await supabase
         .from('attendance_records')
-        .upsert(payload, {
-          onConflict: 'user_id,date,service_name',
-        })
+        .upsert(payload, upsertOptions)
         .select('id')
         .single()
 
@@ -89,7 +96,10 @@ export async function syncAttendanceRecords(
 
       // Marcar como sincronizado en Dexie
       if (data?.id && record.id != null) {
-        await db.attendance_records.update(record.id, { remoteId: data.id })
+        await db.attendance_records.update(record.id, { 
+          remoteId: data.id,
+          lastSyncedAt: new Date().toISOString()
+        })
         synced++
       }
     } catch (err) {
@@ -233,5 +243,37 @@ export async function migrateGuestRecords(realUserId: string): Promise<number> {
 
   console.log(`[AttendanceSync] Migrated ${migrated} guest attendance records + ${guestNotes.length} notes to user ${realUserId}`)
   return migrated
+}
+
+/**
+ * Elimina un registro de Supabase.
+ */
+export async function deleteRemoteRecord(remoteId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('attendance_records')
+    .delete()
+    .eq('id', remoteId)
+
+  if (error) {
+    console.error('[AttendanceSync] Error deleting remote record:', error.message)
+    return false
+  }
+  return true
+}
+
+/**
+ * Elimina todos los registros de un usuario en Supabase.
+ */
+export async function deleteRemoteHistory(userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('attendance_records')
+    .delete()
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('[AttendanceSync] Error deleting remote history:', error.message)
+    return false
+  }
+  return true
 }
 

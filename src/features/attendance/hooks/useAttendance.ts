@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
+import { useAppStore } from '@/stores'
 import type { AttendanceRecord } from '@/types'
 import { todayISO, validateAttendance, parseField } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
@@ -9,6 +10,7 @@ import { useAttendanceRealtime } from './useAttendanceRealtime'
 
 export function useAttendance(userId: string) {
   const [selectedDate, setSelectedDate] = useState<string>(todayISO())
+  const [selectedServiceName, setSelectedServiceName] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
   const { isPremium } = usePlan()
 
@@ -17,13 +19,23 @@ export function useAttendance(userId: string) {
 
   const attendanceRecord = useLiveQuery(
     async () => {
+      if (selectedServiceName !== undefined) {
+        // Buscar el registro específico por nombre
+        return db.attendance_records.where({ 
+          date: selectedDate, 
+          userId, 
+          serviceName: selectedServiceName || undefined 
+        }).first()
+      }
+      
+      // Comportamiento por defecto: el más reciente del día
       const rows = await db.attendance_records.where({ date: selectedDate, userId }).toArray()
       if (rows.length === 0) return undefined
       return rows.reduce((a, b) =>
         new Date(a.updatedAt) >= new Date(b.updatedAt) ? a : b
       )
     },
-    [selectedDate, userId]
+    [selectedDate, userId, selectedServiceName]
   )
 
   const allAttendanceRows = useLiveQuery(
@@ -64,6 +76,14 @@ export function useAttendance(userId: string) {
     }
     
     await db.attendance_records.put(row)
+    
+    // Trigger background sync if premium
+    if (isPremium) {
+      import('@/services/attendanceSync').then(({ syncAttendanceRecords }) => {
+        syncAttendanceRecords(userId, row).catch(console.warn)
+      })
+    }
+    
     return true
   }
 
@@ -71,17 +91,40 @@ export function useAttendance(userId: string) {
     if (r.id) {
       await db.attendance_records.delete(r.id)
     } else {
-      await db.attendance_records.where({ date: r.date, userId: r.userId }).delete()
+      await db.attendance_records.where({ 
+        date: r.date, 
+        userId: r.userId,
+        serviceName: r.serviceName || undefined
+      }).delete()
+    }
+    
+    // Remote sync deletion
+    if (r.remoteId && (useAppStore.getState().userPlan === 'premium' || useAppStore.getState().userRole === 'admin')) {
+      import('@/services/attendanceSync').then(({ deleteRemoteRecord }) => {
+        if (r.remoteId) deleteRemoteRecord(r.remoteId).catch(console.warn)
+      })
     }
   }
 
   async function deleteHistory() {
     await db.attendance_records.where('userId').equals(userId).delete()
+    
+    // Remote sync deletion
+    if (useAppStore.getState().userPlan === 'premium' || useAppStore.getState().userRole === 'admin') {
+      import('@/services/attendanceSync').then(({ deleteRemoteHistory }) => {
+        deleteRemoteHistory(userId).catch(console.warn)
+      })
+    }
   }
 
   return {
     selectedDate,
-    setSelectedDate,
+    setSelectedDate: (date: string) => {
+      setSelectedDate(date)
+      setSelectedServiceName(undefined) // Al cambiar fecha manualmente, resetear selección de servicio
+    },
+    selectedServiceName,
+    setSelectedServiceName,
     attendanceRecord,
     historyRecords,
     isLoading,

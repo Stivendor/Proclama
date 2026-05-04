@@ -25,6 +25,7 @@ import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import ReportsView from "@/pages/ReportsView";
 import AdminUsersView from "@/pages/AdminUsersView";
 import PremiumBanner from "@/components/PremiumBanner";
+import TermsModal from "@/components/TermsModal";
 
 const IS_PROJECTION =
   typeof window !== "undefined" &&
@@ -52,6 +53,8 @@ function AppContent() {
     forceLanding,
     onboardingDone,
     deviceBlocked,
+    acceptTerms,
+    checkTermsVersion
   } = useAppStore(
     useShallow((s) => ({
       setUser: s.setUser,
@@ -63,8 +66,12 @@ function AppContent() {
       forceLanding: s.forceLanding,
       onboardingDone: s.onboardingDone,
       deviceBlocked: s.deviceBlocked,
+      acceptTerms: s.acceptTerms,
+      checkTermsVersion: s.checkTermsVersion
     })),
   );
+
+  const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false);
 
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);
@@ -81,12 +88,13 @@ function AppContent() {
         setUserRole(profile.role);
         setUserPlan(profile.plan);
 
-        // Bidirectional attendance sync for premium users:
-        // 1) Pull remote → local (download records from other devices)
-        // 2) Push local → remote (upload pending records)
+        // 1) Migrar registros de guest si existen
+        // 2) Pull remote → local (download records from other devices)
+        // 3) Push local → remote (upload pending records)
         if (profile.plan === "premium" || profile.role === "admin") {
-          import("@/services/attendanceSync").then(async ({ pullRemoteRecords, syncAttendanceRecords }) => {
+          import("@/services/attendanceSync").then(async ({ pullRemoteRecords, syncAttendanceRecords, migrateGuestRecords }) => {
             try {
+              await migrateGuestRecords(userId);
               await pullRemoteRecords(userId);
               await syncAttendanceRecords(userId);
             } catch {}
@@ -101,11 +109,24 @@ function AppContent() {
       try {
         const { getDeviceId, getDeviceName } = await import('@/utils/deviceFingerprint');
         const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
+        const { MAX_DEVICES_PREMIUM } = await import('@/constants/plans');
         const deviceId = getDeviceId();
         const deviceName = getDeviceName();
-        // Siempre registrar el dispositivo y permitir el acceso
-        const devices = await registerDevice(deviceId, deviceName);
-        useAppStore.getState().setUserDevices(devices);
+        
+        // 1. Obtener dispositivos actuales
+        const devices = await fetchUserDevices(deviceId);
+        const isAlreadyRegistered = devices.some(d => d.deviceId === deviceId);
+        
+        // 2. Si no está registrado y ya hay el máximo permitido o más, bloquear
+        if (!isAlreadyRegistered && devices.length >= MAX_DEVICES_PREMIUM) {
+          useAppStore.getState().setUserDevices(devices);
+          useAppStore.getState().setDeviceBlocked(true);
+          return;
+        }
+
+        // 3. Registrar/Actualizar y permitir
+        const updatedDevices = await registerDevice(deviceId, deviceName);
+        useAppStore.getState().setUserDevices(updatedDevices);
         useAppStore.getState().setDeviceBlocked(false);
       } catch (err) {
         console.warn('Device check failed:', err);
@@ -197,7 +218,7 @@ function AppContent() {
               }
 
               if (useAppStore.getState().checkTermsVersion()) {
-                useAppStore.getState().setActiveView("terms");
+                setShowTermsUpdateModal(true);
                 return;
               }
               
@@ -260,6 +281,18 @@ function AppContent() {
     <div className="app-main-wrapper">
       <PremiumBanner />
       <MainApp />
+      
+      {showTermsUpdateModal && (
+        <TermsModal
+          mode="required"
+          onAccept={async () => {
+            const { CURRENT_TERMS_VERSION } = await import('@/constants/terms');
+            await acceptTerms(CURRENT_TERMS_VERSION);
+            setShowTermsUpdateModal(false);
+          }}
+          onClose={() => setShowTermsUpdateModal(false)}
+        />
+      )}
     </div>
   );
 }

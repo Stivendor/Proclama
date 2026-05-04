@@ -642,6 +642,22 @@ export async function revokeDevice(deviceRowId: string): Promise<boolean> {
   return true
 }
 
+/**
+ * Actualiza el nombre de un dispositivo.
+ */
+export async function updateDeviceName(deviceRowId: string, newName: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('user_devices')
+    .update({ device_name: newName })
+    .eq('id', deviceRowId)
+
+  if (error) {
+    console.error('[Devices] Error updating device name:', error.message)
+    return false
+  }
+  return true
+}
+
 export async function createSongReport(songId: number, reason: string, details: string, userId: string | null): Promise<boolean> {
   const { error } = await supabase.from('song_reports').insert({
     song_id: songId,
