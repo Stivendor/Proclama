@@ -272,11 +272,15 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports'
+  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports'
   setActiveView: (v: AppStore['activeView']) => void
 
-  editingSong: Song | null
-  setEditingSong: (s: Song | null) => void
+  isEditorOpen: boolean;
+  setEditorOpen: (o: boolean) => void;
+  editingSong: Song | null;
+  setEditingSong: (s: Song | null) => void;
+  openEditor: (song?: Song | null) => void;
+  closeEditor: () => void;
 
   activeSetlist: Setlist | null
   setActiveSetlist: (s: Setlist | null) => void
@@ -392,8 +396,12 @@ export const useAppStore = create<AppStore>()(
       }),
       clearRecentSongs: () => set({ recentSongs: [] }),
 
+      isEditorOpen: false,
+      setEditorOpen: (o) => set({ isEditorOpen: o }),
       editingSong: null,
       setEditingSong: (s) => set({ editingSong: s }),
+      openEditor: (song) => set({ editingSong: song ?? null, isEditorOpen: true }),
+      closeEditor: () => set({ editingSong: null, isEditorOpen: false }),
 
       activeSetlist: null,
       setActiveSetlist: (s) => set({ activeSetlist: s }),

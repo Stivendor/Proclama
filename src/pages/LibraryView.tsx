@@ -13,9 +13,9 @@ import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/LiveSelection'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
-    searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery, setActiveView: s.setActiveView, 
-    setEditingSong: s.setEditingSong, user: s.user, userRole: s.userRole, 
+  const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
+    searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery,
+    openEditor: s.openEditor, user: s.user, userRole: s.userRole, 
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar,
     authStatus: s.authStatus,
     recentSongs: s.recentSongs,
@@ -189,8 +189,7 @@ export default function LibraryView() {
   }) ?? []
 
   const handleEdit = (song: Song) => {
-    setEditingSong(song)
-    setActiveView('editor')
+    openEditor(song)
   }
 
   const handleDelete = async (song: Song) => {
@@ -290,7 +289,7 @@ export default function LibraryView() {
           </button>
           <button
             className="btn-primary"
-            onClick={() => { if (canCreateSong(ownSongCount)) { setEditingSong(null); setActiveView('editor') } }}
+            onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
             disabled={!canCreateSong(ownSongCount)}
             aria-label="Crear nueva canción"
             title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
@@ -360,7 +359,7 @@ export default function LibraryView() {
                 <h3>Tu biblioteca está vacía</h3>
                 <p>Agrega canciones manualmente o búscalas en nuestra base de datos online.</p>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
+                  <button className="btn-primary" onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}>
                     <Plus size={16} /> Crear canción
                   </button>
                   <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>

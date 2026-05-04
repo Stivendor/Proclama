@@ -81,10 +81,9 @@ const SortableSongItem = memo(function SortableSongItem({
 
 export default function SetlistsView() {
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { setActiveSetlist, setActiveView, setEditingSong, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
+  const { setActiveSetlist, openEditor, user, isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
     setActiveSetlist: s.setActiveSetlist,
-    setActiveView: s.setActiveView,
-    setEditingSong: s.setEditingSong,
+    openEditor: s.openEditor,
     user: s.user,
     isSidebarOpen: s.isSidebarOpen,
     toggleSidebar: s.toggleSidebar,
@@ -412,7 +411,7 @@ export default function SetlistsView() {
                               isBlocked={!!isBlocked}
                               onRemove={() => removeSongFromSetlist(id)}
                               onActivate={(s) => loadSong(s)}
-                              onEdit={(s) => { setEditingSong(s); setActiveView('editor') }}
+                              onEdit={(s) => openEditor(s)}
                               onBlocked={() => setBlockedMessage("Esta canción requiere el Plan Pro para ser proyectada.")}
                             />
                           )
