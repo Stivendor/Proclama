@@ -13,9 +13,9 @@ import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/LiveSelection'
 
 export default function LibraryView() {
-  const { searchQuery, setSearchQuery, setActiveView, setEditingSong, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
-    searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery, setActiveView: s.setActiveView, 
-    setEditingSong: s.setEditingSong, user: s.user, userRole: s.userRole, 
+  const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
+    searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery,
+    openEditor: s.openEditor, user: s.user, userRole: s.userRole, 
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar,
     authStatus: s.authStatus,
     recentSongs: s.recentSongs,
@@ -94,15 +94,105 @@ export default function LibraryView() {
       setLoadingRemote(true)
       setRemoteError(null)
       try {
-        const remoteSongs = await fetchSongs()
+        // Smart Sync: Merge remote songs into local Dexie optimized with Aggressive Deduplication & Retries
+        const fetchWithRetry = async (retries = 3, delay = 1000): Promise<Song[]> => {
+          try {
+            const songs = await fetchSongs()
+            // Si no hay canciones y no somos guests, podría ser un error de carga de sesión, reintentamos
+            if (songs.length === 0 && user && retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, delay))
+              return fetchWithRetry(retries - 1, delay * 2)
+            }
+            return songs
+          } catch (err) {
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, delay))
+              return fetchWithRetry(retries - 1, delay * 2)
+            }
+            throw err
+          }
+        }
+
+        const allRemoteSongs = await fetchWithRetry()
         if (cancelled) return
 
-        // Operación atómica: limpiar y reemplazar en una sola transacción
-        // Esto evita que useLiveQuery vea el estado intermedio (tabla vacía) y crashee con DexieError2
+        // --- PASO 0: Deduplicar la lista remota (por si hay basura en la nube) ---
+        const uniqueRemoteMap = new Map<string, Song>()
+        for (const rs of allRemoteSongs) {
+          const key = `${rs.title.toLowerCase().trim()}|${(rs.artist || '').toLowerCase().trim()}`
+          // Si ya existe, nos quedamos con la que tenga más uso o sea más nueva
+          if (uniqueRemoteMap.has(key)) {
+            const existing = uniqueRemoteMap.get(key)!
+            if ((rs.usageCount || 0) > (existing.usageCount || 0)) {
+              uniqueRemoteMap.set(key, rs)
+            }
+          } else {
+            uniqueRemoteMap.set(key, rs)
+          }
+        }
+        const remoteSongs = Array.from(uniqueRemoteMap.values())
+
+        const localSongs = await db.songs.toArray()
+        
+        // --- PASO 1: Limpieza de duplicados locales existentes ---
+        const uniqueLocal = new Map<string, Song>()
+        const duplicatesToDelete: number[] = []
+
+        for (const s of localSongs) {
+          const key = `${s.title.toLowerCase().trim()}|${(s.artist || '').toLowerCase().trim()}`
+          if (uniqueLocal.has(key)) {
+            const existing = uniqueLocal.get(key)!
+            // Criterio para decidir cuál borrar: preferimos la que tenga remoteId
+            if (!existing.remoteId && s.remoteId) {
+              duplicatesToDelete.push(existing.id!)
+              uniqueLocal.set(key, s)
+            } else {
+              duplicatesToDelete.push(s.id!)
+            }
+          } else {
+            uniqueLocal.set(key, s)
+          }
+        }
+
+        // --- PASO 2: Procesar canciones remotas y fusionar ---
+        const localByRemoteId = new Map(
+          Array.from(uniqueLocal.values()).filter(s => s.remoteId).map(s => [s.remoteId, s])
+        )
+        const localByTitleArtist = new Map(
+          Array.from(uniqueLocal.values()).filter(s => !s.remoteId).map(s => [`${s.title.toLowerCase().trim()}|${(s.artist || '').toLowerCase().trim()}`, s])
+        )
+
         await db.transaction('rw', db.songs, async () => {
-          await db.songs.clear()
-          if (remoteSongs.length > 0) {
-            await db.songs.bulkPut(remoteSongs)
+          // Eliminar duplicados identificados en el paso 1
+          if (duplicatesToDelete.length > 0) {
+            await db.songs.bulkDelete(duplicatesToDelete)
+          }
+
+          const toAdd: Song[] = []
+          const toUpdate: { id: number, changes: Partial<Song> }[] = []
+
+          for (const rs of remoteSongs) {
+            let existing = localByRemoteId.get(rs.remoteId)
+            
+            if (!existing) {
+              const key = `${rs.title.toLowerCase().trim()}|${(rs.artist || '').toLowerCase().trim()}`
+              existing = localByTitleArtist.get(key)
+              
+              if (existing) {
+                toUpdate.push({ id: existing.id!, changes: { remoteId: rs.remoteId } })
+              }
+            }
+
+            if (!existing) {
+              toAdd.push(rs)
+            } else if (rs.userId === user?.id || userRole === 'admin') {
+              toUpdate.push({ id: existing.id!, changes: rs })
+            }
+          }
+
+          if (toAdd.length > 0) await db.songs.bulkAdd(toAdd)
+          for (const item of toUpdate) {
+            await db.songs.update(item.id, item.changes)
           }
         })
       } catch (err) {
@@ -189,8 +279,7 @@ export default function LibraryView() {
   }) ?? []
 
   const handleEdit = (song: Song) => {
-    setEditingSong(song)
-    setActiveView('editor')
+    openEditor(song)
   }
 
   const handleDelete = async (song: Song) => {
@@ -202,7 +291,9 @@ export default function LibraryView() {
     if (!song) return
     setConfirmDelete(null)
     if (song.id != null) {
-      await deleteSongRemote(song.id)
+      if (song.remoteId && (song.userId === user?.id || userRole === 'admin')) {
+        await deleteSongRemote(song.remoteId)
+      }
       await db.songs.delete(song.id)
     }
   }
@@ -219,7 +310,11 @@ export default function LibraryView() {
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
-      await updateSongRemote(song.id, { usageCount: newUsage })
+      try {
+        if (song.remoteId) await updateSongRemote(song.remoteId, { usageCount: newUsage })
+      } catch (err) {
+        console.warn('Could not update remote usage count (likely RLS):', err)
+      }
       await db.songs.update(song.id, { usageCount: newUsage })
     }
   }
@@ -286,7 +381,7 @@ export default function LibraryView() {
           </button>
           <button
             className="btn-primary"
-            onClick={() => { if (canCreateSong(ownSongCount)) { setEditingSong(null); setActiveView('editor') } }}
+            onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
             disabled={!canCreateSong(ownSongCount)}
             aria-label="Crear nueva canción"
             title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
@@ -356,7 +451,7 @@ export default function LibraryView() {
                 <h3>Tu biblioteca está vacía</h3>
                 <p>Agrega canciones manualmente o búscalas en nuestra base de datos online.</p>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button className="btn-primary" onClick={() => { setEditingSong(null); setActiveView('editor') }}>
+                  <button className="btn-primary" onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}>
                     <Plus size={16} /> Crear canción
                   </button>
                   <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
@@ -453,7 +548,7 @@ const SongListItem = memo(function SongListItem({
   onBlocked?: () => void
 }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
-  const { user, userRole } = useAppStore(useShallow(s => ({ user: s.user, userRole: s.userRole })))
+  const { user, userRole, guestMode } = useAppStore(useShallow(s => ({ user: s.user, userRole: s.userRole, guestMode: s.guestMode })))
   const isActive = activeTitle === song.title
 
   const handleClick = () => {
@@ -488,13 +583,13 @@ const SongListItem = memo(function SongListItem({
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
       <div className="song-card-actions-mini">
-        {(userRole === 'admin' || user?.id === song.userId) && (
+        {(song.isPublic || user?.id === song.userId || userRole === 'admin') && (
           <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
             <Edit2 size={12} />
           </button>
         )}
         
-        {userRole === 'admin' && (
+        {(userRole === 'admin' || user?.id === song.userId) && (
           <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar permanentemente">
             <Trash2 size={12} />
           </button>

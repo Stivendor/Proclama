@@ -14,6 +14,7 @@ export default function ReportsView() {
   const [previewSong, setPreviewSong] = useState<Song | null>(null);
   const userRole = useAppStore(s => s.userRole);
   const setForceLanding = useAppStore(s => s.setForceLanding);
+  const openEditor = useAppStore(s => s.openEditor);
 
   const pendingSongs = useLiveQuery(async () => {
     const all = await db.songs.toArray();
@@ -34,7 +35,7 @@ export default function ReportsView() {
       // Usamos un timeout de 5 segundos máximo para evitar que se quede "Cargando..." si Supabase falla silenciosamente
       let timeoutId: any;
       const timeoutPromise = new Promise<SongReport[]>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error('Timeout fetching reports')), 5000);
+        timeoutId = setTimeout(() => reject(new Error('Timeout fetching reports (10s)')), 10000);
       });
       
       try {
@@ -55,7 +56,7 @@ export default function ReportsView() {
     }
   };
 
-  const deleteReport = async (reportId: number) => {
+  const deleteReport = async (reportId: string) => {
     try {
       const { error, count } = await supabase
         .from('song_reports')
@@ -191,17 +192,31 @@ export default function ReportsView() {
 
       {activeTab === 'reports' ? (
         reports.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-          <CheckCircle size={48} style={{ margin: '0 auto 1rem', color: 'var(--text-muted)' }} />
-          <h3 style={{ fontSize: '18px', marginBottom: '0.5rem' }}>Todo al día</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>No hay reportes pendientes de revisión.</p>
-        </div>
-      ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
-          gap: '1.5rem' 
-        }}>
+          <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <AlertCircle size={48} style={{ color: 'var(--blue)', marginBottom: '1rem', opacity: 0.5 }} />
+            <h3 style={{ margin: '0 0 0.5rem 0' }}>Todo al día</h3>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No hay reportes de canciones pendientes.</p>
+            <button 
+              onClick={loadReports}
+              style={{ 
+                marginTop: '1.5rem', 
+                padding: '0.5rem 1rem', 
+                background: 'var(--blue)', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px', 
+                cursor: 'pointer' 
+              }}
+            >
+              Actualizar ahora
+            </button>
+          </div>
+        ) : (
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+            gap: '1.5rem' 
+          }}>
           {reports.map((report) => (
             <div 
               key={report.id} 
@@ -291,8 +306,7 @@ export default function ReportsView() {
                       const store = useAppStore.getState();
                       const song = await fetchSongById(report.song_id);
                       if (song) {
-                        store.setEditingSong(song);
-                        store.setActiveView('editor');
+                        store.openEditor(song);
                       } else {
                         alert('No se pudo encontrar la canción. Puede que haya sido eliminada.');
                       }
@@ -525,9 +539,7 @@ export default function ReportsView() {
                   if (previewSong.id) {
                     setLoadingSongId(previewSong.id);
                     try {
-                      const store = useAppStore.getState();
-                      store.setEditingSong(previewSong);
-                      store.setActiveView('editor');
+                      openEditor(previewSong);
                     } finally {
                       setLoadingSongId(null);
                     }
