@@ -4,7 +4,7 @@ import type { AttendanceRecord } from '@/types'
  * Retorna una clave única para identificar un registro por fecha y usuario.
  */
 export function attendanceRowKey(r: AttendanceRecord): string {
-  return `${r.date}_${r.userId}`
+  return `${r.date}_${r.userId}_${r.serviceName || ''}`
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Cloud, CloudOff } from 'lucide-react'
 import type { AttendanceRecord } from '@/types'
 import { formatDate, totalAttendance, resolveValues } from '../utils/validation'
 import { attendanceRowKey } from '../utils/dedup'
@@ -7,7 +7,7 @@ import { attendanceRowKey } from '../utils/dedup'
 interface AttendanceHistoryProps {
   records: AttendanceRecord[]
   categories: string[]
-  onEdit: (date: string) => void
+  onEdit: (date: string, serviceName?: string) => void
   onDelete: (r: AttendanceRecord) => void
 }
 
@@ -143,6 +143,7 @@ export default function AttendanceHistory({ records, categories, onEdit, onDelet
                 <th key={idx} style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>{cat}</th>
               ))}
               <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>Total</th>
+              <th style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>Estado</th>
               <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>Acciones</th>
             </tr>
           </thead>
@@ -166,9 +167,16 @@ export default function AttendanceHistory({ records, categories, onEdit, onDelet
                   <td style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 700, color: 'var(--gold)' }}>
                     {total}
                   </td>
+                  <td style={{ padding: '12px 8px', textAlign: 'center' }}>
+                    {r.remoteId && r.lastSyncedAt && r.lastSyncedAt >= r.updatedAt ? (
+                      <span title="Sincronizado"><Cloud size={14} color="var(--green)" /></span>
+                    ) : (
+                      <span title="Pendiente de sincronizar"><CloudOff size={14} color="var(--text-muted)" /></span>
+                    )}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
-                      <button className="btn-icon" style={{ padding: 6 }} onClick={() => onEdit(r.date)} title="Editar">
+                      <button className="btn-icon" style={{ padding: 6 }} onClick={() => onEdit(r.date, r.serviceName)} title="Editar">
                         <Pencil size={14} />
                       </button>
                       <button className="btn-icon" style={{ padding: 6, color: 'var(--red)' }} onClick={() => onDelete(r)} title="Eliminar">

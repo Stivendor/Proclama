@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock, X, FileText
+  Check, Tv2, BarChart2, Download, Lock, X, FileText, RefreshCw
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, openProjectionWindow } from '@/services/projection'
+import { syncAttendanceRecords, getPendingCount } from '@/services/attendanceSync'
 import type { ChurchNote, Notice } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
@@ -37,8 +38,10 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
 
 export default function NotesView() {
   const { canExportReports } = usePlan()
-  const { user, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({ 
+  const { user, userPlan, userRole, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({ 
     user: s.user, 
+    userPlan: s.userPlan,
+    userRole: s.userRole,
     settings: s.settings, 
     updateSettings: s.updateSettings,
     fetchCloudSettings: s.fetchCloudSettings
@@ -65,7 +68,8 @@ export default function NotesView() {
     setError: setAttError,
     saveAttendance,
     deleteRecord,
-    deleteHistory
+    deleteHistory,
+    setSelectedServiceName
   } = useAttendance(userId)
 
   const [showDashboard, setShowDashboard] = useState(false)
@@ -105,6 +109,25 @@ export default function NotesView() {
   const [editingText, setEditingText] = useState('')
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const pendingSyncCount = useLiveQuery(
+    async () => {
+      if (!user?.id) return 0
+      return getPendingCount(user.id)
+    },
+    [user?.id]
+  )
+
+  const handleManualSync = async () => {
+    if (!user?.id || isSyncing) return
+    setIsSyncing(true)
+    try {
+      await syncAttendanceRecords(user.id)
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
@@ -252,6 +275,30 @@ export default function NotesView() {
             <BarChart2 size={15} />
             Historial
           </button>
+          
+          {user && (userPlan === 'premium' || userRole === 'admin') && (
+            <button
+              className={`btn-ghost${isSyncing ? ' loading' : ''}`}
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              style={{ position: 'relative' }}
+              title="Sincronizar ahora"
+            >
+              <RefreshCw size={15} className={isSyncing ? 'spin' : ''} />
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+              {pendingSyncCount ? (
+                <span style={{
+                  position: 'absolute', top: -5, right: -5,
+                  background: 'var(--red)', color: 'white',
+                  fontSize: 10, padding: '2px 5px', borderRadius: 10,
+                  fontWeight: 700, minWidth: 16, textAlign: 'center'
+                }}>
+                  {pendingSyncCount}
+                </span>
+              ) : null}
+            </button>
+          )}
+
           <input
             type="date"
             className="input"
@@ -367,8 +414,9 @@ export default function NotesView() {
             <AttendanceHistory
               records={historyRecords}
               categories={attendanceCategories}
-              onEdit={(date) => {
+              onEdit={(date, serviceName) => {
                 setSelectedDate(date)
+                setSelectedServiceName(serviceName)
                 setShowDashboard(false)
               }}
               onDelete={async (r) => {

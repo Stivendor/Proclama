@@ -221,6 +221,7 @@ export interface AttendanceRecord {
   ninos?: number
   createdAt: string
   updatedAt: string
+  lastSyncedAt?: string
 }
 
 export interface ChurchNote {
