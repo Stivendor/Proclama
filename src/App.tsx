@@ -8,7 +8,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { onMessage } from "@/services/projection";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
-import SongEditor from "@/pages/SongEditor";
+import SongEditorModal from "@/components/SongEditorModal";
 import SetlistsView from "@/pages/SetlistsView";
 import SettingsView from "@/pages/SettingsView";
 import ControlPanel from "@/components/ControlPanel";
@@ -275,10 +275,10 @@ function MainApp() {
   return (
     <div className={`app-shell ${!isSidebarOpen ? "sidebar-hidden" : ""}`}>
       {!onboardingDone && <OnboardingFlow />}
+      <SongEditorModal />
       <Sidebar />
       <main className="main-content">
         {activeView === "library" && <LibraryView />}
-        {activeView === "editor" && <SongEditor />}
         {activeView === "setlists" && <SetlistsView />}
         {activeView === "settings" && <SettingsView />}
         {activeView === "bible" && <BibleView />}

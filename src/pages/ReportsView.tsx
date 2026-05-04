@@ -305,8 +305,7 @@ export default function ReportsView() {
                       const store = useAppStore.getState();
                       const song = await fetchSongById(report.song_id);
                       if (song) {
-                        store.setEditingSong(song);
-                        store.setActiveView('editor');
+                        store.openEditor(song);
                       } else {
                         alert('No se pudo encontrar la canción. Puede que haya sido eliminada.');
                       }
@@ -539,9 +538,7 @@ export default function ReportsView() {
                   if (previewSong.id) {
                     setLoadingSongId(previewSong.id);
                     try {
-                      const store = useAppStore.getState();
-                      store.setEditingSong(previewSong);
-                      store.setActiveView('editor');
+                      store.openEditor(previewSong);
                     } finally {
                       setLoadingSongId(null);
                     }
