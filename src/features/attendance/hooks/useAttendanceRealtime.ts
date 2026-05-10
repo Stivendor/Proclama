@@ -1,11 +1,9 @@
 import { useEffect } from 'react'
 import { supabase } from '@/services/supabase'
 import { db } from '@/db'
-import type { AttendanceRecord } from '@/types'
 
 export function useAttendanceRealtime(userId: string, isPremium: boolean) {
   useEffect(() => {
-    // Solo suscribirse si el usuario tiene plan premium
     if (!userId || !isPremium) return
 
     const channel = supabase
@@ -13,37 +11,66 @@ export function useAttendanceRealtime(userId: string, isPremium: boolean) {
       .on(
         'postgres_changes',
         {
-          event: '*', // INSERT, UPDATE, DELETE
+          event: '*',
           schema: 'public',
           table: 'attendance_records',
           filter: `user_id=eq.${userId}`
         },
         async (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const remoteRecord = payload.new as any
-            
-            // Adaptar el registro remoto al modelo local de Dexie (AttendanceRecord)
-            const localRecord: AttendanceRecord = {
-              id: remoteRecord.id,
-              userId: remoteRecord.user_id,
-              date: remoteRecord.date,
-              // Supabase column is `category_values`, local Dexie is `values`
-              values: remoteRecord.category_values || [],
-              caballeros: remoteRecord.category_values?.[0] || 0,
-              damas: remoteRecord.category_values?.[1] || 0,
-              amigos: remoteRecord.category_values?.[2] || 0,
-              ninos: remoteRecord.category_values?.[3] || 0,
-              serviceName: remoteRecord.service_name || undefined,
-              createdAt: remoteRecord.created_at,
-              updatedAt: remoteRecord.updated_at,
+            const r = payload.new as any
+
+            // Try to find existing local record by remoteId
+            let local = await db.attendance_records
+              .where('remoteId')
+              .equals(r.id)
+              .first()
+
+            if (!local) {
+              // Fallback: find by (userId, date, serviceName) — covers race where
+              // sync hasn't set remoteId yet when Realtime fires
+              local = await db.attendance_records
+                .where({ userId: r.user_id, date: r.date })
+                .filter(l => (l.serviceName || '') === (r.service_name || ''))
+                .first()
             }
-            
-            // Actualizar Dexie
-            await db.attendance_records.put(localRecord)
+
+            const updateData = {
+              userId: r.user_id,
+              date: r.date,
+              values: r.category_values || [],
+              categoryNames: r.category_names || [],
+              caballeros: r.category_values?.[0] || 0,
+              damas: r.category_values?.[1] || 0,
+              amigos: r.category_values?.[2] || 0,
+              ninos: r.category_values?.[3] || 0,
+              serviceName: r.service_name || undefined,
+              createdAt: r.created_at,
+              updatedAt: r.updated_at,
+            }
+
+            if (local?.id != null) {
+              await db.attendance_records.update(local.id, {
+                ...updateData,
+                remoteId: r.id,
+              })
+            } else {
+              await db.attendance_records.add({
+                ...updateData,
+                remoteId: r.id,
+              })
+            }
           } else if (payload.eventType === 'DELETE') {
-            const deletedRecord = payload.old as any
-            if (deletedRecord.id) {
-              await db.attendance_records.delete(deletedRecord.id)
+            const deletedId = (payload.old as any)?.id as string | undefined
+            if (!deletedId) return
+
+            const local = await db.attendance_records
+              .where('remoteId')
+              .equals(deletedId)
+              .first()
+
+            if (local?.id != null) {
+              await db.attendance_records.delete(local.id)
             }
           }
         }

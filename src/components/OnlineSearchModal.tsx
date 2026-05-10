@@ -162,11 +162,17 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       }
 
       if (canSync && user) {
-        const created = await createSong(payload)
-        if (created) {
-          await db.songs.put(created)
-        } else {
-          throw new Error('No se pudo guardar en la nube. Verifica tu sesion o permisos e intentalo de nuevo.')
+        try {
+          const created = await createSong(payload)
+          if (created) {
+            await db.songs.put(created)
+          } else {
+            console.warn('[OnlineSearch] No se pudo guardar en la nube, guardando solo local')
+            await db.songs.put(payload)
+          }
+        } catch (cloudErr) {
+          console.warn('[OnlineSearch] Error en nube, guardando solo local:', cloudErr)
+          await db.songs.put(payload)
         }
       } else {
         await db.songs.put(payload)
