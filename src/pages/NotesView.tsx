@@ -569,8 +569,8 @@ export default function NotesView() {
       {showDeleteHistoryConfirm && (
         <ConfirmDialog
           message="¿Borrar todo el historial de asistencia? Esta acción no se puede deshacer."
-          onConfirm={() => {
-            deleteHistory()
+          onConfirm={async () => {
+            await deleteHistory()
             setShowDeleteHistoryConfirm(false)
           }}
           onCancel={() => setShowDeleteHistoryConfirm(false)}

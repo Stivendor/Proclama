@@ -6,14 +6,15 @@ import type { AttendanceRecord } from '@/types'
 
 /**
  * Obtiene los registros de asistencia pendientes de sincronizar.
- * Un registro es "pendiente" si no tiene `remoteId` asignado.
+ * Un registro es "pendiente" si no tiene `remoteId` (nunca sincronizado)
+ * o si fue modificado localmente después del último sync.
  */
 export async function getPendingRecords(userId: string): Promise<AttendanceRecord[]> {
   const all = await db.attendance_records
     .where('userId')
     .equals(userId)
     .toArray()
-  return all.filter(r => !r.remoteId || !r.lastSyncedAt || r.lastSyncedAt < r.updatedAt)
+  return all.filter(r => !r.remoteId || (r.lastSyncedAt != null && r.updatedAt != null && r.lastSyncedAt < r.updatedAt))
 }
 
 /**
@@ -101,6 +102,20 @@ export async function syncAttendanceRecords(
           lastSyncedAt: new Date().toISOString()
         })
         synced++
+
+        // Si hay duplicados del mismo remoteId (por race con Realtime), limpiarlos
+        const allWithSameRemote = await db.attendance_records
+          .where('remoteId')
+          .equals(data.id)
+          .toArray()
+        if (allWithSameRemote.length > 1) {
+          const [first, ...rest] = allWithSameRemote
+          for (const dup of rest) {
+            if (dup.id != null && dup.id !== first.id) {
+              await db.attendance_records.delete(dup.id)
+            }
+          }
+        }
       }
     } catch (err) {
       console.warn('[AttendanceSync] Unexpected error:', err)

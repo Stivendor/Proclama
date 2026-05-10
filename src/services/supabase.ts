@@ -255,17 +255,12 @@ export async function deleteSong(id: number): Promise<boolean> {
   const profile = await fetchProfile(user.id)
   const isAdmin = profile?.role === 'admin'
 
-  // Primero borrar reportes asociados para evitar error de llave foránea
-  // Solo los admins pueden borrar reportes de otras canciones, pero si es dueño, 
-  // idealmente la base de datos debería tener ON DELETE CASCADE. 
-  // Por si no lo tiene, lo intentamos hacer manualmente.
-  if (isAdmin) {
-    await supabase.from('song_reports').delete().eq('song_id', id)
-  } else {
-    // Si no es admin, solo borramos los reportes si la canción es suya. 
-    // Para simplificar, asumimos que si puede borrar la canción, el RLS de song_reports (o la base de datos) lo permitirá o ignorará.
-    await supabase.from('song_reports').delete().eq('song_id', id)
+  // Borrar reportes asociados para evitar error de llave foránea
+  let reportQuery = supabase.from('song_reports').delete().eq('song_id', id)
+  if (!isAdmin) {
+    reportQuery = reportQuery.eq('user_id', user.id)
   }
+  await reportQuery
 
   let query = supabase.from('songs').delete().eq('id', id)
 
