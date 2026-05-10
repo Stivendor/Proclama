@@ -81,12 +81,9 @@ export default function SongEditorModal() {
         // Si es "isCloning" (canción de otro), NO sincronizamos para no crear spam de moderación
         if (canSync && user && editingSong.remoteId && !isCloning) {
           try {
-            await Promise.race([
-              updateSong(editingSong.remoteId, updates),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-            ])
+            await updateSong(editingSong.remoteId, updates)
           } catch (cloudErr) {
-            console.warn('[Editor] Error o timeout sincronizando cambios:', cloudErr)
+            console.warn('[Editor] Error sincronizando cambios:', cloudErr)
           }
         }
       } else {
@@ -103,22 +100,18 @@ export default function SongEditorModal() {
         
         if (canSync && user) {
           try {
-            const created = await Promise.race([
-              createSong(payload),
-              new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-            ])
-            
+            const created = await createSong(payload)
             if (created) {
-              await db.songs.add(created)
+              await db.songs.put(created)
             } else {
-              await db.songs.add(payload)
+              await db.songs.put(payload)
             }
           } catch (cloudErr) {
-            console.warn('[Editor] Error o timeout creando en nube, guardando solo local:', cloudErr)
-            await db.songs.add(payload)
+            console.warn('[Editor] Error creando en nube, guardando solo local:', cloudErr)
+            await db.songs.put(payload)
           }
         } else {
-          await db.songs.add(payload)
+          await db.songs.put(payload)
         }
       }
       

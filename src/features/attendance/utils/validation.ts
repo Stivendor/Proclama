@@ -23,17 +23,25 @@ export function validateNoticeText(text: string): boolean {
 }
 
 /**
- * Returns today's date as ISO string (YYYY-MM-DD).
+ * Returns today's date as YYYY-MM-DD in LOCAL timezone.
  */
 export function todayISO(): string {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /**
  * Formats a date from ISO (YYYY-MM-DD) to DD/MM/YYYY.
+ * Returns empty string on invalid input.
  */
 export function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-')
+  const parts = iso?.split('-')
+  if (!parts || parts.length !== 3) return ''
+  const [y, m, d] = parts
+  if (!y || !m || !d) return ''
   return `${d}/${m}/${y}`
 }
 
