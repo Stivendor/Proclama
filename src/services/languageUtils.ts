@@ -41,3 +41,19 @@ export function detectLanguage(text: string): 'Español' | 'Inglés' {
 export function getLanguageCode(lang: 'Español' | 'Inglés'): 'es' | 'en' {
   return lang === 'Español' ? 'es' : 'en';
 }
+
+/**
+ * Normaliza un texto para comparaciones de búsqueda:
+ * - Minúsculas
+ * - Sin tildes
+ * - Sin caracteres especiales
+ */
+export function normalizeSearchText(text: string): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quitar tildes
+    .replace(/[^a-z0-9]/g, '')      // Quitar todo lo que no sea letra o número
+    .trim();
+}

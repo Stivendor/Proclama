@@ -1,98 +1,39 @@
 import { useState } from 'react'
-import { Search, X, Loader, Cloud, CloudOff, ShieldCheck, Globe, Plus, Lock } from 'lucide-react'
-import { searchExternalSongs, fetchLyrics } from '@/services/genius'
-import { searchSongs as searchInternal, createSong } from '@/services/supabase'
+import { Search, X, Loader, Cloud, CloudOff, ShieldCheck, Globe, Plus, Lock, CheckCircle2 } from 'lucide-react'
+import { fetchLyrics } from '@/services/genius'
+import { createSong } from '@/services/supabase'
 import { cleanLyricsText } from '@/services/lyricsParser'
 import { db } from '@/db'
 import { useAppStore } from '@/stores'
-import type { GeniusSong } from '@/services/genius'
 import { usePlan } from '@/hooks/usePlan'
-import { detectLanguage } from '@/services/languageUtils'
+import { useOnlineSearch, type OnlineSearchResult } from '@/hooks/useOnlineSearch'
 import type { Song } from '@/types'
 import PremiumFeatureModal from '@/components/PremiumFeatureModal'
 
-interface SearchResult extends Partial<GeniusSong> {
+interface SearchResult extends OnlineSearchResult {
   internalSong?: Song
-  isInternal?: boolean
 }
 
 export default function OnlineSearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
+  const { results, loading, error, search, setResults } = useOnlineSearch()
   const [importing, setImporting] = useState<number | null>(null)
   const [importedLyrics, setImportedLyrics] = useState<{ song: SearchResult; lyrics: string } | null>(null)
-  const [error, setError] = useState('')
   const [showPremiumModal, setShowPremiumModal] = useState(false)
-  const [selectedLanguage, setSelectedLanguage] = useState<'Español' | 'Inglés' | 'Cualquiera'>('Cualquiera')
   const [isPublic, setIsPublic] = useState(true)
-  const [songLanguage, setSongLanguage] = useState<'Español' | 'Inglés'>('Español')
   const [saving, setSaving] = useState(false)
+  const [uiError, setUiError] = useState('')
 
   const { isPremium, canUseGenius, canSync } = usePlan()
   const { user, userRole, setActiveView } = useAppStore()
 
-  const detectedLang = query.trim().length > 3 ? detectLanguage(query) : null
 
   const openPremiumModal = () => {
     setShowPremiumModal(true)
   }
 
-  const handleSearch = async () => {
-    if (!query.trim()) return
-    setLoading(true)
-    setError('')
-
-    try {
-      const langParam = selectedLanguage === 'Cualquiera' ? undefined : selectedLanguage
-      let [internalRes, externalRes] = await Promise.all([
-        searchInternal(query, true, langParam),
-        searchExternalSongs(query),
-      ])
-
-      if (externalRes.length === 0 && query.trim().split(/\s+/).length > 2) {
-        const simplified = query
-          .split(/\s+/)
-          .filter((word) => word.length > 3)
-          .slice(0, 3)
-          .join(' ')
-
-        if (simplified && simplified !== query) {
-          externalRes = await searchExternalSongs(simplified)
-        }
-      }
-
-      const mappedInternal: SearchResult[] = internalRes.map((song) => ({
-        id: song.id!,
-        title: song.title,
-        artist: song.artist,
-        isInternal: true,
-        internalSong: song,
-      }))
-
-      const combined = [...mappedInternal]
-      externalRes.forEach((externalSong) => {
-        const alreadyExists = combined.some(
-          (internalSong) =>
-            internalSong.title?.toLowerCase() === externalSong.title.toLowerCase() &&
-            internalSong.artist?.toLowerCase() === externalSong.artist.toLowerCase(),
-        )
-
-        if (!alreadyExists) {
-          combined.push({ ...externalSong, isInternal: false })
-        }
-      })
-
-      setResults(combined)
-      if (combined.length === 0) {
-        setError('No se encontraron resultados. Prueba con otro termino.')
-      }
-    } catch (err) {
-      console.error('Search error:', err)
-      setError('Error al buscar. Verifica tu conexion a internet.')
-    } finally {
-      setLoading(false)
-    }
+  const handleSearch = () => {
+    search(query)
   }
 
   const handleImport = async (item: SearchResult) => {
@@ -101,7 +42,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       return
     }
 
-    if (item.isInternal && item.internalSong) {
+    if (item.alreadyInLibrary && item.internalSong) {
       if (!isPremium) {
         setShowPremiumModal(true)
         return
@@ -123,12 +64,11 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
           song: item,
           lyrics: cleaned,
         })
-        setSongLanguage(detectLanguage(cleaned))
       } else {
-        setError(`No se encontro la letra de "${item.title}". Puedes agregarla manualmente.`)
+        setUiError(`No se encontro la letra de "${item.title}". Puedes agregarla manualmente.`)
       }
     } catch {
-      setError('Error al obtener la letra.')
+      setUiError('Error al obtener la letra.')
     } finally {
       setImporting(null)
     }
@@ -139,7 +79,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
 
     const { song, lyrics } = importedLyrics
     setSaving(true)
-    setError('')
+    setUiError('')
 
     try {
       const now = new Date()
@@ -152,7 +92,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         lyrics,
         key: '',
         tags: [],
-        language: songLanguage,
+        language: 'Español',
         usageCount: 0,
         isPublic: user ? isPublic : false,
         isVerified: userRole === 'admin' ? isPublic : false,
@@ -182,7 +122,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       onClose()
     } catch (err) {
       console.error('handleSave error:', err)
-      setError(err instanceof Error ? err.message : 'Error al guardar la cancion.')
+      setUiError(err instanceof Error ? err.message : 'Error al guardar la cancion.')
     } finally {
       setSaving(false)
     }
@@ -231,39 +171,34 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
 
 
               {error && <div className="search-error" role="alert" aria-live="polite">{error}</div>}
+              {uiError && <div className="search-error" role="alert" aria-live="polite">{uiError}</div>}
 
               <div className="search-results">
                 {results.map((item) => (
-                  <div key={`${item.isInternal ? 'int' : 'ext'}-${item.id}`} className="search-result-item">
+                  <div key={`ext-${item.id}`} className="search-result-item">
                     {item.thumbnailUrl ? (
                       <img src={item.thumbnailUrl} alt="" className="result-thumb" />
                     ) : (
                       <div className="result-thumb-placeholder">
-                        {item.isInternal ? <Cloud size={20} color="var(--blue)" /> : <Globe size={20} />}
+                        <Globe size={20} />
                       </div>
                     )}
 
                     <div className="result-info">
                       <div className="result-title-row">
                         <span className="result-title">{item.title}</span>
-                        {item.isInternal && (
-                          <span className="source-badge">
-                            {item.internalSong?.isVerified ? <ShieldCheck size={10} /> : <Cloud size={10} />}
-                            Comunidad
+                        {item.alreadyInLibrary && (
+                          <span className="already-in-library-badge">
+                            <CheckCircle2 size={10} />
+                            En biblioteca
                           </span>
                         )}
                       </div>
                       <div className="result-artist">{item.artist}</div>
                     </div>
 
-                    {item.internalSong?.language && (
-                      <span className={`lang-badge ${item.internalSong.language.toLowerCase()}`}>
-                        {item.internalSong.language === 'Inglés' ? 'EN' : 'ES'}
-                      </span>
-                    )}
-
                     <button
-                      className={`btn-${item.isInternal ? 'ghost' : 'primary'} sm`}
+                      className={`btn-${item.alreadyInLibrary ? 'ghost' : 'primary'} sm`}
                       onClick={() => handleImport(item)}
                       disabled={importing === item.id}
                     >
@@ -274,7 +209,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                       ) : (
                         <>
                           {canUseGenius ? <Plus size={12} /> : <Lock size={12} />}
-                          {canUseGenius ? (item.isInternal ? 'Añadir' : 'Importar') : 'Requiere Pro'}
+                          {canUseGenius ? (item.alreadyInLibrary ? 'Re-importar' : 'Importar') : 'Requiere Pro'}
                         </>
                       )}
                     </button>
@@ -288,54 +223,27 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                   align-items: center;
                   gap: 8px;
                 }
-                .source-badge {
+                .already-in-library-badge {
                   display: flex;
                   align-items: center;
                   gap: 4px;
                   font-size: 9px;
-                  background: rgba(59, 130, 246, 0.15);
-                  color: var(--blue);
+                  background: rgba(34, 197, 94, 0.15);
+                  color: #22c55e;
                   padding: 2px 6px;
                   border-radius: 10px;
                   font-weight: 700;
                   text-transform: uppercase;
                   letter-spacing: 0.5px;
                 }
-                .search-filters {
-                  display: flex;
-                  justify-content: flex-end;
-                  align-items: center;
-                  margin-bottom: 20px;
-                  gap: 12px;
+                .search-result-item {
+                  transition: all 0.2s ease;
                 }
-                .lang-tabs {
-                  display: flex;
-                  gap: 4px;
-                  background: rgba(255,255,255,0.05);
-                  padding: 3px;
-                  border-radius: 8px;
+                .search-result-item:hover {
+                  background: rgba(255, 255, 255, 0.03);
                 }
-                .lang-tab {
-                  border: none;
-                  background: none;
-                  color: var(--text-muted);
-                  font-size: 11px;
-                  padding: 4px 12px;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-weight: 600;
-                  transition: all 0.2s;
-                }
-                .lang-tab.active {
-                  background: var(--blue);
-                  color: white;
-                }
-                .search-detected-lang {
-                  margin-bottom: 12px;
-                  color: var(--text-muted);
-                  font-size: 12px;
-                }
-                .pro-search-hint {
+                @media (max-width: 640px) {
+                 .pro-search-hint {
                   display: flex;
                   align-items: center;
                   justify-content: space-between;
@@ -348,33 +256,6 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                   color: var(--text-secondary);
                   font-size: 13px;
                   line-height: 1.5;
-                }
-                .lang-badge {
-                  font-size: 10px;
-                  font-weight: 800;
-                  padding: 2px 5px;
-                  border-radius: 4px;
-                  margin-right: 8px;
-                }
-                .lang-badge.español {
-                  background: rgba(212, 175, 55, 0.2);
-                  color: var(--gold);
-                }
-                .lang-badge.inglés {
-                  background: rgba(167, 139, 250, 0.2);
-                  color: #a78bfa;
-                }
-                .search-result-item {
-                  transition: all 0.2s ease;
-                }
-                .search-result-item:hover {
-                  background: rgba(255, 255, 255, 0.03);
-                }
-                @media (max-width: 640px) {
-                  .pro-search-hint {
-                    flex-direction: column;
-                    align-items: flex-start;
-                  }
                 }
               `}</style>
             </>
@@ -391,48 +272,6 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                 style={{ marginBottom: 12 }}
               />
 
-              <div className="language-selector-preview">
-                <label style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' }}>
-                  Idioma de la cancion
-                </label>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                  <button
-                    className={`lang-pill ${songLanguage === 'Español' ? 'active es' : ''}`}
-                    onClick={() => setSongLanguage('Español')}
-                  >
-                    Español
-                  </button>
-                  <button
-                    className={`lang-pill ${songLanguage === 'Inglés' ? 'active en' : ''}`}
-                    onClick={() => setSongLanguage('Inglés')}
-                  >
-                    Inglés
-                  </button>
-                </div>
-              </div>
-
-              <style>{`
-                .lang-pill {
-                  border: 1px solid var(--border);
-                  background: none;
-                  color: var(--text-secondary);
-                  padding: 6px 16px;
-                  border-radius: 20px;
-                  cursor: pointer;
-                  font-size: 13px;
-                  transition: all 0.2s;
-                }
-                .lang-pill.active.es {
-                  border-color: var(--gold);
-                  background: rgba(212, 175, 55, 0.1);
-                  color: var(--gold);
-                }
-                .lang-pill.active.en {
-                  border-color: #a78bfa;
-                  background: rgba(167, 139, 250, 0.1);
-                  color: #a78bfa;
-                }
-              `}</style>
 
               <div className="modal-actions-wrapper">
                 {user ? (
@@ -502,7 +341,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
                   </div>
                 )}
 
-                {error && <div className="search-error" style={{ marginBottom: '16px' }} role="alert" aria-live="polite">{error}</div>}
+                {uiError && <div className="search-error" style={{ marginBottom: '16px' }} role="alert" aria-live="polite">{uiError}</div>}
 
                 <div className="modal-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '10px' }}>
                   <button className="btn-ghost" onClick={() => setImportedLyrics(null)}>
