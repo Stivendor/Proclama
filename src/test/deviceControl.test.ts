@@ -3,11 +3,13 @@ import { registerDevice, supabase } from '@/services/supabase'
 
 describe('registerDevice', () => {
   beforeEach(() => {
-    vi.spyOn(supabase.auth, 'getUser').mockResolvedValue({
+    vi.spyOn(supabase.auth, 'getSession').mockResolvedValue({
       data: {
-        user: {
-          id: 'user-123',
-        },
+        session: {
+          user: {
+            id: 'user-123',
+          },
+        } as any,
       },
       error: null,
     } as any)
@@ -47,8 +49,8 @@ describe('registerDevice', () => {
   })
 
   it('no intenta registrar dispositivos si no hay usuario autenticado', async () => {
-    vi.spyOn(supabase.auth, 'getUser').mockResolvedValue({
-      data: { user: null },
+    vi.spyOn(supabase.auth, 'getSession').mockResolvedValue({
+      data: { session: null },
       error: null,
     } as any)
 

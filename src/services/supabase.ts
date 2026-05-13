@@ -380,28 +380,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 }
 
 // ─── Funciones para Settings ──────────────────────────────────────────────
-export async function fetchSettings() {
-  const { data, error } = await supabase
-    .from('app_settings')
-    .select('*')
-    .single()
 
-  if (error) console.warn('No settings found:', error)
-  return data || null
-}
-
-export async function updateSettings(updates: any) {
-  const { data: existing } = await supabase.from('app_settings').select('id').single()
-  let result
-  if (existing) {
-    result = await supabase.from('app_settings').update(updates).eq('id', existing.id).select()
-  } else {
-    result = await supabase.from('app_settings').insert(updates).select()
-  }
-
-  if (result.error) console.error('Error updating settings:', result.error)
-  return result.data?.[0] || null
-}
 
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
