@@ -1,29 +1,25 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Trash2, Globe, Lock, Music } from 'lucide-react'
+import { Save, X, Trash2, Globe, Music } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import type { Song } from '@/types'
-import { createSong, updateSong, deleteSong } from '@/services/supabase'
-import { usePlan } from '@/hooks/usePlan'
 
 const LANGUAGES = ['Español', 'Inglés', 'Portugués', 'Otro']
 
 const EMPTY_SONG: Omit<Song, 'id'> = {
   title: '', artist: '', lyrics: '', key: '', tags: [],
-  language: 'Español', usageCount: 0, isPublic: true,
+  language: 'Español', usageCount: 0, isPublic: false,
   isVerified: false,
   createdAt: new Date(), updatedAt: new Date()
 }
 
 export default function SongEditorModal() {
-  const { canSync } = usePlan()
-  const { isEditorOpen, closeEditor, editingSong, user, userRole } = useAppStore(useShallow(s => ({
+  const { isEditorOpen, closeEditor, editingSong, user } = useAppStore(useShallow(s => ({
     isEditorOpen: s.isEditorOpen,
     closeEditor: s.closeEditor,
     editingSong: s.editingSong,
     user: s.user,
-    userRole: s.userRole
   })))
 
   const [form, setForm] = useState<Omit<Song, 'id'>>({ ...EMPTY_SONG })
@@ -44,11 +40,8 @@ export default function SongEditorModal() {
   const set = (key: keyof typeof form, value: any) =>
     setForm(f => ({ ...f, [key]: value }))
 
-  const isOwner = user && editingSong?.userId === user.id;
-  const isAdmin = userRole === 'admin';
-  const canEditRemote = isOwner || isAdmin;
   // Si tiene remoteId pero no somos dueños/admin, es una canción de la comunidad que estamos "personalizando"
-  const isCloning = editingSong?.remoteId && !canEditRemote;
+  const isCloning = !!editingSong?.remoteId;
 
   const handleSave = async () => {
     if (!form.title.trim()) { setTitleError('El título es requerido'); return }
@@ -57,62 +50,26 @@ export default function SongEditorModal() {
     
     try {
       const now = new Date()
-      // Si somos admin, el estado de verificado depende de si la marcamos como pública.
-      // Si somos usuarios normales y estamos clonando, la copia nace como PRIVADA (isPublic: false)
-      // para que el usuario sepa que es su versión personal y no espere verificación.
-      const isPublic = isAdmin ? form.isPublic : (isCloning ? false : form.isPublic)
-      const isVerified = isAdmin ? form.isPublic : (isCloning ? false : (editingSong?.isVerified ?? false))
 
       if (editingSong?.id) {
-        // --- CASO 1: Actualizar canción existente ---
-        const songId = editingSong.id;
-        const updates = { 
-          ...form, 
-          isPublic,
-          isVerified,
-          updatedAt: now, 
-          userId: user?.id 
-        }
-        
-        // Actualizar local (siempre)
-        await db.songs.update(songId, updates)
-        
-        // Sincronizar con la nube SOLO si somos el dueño o admin
-        // Si es "isCloning" (canción de otro), NO sincronizamos para no crear spam de moderación
-        if (canSync && user && editingSong.remoteId && !isCloning) {
-          try {
-            await updateSong(editingSong.remoteId, updates)
-          } catch (cloudErr) {
-            console.warn('[Editor] Error sincronizando cambios:', cloudErr)
-          }
-        }
+        await db.songs.update(editingSong.id, {
+          ...form,
+          remoteId: undefined,
+          isPublic: false,
+          isVerified: false,
+          updatedAt: now,
+          userId: user?.id,
+        })
       } else {
-        // --- CASO 2: Crear una canción TOTALMENTE NUEVA desde cero ---
-        const payload: Omit<Song, 'id'> = { 
-          ...form, 
-          remoteId: undefined, 
-          isPublic,
-          isVerified,
-          createdAt: now, 
-          updatedAt: now, 
-          userId: user?.id 
-        }
-        
-        if (canSync && user) {
-          try {
-            const created = await createSong(payload)
-            if (created) {
-              await db.songs.put(created)
-            } else {
-              await db.songs.put(payload)
-            }
-          } catch (cloudErr) {
-            console.warn('[Editor] Error creando en nube, guardando solo local:', cloudErr)
-            await db.songs.put(payload)
-          }
-        } else {
-          await db.songs.put(payload)
-        }
+        await db.songs.add({
+          ...form,
+          remoteId: undefined,
+          isPublic: false,
+          isVerified: false,
+          createdAt: now,
+          updatedAt: now,
+          userId: user?.id,
+        })
       }
       
       closeEditor()
@@ -130,9 +87,6 @@ export default function SongEditorModal() {
     
     setSaving(true)
     try {
-      if (canSync && user && editingSong.remoteId && canEditRemote) {
-        await deleteSong(editingSong.remoteId)
-      }
       await db.songs.delete(editingSong.id)
       closeEditor()
     } catch (err) {
@@ -208,39 +162,15 @@ export default function SongEditorModal() {
             </div>
           </div>
 
-          {/* Visibility & Language */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'flex-end' }}>
-             <div className="form-group">
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Idioma</label>
-                <select 
-                  value={form.language} 
-                  onChange={e => set('language', e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
-                >
-                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Visibilidad</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    type="button"
-                    className={`btn-toggle ${form.isPublic ? 'active' : ''}`}
-                    onClick={() => set('isPublic', true)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer' }}
-                  >
-                    <Globe size={14} /> Pública
-                  </button>
-                  <button 
-                    type="button"
-                    className={`btn-toggle ${!form.isPublic ? 'active' : ''}`}
-                    onClick={() => set('isPublic', false)}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', cursor: 'pointer' }}
-                  >
-                    <Lock size={14} /> Privada
-                  </button>
-                </div>
-              </div>
+          <div className="form-group" style={{ maxWidth: '300px' }}>
+              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Idioma</label>
+              <select 
+                value={form.language} 
+                onChange={e => set('language', e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+              >
+                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
           </div>
 
           {/* Lyrics Area - Expanded */}

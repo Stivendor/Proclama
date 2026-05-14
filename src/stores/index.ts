@@ -498,8 +498,6 @@ export const useAppStore = create<AppStore>()(
         isSidebarOpen: state.isSidebarOpen, 
         onboardingDone: state.onboardingDone,
         guestMode: state.guestMode,
-        userRole: state.userRole,
-        userPlan: state.userPlan,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
         forceLanding: state.forceLanding,
