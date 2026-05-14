@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, X, Send, CheckCircle, Loader2 } from 'lucide-react'
 import { createSongReport } from '@/services/supabase'
-import { useAppStore, useProjectionStore } from '@/stores'
+import { useProjectionStore } from '@/stores'
 
 interface ReportSongModalProps {
   isOpen: boolean
@@ -16,7 +16,6 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   
-  const { user } = useAppStore()
   const { songId, songTitle } = useProjectionStore(s => ({
     songId: s.state.songId,
     songTitle: s.state.songTitle
@@ -49,7 +48,7 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
         songId,
         reason,
         details,
-        user?.id ?? null
+        null
       )
 
       if (!success) {

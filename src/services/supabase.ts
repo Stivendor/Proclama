@@ -203,8 +203,11 @@ export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
 export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>): Promise<Song | null> {
   const { data: { session }, error: userError } = await supabase.auth.getSession();
   const user = session?.user;
-  if (userError || !user) {
-    console.error('User not authenticated for update')
+  if (userError) {
+    console.error('Error resolving authenticated user for update:', userError.message)
+    return null
+  }
+  if (!user) {
     return null
   }
 
@@ -632,19 +635,52 @@ export async function updateDeviceName(deviceRowId: string, newName: string): Pr
   return true
 }
 
-export async function createSongReport(songId: number, reason: string, details: string, userId: string | null): Promise<boolean> {
-  const { error } = await supabase.from('song_reports').insert({
-    song_id: songId,
-    reason,
-    details,
-    user_id: userId,
+type SongReportOptions = {
+  timeoutMs?: number
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs)
   })
 
-  if (error) {
-    console.error('[SongReport] Error al enviar:', error.message)
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => {
+    clearTimeout(timeoutId)
+  })
+}
+
+export async function createSongReport(
+  songId: number,
+  reason: string,
+  details: string,
+  userId: string | null,
+  options: SongReportOptions = {},
+): Promise<boolean> {
+  const timeoutMs = options.timeoutMs ?? 10000
+
+  try {
+    const { error } = await withTimeout(
+      supabase.from('song_reports').insert({
+        song_id: songId,
+        reason,
+        details,
+        user_id: userId,
+      }),
+      timeoutMs,
+      'Timeout enviando reporte de cancion',
+    )
+
+    if (error) {
+      console.error('[SongReport] Error al enviar:', error.message)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[SongReport] Error al enviar:', err instanceof Error ? err.message : err)
     return false
   }
-  return true
 }
 
 export type SongReport = {
