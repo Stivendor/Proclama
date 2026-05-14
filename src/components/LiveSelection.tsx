@@ -112,7 +112,7 @@ export const LiveSelection = memo(function LiveSelection() {
         .live-selection {
            display: flex;
            flex-direction: column;
-           height: 100%;
+           flex: 1;
            min-height: 0;
            overflow: hidden;
         }
@@ -189,19 +189,31 @@ export const LiveSelection = memo(function LiveSelection() {
           background: rgba(220, 38, 38, 0.1);
         }
         .live-slides-grid {
-          flex: 1;
-          overflow-y: auto;
-          padding: 24px;
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 16px;
+          padding: 24px;
+          overflow-y: auto;
+          flex: 1;
+          min-height: 0;
           align-content: start;
+        }
+        .live-slides-grid::-webkit-scrollbar {
+          width: 8px;
+        }
+        .live-slides-grid::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .live-slides-grid::-webkit-scrollbar-thumb {
+          background: var(--gold);
+          border-radius: 4px;
         }
         .live-slides-grid.as-list {
           grid-template-columns: 1fr;
           max-width: 800px;
           margin: 0 auto;
           width: 100%;
+          min-height: 0;
         }
         .live-slide-card {
           position: relative;

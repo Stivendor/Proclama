@@ -437,6 +437,7 @@ export default function SetlistsView() {
         .setlists-body-grid {
           display: grid;
           grid-template-columns: 1fr;
+          grid-template-rows: minmax(0, 1fr);
           flex: 1;
           min-height: 0;
           overflow: hidden;
