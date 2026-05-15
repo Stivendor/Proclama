@@ -16,8 +16,8 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
   
-  const { songId, songTitle } = useProjectionStore(s => ({
-    songId: s.state.songId,
+  const { song, songTitle } = useProjectionStore(s => ({
+    song: s.currentSong,
     songTitle: s.state.songTitle
   }))
 
@@ -35,8 +35,8 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
       setError('Selecciona un motivo')
       return
     }
-    if (!songId) {
-      setError('No se pudo identificar la canción')
+    if (!song?.remoteId) {
+      setError('Esta canción es local y no está en la base de datos pública, por lo que no puede ser reportada.')
       return
     }
 
@@ -45,7 +45,7 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
     
     try {
       const success = await createSongReport(
-        songId,
+        song.remoteId,
         reason,
         details,
         null
@@ -96,6 +96,15 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
               <CheckCircle size={48} color="var(--green)" style={{ marginBottom: '16px' }} />
               <p style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>Reporte enviado</p>
               <span style={{ color: 'var(--text-muted)' }}>Gracias por ayudarnos a mejorar el cancionero.</span>
+            </div>
+          ) : !song?.remoteId ? (
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <AlertTriangle size={48} color="var(--gold)" style={{ marginBottom: '16px', opacity: 0.8 }} />
+              <p style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 8px 0' }}>Canción Local</p>
+              <span style={{ color: 'var(--text-secondary)', display: 'block', marginBottom: '24px' }}>
+                Esta canción solo existe en tu dispositivo local y no forma parte de la base de datos pública. No es posible enviar un reporte.
+              </span>
+              <button type="button" className="btn-ghost" onClick={onClose} style={{ width: '100%' }}>Entendido</button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
