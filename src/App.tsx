@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useShallow } from "zustand/react/shallow";
@@ -22,8 +22,6 @@ import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
-import ReportsView from "@/pages/ReportsView";
-import AdminUsersView from "@/pages/AdminUsersView";
 import PremiumBanner from "@/components/PremiumBanner";
 import TermsModal from "@/components/TermsModal";
 
@@ -31,6 +29,12 @@ const IS_PROJECTION =
   typeof window !== "undefined" &&
   (window.name === "proclama-projection" ||
     window.location.pathname === "/projection");
+
+const IS_ADMIN =
+  typeof window !== "undefined" &&
+  window.location.pathname.startsWith("/admin");
+
+const AdminShell = lazy(() => import("@/admin/AdminShell"));
 
 export default function App() {
   return (
@@ -258,6 +262,14 @@ function AppContent() {
     };
   }, [isServer, setAuthStatus, setUser, setUserRole, setUserPlan]);
 
+  if (IS_ADMIN) {
+    return (
+      <Suspense fallback={null}>
+        <AdminShell />
+      </Suspense>
+    );
+  }
+
   if (IS_PROJECTION) {
     return <ProjectionWindow />;
   }
@@ -331,8 +343,6 @@ function MainApp() {
         {activeView === "notes" && <NotesView />}
         {activeView === "terms" && <TermsView />}
         {activeView === "fondos" && <FondosView />}
-        {activeView === "reports" && <ReportsView />}
-        {activeView === "admin-users" && <AdminUsersView />}
       </main>
       <aside className="right-panel">
         <ControlPanel />

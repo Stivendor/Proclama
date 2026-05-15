@@ -1,9 +1,9 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { openProjectionWindow } from '@/services/projection'
-import FeedbackModal from '@/components/FeedbackModal'
+import FeedbackFAB from '@/components/FeedbackFAB'
 
 export default function Sidebar() {
   const { activeView, setActiveView, openEditor, toggleSidebar, user, goToLanding } = useAppStore(useShallow(s => ({
@@ -32,9 +32,7 @@ export default function Sidebar() {
     { id: 'countdown', icon: Timer, label: 'Contador' },
     { id: 'notes', icon: ClipboardEdit, label: 'Notas' },
     { id: 'fondos', icon: Image, label: 'Fondos / Estilos' },
-    { id: 'settings', icon: Settings, label: 'Ajustes' },
-    { id: 'reports', icon: ClipboardEdit, label: 'Reportes', adminOnly: true },
-    { id: 'admin-users', icon: Users, label: 'Usuarios', adminOnly: true }
+    { id: 'settings', icon: Settings, label: 'Ajustes' }
   ] as const
 
   const userRole = useAppStore(s => s.userRole)
@@ -98,9 +96,16 @@ export default function Sidebar() {
             {label}
           </button>
         ))}
+        {userRole === 'admin' && (
+          <button className="nav-item admin-link" onClick={() => window.location.href = '/admin'}>
+            <Shield size={18} />
+            Panel Admin
+          </button>
+        )}
       </nav>
 
       <div className="sidebar-sync-status">
+        <FeedbackFAB />
         {user ? (
           <div className="sync-user-row">
             <div className="sync-indicator synced">
@@ -128,7 +133,6 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-footer">
-        <FeedbackModal />
         <button className="btn-projection" onClick={handleOpenProjection}>
           <Tv2 size={16} />
           Abrir Proyección
