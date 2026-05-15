@@ -255,6 +255,7 @@ export default function SetlistsView() {
       .filter(s => !songSearch ||
         containsIgnoreAccents(s.title, songSearch) ||
         containsIgnoreAccents(s.artist || '', songSearch) ||
+        containsIgnoreAccents(s.lyrics, songSearch) ||
         s.tags?.some(t => containsIgnoreAccents(t, songSearch))
       )
       .slice(0, 50)
@@ -437,11 +438,10 @@ export default function SetlistsView() {
         .setlists-body-grid {
           display: grid;
           grid-template-columns: 1fr;
-          grid-template-rows: minmax(0, 1fr);
+          grid-template-rows: 1fr;
           flex: 1;
           min-height: 0;
           overflow: hidden;
-          height: 100%;
         }
         .setlists-body-grid.with-editor {
           grid-template-columns: 240px 320px 1fr;
@@ -517,7 +517,8 @@ export default function SetlistsView() {
         .setlist-live-panel {
           flex: 1;
           min-width: 0;
-          height: 100%;
+          display: flex;
+          flex-direction: column;
           min-height: 0;
           overflow: hidden;
           background: var(--bg-base);

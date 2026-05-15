@@ -15,7 +15,7 @@ import { LiveSelection } from '@/components/LiveSelection'
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
     searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery,
-    openEditor: s.openEditor, user: s.user, userRole: s.userRole, 
+    openEditor: s.openEditor, user: s.user, userRole: s.userRole,
     isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar,
     authStatus: s.authStatus,
     recentSongs: s.recentSongs,
@@ -50,7 +50,7 @@ export default function LibraryView() {
     }
     fetchTotal()
   }, [])
-  
+
   // Auto-dismiss remote error after 10 seconds
   useEffect(() => {
     if (!remoteError) return
@@ -133,7 +133,7 @@ export default function LibraryView() {
         const remoteSongs = Array.from(uniqueRemoteMap.values())
 
         const localSongs = await db.songs.toArray()
-        
+
         // --- PASO 1: Limpieza de duplicados locales existentes ---
         const uniqueLocal = new Map<string, Song>()
         const duplicatesToDelete: number[] = []
@@ -173,11 +173,11 @@ export default function LibraryView() {
 
           for (const rs of remoteSongs) {
             let existing = localByRemoteId.get(rs.remoteId)
-            
+
             if (!existing) {
               const key = `${rs.title.toLowerCase().trim()}|${(rs.artist || '').toLowerCase().trim()}`
               existing = localByTitleArtist.get(key)
-              
+
               if (existing) {
                 toUpdate.push({ id: existing.id!, changes: { remoteId: rs.remoteId } })
               }
@@ -237,16 +237,16 @@ export default function LibraryView() {
       if (usageB !== usageA) return usageB - usageA // Más usadas primero
       return a.title.localeCompare(b.title, 'es') // Luego alfabético
     })
-    
+
     // 1. Filter by Search Query
     if (searchQuery) {
-      const titleMatches = results.filter(s => 
-        containsIgnoreAccents(s.title, searchQuery) || 
+      const titleMatches = results.filter(s =>
+        containsIgnoreAccents(s.title, searchQuery) ||
         containsIgnoreAccents(s.artist || '', searchQuery)
       )
-      const lyricMatches = results.filter(s => 
+      const lyricMatches = results.filter(s =>
         !titleMatches.includes(s) && (
-          containsIgnoreAccents(s.lyrics, searchQuery) || 
+          containsIgnoreAccents(s.lyrics, searchQuery) ||
           s.tags.some(t => containsIgnoreAccents(t, searchQuery))
         )
       )
@@ -260,7 +260,7 @@ export default function LibraryView() {
     if (selectedLang) {
       results = results.filter(s => s.language === selectedLang)
     }
-    
+
     // 5. Apply view limit (slice) as the final step
     // This ensures we always find matches in the full local database
     return results.slice(0, 50)
@@ -301,12 +301,12 @@ export default function LibraryView() {
   const handleLoad = async (song: Song) => {
     const rank = songRanking.get(song.id ?? 0) ?? Infinity
     const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
-    
+
     if (blocked) {
       setBlockedMessage(`Esta canción requiere el Plan Pro. Solo puedes proyectar las 50 más populares gratis.`)
       return
     }
-    
+
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
@@ -415,9 +415,9 @@ export default function LibraryView() {
                   <Clock size={12} opacity={0.6} />
                   <span>Utilizadas recientemente</span>
                 </div>
-                <button 
-                  className="btn-icon-xs danger" 
-                  onClick={() => setShowConfirmClear(true)} 
+                <button
+                  className="btn-icon-xs danger"
+                  onClick={() => setShowConfirmClear(true)}
                   title="Borrar historial"
                   style={{ marginLeft: 'auto', background: 'transparent' }}
                 >
@@ -429,10 +429,10 @@ export default function LibraryView() {
                   const rank = songRanking.get(rs.id ?? 0) ?? Infinity
                   const blocked = !isPremium && (rs.userId !== user?.id || !rs.userId) && rank > FREE_PROJECTION_LIMIT
                   return (
-                    <button 
-                      key={rs.id} 
-                      className={`btn-recent-song ${blocked ? 'blocked' : ''}`} 
-                      onClick={() => handleLoad(rs)} 
+                    <button
+                      key={rs.id}
+                      className={`btn-recent-song ${blocked ? 'blocked' : ''}`}
+                      onClick={() => handleLoad(rs)}
                       title={blocked ? 'Esta canción requiere el Plan Pro' : `Cargar ${rs.title}`}
                     >
                       {blocked && <Lock size={10} style={{ marginRight: 4 }} />}
@@ -464,17 +464,17 @@ export default function LibraryView() {
                 const rank = songRanking.get(song.id ?? 0) ?? Infinity
                 const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
                 return (
-                <SongListItem 
-                  key={song.id} 
-                  song={song}
-                  rank={rank}
-                  blocked={blocked}
-                  onEdit={handleEdit} 
-                  onLoad={handleLoad} 
-                  onDelete={handleDelete}
-                  onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
-                />
-              )
+                  <SongListItem
+                    key={song.id}
+                    song={song}
+                    rank={rank}
+                    blocked={blocked}
+                    onEdit={handleEdit}
+                    onLoad={handleLoad}
+                    onDelete={handleDelete}
+                    onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
+                  />
+                )
               })
             )}
           </div>
@@ -536,14 +536,14 @@ export default function LibraryView() {
   )
 }
 
-const SongListItem = memo(function SongListItem({ 
-  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked 
-}: { 
-  song: Song, 
+const SongListItem = memo(function SongListItem({
+  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked
+}: {
+  song: Song,
   rank?: number,
   blocked?: boolean,
-  onEdit: (s: Song) => void, 
-  onLoad: (s: Song) => void, 
+  onEdit: (s: Song) => void,
+  onLoad: (s: Song) => void,
   onDelete: (s: Song) => void,
   onBlocked?: () => void
 }) {
@@ -569,7 +569,7 @@ const SongListItem = memo(function SongListItem({
   const isPending = song.isPublic && !song.isVerified
 
   return (
-    <div 
+    <div
       className={`song-card-compact ${isActive ? 'active' : ''} ${blocked ? 'blocked' : ''}`}
       onClick={handleClick}
     >
@@ -588,7 +588,7 @@ const SongListItem = memo(function SongListItem({
             <Edit2 size={12} />
           </button>
         )}
-        
+
         {(userRole === 'admin' || user?.id === song.userId) && (
           <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar permanentemente">
             <Trash2 size={12} />

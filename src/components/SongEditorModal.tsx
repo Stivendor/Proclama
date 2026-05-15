@@ -4,6 +4,7 @@ import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import type { Song } from '@/types'
+import { createSong, updateSong } from '@/services/supabase'
 
 const LANGUAGES = ['Español', 'Inglés', 'Portugués', 'Otro']
 
@@ -47,35 +48,49 @@ export default function SongEditorModal() {
     if (!form.title.trim()) { setTitleError('El título es requerido'); return }
     setTitleError('')
     setSaving(true)
-    
+
     try {
       const now = new Date()
 
       if (editingSong?.id) {
-        await db.songs.update(editingSong.id, {
+        const updated = {
           ...form,
-          remoteId: undefined,
-          isPublic: false,
+          remoteId: editingSong.remoteId,
+          isPublic: true, // Community submission
           isVerified: false,
           updatedAt: now,
           userId: user?.id,
-        })
+        };
+        await db.songs.update(editingSong.id, updated)
+
+        if (updated.remoteId) {
+          await updateSong(updated.remoteId, updated);
+        } else {
+          const remote = await createSong(updated);
+          if (remote) await db.songs.update(editingSong.id, { remoteId: remote.remoteId });
+        }
       } else {
-        await db.songs.add({
+        const newSong = {
           ...form,
           remoteId: undefined,
-          isPublic: false,
+          isPublic: true,
           isVerified: false,
           createdAt: now,
           updatedAt: now,
           userId: user?.id,
-        })
+        };
+        const localId = await db.songs.add(newSong)
+
+        const remote = await createSong(newSong);
+        if (remote) {
+          await db.songs.update(localId, { remoteId: remote.remoteId });
+        }
       }
-      
+
       closeEditor()
     } catch (err) {
       console.error('[Editor] Error fatal al guardar:', err)
-      alert('Error al guardar la canción localmente. Verifica el espacio en disco.');
+      alert('Error al guardar la canción. Verifica tu conexión.');
     } finally {
       setSaving(false)
     }
@@ -84,7 +99,7 @@ export default function SongEditorModal() {
   const handleDelete = async () => {
     if (!editingSong?.id) return
     if (!window.confirm('¿Eliminar esta canción permanentemente?')) return
-    
+
     setSaving(true)
     try {
       await db.songs.delete(editingSong.id)
@@ -99,8 +114,8 @@ export default function SongEditorModal() {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 3000 }} onClick={closeEditor}>
-      <div 
-        className="modal-content song-editor-modal" 
+      <div
+        className="modal-content song-editor-modal"
         onClick={e => e.stopPropagation()}
         style={{ maxWidth: '800px', width: '95%', maxHeight: '95vh', display: 'flex', flexDirection: 'column' }}
       >
@@ -115,8 +130,8 @@ export default function SongEditorModal() {
         </div>
 
         {isCloning && (
-          <div style={{ 
-            background: 'rgba(52, 152, 219, 0.1)', 
+          <div style={{
+            background: 'rgba(52, 152, 219, 0.1)',
             border: '1px solid rgba(52, 152, 219, 0.2)',
             borderRadius: '12px',
             padding: '12px 16px',
@@ -162,15 +177,32 @@ export default function SongEditorModal() {
             </div>
           </div>
 
+          {!user && (
+            <div style={{
+              background: 'rgba(212, 168, 67, 0.1)',
+              border: '1px solid rgba(212, 168, 67, 0.2)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '0.85rem',
+              color: 'var(--gold)',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center'
+            }}>
+              <Globe size={16} />
+              <span>Esta canción se guardará localmente y se enviará para revisión de la comunidad.</span>
+            </div>
+          )}
+
           <div className="form-group" style={{ maxWidth: '300px' }}>
-              <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Idioma</label>
-              <select 
-                value={form.language} 
-                onChange={e => set('language', e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
-              >
-                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
+            <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Idioma</label>
+            <select
+              value={form.language}
+              onChange={e => set('language', e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+            >
+              {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
           </div>
 
           {/* Lyrics Area - Expanded */}
@@ -180,11 +212,11 @@ export default function SongEditorModal() {
               value={form.lyrics}
               onChange={e => set('lyrics', e.target.value)}
               placeholder="Escribe o pega la letra aquí… Usa líneas en blanco para separar estrofas."
-              style={{ 
-                flex: 1, 
-                width: '100%', 
-                minHeight: '350px', 
-                fontFamily: 'var(--font-mono, monospace)', 
+              style={{
+                flex: 1,
+                width: '100%',
+                minHeight: '350px',
+                fontFamily: 'var(--font-mono, monospace)',
                 fontSize: '15px',
                 lineHeight: '1.6',
                 padding: '1.25rem',
@@ -206,9 +238,9 @@ export default function SongEditorModal() {
         <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             {editingSong && (
-              <button 
-                className="btn-danger" 
-                onClick={handleDelete} 
+              <button
+                className="btn-danger"
+                onClick={handleDelete}
                 disabled={saving}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '10px 16px', borderRadius: '8px', border: 'none', color: 'white', fontWeight: 600, fontSize: '13px', transition: 'opacity 0.2s' }}
               >

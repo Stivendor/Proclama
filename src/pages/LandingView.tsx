@@ -7,7 +7,6 @@ const TikTokIcon = ({ size = 24, color = 'currentColor' }) => (
   </svg>
 )
 import AuthView from './AuthView'
-import FeedbackModal from '@/components/FeedbackModal'
 import TermsModal from '@/components/TermsModal'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
@@ -189,7 +188,6 @@ export default function LandingView() {
           <a href="#interest-form">Actualizaciones</a>
         </div>
         <div className="nav-actions">
-          <FeedbackModal />
           {user ? (
             <div className="user-signed-in">
               <span className="user-name">{userName || userEmail?.split('@')[0]}</span>
@@ -487,7 +485,7 @@ export default function LandingView() {
               "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
             </p>
             <div style={{ marginBottom: '16px', color: '#9aa6bb' }}>
-              ¿Dudas o sugerencias? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold', marginLeft: '4px' }}>proclamapro@gmail.com</a>
+              ¿Dudas? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold', marginLeft: '4px' }}>proclamapro@gmail.com</a>
             </div>
             <div style={{ color: '#778398', fontSize: '14px' }}>© 2026 Proclama</div>
           </div>
