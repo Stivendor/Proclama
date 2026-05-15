@@ -416,21 +416,13 @@ export const useAppStore = create<AppStore>()(
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
 
-      liveSlidesViewGrid: true,
+      liveSlidesViewGrid: false,
       setLiveSlidesViewGrid: (v) => set({ liveSlidesViewGrid: v }),
 
 
       backgrounds: [],
       backgroundsLastFetch: null,
       fetchBackgrounds: async () => {
-        const { backgrounds, backgroundsLastFetch } = get()
-        const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-        
-        // Check if cache is fresh
-        if (backgrounds.length > 0 && backgroundsLastFetch && Date.now() - backgroundsLastFetch < CACHE_TTL) {
-          return // Use cached data
-        }
-        
         const { data } = await supabase.from('backgrounds').select('*').order('created_at', { ascending: false })
         if (data) set({ backgrounds: data, backgroundsLastFetch: Date.now() })
       },
