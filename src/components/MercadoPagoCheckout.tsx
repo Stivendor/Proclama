@@ -4,13 +4,14 @@ import { supabase } from '@/services/supabase'
 interface MercadoPagoCheckoutOptions {
   userId?: string
   userEmail?: string
+  planType?: 'monthly' | 'annual'
 }
 
 export function useMercadoPagoCheckout() {
   const openCheckout = useCallback(async (options?: MercadoPagoCheckoutOptions) => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://proclama.lat'
-    const functionUrl = `${supabaseUrl}/functions/v1/create-mercadopago-preference`
+    const functionUrl = `${supabaseUrl}/functions/v1/create-mercadopago-subscription`
 
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) {
@@ -29,6 +30,7 @@ export function useMercadoPagoCheckout() {
         body: JSON.stringify({
           userId: session.user.id,
           userEmail: session.user.email,
+          planType: options?.planType || 'monthly',
           successUrl: origin,
           failureUrl: origin,
           pendingUrl: origin
@@ -37,24 +39,24 @@ export function useMercadoPagoCheckout() {
       
       if (!response.ok) {
         const err = await response.json()
-        console.error('Error creating preference:', JSON.stringify(err, null, 2)) // ← stringify
-        alert('Error al crear preferencia de pago. Intenta de nuevo.')
+        console.error('Error creating preapproval:', JSON.stringify(err, null, 2))
+        alert('Error al crear suscripción. Intenta de nuevo.')
         return
       }
       
       const data = await response.json()
-      console.log('Preference created:', data)
+      console.log('Preapproval created:', data)
       
-      // Abrir el link de pago
+      // Abrir el link de pago (Preapproval usa init_point)
       const initPoint = data?.init_point || data?.sandbox_init_point
       if (initPoint) {
-        window.open(initPoint, '_blank')
+        window.location.href = initPoint
       } else {
         console.error('No init_point in response:', data)
         alert('Error al obtener enlace de pago.')
       }
     } catch (error) {
-      console.error('Error creating MercadoPago preference:', error)
+      console.error('Error creating MercadoPago preapproval:', error)
       alert('Error de conexión. Revisa la consola.')
     }
   }, [])

@@ -106,7 +106,7 @@ export default function LandingView() {
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
   }
 
-  const handleBuyPro = async () => {
+  const handleBuyPro = async (planType: 'monthly' | 'annual') => {
     if (PREMIUM_FOR_EVERYONE) {
       acceptTerms(CURRENT_TERMS_VERSION)
       setForceLanding(false)
@@ -120,24 +120,29 @@ export default function LandingView() {
     }
     if (!user?.id) {
       localStorage.setItem('pendingCheckout', 'true')
+      localStorage.setItem('pendingPlan', planType)
       setLandingShowAuth(true)
       return
     }
     openCheckout({
       userId: user.id,
-      userEmail: user.email || undefined
+      userEmail: user.email || undefined,
+      planType
     })
   }
 
   const checkPendingCheckout = useCallback(() => {
     if (localStorage.getItem('pendingCheckout') === 'true' && user?.id && !isPremium) {
+      const planType = (localStorage.getItem('pendingPlan') as 'monthly' | 'annual') || 'monthly'
       localStorage.removeItem('pendingCheckout')
+      localStorage.removeItem('pendingPlan')
       openCheckout({
         userId: user.id,
-        userEmail: user.email || undefined
+        userEmail: user.email || undefined,
+        planType
       })
     }
-  }, [user, isPremium])
+  }, [user, isPremium, openCheckout])
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -388,8 +393,7 @@ export default function LandingView() {
                 <li className="locked"><Lock size={14} /> Biblioteca completa (3,000+ canciones)</li>
                 <li className="locked"><Lock size={14} /> +50 Fondos exclusivos (Imágenes y Videos)</li>
                 <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
-                <li className="locked"><Lock size={14} /> Exportación de asistencia CSV y PDF con estadísticas</li>
-                <li className="locked"><Lock size={14} /> Gestión de carpetas en media local</li>
+                <li className="locked"><Lock size={14} /> Exportación CSV y PDF</li>
               </ul>
               <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
                 acceptTerms(CURRENT_TERMS_VERSION)
@@ -397,19 +401,12 @@ export default function LandingView() {
                 setForceLanding(false)
               }}>Usar Gratis</button>
             </article>
+
             <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> {PREMIUM_FOR_EVERYONE ? 'Pro · Gratis ahora' : 'Pro'}</span>
-              <h3>Plan Pro</h3>
-              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$119,900'} <span>/ {PREMIUM_FOR_EVERYONE ? 'ahora' : 'pago único'}</span></div>
-              {PREMIUM_FOR_EVERYONE ? (
-                <>
-                  <span className="plan-sub-badge">Pago único — acceso de por vida</span>
-                  {/* ACTIVAR CUANDO SE TENGA EL PRECIO OFICIAL */}
-                  {/* <span className="plan-future-price">Después: $39,900 COP / año</span> */}
-                </>
-              ) : (
-                <span className="plan-sub-badge">Acceso de por vida</span>
-              )}
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Mensual</span>
+              <h3>Plan Pro Mensual</h3>
+              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$25,000'} <span>/ mes</span></div>
+              <span className="plan-sub-badge">Cancela cuando quieras</span>
               <ul>
                 <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
                 <li><Check size={16} /> Búsqueda online de letras de canciones</li>
@@ -421,8 +418,24 @@ export default function LandingView() {
                 <li><Check size={16} /> Hasta 25 archivos de media local</li>
                 <li><Check size={16} /> Uso local ilimitado y fluido</li>
               </ul>
-              <button className="landing-btn-primary" onClick={handleBuyPro}>
-                <Sparkles size={16} /> {PREMIUM_FOR_EVERYONE ? 'Usar Pro Gratis' : 'Actualizar a Pro'}
+              <button className="landing-btn-secondary" style={{ borderColor: 'rgba(201, 166, 88, 0.4)', color: '#d4af55' }} onClick={() => handleBuyPro('monthly')}>
+                <Sparkles size={16} /> Suscribirse al mes
+              </button>
+            </article>
+
+            <article className="plan-card plan-pro" style={{ background: 'linear-gradient(145deg, rgba(201,166,88,0.08), rgba(201,166,88,0.02))', borderColor: 'rgba(201,166,88,0.3)' }}>
+              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Anual (Recomendado)</span>
+              <h3>Plan Pro Anual</h3>
+              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$220,000'} <span>/ año</span></div>
+              <span className="plan-sub-badge" style={{ color: '#c9a658' }}>Ahorra $80.000 (casi 3 meses gratis)</span>
+              <ul>
+                <li><Check size={16} /> Todas las ventajas de Pro Mensual</li>
+                <li><Check size={16} /> Soporte prioritario</li>
+                <li><Check size={16} /> Beneficios y actualizaciones todo el año</li>
+                <li><Check size={16} /> Renueva automáticamente cada 12 meses</li>
+              </ul>
+              <button className="landing-btn-primary" onClick={() => handleBuyPro('annual')}>
+                <Sparkles size={16} /> Suscribirse al año
               </button>
             </article>
           </div>
@@ -750,10 +763,18 @@ export default function LandingView() {
           font-size: clamp(30px, 4vw, 40px);
           text-wrap: balance;
         }
-        .feature-grid, .plans-grid {
+        .feature-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 18px;
+        }
+        .plans-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 18px;
+        }
+        @media (max-width: 900px) {
+          .plans-grid { grid-template-columns: 1fr; }
         }
         /* ── Showcase Section ────────────────────────────────────── */
         .showcase-section { padding-bottom: 120px; overflow: hidden; }
