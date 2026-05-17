@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
     const mercadoPagoAccessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
     const mercadoPagoWebhookUrl = Deno.env.get('MERCADOPAGO_WEBHOOK_URL')
     const envPrice = Deno.env.get('PRO_PLAN_PRICE')
-    const price = envPrice ? parseInt(envPrice, 10) : 99900
+    const rawPrice = envPrice ? parseInt(envPrice, 10) : 99900
+    const price = isNaN(rawPrice) ? 99900 : rawPrice
     const currency = 'COP'
 
     if (!mercadoPagoAccessToken || !mercadoPagoWebhookUrl) {
