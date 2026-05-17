@@ -34,9 +34,9 @@ vi.mock('@/stores', () => ({
 }))
 
 vi.mock('@/services/supabase', () => ({
-  createSong: vi.fn(),
-  updateSong: vi.fn(),
-  deleteSong: vi.fn(),
+  createSong: vi.fn().mockResolvedValue(null),
+  updateSong: vi.fn().mockResolvedValue(null),
+  deleteSong: vi.fn().mockResolvedValue(true),
 }))
 
 describe('SongEditorModal', () => {
@@ -57,9 +57,9 @@ describe('SongEditorModal', () => {
 
     await waitFor(() => {
       expect(db.songs.add).toHaveBeenCalled()
+      expect(createSong).toHaveBeenCalled()
       expect(closeEditor).toHaveBeenCalled()
     })
-    expect(createSong).not.toHaveBeenCalled()
   })
 
   it('cierra despues de guardar localmente una edicion aunque Supabase tarde', async () => {
@@ -86,10 +86,15 @@ describe('SongEditorModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
 
     await waitFor(() => {
-      expect(db.songs.update).toHaveBeenCalledWith(12, expect.objectContaining({ title: 'Santo' }))
+      expect(db.songs.update).toHaveBeenCalledWith(12, expect.objectContaining({
+        title: 'Santo',
+        remoteId: 99,
+        isPublic: true,
+        isVerified: false,
+      }))
+      expect(updateSong).toHaveBeenCalled()
       expect(closeEditor).toHaveBeenCalled()
     })
-    expect(updateSong).not.toHaveBeenCalled()
   })
 
   it('elimina canciones solo localmente', async () => {
@@ -117,8 +122,8 @@ describe('SongEditorModal', () => {
 
     await waitFor(() => {
       expect(db.songs.delete).toHaveBeenCalledWith(12)
+      expect(deleteSong).toHaveBeenCalledWith(99)
       expect(closeEditor).toHaveBeenCalled()
     })
-    expect(deleteSong).not.toHaveBeenCalled()
   })
 })

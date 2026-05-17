@@ -4,6 +4,7 @@ import DataTable from "../components/DataTable";
 import { fetchSongsPaginated } from "../services/adminQueries";
 import { logAdminAction } from "../services/adminLogs";
 import { supabase } from "@/services/supabase";
+import { db } from "@/db";
 
 interface Song { id: number; title: string; artist: string | null; language: string | null; lyrics: string | null; is_verified: boolean; created_at: string; }
 
@@ -34,6 +35,7 @@ export default function GlobalLibraryPage() {
   const deleteSong = async (song: Song) => {
     if (!confirm(`¿Eliminar "${song.title}" permanentemente?`)) return;
     await supabase.from("songs").delete().eq("id", song.id);
+    await db.songs.where('remoteId').equals(song.id).delete();
     await logAdminAction({ action: "delete_song", targetType: "song", targetId: String(song.id), targetLabel: song.title });
     load();
   };
@@ -41,6 +43,7 @@ export default function GlobalLibraryPage() {
   const toggleVerified = async (song: Song) => {
     const v = !song.is_verified;
     await supabase.from("songs").update({ is_verified: v }).eq("id", song.id);
+    await db.songs.where('remoteId').equals(song.id).modify({ isVerified: v });
     await logAdminAction({ action: v ? "verify_song" : "unverify_song", targetType: "song", targetId: String(song.id), targetLabel: song.title });
     setSongs(p => p.map(s => s.id === song.id ? { ...s, is_verified: v } : s));
   };
@@ -54,6 +57,13 @@ export default function GlobalLibraryPage() {
       if (error) throw error;
       if (!data || data.length === 0) throw new Error("No se pudo actualizar la canción. Revisa permisos RLS o conexión.");
       
+      // Sincronizar a Dexie (biblioteca local)
+      await db.songs.where('remoteId').equals(editingSong.id).modify({
+        title: titleText,
+        lyrics: lyricsText,
+        updatedAt: new Date(),
+      });
+
       logAdminAction({
         action: "edit_song", targetType: "song", targetId: String(editingSong.id),
         targetLabel: titleText, note: "Editada desde Biblioteca Global"

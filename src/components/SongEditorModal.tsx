@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Save, X, Trash2, Globe, Music } from 'lucide-react'
+import { Save, X, Trash2, Globe, Cloud, Music } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import type { Song } from '@/types'
-import { createSong, updateSong } from '@/services/supabase'
+import { createSong, updateSong, deleteSong } from '@/services/supabase'
 
 const LANGUAGES = ['Español', 'Inglés', 'Portugués', 'Otro']
 
@@ -16,11 +16,12 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditorModal() {
-  const { isEditorOpen, closeEditor, editingSong, user } = useAppStore(useShallow(s => ({
+  const { isEditorOpen, closeEditor, editingSong, user, userRole } = useAppStore(useShallow(s => ({
     isEditorOpen: s.isEditorOpen,
     closeEditor: s.closeEditor,
     editingSong: s.editingSong,
     user: s.user,
+    userRole: s.userRole,
   })))
 
   const [form, setForm] = useState<Omit<Song, 'id'>>({ ...EMPTY_SONG })
@@ -41,8 +42,8 @@ export default function SongEditorModal() {
   const set = (key: keyof typeof form, value: any) =>
     setForm(f => ({ ...f, [key]: value }))
 
-  // Si tiene remoteId pero no somos dueños/admin, es una canción de la comunidad que estamos "personalizando"
-  const isCloning = !!editingSong?.remoteId;
+  const canEditCloud = !!editingSong?.remoteId && (userRole === 'admin' || editingSong.userId === user?.id)
+  const isCommunitySong = !!editingSong?.remoteId && !canEditCloud
 
   const handleSave = async () => {
     if (!form.title.trim()) { setTitleError('El título es requerido'); return }
@@ -53,44 +54,65 @@ export default function SongEditorModal() {
       const now = new Date()
 
       if (editingSong?.id) {
-        const updated = {
+        // Guardar local primero (siempre)
+        await db.songs.update(editingSong.id, {
           ...form,
-          remoteId: editingSong.remoteId,
-          isPublic: true, // Community submission
-          isVerified: false,
+          remoteId: canEditCloud ? editingSong.remoteId : undefined,
+          isPublic: canEditCloud ? editingSong.isPublic : false,
+          isVerified: canEditCloud ? editingSong.isVerified : false,
           updatedAt: now,
-          userId: user?.id,
-        };
-        await db.songs.update(editingSong.id, updated)
+          userId: editingSong.userId,
+        })
 
-        if (updated.remoteId) {
-          await updateSong(updated.remoteId, updated);
-        } else {
-          const remote = await createSong(updated);
-          if (remote) await db.songs.update(editingSong.id, { remoteId: remote.remoteId });
+        // Sincronizar a la nube en segundo plano (no bloquea)
+        if (canEditCloud) {
+          updateSong(editingSong.remoteId!, {
+            title: form.title,
+            artist: form.artist,
+            lyrics: form.lyrics,
+            key: form.key,
+            tags: form.tags,
+            language: form.language,
+            isPublic: editingSong.isPublic,
+            isVerified: editingSong.isVerified,
+            updatedAt: now,
+          }).catch(err => console.warn('[Editor] Error al actualizar en la nube:', err))
         }
       } else {
-        const newSong = {
+        // Guardar local primero
+        const localId = await db.songs.add({
           ...form,
           remoteId: undefined,
-          isPublic: true,
+          isPublic: false,
           isVerified: false,
           createdAt: now,
           updatedAt: now,
-          userId: user?.id,
-        };
-        const localId = await db.songs.add(newSong)
+          userId: user?.id ?? undefined,
+        })
 
-        const remote = await createSong(newSong);
-        if (remote) {
-          await db.songs.update(localId, { remoteId: remote.remoteId });
+        // Sincronizar a la nube en segundo plano (no bloquea)
+        if (user?.id) {
+          createSong({
+            ...form,
+            createdAt: now,
+            updatedAt: now,
+            userId: user.id,
+          }).then(created => {
+            if (created?.remoteId) {
+              db.songs.update(localId, {
+                remoteId: created.remoteId,
+                isPublic: created.isPublic,
+                isVerified: created.isVerified,
+              }).catch(console.warn)
+            }
+          }).catch(err => console.warn('[Editor] Error al crear en la nube:', err))
         }
       }
 
       closeEditor()
     } catch (err) {
       console.error('[Editor] Error fatal al guardar:', err)
-      alert('Error al guardar la canción. Verifica tu conexión.');
+      alert('Error al guardar la canción. Verifica tu conexión e intenta de nuevo.')
     } finally {
       setSaving(false)
     }
@@ -102,6 +124,11 @@ export default function SongEditorModal() {
 
     setSaving(true)
     try {
+      if (editingSong.remoteId && (userRole === 'admin' || editingSong.userId === user?.id)) {
+        deleteSong(editingSong.remoteId).catch(err =>
+          console.warn('[Editor] Error al eliminar de la nube:', err)
+        )
+      }
       await db.songs.delete(editingSong.id)
       closeEditor()
     } catch (err) {
@@ -122,16 +149,16 @@ export default function SongEditorModal() {
         <div className="modal-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '1.25rem' }}>
             <Music size={20} color="var(--blue)" />
-            {editingSong ? (isCloning ? 'Personalizar Canción' : 'Editar Canción') : 'Nueva Canción'}
+            {editingSong ? (isCommunitySong ? 'Personalizar Canción' : 'Editar Canción') : 'Nueva Canción'}
           </h2>
           <button className="btn-icon" onClick={closeEditor} aria-label="Cerrar">
             <X size={20} />
           </button>
         </div>
 
-        {isCloning && (
-          <div style={{
-            background: 'rgba(52, 152, 219, 0.1)',
+        {isCommunitySong && (
+          <div style={{ 
+            background: 'rgba(52, 152, 219, 0.1)', 
             border: '1px solid rgba(52, 152, 219, 0.2)',
             borderRadius: '12px',
             padding: '12px 16px',
@@ -145,6 +172,26 @@ export default function SongEditorModal() {
             <Globe size={18} color="var(--blue)" />
             <p style={{ margin: 0, lineHeight: 1.4 }}>
               Esta canción es de la comunidad. Tus ediciones se guardarán como una <strong>copia personal</strong> en tu biblioteca local.
+            </p>
+          </div>
+        )}
+
+        {canEditCloud && (
+          <div style={{ 
+            background: 'rgba(46, 204, 113, 0.1)', 
+            border: '1px solid rgba(46, 204, 113, 0.3)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            margin: '0 24px 16px',
+            fontSize: '0.9rem',
+            color: 'var(--text-primary)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center'
+          }}>
+            <Cloud size={18} color="var(--green)" />
+            <p style={{ margin: 0, lineHeight: 1.4 }}>
+              Los cambios se guardarán en la <strong>nube</strong> y estarán disponibles para todos los usuarios.
             </p>
           </div>
         )}
