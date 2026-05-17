@@ -91,6 +91,7 @@ function AppContent() {
       if (profile) {
         setUserRole(profile.role);
         setUserPlan(profile.plan);
+        useAppStore.getState().setSubscriptionPlan(profile.subscriptionPlan);
 
         // 1) Migrar registros de guest si existen
         // 2) Pull remote → local (download records from other devices)

@@ -388,7 +388,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, plan')
+    .select('role, plan, premium_expires_at, subscription_plan')
     .eq('id', userId)
     .single()
 
@@ -396,7 +396,22 @@ export async function fetchProfile(userId: string) {
     console.warn('Error fetching profile:', error.message)
     return null
   }
-  return data as { role: 'admin' | 'user'; plan: 'free' | 'premium' }
+  
+  let computedPlan = data.plan
+  if (computedPlan === 'premium' && data.premium_expires_at) {
+    const expiresAt = new Date(data.premium_expires_at)
+    if (expiresAt < new Date()) {
+      computedPlan = 'free'
+      // Optimistically update the database in the background (fire and forget)
+      supabase.from('profiles').update({ plan: 'free' }).eq('id', userId).then(() => {})
+    }
+  }
+
+  return { 
+    role: data.role as 'admin' | 'user', 
+    plan: computedPlan as 'free' | 'premium',
+    subscriptionPlan: data.subscription_plan as 'monthly' | 'annual' | undefined
+  }
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
@@ -517,12 +532,22 @@ export async function isUserPremium(): Promise<boolean> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('plan')
+    .select('plan, premium_expires_at')
     .eq('id', user.id)
     .maybeSingle()
 
   if (error || !data) return false
-  return data.plan === 'premium'
+  
+  if (data.plan === 'premium') {
+    if (data.premium_expires_at) {
+      const expiresAt = new Date(data.premium_expires_at)
+      if (expiresAt < new Date()) {
+        return false
+      }
+    }
+    return true
+  }
+  return false
 }
 
 // ─── Funciones para Device Control ────────────────────────────────────────────

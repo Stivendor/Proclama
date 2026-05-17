@@ -35,6 +35,7 @@ export default function SettingsView() {
     fetchBackgrounds,
     acceptTerms,
     setActiveView,
+    subscriptionPlan,
   } = useAppStore(
     useShallow((s) => ({
       settings: s.settings,
@@ -46,6 +47,7 @@ export default function SettingsView() {
       fetchBackgrounds: s.fetchBackgrounds,
       acceptTerms: s.acceptTerms,
       setActiveView: s.setActiveView,
+      subscriptionPlan: s.subscriptionPlan,
     })),
   );
   const [saved, setSaved] = useState(false);
@@ -274,15 +276,15 @@ export default function SettingsView() {
                 </ul>
               </div>
 
-              {/* Plan Premium */}
+              {/* Plan Pro Mensual */}
               <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(201, 166, 88, 0.22)', background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(201, 166, 88, 0.14)', color: '#f0dfb6', fontSize: '12px', fontWeight: 700 }}>Plan Premium</span>
-                  {isPremium && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
+                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(201, 166, 88, 0.14)', color: '#f0dfb6', fontSize: '12px', fontWeight: 700 }}>Pro Mensual</span>
+                  {(isPremium && (subscriptionPlan === 'monthly' || !subscriptionPlan)) && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
                 </div>
                 <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$ Próximamente<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · único</span></div>
-                  <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Acceso de por vida</p>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$25,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · mes</span></div>
+                  <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Cancela cuando quieras</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca completa (3,000+ canciones)</li>
@@ -294,11 +296,36 @@ export default function SettingsView() {
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de carpetas en media local</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 25 archivos de media local</li>
                 </ul>
-                {!isPremium && (
-                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
+                {!(isPremium && (subscriptionPlan === 'monthly' || !subscriptionPlan)) && (
+                  <button style={{ background: 'transparent', color: 'var(--gold)', border: '1px solid var(--gold)', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
                     useAppStore.getState().setForceLanding(true, 'planes')
                   }}>
-                    Mejorar a Premium
+                    Mejorar a Mensual
+                  </button>
+                )}
+              </div>
+
+              {/* Plan Pro Anual */}
+              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(201, 166, 88, 0.4)', background: 'linear-gradient(145deg, rgba(201, 166, 88, 0.08), rgba(201, 166, 88, 0.02))', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '12px', fontWeight: 700 }}>Pro Anual</span>
+                  {(isPremium && subscriptionPlan === 'annual') && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
+                </div>
+                <div>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$220,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · año</span></div>
+                  <p style={{ fontSize: '12px', color: '#c9a658', margin: 0, fontWeight: 600 }}>Ahorra $80.000 (casi 3 meses gratis)</p>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todas las ventajas de Pro Mensual</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Soporte prioritario</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Beneficios y actualizaciones todo el año</li>
+                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Renueva automáticamente cada 12 meses</li>
+                </ul>
+                {!(isPremium && subscriptionPlan === 'annual') && (
+                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: 'auto' }} onClick={() => {
+                    useAppStore.getState().setForceLanding(true, 'planes')
+                  }}>
+                    Mejorar a Anual
                   </button>
                 )}
               </div>
