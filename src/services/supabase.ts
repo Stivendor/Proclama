@@ -238,12 +238,13 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     query = query.eq('user_id', user.id)
   }
 
-  const { data, error } = await query.select().single()
+  const { data, error } = await query.select().maybeSingle()
 
   if (error) {
     console.error('Error updating song in Supabase:', error.message)
     return null
   }
+  if (!data) return null
   return mapRowToSong(data as SupabaseSongRow)
 }
 
@@ -660,51 +661,37 @@ export async function updateDeviceName(deviceRowId: string, newName: string): Pr
   return true
 }
 
-type SongReportOptions = {
-  timeoutMs?: number
-}
-
-function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout>
-
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs)
-  })
-
-  return Promise.race([Promise.resolve(promise), timeout]).finally(() => {
-    clearTimeout(timeoutId)
-  })
-}
-
 export async function createSongReport(
   songId: number,
   reason: string,
   details: string,
   userId: string | null,
-  options: SongReportOptions = {},
-): Promise<boolean> {
-  const timeoutMs = options.timeoutMs ?? 10000
+): Promise<{ success: boolean; error?: string }> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15000)
 
   try {
-    const { error } = await withTimeout(
-      supabase.from('song_reports').insert({
-        song_id: songId,
-        reason,
-        details,
-        user_id: userId,
-      }),
-      timeoutMs,
-      'Timeout enviando reporte de cancion',
-    )
+    const { error } = await supabase.from('song_reports').insert({
+      song_id: songId,
+      reason,
+      details,
+      user_id: userId,
+    }).abortSignal(controller.signal)
 
     if (error) {
       console.error('[SongReport] Error al enviar:', error.message)
-      return false
+      if (error.message.includes('foreign key constraint')) {
+        return { success: false, error: 'Esta canción ya no existe en la base de datos pública. Elimínala de tu biblioteca local.' }
+      }
+      return { success: false, error: error.message }
     }
-    return true
+    return { success: true }
   } catch (err) {
-    console.error('[SongReport] Error al enviar:', err instanceof Error ? err.message : err)
-    return false
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[SongReport] Error al enviar:', msg)
+    return { success: false, error: msg }
+  } finally {
+    clearTimeout(timer)
   }
 }
 

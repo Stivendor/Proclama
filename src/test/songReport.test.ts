@@ -8,12 +8,14 @@ describe('createSongReport', () => {
   })
 
   it('permite enviar reportes anonimos con user_id null', async () => {
-    const insertMock = vi.fn().mockResolvedValue({ error: null })
+    const insertResolve = { error: null }
+    const abortMock = vi.fn().mockReturnValue(Promise.resolve(insertResolve))
+    const insertMock = vi.fn().mockReturnValue({ abortSignal: abortMock })
     vi.spyOn(supabase, 'from').mockReturnValue({ insert: insertMock } as any)
 
-    const success = await createSongReport(42, 'lyrics_error', 'Falta el coro', null)
+    const result = await createSongReport(42, 'lyrics_error', 'Falta el coro', null)
 
-    expect(success).toBe(true)
+    expect(result.success).toBe(true)
     expect(supabase.from).toHaveBeenCalledWith('song_reports')
     expect(insertMock).toHaveBeenCalledWith({
       song_id: 42,
@@ -25,14 +27,19 @@ describe('createSongReport', () => {
 
   it('devuelve false si Supabase no responde antes del timeout', async () => {
     vi.useFakeTimers()
+    const abortMock = vi.fn().mockImplementation((signal: AbortSignal) =>
+      new Promise((_, reject) => {
+        signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      })
+    )
     vi.spyOn(supabase, 'from').mockReturnValue({
-      insert: vi.fn().mockReturnValue(new Promise(() => {})),
+      insert: vi.fn().mockReturnValue({ abortSignal: abortMock }),
     } as any)
 
-    const resultPromise = createSongReport(42, 'lyrics_error', '', null, { timeoutMs: 100 })
-    await vi.advanceTimersByTimeAsync(100)
+    const resultPromise = createSongReport(42, 'lyrics_error', '', null)
+    await vi.advanceTimersByTimeAsync(15000)
 
-    await expect(resultPromise).resolves.toBe(false)
+    await expect(resultPromise).resolves.toEqual({ success: false, error: expect.any(String) })
   })
 })
 

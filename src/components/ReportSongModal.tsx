@@ -44,7 +44,7 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
     setError('')
     
     try {
-      const success = await createSongReport(
+      const { success, error: reportError } = await createSongReport(
         song.remoteId,
         reason,
         details,
@@ -52,7 +52,7 @@ export default function ReportSongModal({ isOpen, onClose }: ReportSongModalProp
       )
 
       if (!success) {
-        setError('Error al enviar el reporte. Intenta de nuevo.')
+        setError(reportError || 'Error al enviar el reporte. Intenta de nuevo.')
       } else {
         setSent(true)
         setTimeout(() => {

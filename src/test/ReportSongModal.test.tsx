@@ -4,7 +4,7 @@ import ReportSongModal from '@/components/ReportSongModal'
 import { createSongReport } from '@/services/supabase'
 
 vi.mock('@/services/supabase', () => ({
-  createSongReport: vi.fn().mockResolvedValue(true),
+  createSongReport: vi.fn().mockResolvedValue({ success: true }),
 }))
 
 vi.mock('@/stores', () => ({
@@ -13,10 +13,10 @@ vi.mock('@/stores', () => ({
   }),
   useProjectionStore: (selector: any) =>
     selector({
-      state: {
-        songId: 42,
-        songTitle: 'Santo',
-      },
+      currentSong: { id: 42, remoteId: 42, title: 'Santo' },
+      song: { id: 42, remoteId: 42, title: 'Santo' },
+      songTitle: 'Santo',
+      state: { songTitle: 'Santo' },
     }),
 }))
 

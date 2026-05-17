@@ -3,6 +3,7 @@ import { AlertCircle, Music, CheckCircle, Trash2, Calendar, FileText, X } from "
 import { fetchReportsPaginated } from "../services/adminQueries";
 import { logAdminAction } from "../services/adminLogs";
 import { supabase } from "@/services/supabase";
+import { db } from "@/db";
 
 interface Report {
   id: string;
@@ -65,7 +66,10 @@ export default function ReportsPage() {
       const { error, count } = await supabase.from("songs").delete({ count: "exact" }).eq("id", report.song_id);
       if (error) throw error;
       if (count === 0) throw new Error("No se pudo eliminar la canción. Verifica permisos RLS.");
-      
+
+      // Eliminar de Dexie (biblioteca local)
+      await db.songs.where('remoteId').equals(report.song_id).delete();
+
       await logAdminAction({
         action: "delete_song", targetType: "song", targetId: String(report.song_id),
         targetLabel: report.songs?.title ?? "unknown", note: `Razón reporte: ${report.reason}`
@@ -86,7 +90,13 @@ export default function ReportsPage() {
       if (error) throw error;
       if (!data || data.length === 0) throw new Error("No se pudo actualizar la canción. Revisa permisos RLS o conexión.");
       
-      // Fire and forget el log para no bloquear la UI si falla
+      // Sincronizar a Dexie (biblioteca local)
+      await db.songs.where('remoteId').equals(report.song_id).modify({
+        title: titleText,
+        lyrics: lyricsText,
+        updatedAt: new Date(),
+      });
+
       logAdminAction({
         action: "edit_song", targetType: "song", targetId: String(report.song_id),
         targetLabel: titleText, note: "Canción editada desde reporte"
