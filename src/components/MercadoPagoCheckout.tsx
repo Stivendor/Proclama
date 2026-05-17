@@ -32,8 +32,6 @@ export function useMercadoPagoCheckout() {
           userEmail: session.user.email,
           planType: options?.planType || 'monthly',
           successUrl: origin,
-          failureUrl: origin,
-          pendingUrl: origin
         })
       })
       

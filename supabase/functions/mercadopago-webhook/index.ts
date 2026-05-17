@@ -42,7 +42,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
     const rawBody = await req.text()
-    const payload: MercadoPagoWebhookPayload = JSON.parse(rawBody)
+
+    if (!rawBody || rawBody.trim() === '') {
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    let payload: MercadoPagoWebhookPayload
+    try {
+      payload = JSON.parse(rawBody)
+    } catch {
+      console.log('Webhook received invalid JSON body')
+      return new Response(JSON.stringify({ success: true, note: 'invalid_json' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const signatureHeader = req.headers.get('x-signature')
     const requestId = req.headers.get('x-request-id')
     const webhookSecret = Deno.env.get('MERCADOPAGO_WEBHOOK_SECRET')
@@ -118,11 +134,11 @@ serve(async (req) => {
     if (payload.type === 'payment') {
       const paymentId = payload.data.id
       const accessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
-      const expectedAmount = parseInt(Deno.env.get('PRO_PLAN_PRICE') ?? '99900', 10)
+      const rawExpectedAmount = parseInt(Deno.env.get('PRO_PLAN_PRICE') ?? '99900', 10)
+      const expectedAmount = isNaN(rawExpectedAmount) ? 99900 : rawExpectedAmount
       const expectedCurrency = Deno.env.get('PRO_PLAN_CURRENCY') ?? 'COP'
 
       if (accessToken) {
-        // Get payment details from MercadoPago
         const paymentResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${paymentId}`,
           {
@@ -133,8 +149,10 @@ serve(async (req) => {
         )
 
         if (!paymentResponse.ok) {
-          console.error('Error fetching payment details from MercadoPago')
-          return new Response('Payment lookup failed', { status: 502 })
+          console.log(`Payment ${paymentId} not found in MP (test or expired): ${paymentResponse.status}`)
+          return new Response(JSON.stringify({ success: true, note: 'payment_not_found' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
         }
 
         const paymentData = await paymentResponse.json()

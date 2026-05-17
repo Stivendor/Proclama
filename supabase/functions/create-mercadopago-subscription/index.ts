@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { planType } = await req.json().catch(() => ({ planType: 'monthly' }))
+    const { planType, successUrl } = await req.json().catch(() => ({ planType: 'monthly' }))
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -60,10 +60,18 @@ Deno.serve(async (req) => {
     const envPriceAnnual = Deno.env.get('PRO_PLAN_PRICE_ANNUAL')
     
     const isAnnual = planType === 'annual'
-    const price = isAnnual 
+    const rawPrice = isAnnual
       ? (envPriceAnnual ? parseInt(envPriceAnnual, 10) : 220000)
       : (envPriceMonthly ? parseInt(envPriceMonthly, 10) : 25000)
-    
+
+    if (isNaN(rawPrice)) {
+      return new Response(JSON.stringify({ error: 'Precio inválido configurado en el servidor' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const price = rawPrice
     const currency = 'COP'
 
     if (!mercadoPagoAccessToken) {
@@ -74,34 +82,23 @@ Deno.serve(async (req) => {
     }
 
     const externalRef = crypto.randomUUID()
-    
-    // https://www.mercadopago.com.co/developers/es/reference/subscriptions/_preapproval/post
+
+    const backUrl = typeof successUrl === 'string' && successUrl.startsWith('https://')
+      ? successUrl
+      : 'https://proclama.lat'
+
     const payload = {
       reason: isAnnual ? 'Proclama Pro - Suscripción Anual' : 'Proclama Pro - Suscripción Mensual',
       auto_recurring: {
-        frequency: 1,
-        frequency_type: isAnnual ? 'months' : 'months',
-        // MercadoPago preapproval frequency_type can be 'days' or 'months'.
-        // For annual, we can set frequency: 12, frequency_type: 'months'.
-      },
-      back_url: 'https://proclama.lat',
-      payer_email: user.email,
-      external_reference: externalRef
-    }
-    
-    if (isAnnual) {
-        payload.auto_recurring.frequency = 12
-        payload.auto_recurring.frequency_type = 'months'
-    } else {
-        payload.auto_recurring.frequency = 1
-        payload.auto_recurring.frequency_type = 'months'
-    }
-    
-    // We add the amount and currency at the end to satisfy TS
-    Object.assign(payload.auto_recurring, {
+        frequency: isAnnual ? 12 : 1,
+        frequency_type: 'months',
         transaction_amount: price,
-        currency_id: currency
-    });
+        currency_id: currency,
+      },
+      back_url: backUrl,
+      payer_email: user.email,
+      external_reference: externalRef,
+    }
 
     const paymentRecord = buildInitialMercadoPagoPayment({
       paymentId: externalRef,
