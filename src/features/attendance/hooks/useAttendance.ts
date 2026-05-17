@@ -3,13 +3,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore } from '@/stores'
 import type { AttendanceRecord } from '@/types'
-import { todayISO, validateAttendance, parseField } from '../utils/validation'
+import { validateAttendance, parseField } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
 import { usePlan } from '@/hooks/usePlan'
 import { useAttendanceRealtime } from './useAttendanceRealtime'
 
 export function useAttendance(userId: string) {
-  const [selectedDate, setSelectedDate] = useState<string>(todayISO())
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedServiceName, setSelectedServiceName] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
   const { isPremium } = usePlan()
@@ -51,6 +51,10 @@ export function useAttendance(userId: string) {
   )
 
   async function saveAttendance(values: string[], serviceName: string) {
+    if (!selectedDate) {
+      setError('Debes seleccionar una fecha válida')
+      return false
+    }
     if (values.some(v => !validateAttendance(v))) {
       setError('Introduce solo números enteros positivos (o deja en blanco)')
       return false
@@ -121,7 +125,8 @@ export function useAttendance(userId: string) {
     selectedDate,
     setSelectedDate: (date: string) => {
       setSelectedDate(date)
-      setSelectedServiceName(undefined) // Al cambiar fecha manualmente, resetear selección de servicio
+      setSelectedServiceName(undefined)
+      setError('')
     },
     selectedServiceName,
     setSelectedServiceName,
