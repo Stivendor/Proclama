@@ -10,7 +10,7 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 
 // ─── Canvas size de referencia (16:9) ──────────────────────────────────────────
 export const CANVAS_SIZE = { width: 1920, height: 1080 } as const
-export const PREMIUM_FOR_EVERYONE = false
+
 export const DEFAULT_THEME: ProjectionTheme = {
   background: '#0a0a0f',
   fontFamily: 'Montserrat, sans-serif',
