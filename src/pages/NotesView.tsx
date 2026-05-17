@@ -301,7 +301,7 @@ export default function NotesView() {
 
           <input
             type="date"
-            className="input"
+            className={`input${attError === 'Debes seleccionar una fecha válida' ? ' input--error' : ''}`}
             style={{ width: 'auto' }}
             value={selectedDate}
             onChange={e => setSelectedDate(e.target.value)}
@@ -649,6 +649,11 @@ export default function NotesView() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        .input--error {
+          border-color: var(--red) !important;
+          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+          outline: none;
         }
       `}</style>
     </div>
