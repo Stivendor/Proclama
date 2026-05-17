@@ -1,26 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildInitialMercadoPagoPayment } from '../_shared/payments.ts'
 
-const allowedOrigins = (
-  Deno.env.get('ALLOWED_CORS_ORIGINS') ??
-  'https://proclama.lat,http://localhost:5173,http://localhost:4173'
-)
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-
-function buildCorsHeaders(req: Request) {
-  const origin = req.headers.get('Origin') ?? ''
-  const allowOrigin = allowedOrigins.includes(origin) ? origin : 'https://proclama.lat'
-
-  return {
-    'Access-Control-Allow-Origin': allowOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Expose-Headers': 'content-type',
-    'Vary': 'Origin',
-  }
-}
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req)
