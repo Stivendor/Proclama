@@ -76,9 +76,14 @@ function AppContent() {
   );
 
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isServer) return;
@@ -275,7 +280,7 @@ function AppContent() {
     return <ProjectionWindow />;
   }
 
-  if (isServer) return null;
+  if (!mounted) return null;
 
   if (deviceBlocked) {
     return <DeviceBlockedModal />;

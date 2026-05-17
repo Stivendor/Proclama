@@ -10,10 +10,7 @@ import {
   deriveMercadoPagoPaymentUpdate,
 } from '../_shared/payments.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://proclama.lat',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { buildCorsHeaders } from '../_shared/cors.ts'
 
 interface MercadoPagoWebhookPayload {
   action: string
@@ -29,6 +26,8 @@ interface MercadoPagoWebhookPayload {
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
