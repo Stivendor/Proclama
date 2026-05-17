@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import AdminGuard from "./AdminGuard";
+import AdminErrorBoundary from "./AdminErrorBoundary";
 import AdminSidebar, { type AdminView } from "./AdminSidebar";
 import { supabase } from "@/services/supabase";
 
@@ -49,9 +50,11 @@ function AdminContent() {
         adminEmail={adminEmail}
       />
       <main className="admin-main">
-        <Suspense fallback={fallback}>
-          {renderPage()}
-        </Suspense>
+        <AdminErrorBoundary>
+          <Suspense fallback={fallback}>
+            {renderPage()}
+          </Suspense>
+        </AdminErrorBoundary>
       </main>
     </div>
   );
