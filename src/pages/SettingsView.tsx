@@ -18,7 +18,7 @@ import { supabase } from "@/services/supabase";
 import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 import MFAModal from "@/components/MFAModal";
-import { usePlan } from "@/hooks/usePlan";
+import { PREMIUM_FOR_EVERYONE, usePlan } from "@/hooks/usePlan";
 import { useMercadoPagoCheckout } from "@/components/MercadoPagoCheckout";
 import DeviceList from "@/components/DeviceList";
 import { Monitor } from "lucide-react";
@@ -282,10 +282,10 @@ export default function SettingsView() {
                   <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(201, 166, 88, 0.14)', color: '#f0dfb6', fontSize: '12px', fontWeight: 700 }}>Pro Mensual</span>
                   {(isPremium && (subscriptionPlan === 'monthly' || !subscriptionPlan)) && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
                 </div>
-                <div>
+                {!PREMIUM_FOR_EVERYONE && <div>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$25,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · mes</span></div>
                   <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Cancela cuando quieras</p>
-                </div>
+                </div>}
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca completa (3,000+ canciones)</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda online de letras de canciones</li>
@@ -311,10 +311,10 @@ export default function SettingsView() {
                   <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '12px', fontWeight: 700 }}>Pro Anual</span>
                   {(isPremium && subscriptionPlan === 'annual') && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
                 </div>
-                <div>
+                {!PREMIUM_FOR_EVERYONE && <div>
                   <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$220,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · año</span></div>
                   <p style={{ fontSize: '12px', color: '#c9a658', margin: 0, fontWeight: 600 }}>Ahorra $80.000 (casi 3 meses gratis)</p>
-                </div>
+                </div>}
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todas las ventajas de Pro Mensual</li>
                   <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Soporte prioritario</li>

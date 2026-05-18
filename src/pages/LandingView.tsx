@@ -405,7 +405,7 @@ export default function LandingView() {
             <article className="plan-card plan-pro">
               <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Mensual</span>
               <h3>Plan Pro Mensual</h3>
-              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$25,000'} <span>/ mes</span></div>
+              {!PREMIUM_FOR_EVERYONE && <div className="plan-price-pro">$25,000 <span>/ mes</span></div>}
               <span className="plan-sub-badge">Cancela cuando quieras</span>
               <ul>
                 <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
@@ -426,7 +426,7 @@ export default function LandingView() {
             <article className="plan-card plan-pro" style={{ background: 'linear-gradient(145deg, rgba(201,166,88,0.08), rgba(201,166,88,0.02))', borderColor: 'rgba(201,166,88,0.3)' }}>
               <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Anual (Recomendado)</span>
               <h3>Plan Pro Anual</h3>
-              <div className="plan-price-pro">{PREMIUM_FOR_EVERYONE ? '$ Próximamente' : '$220,000'} <span>/ año</span></div>
+              {!PREMIUM_FOR_EVERYONE && <div className="plan-price-pro">$220,000 <span>/ año</span></div>}
               <span className="plan-sub-badge" style={{ color: '#c9a658' }}>Ahorra $80.000 (casi 3 meses gratis)</span>
               <ul>
                 <li><Check size={16} /> Todas las ventajas de Pro Mensual</li>
