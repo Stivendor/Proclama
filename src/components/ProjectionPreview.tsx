@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'
-import { onMessage } from '@/services/projection'
+import { ChevronDown, ChevronUp, Eye, EyeOff, Tv2 } from 'lucide-react'
+import { onMessage, openProjectionWindow } from '@/services/projection'
 import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
 import { useCountdownStore } from '@/stores/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
@@ -204,6 +204,13 @@ function ProjectionPreview({
     saveMediaState(newShowMedia)
   }, [showMedia])
 
+  const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
+
+  const handleOpenProjection = useCallback(() => {
+    const w = openProjectionWindow()
+    setProjectionWindow(w)
+  }, [setProjectionWindow])
+
   const { isCollapsed, projectionState, countdownState } = state
   const isCountdownActive = countdownState && countdownState.status !== 'idle'
   const canvas = CANVAS_SIZE
@@ -402,9 +409,10 @@ function ProjectionPreview({
           )}
         </div>
         <div className="preview-header-center">
-          {!isCollapsed && projectionState?.songTitle && (
-            <span className="preview-song-title">{projectionState.songTitle}</span>
-          )}
+          <button className="btn-projection" onClick={handleOpenProjection} title="Abrir ventana de proyección">
+            <Tv2 size={16} />
+            Abrir Proyección
+          </button>
         </div>
         <button 
           className="preview-collapse-toggle" 

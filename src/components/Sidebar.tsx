@@ -1,8 +1,7 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, Tv2, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { useAppStore, useProjectionStore } from '@/stores'
+import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
-import { openProjectionWindow } from '@/services/projection'
 import FeedbackFAB from '@/components/FeedbackFAB'
 
 export default function Sidebar() {
@@ -14,15 +13,8 @@ export default function Sidebar() {
     user: s.user,
     goToLanding: s.goToLanding,
   })))
-  const setProjectionWindow = useProjectionStore(s => s.setProjectionWindow)
-
   const handleNewSong = () => {
     openEditor()
-  }
-
-  const handleOpenProjection = () => {
-    const w = openProjectionWindow()
-    setProjectionWindow(w)
   }
 
   const nav = [
@@ -130,13 +122,6 @@ export default function Sidebar() {
             <span>Modo local</span>
           </button>
         )}
-      </div>
-
-      <div className="sidebar-footer">
-        <button className="btn-projection" onClick={handleOpenProjection}>
-          <Tv2 size={16} />
-          Abrir Proyección
-        </button>
       </div>
     </aside>
   )

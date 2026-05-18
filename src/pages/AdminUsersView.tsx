@@ -22,6 +22,7 @@ interface UserProfile {
   created_at: string;
   plan: string;
   role: string;
+  is_authorized: boolean;
 }
 
 export default function AdminUsersView() {
@@ -43,7 +44,7 @@ export default function AdminUsersView() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, created_at, plan, role')
+        .select('id, email, created_at, plan, role, is_authorized')
         .order('created_at', { ascending: sortOrder === 'asc' });
 
       if (error) throw error;
@@ -60,6 +61,20 @@ export default function AdminUsersView() {
       fetchUsers();
     }
   }, [userRole, sortOrder]);
+
+  const toggleAuthorized = async (u: UserProfile) => {
+    const newVal = !u.is_authorized;
+    if (!confirm(`¿${newVal ? 'Autorizar' : 'Desautorizar'} a ${u.email} para publicar sin revisión?`)) return;
+    setUpdatingUserId(u.id);
+    try {
+      await supabase.from('profiles').update({ is_authorized: newVal }).eq('id', u.id);
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_authorized: newVal } : x));
+    } catch {
+      alert('Error al cambiar autorización.');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
 
   const handleTogglePlan = async (userId: string, currentPlan: string) => {
     if (updatingUserId) return;
@@ -207,20 +222,21 @@ export default function AdminUsersView() {
                 <th>Registro</th>
                 <th>Plan</th>
                 <th>Rol</th>
+                <th>Autorizado</th>
                 <th style={{ textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading && users.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '60px' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '60px' }}>
                     <div className="loading-spinner" />
                     <p style={{ marginTop: '12px', color: 'var(--text-secondary)' }}>Sincronizando usuarios...</p>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
                     No se encontraron usuarios con estos criterios.
                   </td>
                 </tr>
@@ -247,6 +263,19 @@ export default function AdminUsersView() {
                     <td>
                       <span className={`role-badge ${u.role}`}>
                         {u.role === 'admin' ? 'Admin' : 'Usuario'}
+                      </span>
+                    </td>
+                    <td>
+                      <span 
+                        className="authorized-toggle"
+                        onClick={() => toggleAuthorized(u)}
+                        title={u.is_authorized ? 'Desautorizar' : 'Autorizar'}
+                        style={{ 
+                          cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                          color: u.is_authorized ? 'var(--green)' : 'var(--text-muted)'
+                        }}
+                      >
+                        {u.is_authorized ? '✅ Sí' : '❌ No'}
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
