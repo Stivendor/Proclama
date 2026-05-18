@@ -25,6 +25,7 @@ import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import PremiumBanner from "@/components/PremiumBanner";
 import TermsModal from "@/components/TermsModal";
+import Toast from "@/components/Toast";
 
 const IS_PROJECTION =
   typeof window !== "undefined" &&
@@ -386,6 +387,7 @@ function MainApp() {
         fontScale={theme.fontScale}
         onFontScaleChange={(val) => updateTheme({ fontScale: val })}
       />
+      <Toast />
     </div>
   );
 }

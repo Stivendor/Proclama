@@ -97,6 +97,10 @@ export default function SongEditorModal() {
       setSaving(false)
       closeEditor()
 
+      if (!editingSong) {
+        useAppStore.getState().setToast(`✅ "${form.title}" guardada en Mi Cancionero`)
+      }
+
       // Sincronizar a la nube después de cerrar (no bloquea el modal)
       if (canEditCloud && editingSong?.remoteId) {
         updateSong(editingSong.remoteId, {

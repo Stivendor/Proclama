@@ -343,6 +343,9 @@ interface AppStore {
   recentSongs: Song[]
   addRecentSong: (song: Song) => void
   clearRecentSongs: () => void
+
+  toast: string | null
+  setToast: (msg: string | null) => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -495,6 +498,9 @@ export const useAppStore = create<AppStore>()(
 
       landingShowAuth: false,
       setLandingShowAuth: (v) => set({ landingShowAuth: v }),
+
+      toast: null,
+      setToast: (msg) => set({ toast: msg }),
     }),
     {
       name: 'proclama-app',
