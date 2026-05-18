@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ArrowUpDown, Download, Zap, ZapOff, RefreshCcw } from "lucide-react";
+import { Users, Search, ArrowUpDown, Download, Zap, ZapOff, RefreshCcw, Check } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
 import { logAdminAction } from "../services/adminLogs";
@@ -11,6 +11,7 @@ interface UserProfile {
   created_at: string;
   plan: string;
   role: string;
+  is_authorized: boolean;
 }
 
 export default function UsersPage() {
@@ -59,6 +60,21 @@ export default function UsersPage() {
       });
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, plan: newPlan } : u));
     } catch { alert("Error al cambiar plan."); }
+    finally { setUpdatingId(null); }
+  };
+
+  const toggleAuthorized = async (user: UserProfile) => {
+    const newVal = !user.is_authorized;
+    if (!confirm(`¿${newVal ? 'Autorizar' : 'Desautorizar'} a ${user.email} para publicar sin revisión?`)) return;
+    setUpdatingId(user.id);
+    try {
+      await supabase.from("profiles").update({ is_authorized: newVal }).eq("id", user.id);
+      await logAdminAction({
+        action: newVal ? "authorize_user" : "deauthorize_user", targetType: "user", targetId: user.id,
+        targetLabel: user.email
+      });
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_authorized: newVal } : u));
+    } catch { alert("Error al cambiar autorización."); }
     finally { setUpdatingId(null); }
   };
 
@@ -123,6 +139,15 @@ export default function UsersPage() {
           { key: "date", header: "Registro", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{new Date(u.created_at).toLocaleDateString()}</span> },
           { key: "plan", header: "Plan", render: (u: UserProfile) => <span className={`admin-badge ${u.plan}`}>{u.plan.toUpperCase()}</span> },
           { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" ? "var(--blue)" : "var(--text-muted)", fontWeight: u.role === "admin" ? 600 : 400 }}>{u.role === "admin" ? "Admin" : "Usuario"}</span> },
+          { key: "authorized", header: "Autorizado", render: (u: UserProfile) => (
+            <span style={{ 
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              color: u.is_authorized ? 'var(--green)' : 'var(--text-muted)',
+              cursor: 'pointer', fontSize: 13
+            }} onClick={() => toggleAuthorized(u)} title={u.is_authorized ? 'Desautorizar' : 'Autorizar'}>
+              {u.is_authorized ? <><Check size={14} /> Sí</> : 'No'}
+            </span>
+          )},
           { key: "actions", header: "Acciones", align: "right" as const, render: (u: UserProfile) => (
             <button className={`admin-action-btn ${u.plan === "premium" ? "danger" : "gold"}`} onClick={() => togglePlan(u)} disabled={updatingId === u.id}>
               {updatingId === u.id ? <RefreshCcw size={13} className="spin" /> : u.plan === "premium" ? <><ZapOff size={13} /> Quitar</> : <><Zap size={13} /> Premium</>}

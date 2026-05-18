@@ -54,7 +54,6 @@ export default function SongEditorModal() {
       const now = new Date()
 
       if (editingSong?.id) {
-        // Guardar local primero (siempre)
         await db.songs.update(editingSong.id, {
           ...form,
           remoteId: canEditCloud ? editingSong.remoteId : undefined,
@@ -63,23 +62,7 @@ export default function SongEditorModal() {
           updatedAt: now,
           userId: editingSong.userId,
         })
-
-        // Sincronizar a la nube en segundo plano (no bloquea)
-        if (canEditCloud) {
-          updateSong(editingSong.remoteId!, {
-            title: form.title,
-            artist: form.artist,
-            lyrics: form.lyrics,
-            key: form.key,
-            tags: form.tags,
-            language: form.language,
-            isPublic: editingSong.isPublic,
-            isVerified: editingSong.isVerified,
-            updatedAt: now,
-          }).catch(err => console.warn('[Editor] Error al actualizar en la nube:', err))
-        }
       } else {
-        // Guardar local primero
         const localId = await db.songs.add({
           ...form,
           remoteId: undefined,
@@ -90,7 +73,6 @@ export default function SongEditorModal() {
           userId: user?.id ?? undefined,
         })
 
-        // Sincronizar a la nube en segundo plano (no bloquea)
         if (user?.id) {
           createSong({
             ...form,
@@ -103,17 +85,38 @@ export default function SongEditorModal() {
                 remoteId: created.remoteId,
                 isPublic: created.isPublic,
                 isVerified: created.isVerified,
-              }).catch(console.warn)
+              })
             }
-          }).catch(err => console.warn('[Editor] Error al crear en la nube:', err))
+          }).catch(err => {
+            console.error('[Editor] Error al crear en la nube:', err)
+            alert('La canción se guardó localmente, pero falló la sincronización a la nube.')
+          })
         }
       }
 
+      setSaving(false)
       closeEditor()
+
+      // Sincronizar a la nube después de cerrar (no bloquea el modal)
+      if (canEditCloud && editingSong?.remoteId) {
+        updateSong(editingSong.remoteId, {
+          title: form.title,
+          artist: form.artist,
+          lyrics: form.lyrics,
+          key: form.key,
+          tags: form.tags,
+          language: form.language,
+          isPublic: editingSong.isPublic,
+          isVerified: editingSong.isVerified,
+          updatedAt: now,
+        }).catch(err => {
+          console.error('[Editor] Error al actualizar en la nube:', err)
+          alert('Los cambios se guardaron localmente, pero falló la sincronización a la nube. Verifica tu conexión.')
+        })
+      }
     } catch (err) {
       console.error('[Editor] Error fatal al guardar:', err)
       alert('Error al guardar la canción. Verifica tu conexión e intenta de nuevo.')
-    } finally {
       setSaving(false)
     }
   }

@@ -1,5 +1,5 @@
 import { useEffect, useState, memo } from 'react'
-import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library, LayoutGrid, List } from 'lucide-react'
+import { Search, Music2, Edit2, Trash2, Play, Plus, Menu, ShieldCheck, Clock, Lock, Check, X, Library, LayoutGrid, List, Globe, Download } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
@@ -7,7 +7,7 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote } from '@/services/supabase'
+import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, searchSongs, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/LiveSelection'
@@ -34,8 +34,11 @@ export default function LibraryView() {
       return 0
     }
   }, [user?.id]) ?? 0
+  const [libraryTab, setLibraryTab] = useState<'locals' | 'community'>('locals')
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
+  const [onlineResults, setOnlineResults] = useState<Song[]>([])
+  const [onlineSearching, setOnlineSearching] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
   const [loadingRemote, setLoadingRemote] = useState(false)
@@ -238,6 +241,15 @@ export default function LibraryView() {
       return a.title.localeCompare(b.title, 'es') // Luego alfabético
     })
 
+    // Filter by active tab
+    if (libraryTab === 'locals') {
+      results = results.filter(s => !s.remoteId || (user?.id && s.userId === user.id))
+    } else if (userRole === 'admin') {
+      results = results.filter(s => s.remoteId !== undefined)
+    } else {
+      results = results.filter(s => s.isPublic && s.remoteId !== undefined && (user?.id ? s.userId !== user.id : true))
+    }
+
     // 1. Filter by Search Query
     if (searchQuery) {
       const titleMatches = results.filter(s =>
@@ -264,7 +276,7 @@ export default function LibraryView() {
     // 5. Apply view limit (slice) as the final step
     // This ensures we always find matches in the full local database
     return results.slice(0, 50)
-  }, [searchQuery, selectedTag, selectedLang]) ?? []
+  }, [searchQuery, selectedTag, selectedLang, libraryTab, user?.id, userRole]) ?? []
 
   const allTags = useLiveQuery(async () => {
     const all = await db.songs.toArray()
@@ -352,6 +364,90 @@ export default function LibraryView() {
     e.target.value = ''
   }
 
+  const handleImportFromCommunity = async (song: Song) => {
+    const existing = await db.songs
+      .filter(s =>
+        s.title.toLowerCase().trim() === song.title.toLowerCase().trim() &&
+        (s.artist || '').toLowerCase().trim() === (song.artist || '').toLowerCase().trim()
+      )
+      .first()
+
+    if (existing) {
+      setImportStatus(`⚠️ "${song.title}" ya está en tu cancionero`)
+      setTimeout(() => setImportStatus(null), 4000)
+      return
+    }
+
+    const newSong: Omit<Song, 'id'> = {
+      title: song.title,
+      artist: song.artist,
+      lyrics: song.lyrics,
+      key: song.key,
+      tags: [...(song.tags || [])],
+      language: song.language || 'Español',
+      usageCount: 0,
+      isPublic: false,
+      isVerified: false,
+      importadaDe: song.remoteId,
+      userId: user?.id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    try {
+      await db.songs.add(newSong as Song)
+      setImportStatus(`✅ "${song.title}" importada a tu cancionero`)
+    } catch {
+      setImportStatus(`Error al importar "${song.title}"`)
+    }
+    setTimeout(() => setImportStatus(null), 4000)
+  }
+
+  const handlePublish = async (song: Song) => {
+    const now = new Date()
+    let isVerified = false
+    if (user?.id) {
+      const profile = await fetchProfile(user.id)
+      if (profile?.isAuthorized) isVerified = true
+    }
+    try {
+      if (song.remoteId) {
+        await updateSongRemote(song.remoteId, { isPublic: true, isVerified, updatedAt: now })
+        await db.songs.update(song.id!, { isPublic: true, isVerified, updatedAt: now })
+      } else {
+        const created = await createSong({
+          ...song,
+          isPublic: true,
+          isVerified,
+          createdAt: now,
+          updatedAt: now,
+        })
+        if (created?.remoteId) {
+          await db.songs.update(song.id!, { isPublic: true, isVerified, remoteId: created.remoteId, updatedAt: now })
+        }
+      }
+      setImportStatus(`✅ "${song.title}" publicada en la comunidad${isVerified ? '' : ' (pendiente de revisión)'}`)
+    } catch {
+      setImportStatus(`Error al publicar "${song.title}"`)
+    }
+    setTimeout(() => setImportStatus(null), 4000)
+  }
+
+  const handleOnlineSearch = async () => {
+    const q = localSearch.trim()
+    if (!q) return
+    setOnlineSearching(true)
+    try {
+      const results = await searchSongs(q, true)
+      setOnlineResults(results)
+    } catch {
+      setImportStatus('Error al buscar en línea')
+      setTimeout(() => setImportStatus(null), 4000)
+    } finally {
+      setOnlineSearching(false)
+    }
+  }
+
   return (
     <div className="library-view">
       {/* Header */}
@@ -363,33 +459,60 @@ export default function LibraryView() {
             </button>
           )}
           <div>
-            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Canciones</h1>
+            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />{libraryTab === 'locals' ? 'Mi Cancionero' : 'Comunidad'}</h1>
             <span className="song-count">
-              {songs.length} de {totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}
-              {totalRemoteSongs && totalRemoteSongs > songs.length && '+'} canciones
+              {songs.length} {libraryTab === 'locals' ? 'canciones' : `de ${totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}${totalRemoteSongs && totalRemoteSongs > songs.length && '+'} públicas`}
             </span>
           </div>
         </div>
         <div className="header-actions">
-          <button
-            className="btn-ghost"
-            onClick={() => setShowOnlineSearch(true)}
-            title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
-          >
-            <Search size={15} /> Buscar online
-            {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
-          </button>
-          <button
-            className="btn-primary"
-            onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
-            disabled={!canCreateSong(ownSongCount)}
-            aria-label="Crear nueva canción"
-            title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
-          >
-            <Plus size={15} /> Nueva
-            {!canCreateSong(ownSongCount) && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
-          </button>
+          {libraryTab === 'locals' ? (
+            <>
+              <button
+                className="btn-ghost"
+                onClick={() => setShowOnlineSearch(true)}
+                title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
+              >
+                <Search size={15} /> Buscar online
+                {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
+                disabled={!canCreateSong(ownSongCount)}
+                aria-label="Crear nueva canción"
+                title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
+              >
+                <Plus size={15} /> Nueva
+                {!canCreateSong(ownSongCount) && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn-ghost"
+              onClick={handleOnlineSearch}
+              disabled={onlineSearching}
+            >
+              <Globe size={15} /> {onlineSearching ? 'Buscando...' : 'Buscar en línea'}
+            </button>
+          )}
         </div>
+      </div>
+
+      {/* Tab bar */}
+      <div className="library-tabs">
+        <button
+          className={`library-tab ${libraryTab === 'locals' ? 'active' : ''}`}
+          onClick={() => { setLibraryTab('locals'); setOnlineResults([]) }}
+        >
+          <Music2 size={14} /> Mi Cancionero
+        </button>
+        <button
+          className={`library-tab ${libraryTab === 'community' ? 'active' : ''}`}
+          onClick={() => setLibraryTab('community')}
+        >
+          <Globe size={14} /> Comunidad
+        </button>
       </div>
 
       <div className="library-grid">
@@ -408,7 +531,7 @@ export default function LibraryView() {
             </div>
           </div>
 
-          {!localSearch && recentSongs && recentSongs.length > 0 && (
+          {libraryTab === 'locals' && !localSearch && recentSongs && recentSongs.length > 0 && (
             <div className="recent-songs-section">
               <div className="recent-songs-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -445,37 +568,76 @@ export default function LibraryView() {
           )}
 
           <div className="song-list-scroll">
-            {songs.length === 0 ? (
+            {songs.length === 0 && onlineResults.length === 0 ? (
               <div className="library-empty">
                 <Music2 size={48} opacity={0.2} style={{ marginBottom: 12 }} />
-                <h3>Tu biblioteca está vacía</h3>
-                <p>Agrega canciones manualmente o búscalas en nuestra base de datos online.</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button className="btn-primary" onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}>
-                    <Plus size={16} /> Crear canción
-                  </button>
-                  <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
-                    <Search size={16} /> Buscar online
-                  </button>
-                </div>
+                {libraryTab === 'locals' ? (
+                  <>
+                    <h3>Tu cancionero está vacío</h3>
+                    <p>Crea una canción nueva o búscala en la comunidad.</p>
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                      <button className="btn-primary" onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}>
+                        <Plus size={16} /> Crear canción
+                      </button>
+                      <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
+                        <Search size={16} /> Buscar online
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3>Sin resultados en comunidad</h3>
+                    <p>Usa la búsqueda para encontrar canciones públicas de otros usuarios, o espera a que se sincronicen.</p>
+                  </>
+                )}
               </div>
             ) : (
-              songs.map(song => {
-                const rank = songRanking.get(song.id ?? 0) ?? Infinity
-                const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
-                return (
-                  <SongListItem
-                    key={song.id}
-                    song={song}
-                    rank={rank}
-                    blocked={blocked}
-                    onEdit={handleEdit}
-                    onLoad={handleLoad}
-                    onDelete={handleDelete}
-                    onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
-                  />
-                )
-              })
+              <>
+                {songs.map(song => {
+                  const rank = songRanking.get(song.id ?? 0) ?? Infinity
+                  const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
+                  return (
+                    <SongListItem
+                      key={song.id}
+                      song={song}
+                      rank={rank}
+                      blocked={blocked}
+                      onEdit={handleEdit}
+                      onLoad={handleLoad}
+                      onDelete={handleDelete}
+                      onPublish={handlePublish}
+                      onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
+                    />
+                  )
+                })}
+                {onlineResults.length > 0 && (
+                  <div style={{
+                    borderTop: '1px solid var(--border)',
+                    margin: '8px 6px',
+                    paddingTop: 8
+                  }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 11, color: 'var(--text-muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.5px',
+                      marginBottom: 4, padding: '0 6px'
+                    }}>
+                      <Globe size={12} /> Resultados en línea
+                    </div>
+                    {onlineResults.map(song => (
+                      <SongListItem
+                        key={song.remoteId ?? song.title}
+                        song={song}
+                        onEdit={handleEdit}
+                        onLoad={handleLoad}
+                        onDelete={handleDelete}
+                        showImport
+                        onImport={handleImportFromCommunity}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -537,7 +699,7 @@ export default function LibraryView() {
 }
 
 const SongListItem = memo(function SongListItem({
-  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked
+  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked, showImport, onImport, onPublish
 }: {
   song: Song,
   rank?: number,
@@ -546,6 +708,9 @@ const SongListItem = memo(function SongListItem({
   onLoad: (s: Song) => void,
   onDelete: (s: Song) => void,
   onBlocked?: () => void
+  showImport?: boolean
+  onImport?: (s: Song) => void
+  onPublish?: (s: Song) => void
 }) {
   const activeTitle = useProjectionStore(s => s.state.songTitle)
   const { user, userRole, guestMode } = useAppStore(useShallow(s => ({ user: s.user, userRole: s.userRole, guestMode: s.guestMode })))
@@ -583,16 +748,28 @@ const SongListItem = memo(function SongListItem({
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>
       <div className="song-card-actions-mini">
-        {(song.isPublic || user?.id === song.userId || userRole === 'admin') && (
-          <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
-            <Edit2 size={12} />
+        {showImport ? (
+          <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onImport?.(song); }} aria-label={`Importar ${song.title}`} title="Importar a mi cancionero">
+            <Download size={12} />
           </button>
-        )}
-
-        {(userRole === 'admin' || user?.id === song.userId) && (
-          <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar permanentemente">
-            <Trash2 size={12} />
-          </button>
+        ) : (
+          <>
+            {user?.id === song.userId && !song.isPublic && (
+              <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onPublish?.(song); }} aria-label={`Publicar ${song.title}`} title="Publicar en la comunidad" style={{ color: 'var(--green)' }}>
+                <Globe size={12} />
+              </button>
+            )}
+            {(song.isPublic || user?.id === song.userId || userRole === 'admin') && (
+              <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onEdit(song); }} aria-label={`Editar ${song.title}`} title="Editar">
+                <Edit2 size={12} />
+              </button>
+            )}
+            {(userRole === 'admin' || user?.id === song.userId) && (
+              <button className="btn-icon-xs danger" onClick={(e) => { e.stopPropagation(); onDelete(song); }} aria-label={`Eliminar ${song.title}`} title="Eliminar permanentemente">
+                <Trash2 size={12} />
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

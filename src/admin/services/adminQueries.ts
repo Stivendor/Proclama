@@ -16,7 +16,7 @@ export async function fetchUsersPaginated(
 
   let query = supabase
     .from("profiles")
-    .select("id, email, created_at, plan, role", { count: "exact" })
+    .select("id, email, created_at, plan, role, is_authorized", { count: "exact" })
     .range(from, to)
     .order("created_at", { ascending: filters.sortOrder === "asc" });
 
@@ -93,10 +93,9 @@ export async function fetchSongsPaginated(
   let query = supabase
     .from("songs")
     .select("id, title, artist, language, lyrics, is_verified, is_public, created_at, user_id", { count: "exact" })
-    .eq("is_public", true)
     .order("created_at", { ascending: false })
     .range(from, to);
-  if (filters.search) query = query.or(`title.ilike.%${filters.search}%,artist.ilike.%${filters.search}%`);
+  if (filters.search) query = query.or(`title.ilike.%${filters.search}%,artist.ilike.%${filters.search}%,lyrics.ilike.%${filters.search}%`);
   if (filters.language) query = query.eq("language", filters.language);
   if (filters.verified === "true") query = query.eq("is_verified", true);
   if (filters.verified === "false") query = query.eq("is_verified", false);

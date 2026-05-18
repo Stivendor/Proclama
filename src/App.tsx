@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore, useProjectionStore } from "@/stores";
 import { supabase } from "@/services/supabase";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSongsRealtime } from "@/hooks/useSongsRealtime";
 import { onMessage } from "@/services/projection";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
@@ -77,6 +78,9 @@ function AppContent() {
 
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const user = useAppStore(s => s.user)
+  useSongsRealtime(user?.id)
 
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);

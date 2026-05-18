@@ -27,7 +27,7 @@ type SupabaseSongRow = {
   updated_at: string | null
 }
 
-function mapRowToSong(row: SupabaseSongRow): Song {
+export function mapRowToSong(row: SupabaseSongRow): Song {
   return {
     remoteId: row.id,
     userId: row.user_id ?? undefined,
@@ -389,7 +389,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, plan, premium_expires_at, subscription_plan')
+    .select('role, plan, premium_expires_at, subscription_plan, is_authorized')
     .eq('id', userId)
     .single()
 
@@ -411,8 +411,22 @@ export async function fetchProfile(userId: string) {
   return { 
     role: data.role as 'admin' | 'user', 
     plan: computedPlan as 'free' | 'premium',
-    subscriptionPlan: data.subscription_plan as 'monthly' | 'annual' | undefined
+    subscriptionPlan: data.subscription_plan as 'monthly' | 'annual' | undefined,
+    isAuthorized: data.is_authorized ?? false
   }
+}
+
+export async function setUserAuthorized(userId: string, authorized: boolean) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_authorized: authorized })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error updating authorization:', error.message)
+    return false
+  }
+  return true
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
