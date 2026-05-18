@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
-import { sendProjectionUpdate, sendMediaCommand } from '@/services/projection'
+import { sendProjectionUpdate, sendMediaCommand, ensureProjectionReady } from '@/services/projection'
 import { supabase } from '@/services/supabase'
 import type { UserDevice } from '@/services/supabase'
 import type { BackgroundAsset } from '@/types'
@@ -110,8 +110,16 @@ export const useProjectionStore = create<ProjectionStore>()(
           currentSlide: initialSlide,
           hideText: false,
         }
-        set({ state: newState, currentSong: isBible ? null : song })
-        sendProjectionUpdate(newState)
+        const doUpdate = (newWindow: Window | null) => {
+          if (newWindow) set({ projectionWindow: newWindow })
+          set({ state: newState, currentSong: isBible ? null : song })
+          sendProjectionUpdate(newState)
+        }
+        if (isBible) {
+          ensureProjectionReady(get().projectionWindow).then(doUpdate)
+        } else {
+          doUpdate(null)
+        }
       },
 
       nextSlide: () => {
@@ -150,19 +158,19 @@ export const useProjectionStore = create<ProjectionStore>()(
       },
 
       goToSlide: (index) => {
-        set(s => {
-          if (index >= 0 && index < s.state.slides.length) {
-            const newState = { ...s.state, currentSlide: index, hideText: false }
+        const s = get()
+        if (index >= 0 && index < s.state.slides.length) {
+          const newState = { ...s.state, currentSlide: index, hideText: false }
+          const doUpdate = (newWindow: Window | null) => {
+            if (newWindow) set({ projectionWindow: newWindow })
+            set({ state: newState })
             sendProjectionUpdate(newState)
-            
             if (s.currentSong) {
               useAppStore.getState().addRecentSong(s.currentSong)
             }
-
-            return { state: newState }
           }
-          return s
-        })
+          ensureProjectionReady(get().projectionWindow).then(doUpdate)
+        }
       },
 
       updateTheme: (theme) => {
