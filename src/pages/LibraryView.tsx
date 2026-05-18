@@ -7,7 +7,7 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/OnlineSearchModal'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, searchSongs, createSong, fetchProfile } from '@/services/supabase'
+import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/LiveSelection'
@@ -38,7 +38,6 @@ export default function LibraryView() {
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
-  const [onlineSearching, setOnlineSearching] = useState(false)
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
   const [loadingRemote, setLoadingRemote] = useState(false)
@@ -422,6 +421,11 @@ export default function LibraryView() {
           createdAt: now,
           updatedAt: now,
         })
+        if (!created) {
+          setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
+          setTimeout(() => setImportStatus(null), 4000)
+          return
+        }
         if (created?.remoteId) {
           await db.songs.update(song.id!, { isPublic: true, isVerified, remoteId: created.remoteId, updatedAt: now })
         }
@@ -431,21 +435,6 @@ export default function LibraryView() {
       setImportStatus(`Error al publicar "${song.title}"`)
     }
     setTimeout(() => setImportStatus(null), 4000)
-  }
-
-  const handleOnlineSearch = async () => {
-    const q = localSearch.trim()
-    if (!q) return
-    setOnlineSearching(true)
-    try {
-      const results = await searchSongs(q, true)
-      setOnlineResults(results)
-    } catch {
-      setImportStatus('Error al buscar en línea')
-      setTimeout(() => setImportStatus(null), 4000)
-    } finally {
-      setOnlineSearching(false)
-    }
   }
 
   return (
@@ -466,36 +455,24 @@ export default function LibraryView() {
           </div>
         </div>
         <div className="header-actions">
-          {libraryTab === 'locals' ? (
-            <>
-              <button
-                className="btn-ghost"
-                onClick={() => setShowOnlineSearch(true)}
-                title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
-              >
-                <Search size={15} /> Buscar online
-                {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
-              </button>
-              <button
-                className="btn-primary"
-                onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
-                disabled={!canCreateSong(ownSongCount)}
-                aria-label="Crear nueva canción"
-                title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
-              >
-                <Plus size={15} /> Nueva
-                {!canCreateSong(ownSongCount) && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
-              </button>
-            </>
-          ) : (
-            <button
-              className="btn-ghost"
-              onClick={handleOnlineSearch}
-              disabled={onlineSearching}
-            >
-              <Globe size={15} /> {onlineSearching ? 'Buscando...' : 'Buscar en línea'}
-            </button>
-          )}
+          <button
+            className="btn-ghost"
+            onClick={() => setShowOnlineSearch(true)}
+            title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
+          >
+            <Search size={15} /> Buscar online
+            {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
+            disabled={!canCreateSong(ownSongCount)}
+            aria-label="Crear nueva canción"
+            title={!canCreateSong(ownSongCount) ? `Límite de ${FREE_SONG_LIMIT} canciones propias alcanzado — actualiza tu plan` : undefined}
+          >
+            <Plus size={15} /> Nueva
+            {!canCreateSong(ownSongCount) && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
+          </button>
         </div>
       </div>
 
@@ -754,7 +731,7 @@ const SongListItem = memo(function SongListItem({
           </button>
         ) : (
           <>
-            {user?.id === song.userId && !song.isPublic && (
+            {user && user?.id === song.userId && !song.isPublic && (
               <button className="btn-icon-xs" onClick={(e) => { e.stopPropagation(); onPublish?.(song); }} aria-label={`Publicar ${song.title}`} title="Publicar en la comunidad" style={{ color: 'var(--green)' }}>
                 <Globe size={12} />
               </button>

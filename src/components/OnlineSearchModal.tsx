@@ -118,6 +118,7 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         await db.songs.put(payload)
       }
 
+      useAppStore.getState().setToast(`✅ "${title}" importada a Mi Cancionero`)
       setImportedLyrics(null)
       onClose()
     } catch (err) {
