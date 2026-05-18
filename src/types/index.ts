@@ -15,6 +15,7 @@ export interface Song {
   usageCount: number
   isPublic: boolean      // Indica si la canción es visible para todos
   isVerified: boolean     // Solo las canciones verificadas aparecen públicamente
+  importadaDe?: number    // remoteId original si fue importada desde Comunidad
   createdAt: Date
   updatedAt: Date
 }

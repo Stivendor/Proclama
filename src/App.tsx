@@ -5,6 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore, useProjectionStore } from "@/stores";
 import { supabase } from "@/services/supabase";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useSongsRealtime } from "@/hooks/useSongsRealtime";
 import { onMessage } from "@/services/projection";
 import Sidebar from "@/components/Sidebar";
 import LibraryView from "@/pages/LibraryView";
@@ -24,6 +25,7 @@ import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import PremiumBanner from "@/components/PremiumBanner";
 import TermsModal from "@/components/TermsModal";
+import Toast from "@/components/Toast";
 
 const IS_PROJECTION =
   typeof window !== "undefined" &&
@@ -77,6 +79,9 @@ function AppContent() {
 
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const user = useAppStore(s => s.user)
+  useSongsRealtime(user?.id)
 
   const isServer = typeof window === "undefined";
   const initRef = useRef(false);
@@ -382,6 +387,7 @@ function MainApp() {
         fontScale={theme.fontScale}
         onFontScaleChange={(val) => updateTheme({ fontScale: val })}
       />
+      <Toast />
     </div>
   );
 }

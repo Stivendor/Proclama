@@ -54,3 +54,66 @@ export function openProjectionWindow(): Window | null {
   )
   return w
 }
+
+/**
+ * Returns a promise that resolves when the projection window is ready.
+ *
+ * - If the window reference is valid → resolves immediately.
+ * - Otherwise probes via PING/PONG on the BroadcastChannel (up to 1s).
+ * - If the window is alive (PONG received) → resolves without calling
+ *   `window.open`, so the existing window stays on the TV / projector.
+ * - Only calls `window.open` if no PONG arrives, then waits for the new
+ *   window to mount.
+ */
+export function ensureProjectionReady(existingWindow: Window | null): Promise<Window | null> {
+  if (existingWindow && !existingWindow.closed) return Promise.resolve(null)
+
+  const ch = getChannel()
+
+  function waitForPong(timeout: number, interval: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      let attempts = 0
+      const max = Math.ceil(timeout / interval)
+      let done = false
+
+      const listener = (e: MessageEvent) => {
+        if (e.data.type === 'PONG' && !done) {
+          done = true
+          ch.removeEventListener('message', listener)
+          resolve(true)
+        }
+      }
+      ch.addEventListener('message', listener)
+
+      const ping = () => {
+        if (done) return
+        ch.postMessage({ type: 'PING' })
+        attempts++
+        if (attempts < max) {
+          setTimeout(ping, interval)
+        } else {
+          done = true
+          ch.removeEventListener('message', listener)
+          resolve(false)
+        }
+      }
+      ping()
+    })
+  }
+
+  // 1) Quick probe: is the window alive? (~1s)
+  return waitForPong(1000, 100).then((alive) => {
+    if (alive) return null
+
+    // 2) Not alive — open a new window
+    const w = window.open(
+      '/projection',
+      'proclama-projection',
+      'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
+    )
+    if (!w || w.closed) return null
+
+    // 3) Wait for the new window to mount (~4s max)
+    return waitForPong(4000, 200).then(() => w)
+  })
+}
