@@ -101,21 +101,20 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         sourceUrl: song.url,
       }
 
+      const localId = await db.songs.put(payload)
+
       if (canSync && user) {
-        try {
-          const created = await createSong(payload)
+        createSong(payload).then(created => {
           if (created) {
-            await db.songs.put(created)
-          } else {
-            console.warn('[OnlineSearch] No se pudo guardar en la nube, guardando solo local')
-            await db.songs.put(payload)
+            db.songs.update(localId, {
+              remoteId: created.remoteId,
+              isPublic: created.isPublic,
+              isVerified: created.isVerified,
+            })
           }
-        } catch (cloudErr) {
-          console.warn('[OnlineSearch] Error en nube, guardando solo local:', cloudErr)
-          await db.songs.put(payload)
-        }
-      } else {
-        await db.songs.put(payload)
+        }).catch(err => {
+          console.warn('[OnlineSearch] Error en nube (no crítico):', err)
+        })
       }
 
       useAppStore.getState().setToast(`✅ "${title}" importada a Mi Cancionero`)
