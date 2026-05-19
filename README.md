@@ -300,7 +300,9 @@ Notas de seguridad:
 - `backgrounds`: Fondos (imágenes/videos) compartidos para la proyección.
 
 > [!NOTE]
-> **Privacidad Local**: Las funciones de **Notas del Culto** y **Registro de Asistencia** son estrictamente locales (IndexedDB/Dexie). Estos datos NO se sincronizan con Supabase por privacidad y preferencia del usuario.
+> **Notas del Culto**: Los avisos e historial de notas son estrictamente locales (IndexedDB/Dexie). No se sincronizan.
+> 
+> **Registro de Asistencia**: Se almacena localmente en Dexie y se sincroniza con Supabase (tabla `attendance_records`) para disponibilidad entre dispositivos del mismo usuario. La sincronización ocurre al guardar un registro y al iniciar sesión (pull + push).
 
 ---
 
