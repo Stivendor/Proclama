@@ -55,6 +55,8 @@ export default function BibleView() {
   const quickSearchChapterRef = useRef<HTMLInputElement>(null)
   const quickSearchVerseRef = useRef<HTMLInputElement>(null)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
+  const versesListRef = useRef<HTMLDivElement>(null)
+  const [scrollToVerse, setScrollToVerse] = useState<number | null>(null)
 
   const { loadSong, songTitle, theme, slides, currentSlide } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
@@ -279,12 +281,28 @@ export default function BibleView() {
         projectVerse(targetVerse)
         setSelectedBook(parsedBook.id)
         setSelectedChapter(chapter)
+        setScrollToVerse(verse)
         closeQuickSearch()
       }
     } catch (error) {
       console.error('Error loading verse:', error)
     }
   }
+
+  const extractVerseNumber = (reference: string): number | null => {
+    const match = reference.match(/:(\d+)$/)
+    return match ? parseInt(match[1]) : null
+  }
+
+  useEffect(() => {
+    if (!loading && scrollToVerse !== null && versesListRef.current) {
+      const verseEl = versesListRef.current.querySelector(`[data-verse="${scrollToVerse}"]`)
+      if (verseEl) {
+        verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      setScrollToVerse(null)
+    }
+  }, [loading, scrollToVerse, verses])
 
   const closeQuickSearch = () => {
     setShowQuickSearch(false)
@@ -342,6 +360,8 @@ export default function BibleView() {
       if (v.bookId && v.chapter) {
         handleSelectBook(v.bookId)
         setSelectedChapter(v.chapter)
+        const vNum = extractVerseNumber(v.reference)
+        if (vNum) setScrollToVerse(vNum)
         setSearchQuery('')
         setSearchResults([])
       }
@@ -767,6 +787,8 @@ export default function BibleView() {
                       if (v.bookId && v.chapter) {
                         handleSelectBook(v.bookId)
                         setSelectedChapter(v.chapter)
+                        const vNum = extractVerseNumber(v.reference)
+                        if (vNum) setScrollToVerse(vNum)
                         setSearchResults([])
                         setSearchQuery('')
                       }
@@ -793,10 +815,11 @@ export default function BibleView() {
           ) : verses.length === 0 ? (
             <div className="bible-loading">No hay versículos disponibles para este capítulo</div>
           ) : (
-            <div className="verses-list">
+            <div className="verses-list" ref={versesListRef}>
               {verses.map((verse, i) => (
                 <div
                   key={i}
+                  data-verse={i + 1}
                   className={`verse-item ${state.songTitle === verse.reference ? 'projected' : ''}`}
                   onClick={() => projectVerse(verse)}
                 >
@@ -845,6 +868,8 @@ export default function BibleView() {
                     if (item.verse.bookId && item.verse.chapter) {
                       handleSelectBook(item.verse.bookId)
                       setSelectedChapter(item.verse.chapter)
+                      const vNum = extractVerseNumber(item.verse.reference)
+                      if (vNum) setScrollToVerse(vNum)
                     }
                   }}
                 >
