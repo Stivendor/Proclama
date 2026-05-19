@@ -85,7 +85,9 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
       const now = new Date()
       const title = song.title ?? ''
       const artist = song.artist ?? ''
-      const payload = {
+
+      // Guardar localmente como privada inicialmente
+      const localId = await db.songs.put({
         userId: user?.id,
         title,
         artist,
@@ -94,30 +96,50 @@ export default function OnlineSearchModal({ onClose }: { onClose: () => void }) 
         tags: [],
         language: 'Español',
         usageCount: 0,
-        isPublic: user ? isPublic : false,
-        isVerified: userRole === 'admin' ? isPublic : false,
+        isPublic: false,
+        isVerified: false,
         createdAt: now,
         updatedAt: now,
         sourceUrl: song.url,
-      }
-
-      const localId = await db.songs.put(payload)
+      })
 
       if (canSync && user) {
-        createSong(payload).then(created => {
-          if (created) {
-            db.songs.update(localId, {
-              remoteId: created.remoteId,
-              isPublic: created.isPublic,
-              isVerified: created.isVerified,
-            })
-          }
-        }).catch(err => {
-          console.warn('[OnlineSearch] Error en nube (no crítico):', err)
-        })
+        const syncPayload = {
+          userId: user.id,
+          title,
+          artist,
+          lyrics,
+          key: '',
+          tags: [],
+          language: 'Español',
+          usageCount: 0,
+          isPublic,
+          isVerified: userRole === 'admin' ? isPublic : false,
+          createdAt: now,
+          updatedAt: now,
+          sourceUrl: song.url,
+        }
+
+        const created = await createSong(syncPayload)
+
+        if (created) {
+          await db.songs.update(localId, {
+            remoteId: created.remoteId,
+            isPublic: created.isPublic,
+            isVerified: created.isVerified,
+          })
+          useAppStore.getState().setToast(`✅ "${title}" importada a Mi Cancionero`)
+        } else {
+          console.warn('[OnlineSearch] No se pudo sincronizar a la nube')
+          useAppStore.getState().setToast(`⚠️ "${title}" guardada localmente (sin conexión)`)
+          setImportedLyrics(null)
+          onClose()
+          return
+        }
+      } else {
+        useAppStore.getState().setToast(`✅ "${title}" importada a Mi Cancionero (solo local)`)
       }
 
-      useAppStore.getState().setToast(`✅ "${title}" importada a Mi Cancionero`)
       setImportedLyrics(null)
       onClose()
     } catch (err) {
