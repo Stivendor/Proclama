@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import { useAppStore } from '@/stores'
 import type { AttendanceRecord } from '@/types'
-import { validateAttendance, parseField } from '../utils/validation'
+import { validateAttendance, validateServiceName, parseField } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
 import { usePlan } from '@/hooks/usePlan'
 import { useAttendanceRealtime } from './useAttendanceRealtime'
@@ -12,6 +12,7 @@ export function useAttendance(userId: string) {
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedServiceName, setSelectedServiceName] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
+  const [hasServiceNameError, setHasServiceNameError] = useState(false)
   const { isPremium } = usePlan()
 
   // Sincronización en tiempo real desde Supabase -> Dexie
@@ -50,9 +51,14 @@ export function useAttendance(userId: string) {
     [allAttendanceRows]
   )
 
-  async function saveAttendance(values: string[], serviceName: string) {
+  async function saveAttendance(values: string[], serviceName: string, categoryNames?: string[]) {
     if (!selectedDate) {
       setError('Debes seleccionar una fecha válida')
+      return false
+    }
+    if (!validateServiceName(serviceName)) {
+      setError('Debes ingresar el nombre del culto')
+      setHasServiceNameError(true)
       return false
     }
     if (values.some(v => !validateAttendance(v))) {
@@ -60,6 +66,7 @@ export function useAttendance(userId: string) {
       return false
     }
     setError('')
+    setHasServiceNameError(false)
     
     const numValues = values.map(parseField)
     const now = new Date().toISOString()
@@ -70,10 +77,7 @@ export function useAttendance(userId: string) {
       userId,
       date: selectedDate,
       values: numValues,
-      caballeros: numValues[0] || 0,
-      damas: numValues[1] || 0,
-      amigos: numValues[2] || 0,
-      ninos: numValues[3] || 0,
+      categoryNames: categoryNames || existingAr?.categoryNames,
       serviceName: serviceName.trim() || undefined,
       createdAt: existingAr?.createdAt ?? now,
       updatedAt: now,
@@ -127,6 +131,7 @@ export function useAttendance(userId: string) {
       setSelectedDate(date)
       setSelectedServiceName(undefined)
       setError('')
+      setHasServiceNameError(false)
     },
     selectedServiceName,
     setSelectedServiceName,
@@ -135,6 +140,7 @@ export function useAttendance(userId: string) {
     isLoading,
     error,
     setError,
+    hasServiceNameError,
     saveAttendance,
     deleteRecord,
     deleteHistory

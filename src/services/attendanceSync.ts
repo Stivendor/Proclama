@@ -36,7 +36,8 @@ export async function getPendingCount(userId: string): Promise<number> {
  */
 export async function syncAttendanceRecords(
   userId: string,
-  specificRecord?: AttendanceRecord
+  specificRecord?: AttendanceRecord,
+  signal?: AbortSignal
 ): Promise<{ synced: number; failed: number }> {
   const pending = specificRecord ? [specificRecord] : await getPendingRecords(userId)
   if (pending.length === 0) return { synced: 0, failed: 0 }
@@ -46,8 +47,11 @@ export async function syncAttendanceRecords(
 
   for (const record of pending) {
     try {
-      // Construir payload para Supabase
-      // Resolver valores: preferir el array `values`, fallback a campos legacy
+      if (signal?.aborted) {
+        failed = pending.length - synced
+        break
+      }
+
       const values = record.values?.length
         ? record.values
         : [
@@ -57,7 +61,6 @@ export async function syncAttendanceRecords(
             record.ninos ?? 0,
           ]
 
-      // Resolver categoryNames: si no hay, usar un fallback genérico legacy
       const categoryNames = record.categoryNames?.length
         ? record.categoryNames
         : ['Caballeros', 'Damas', 'Amigos', 'Niños'].slice(0, values.length)
@@ -72,8 +75,6 @@ export async function syncAttendanceRecords(
         updated_at: record.updatedAt,
       }
       
-      // Si ya tiene ID remoto, lo usamos para asegurar que se actualice el mismo registro
-      // incluso si cambia el service_name u otros campos de la clave única.
       const upsertOptions: { onConflict: string } = {
         onConflict: 'user_id,date,service_name'
       }
@@ -83,11 +84,12 @@ export async function syncAttendanceRecords(
         upsertOptions.onConflict = 'id'
       }
 
-      const { data, error } = await supabase
+      let q = supabase
         .from('attendance_records')
         .upsert(payload, upsertOptions)
         .select('id')
-        .single()
+      if (signal) q = q.abortSignal(signal)
+      const { data, error } = await q.single()
 
       if (error) {
         console.warn('[AttendanceSync] Error upserting record:', error.message)

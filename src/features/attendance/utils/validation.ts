@@ -16,6 +16,13 @@ export function validateAttendance(value: unknown): boolean {
 }
 
 /**
+ * Validates that a service name is not empty.
+ */
+export function validateServiceName(name: string): boolean {
+  return name.trim().length > 0
+}
+
+/**
  * Validates that a notice text is not empty.
  */
 export function validateNoticeText(text: string): boolean {
@@ -48,8 +55,8 @@ export function formatDate(iso: string): string {
 /**
  * Parses a string field to a non-negative integer (0 if empty/NaN).
  */
-export function parseField(v: string): number {
-  const n = parseInt(v.trim() || '0', 10)
+export function parseField(v: string | undefined): number {
+  const n = parseInt((v ?? '').trim() || '0', 10)
   return isNaN(n) || n < 0 ? 0 : n
 }
 

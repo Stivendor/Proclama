@@ -7,6 +7,8 @@ interface ServiceNameSelectorProps {
   onAddTemplate: (name: string) => void
   onDeleteTemplate: (name: string) => void
   onEnter: () => void
+  error?: string
+  onClearError?: () => void
 }
 
 export default function ServiceNameSelector({
@@ -15,7 +17,9 @@ export default function ServiceNameSelector({
   serviceNameTemplates,
   onAddTemplate,
   onDeleteTemplate,
-  onEnter
+  onEnter,
+  error,
+  onClearError
 }: ServiceNameSelectorProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
@@ -23,10 +27,13 @@ export default function ServiceNameSelector({
         <input
           id="service-name-manual"
           type="text"
-          className="input"
+          className={`input${error ? ' input--error' : ''}`}
           placeholder="Nombre del culto..."
           value={serviceName}
-          onChange={e => setServiceName(e.target.value)}
+          onChange={e => {
+            setServiceName(e.target.value)
+            onClearError?.()
+          }}
           onKeyDown={e => e.key === 'Enter' && onEnter()}
           style={{ flex: 1 }}
         />
@@ -60,7 +67,7 @@ export default function ServiceNameSelector({
           {serviceNameTemplates.map(template => (
             <div
               key={template}
-              onClick={() => setServiceName(template)}
+              onClick={() => { setServiceName(template); onClearError?.() }}
               style={{
                 cursor: 'pointer',
                 display: 'flex',
@@ -94,6 +101,10 @@ export default function ServiceNameSelector({
             </div>
           ))}
         </div>
+      )}
+
+      {error && (
+        <p className="field-error" role="alert" aria-live="polite" style={{ margin: 0 }}>{error}</p>
       )}
     </div>
   )

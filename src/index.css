@@ -3618,3 +3618,9 @@ a:hover { text-decoration: underline; }
   .admin-sidebar:not(.collapsed) { transform: translateX(0); }
   .admin-main { padding: 20px; }
 }
+
+.input--error {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+  outline: none;
+}

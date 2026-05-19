@@ -69,7 +69,8 @@ export default function NotesView() {
     saveAttendance,
     deleteRecord,
     deleteHistory,
-    setSelectedServiceName
+    setSelectedServiceName,
+    hasServiceNameError
   } = useAttendance(userId)
 
   const [showDashboard, setShowDashboard] = useState(false)
@@ -93,11 +94,9 @@ export default function NotesView() {
 
   // Sync attendance inputs when the saved record changes
   useEffect(() => {
-    setServiceName(attendanceRecord?.serviceName ?? '')
     if (attendanceRecord) {
+      setServiceName(attendanceRecord.serviceName ?? '')
       setAtt(resolveValues(attendanceRecord).map(String))
-    } else {
-      setAtt([])
     }
     setAttError('')
   }, [attendanceRecord, selectedDate, setAttError])
@@ -110,6 +109,13 @@ export default function NotesView() {
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [syncError, setSyncError] = useState('')
+
+  useEffect(() => {
+    if (!syncError) return
+    const t = setTimeout(() => setSyncError(''), 6000)
+    return () => clearTimeout(t)
+  }, [syncError])
 
   const pendingSyncCount = useLiveQuery(
     async () => {
@@ -121,10 +127,25 @@ export default function NotesView() {
 
   const handleManualSync = async () => {
     if (!user?.id || isSyncing) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 30000)
     setIsSyncing(true)
+    setSyncError('')
     try {
-      await syncAttendanceRecords(user.id)
+      const result = await syncAttendanceRecords(user.id, undefined, controller.signal)
+      if (result.failed > 0) {
+        setSyncError(`${result.failed} registro(s) no se pudieron sincronizar`)
+      } else if (result.synced > 0) {
+        setSyncError('')
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        setSyncError('La conexión con el servidor tardó demasiado. Intenta de nuevo.')
+      } else {
+        setSyncError('Error al sincronizar. Revisa tu conexión.')
+      }
     } finally {
+      clearTimeout(timer)
       setIsSyncing(false)
     }
   }
@@ -298,6 +319,16 @@ export default function NotesView() {
               ) : null}
             </button>
           )}
+          {syncError && (
+            <span style={{
+              fontSize: 12, color: 'var(--red)', marginLeft: 8,
+              background: 'rgba(224, 85, 85, 0.1)', padding: '4px 10px',
+              borderRadius: 6, border: '1px solid rgba(224, 85, 85, 0.3)',
+              maxWidth: 280
+            }}>
+              {syncError}
+            </span>
+          )}
 
           <input
             type="date"
@@ -457,7 +488,9 @@ export default function NotesView() {
               serviceNameTemplates={serviceNameTemplates}
               onAddTemplate={(name) => updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })}
               onDeleteTemplate={(name) => updateSettings({ serviceNameTemplates: serviceNameTemplates.filter(t => t !== name) })}
-              onEnter={() => saveAttendance(att, serviceName)}
+              onEnter={() => saveAttendance(att, serviceName, attendanceCategories)}
+              error={hasServiceNameError ? attError : undefined}
+              onClearError={() => attError && setAttError('')}
             />
           </div>
 
@@ -466,7 +499,7 @@ export default function NotesView() {
             onUpdateCategories={(newCats) => updateSettings({ attendanceCategories: newCats })}
             values={att}
             onChangeValues={setAtt}
-            onSave={() => saveAttendance(att, serviceName)}
+            onSave={() => saveAttendance(att, serviceName, attendanceCategories)}
             isLoading={isLoadingAttendance}
             error={attError}
             onClearError={() => setAttError('')}
@@ -649,11 +682,6 @@ export default function NotesView() {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        .input--error {
-          border-color: var(--red) !important;
-          box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
-          outline: none;
         }
       `}</style>
     </div>
