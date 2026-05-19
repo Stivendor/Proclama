@@ -1,10 +1,12 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield, RefreshCw } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import FeedbackFAB from '@/components/FeedbackFAB'
+import { useSWUpdate } from '@/hooks/useSWUpdate'
 
 export default function Sidebar() {
+  const { updateAvailable, updateApp } = useSWUpdate()
   const { activeView, setActiveView, openEditor, toggleSidebar, user, goToLanding } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
@@ -97,6 +99,29 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-sync-status">
+        {updateAvailable && (
+          <button
+            onClick={updateApp}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '8px',
+              background: 'var(--gold)',
+              color: '#000',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '6px'
+            }}
+          >
+            <RefreshCw size={14} />
+            <span>Actualizar app</span>
+          </button>
+        )}
         <FeedbackFAB />
         {user ? (
           <div className="sync-user-row">
