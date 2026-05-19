@@ -450,7 +450,7 @@ export default function LibraryView() {
           <div>
             <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />{libraryTab === 'locals' ? 'Mi Cancionero' : 'Comunidad'}</h1>
             <span className="song-count">
-              {songs.length} {libraryTab === 'locals' ? 'canciones' : `de ${totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}${totalRemoteSongs && totalRemoteSongs > songs.length && '+'} públicas`}
+              {songs.length} {libraryTab === 'locals' ? 'canciones' : `de ${totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}${totalRemoteSongs != null && totalRemoteSongs > songs.length ? '+' : ''} públicas`}
             </span>
           </div>
         </div>

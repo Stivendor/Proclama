@@ -2,14 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock, X, FileText, RefreshCw
+  Check, Tv2, BarChart2, Download, Lock, X, FileText
 } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, openProjectionWindow } from '@/services/projection'
-import { syncAttendanceRecords, getPendingCount } from '@/services/attendanceSync'
 import type { ChurchNote, Notice } from '@/types'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
@@ -108,48 +107,6 @@ export default function NotesView() {
   const [editingText, setEditingText] = useState('')
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncError, setSyncError] = useState('')
-
-  useEffect(() => {
-    if (!syncError) return
-    const t = setTimeout(() => setSyncError(''), 6000)
-    return () => clearTimeout(t)
-  }, [syncError])
-
-  const pendingSyncCount = useLiveQuery(
-    async () => {
-      if (!user?.id) return 0
-      return getPendingCount(user.id)
-    },
-    [user?.id]
-  )
-
-  const handleManualSync = async () => {
-    if (!user?.id || isSyncing) return
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 30000)
-    setIsSyncing(true)
-    setSyncError('')
-    try {
-      const result = await syncAttendanceRecords(user.id, undefined, controller.signal)
-      if (result.failed > 0) {
-        setSyncError(`${result.failed} registro(s) no se pudieron sincronizar`)
-      } else if (result.synced > 0) {
-        setSyncError('')
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        setSyncError('La conexión con el servidor tardó demasiado. Intenta de nuevo.')
-      } else {
-        setSyncError('Error al sincronizar. Revisa tu conexión.')
-      }
-    } finally {
-      clearTimeout(timer)
-      setIsSyncing(false)
-    }
-  }
-
   const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
     projectionState: { songTitle: s.state.songTitle, slides: s.state.slides },
@@ -296,39 +253,6 @@ export default function NotesView() {
             <BarChart2 size={15} />
             Historial
           </button>
-          
-          {user && (userPlan === 'premium' || userRole === 'admin') && (
-            <button
-              className={`btn-ghost${isSyncing ? ' loading' : ''}`}
-              onClick={handleManualSync}
-              disabled={isSyncing}
-              style={{ position: 'relative' }}
-              title="Sincronizar ahora"
-            >
-              <RefreshCw size={15} className={isSyncing ? 'spin' : ''} />
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-              {pendingSyncCount ? (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  background: 'var(--red)', color: 'white',
-                  fontSize: 10, padding: '2px 5px', borderRadius: 10,
-                  fontWeight: 700, minWidth: 16, textAlign: 'center'
-                }}>
-                  {pendingSyncCount}
-                </span>
-              ) : null}
-            </button>
-          )}
-          {syncError && (
-            <span style={{
-              fontSize: 12, color: 'var(--red)', marginLeft: 8,
-              background: 'rgba(224, 85, 85, 0.1)', padding: '4px 10px',
-              borderRadius: 6, border: '1px solid rgba(224, 85, 85, 0.3)',
-              maxWidth: 280
-            }}>
-              {syncError}
-            </span>
-          )}
 
           <input
             type="date"
@@ -504,6 +428,9 @@ export default function NotesView() {
             error={attError}
             onClearError={() => setAttError('')}
           />
+          <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginTop: 8, paddingLeft: 4 }}>
+            Refresca la app para sincronizar tu asistencia
+          </small>
         </section>
 
         {/* ── Avisos ── */}
