@@ -44,36 +44,39 @@ Proclama reúne en una sola aplicación web:
 
 - Crear, editar y eliminar canciones con confirmación.
 - Buscar por título, artista, letra y etiquetas.
-- Buscar e importar letras online (Genius/lrclib).
+- Buscar e importar letras online (Genius/lrclib) con vista previa.
+- Elegir visibilidad: pública (requiere moderación) o privada.
+- Publicar canciones locales a la comunidad para compartirlas.
 - Persistencia local con Dexie para trabajar sin sesión.
-- Sincronización atómica con Supabase cuando hay sesión iniciada (incluye políticas RLS).
+- Sincronización en tiempo real con Supabase cuando hay sesión.
+- Estados visuales: verificada (escudo), pendiente (reloj), privada (candado).
 
 ### Setlists
 
 - Crear setlists para cada servicio o reunión.
 - Sincronización automática con la nube.
 - Agregar canciones desde la biblioteca local o remota.
-- Reordenar canciones con drag and drop.
-- Activar una canción directamente desde el setlist con carga rápida.
+- Reordenar canciones con drag and drop (@dnd-kit).
+- Activar una canción directamente desde el setlist con carga rápida a proyección.
 
-### Biblia integrada
+### Biblia integrada (RVR1960)
 
-- Navegación por libros y capítulos (AT y NT) RVR1960.
+- Navegación por libros y capítulos (AT y NT).
 - Selector de capítulos tipo bento grid — clic directo al capítulo.
-- Búsqueda global por texto o referencia directa (`Juan 3:16`).
-- Proyección inmediata de versículos y pasajes con recordatorio de última posición.
-- Historial de versículos proyectados en la sesión actual.
+- Búsqueda global por texto o referencia directa (ej: `Juan 3:16`).
+- Proyección inmediata de versículos y pasajes completos.
+- Recordatorio de última posición en la sesión.
 
 ### Proyección en vivo
 
 - Ventana independiente para proyector o segunda pantalla (soporta Window Management API).
 - Apertura automática en monitor extendido.
-- Canvas fijo (1920×1080 / 1024×768) con auto-ajuste de fuente matemático (no-DOM).
-- Navegación inteligente entre estrofas.
+- Canvas fijo 1920×1080 con auto-ajuste de fuente matemático (sin DOM).
+- Navegación inteligente entre estrofas con teclado (`→` `←` `Espacio`).
 - Pantalla negra (`B`), modo ocultar texto y logo flotante.
-- Fondos personalizables: color, imagen o video con Blur, Opacidad de Overlay dinámica y detector automático de categorías.
-- Ajuste de escala de fuente manual (0.4x - 1.5x) para optimización en tiempo real.
-- Panel de controles vertical y responsivo que se adapta a diferentes resoluciones y niveles de zoom.
+- Fondos personalizables: color sólido, imagen o video con blur y overlay de oscuridad.
+- Ajuste de escala de fuente manual (0.4x - 1.5x).
+- Panel de controles responsivo que se adapta a diferentes resoluciones y zoom.
 
 ### Contador regresivo
 
@@ -83,24 +86,49 @@ Proclama reúne en una sola aplicación web:
 
 ### Notas del culto
 
-- **Asistencia**: Registro desglosado por categorías personalizables (ej: Hermanos, Hermanas, Niños, Visitas). Cada categoría es editable directamente en la UI.
-- **Categorías configurables**: Agregar/eliminar/editar nombres de categorías desde la misma sección de Notas.
-- **Proyección**: Muestra todas las categorías con totales automáticos.
-- **Historial**: Gráfico de barras segmentado por categoría + tabla con todos los datos.
-- **Exportación CSV**: Reporte completo con estadísticas y promedios por categoría.
+- **Asistencia**: Registro desglosado por categorías personalizables (ej: Caballeros, Damas, Niños, Amigos). Cada categoría es editable directamente en la UI.
+- **Categorías configurables**: Agregar/eliminar/editar nombres desde la misma sección.
+- **Proyección**: Muestra todas las categorías con totales automáticos durante el culto.
+- **Avisos**: Notas proyectables en vivo.
+- **Historial**: Gráfico de barras segmentado por categoría (Recharts) + tabla completa.
+- **Exportación**: Reporte CSV con estadísticas, promedios y PDF.
 
-### Estabilidad y Robustez (Core)
+### Panel de Administración (`/admin`)
 
-- **Arranque Seguro**: El sistema dispone de un temporizador de seguridad de 6 segundos que libera la pantalla de carga ante fallos de red.
-- **Sesión Atómica**: El cierre de sesión (`logout`) limpia de forma inmediata todos los estados (Zustand + local) para garantizar la privacidad.
-- **Modo Offline**: PWA completamente funcional; trabaja en local y sincroniza en cuanto detecta conexión y cuenta de usuario.
+- **Dashboard**: Estadísticas generales (usuarios, canciones, reportes, feedback).
+- **Pendientes**: Moderación de canciones — aprobar, rechazar (con motivo) o editar antes de aprobar. Aprobación masiva con checkbox.
+- **Biblioteca Global**: Tabla paginada de todas las canciones con búsqueda y filtros. Alternar verificación, editar o eliminar.
+- **Usuarios**: Lista de usuarios con filtros. Cambiar rol (admin/user), plan (free/premium) y autorización.
+- **Reportes**: Reportes de usuarios sobre canciones inapropiadas.
+- **Feedback**: Comentarios de usuarios con filtro por estado.
+- Auditoría completa: todas las acciones se registran en `admin_logs`.
+
+### Control de Dispositivos (Premium)
+
+- Registro automático de dispositivos por huella digital.
+- Límite de dispositivos para cuentas premium.
+- Gestión y revocación de dispositivos desde configuración.
+
+### Autenticación y Seguridad
+
+- Login con email/contraseña via Supabase Auth.
+- Soporte MFA (TOTP) con código QR.
+- Términos y condiciones con control de versión.
+- Cierre de sesión atómico — limpia estado global y local.
+
+### Estabilidad y Robustez
+
+- **Arranque Seguro**: Timer de 6 segundos que libera la pantalla de carga ante fallos de red.
+- **Modo Offline**: PWA completamente funcional; trabaja en local y sincroniza al reconectar.
+- **Sin dependencias de servidor propio**: Solo Supabase como backend.
 
 ### UX y Onboarding
 
-- Tour guiado dinámico para nuevos usuarios.
-- Acceso inmediato en modo invitado sin necesidad de cuenta.
+- Tour guiado dinámico interactivo para nuevos usuarios.
+- Acceso inmediato como invitado sin cuenta.
 - Diseño "Premium Dark Mode" optimizado para entornos de poca luz (iglesias).
-- Accesibilidad mejorada y soporte completo de teclado.
+- Atajos de teclado completos.
+- Toast de notificaciones para feedback de acciones.
 
 ---
 
@@ -154,45 +182,71 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 
 ```
 src/
+├── admin/                    # Panel de administración (/admin)
+│   ├── AdminShell.tsx         # Layout + routing
+│   ├── AdminGuard.tsx         # Protección por rol
+│   ├── AdminSidebar.tsx       # Navegación lateral admin
+│   ├── pages/
+│   │   ├── DashboardPage.tsx
+│   │   ├── PendingSongsPage.tsx
+│   │   ├── GlobalLibraryPage.tsx
+│   │   ├── UsersPage.tsx
+│   │   ├── ReportsPage.tsx
+│   │   └── FeedbackPage.tsx
+│   └── services/
+│       ├── adminQueries.ts
+│       └── adminLogs.ts
 ├── pages/
-│   ├── LandingView.tsx       # Página de entrada con comparativa de planes e interés premium
-│   ├── AuthView.tsx          # Formulario de autenticación
+│   ├── LandingView.tsx       # Landing + login/registro
 │   ├── LibraryView.tsx       # Biblioteca de canciones
-│   ├── SongEditor.tsx        # Editor de canciones
 │   ├── SetlistsView.tsx      # Gestión de setlists
-│   ├── BibleView.tsx         # Biblia integrada con bento de capítulos
+│   ├── BibleView.tsx         # Biblia RVR1960
 │   ├── CountdownView.tsx     # Contador regresivo
-│   ├── NotesView.tsx         # Notas del culto (asistencia + avisos + historial)
-│   ├── SettingsView.tsx      # Ajustes de la app (tema, aspect ratio, escala)
-│   └── ProjectionWindow.tsx  # Ventana de proyección (canvas fijo + scale)
+│   ├── NotesView.tsx         # Notas + asistencia + avisos
+│   ├── FondosView.tsx        # Gestión de fondos
+│   ├── SettingsView.tsx      # Configuración
+│   └── ProjectionWindow.tsx  # Ventana de proyección
 ├── components/
-│   ├── Sidebar.tsx           # Navegación lateral
-│   ├── ControlPanel.tsx      # Panel de control en vivo (slides + escala de fuente)
-│   ├── MediaPanel.tsx        # Panel de media local
-│   ├── ProjectionPreview.tsx # Preview del operador (canvas fijo escalado)
-│   ├── OnboardingFlow.tsx    # Tour guiado de bienvenida
+│   ├── Sidebar.tsx           # Navegación lateral principal
+│   ├── ControlPanel.tsx      # Panel de control en vivo
+│   ├── MediaPanel.tsx        # Gestión de fondos multimedia
+│   ├── ProjectionPreview.tsx # Vista previa del operador
 │   ├── OnlineSearchModal.tsx # Búsqueda online de letras
+│   ├── SongEditorModal.tsx   # Editor de canciones
+│   ├── PremiumFeatureModal.tsx # Upsell premium
+│   ├── ReportSongModal.tsx   # Reportar canción
+│   ├── DeviceBlockedModal.tsx # Límite de dispositivos
+│   ├── OnboardingFlow.tsx    # Tour guiado de bienvenida
+│   ├── TermsModal.tsx        # Términos y condiciones
 │   ├── VideoControls.tsx     # Controles de video
 │   └── ConfirmDialog.tsx     # Diálogo de confirmación
 ├── stores/
-│   ├── index.ts              # AppStore + ProjectionStore (aspectRatio, fontScale)
+│   ├── index.ts              # AppStore + ProjectionStore
 │   └── countdown.ts          # CountdownStore
 ├── services/
-│   ├── supabase.ts           # Cliente Supabase + helpers (songs, setlists, attendance, premium_interest)
-│   ├── projection.ts         # BroadcastChannel + apertura en segundo monitor
-│   ├── bible.ts              # Lógica de búsqueda bíblica
+│   ├── supabase.ts           # Cliente Supabase + CRUD
+│   ├── projection.ts         # BroadcastChannel
+│   ├── bible.ts              # Lógica bíblica
+│   ├── genius.ts             # Búsqueda de letras online
 │   ├── lyricsParser.ts       # Parser de estrofas
-│   └── genius.ts             # Búsqueda de letras
+│   └── attendanceSync.ts     # Sincronización de asistencia
 ├── hooks/
 │   ├── useKeyboardShortcuts.ts
-│   ├── usePlan.ts            # Hook freemium: isPremium, canUseGenius, canSync, etc.
-│   └── useProjectionFontSize.ts  # calcCanvasFontSize() — cálculo matemático puro
+│   ├── useSongsRealtime.ts   # Sincronización Supabase → Dexie
+│   ├── useOnlineSearch.ts    # Búsqueda externa
+│   ├── usePlan.ts            # Lógica freemium
+│   └── useProjectionFontSize.ts
 ├── db/
-│   └── index.ts              # Dexie v4: songs, setlists, settings, church_notes
+│   └── index.ts              # Dexie v4: songs, setlists, church_notes
 ├── data/
-│   └── bible-content.ts      # RVR1960 completa
-└── types/
-    └── index.ts              # Tipos TypeScript globales
+│   └── bible-content.ts      # RVR1960 completa (~31K versículos)
+├── types/
+│   └── index.ts              # Tipos TypeScript globales
+├── utils/
+│   ├── deviceFingerprint.ts  # Fingerprint para control dispositivos
+│   └── fileUpload.ts         # Carga de archivos
+└── test/                     # Tests
+    └── ...
 ```
 
 ---
@@ -209,19 +263,27 @@ npm install
 
 ## Variables de Entorno
 
-Crea un archivo `.env.local`:
+Crea un archivo `.env.local` a partir de la plantilla:
 
 ```bash
-VITE_SUPABASE_URL=tu_url_de_supabase
-VITE_SUPABASE_ANON_KEY=tu_anon_key
+cp .env.example .env.local
 ```
+
+Las únicas variables requeridas para desarrollo son las de Supabase:
+
+```bash
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+El resto de secretos (MercadoPago, API Bible, webhooks) se configuran directamente en Supabase Edge Functions con `supabase secrets set`, nunca en Vite.
 
 Notas de seguridad:
 
-- Las variables con prefijo `VITE_` son publicas para el navegador.
-- No guardes tokens privados, service role keys ni access tokens de pagos con prefijo `VITE_`.
+- Las variables con prefijo `VITE_` son públicas para el navegador. **Nunca** pongas tokens privados, service role keys o access tokens con ese prefijo.
 - Los secretos de MercadoPago, API Bible y Service Role deben configurarse como secretos de Supabase Edge Functions, no en el frontend.
-- Para checkout en Edge Functions, usa `ALLOWED_CORS_ORIGINS` con la lista explicita de origenes permitidos.
+- Para checkout en Edge Functions, usa `ALLOWED_CORS_ORIGINS` con la lista explícita de orígenes permitidos.
+- Ver `.env.example` para la lista completa de variables disponibles.
 
 - Supabase es necesario para autenticación y sincronización en la nube.
 - La app funciona completamente sin login en modo invitado (datos locales).
@@ -276,9 +338,12 @@ END $$;
 ## Scripts
 
 ```bash
-npm run dev       # Servidor de desarrollo
-npm run build     # Build de producción (TypeScript + SSG)
-npm run preview   # Vista previa del build
+npm run dev       # Servidor de desarrollo (Vite)
+npm run build     # Build de producción (tsc + vite-react-ssg)
+npm run preview   # Vista previa del build estático
+npm run test      # Tests unitarios (Vitest)
+npm run test:watch # Tests en modo watch
+npm run test:ui   # Tests con interfaz UI Vitest
 ```
 
 ---
@@ -291,6 +356,19 @@ npm run preview   # Vista previa del build
 | `←` / `↑` | Estrofa o versículo anterior |
 | `B` | Activar o desactivar pantalla negra |
 | `Esc` | Cerrar modales o salir del modo negro |
+
+---
+
+---
+
+## Documentación adicional
+
+| Documento | Descripción |
+|-----------|-------------|
+| [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Arquitectura detallada, flujo de datos, stores, componentes |
+| [docs/SUPABASE.md](docs/SUPABASE.md) | Esquema de base de datos, RLS, migraciones, Edge Functions |
+| [docs/ADMIN.md](docs/ADMIN.md) | Guía del panel de administración |
+| [docs/security-audit-2026-05-02.md](docs/security-audit-2026-05-02.md) | Auditoría de seguridad |
 
 ---
 

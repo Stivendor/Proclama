@@ -49,6 +49,9 @@ coverage/
 # Worktrees
 .worktrees/
 
+# Kiro AI config (may contain project refs and MCP settings)
+.kiro/
+
 # Supabase local metadata
 supabase/.temp/
 
