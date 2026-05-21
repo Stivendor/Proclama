@@ -23,7 +23,6 @@ import FondosView from "@/pages/FondosView";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
-import PremiumBanner from "@/components/PremiumBanner";
 import TermsModal from "@/components/TermsModal";
 import Toast from "@/components/Toast";
 
@@ -293,16 +292,12 @@ function AppContent() {
 
   if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
     return (
-      <div className="landing-banner-container">
-        <PremiumBanner />
-        <LandingView />
-      </div>
+      <LandingView />
     );
   }
 
   return (
     <div className="app-main-wrapper">
-      <PremiumBanner />
       <MainApp />
       
       {showTermsUpdateModal && (
