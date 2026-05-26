@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Music2, Church, Loader2, ChevronRight } from 'lucide-react'
+import { Music2, Church, Loader2, ChevronRight, Globe } from 'lucide-react'
 import { supabase } from '@/services/supabase'
 import { useAppStore } from '@/stores'
+import { LATAM_COUNTRIES } from '@/constants/latamLocations'
 
 interface ChurchRegistrationViewProps {
   userId: string
@@ -17,7 +18,10 @@ interface ChurchRegistrationViewProps {
 export default function ChurchRegistrationView({ userId, userDisplayName, onComplete }: ChurchRegistrationViewProps) {
   const [fullName, setFullName] = useState(userDisplayName || '')
   const [churchName, setChurchName] = useState('')
+  const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
+  const [customCountry, setCustomCountry] = useState('')
+  const [customCity, setCustomCity] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,10 +34,22 @@ export default function ChurchRegistrationView({ userId, userDisplayName, onComp
     setLoading(true)
     setError(null)
 
+    const finalCountry = skip
+      ? ''
+      : country === 'OTHER'
+      ? customCountry.trim()
+      : country;
+    const finalCity = skip
+      ? ''
+      : city === 'OTHER'
+      ? customCity.trim()
+      : city;
+
     try {
       const settingsUpdate: Record<string, string> = {}
       if (!skip && churchName.trim()) settingsUpdate.churchName = churchName.trim()
-      if (!skip && city.trim()) settingsUpdate.city = city.trim()
+      if (!skip && finalCountry) settingsUpdate.country = finalCountry
+      if (!skip && finalCity) settingsUpdate.city = finalCity
 
       // Merge with existing settings
       const { data: existingProfile } = await supabase
@@ -114,16 +130,68 @@ export default function ChurchRegistrationView({ userId, userDisplayName, onComp
             />
           </div>
 
+          {/* Selector de País */}
           <div className="church-reg-input-group">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="church-reg-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            <input
-              type="text"
-              placeholder="Ciudad"
-              value={city}
-              onChange={e => setCity(e.target.value)}
-              autoComplete="address-level2"
-            />
+            <Globe size={16} className="church-reg-input-icon" />
+            <select
+              value={country}
+              onChange={e => {
+                setCountry(e.target.value)
+                setCity('')
+              }}
+              className="church-reg-select"
+            >
+              <option value="" disabled>Selecciona tu país</option>
+              {LATAM_COUNTRIES.map(c => (
+                <option key={c.code} value={c.name}>{c.name}</option>
+              ))}
+              <option value="OTHER">Otro / No listado</option>
+            </select>
           </div>
+
+          {/* Input manual de País */}
+          {country === 'OTHER' && (
+            <div className="church-reg-input-group">
+              <Globe size={16} className="church-reg-input-icon" />
+              <input
+                type="text"
+                placeholder="Escribe tu país"
+                value={customCountry}
+                onChange={e => setCustomCountry(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Selector de Ciudad */}
+          {country && country !== 'OTHER' && (
+            <div className="church-reg-input-group">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="church-reg-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <select
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                className="church-reg-select"
+              >
+                <option value="" disabled>Selecciona tu ciudad</option>
+                {LATAM_COUNTRIES.find(c => c.name === country)?.cities.map(ct => (
+                  <option key={ct} value={ct}>{ct}</option>
+                ))}
+                <option value="OTHER">Otra ciudad / No listada</option>
+              </select>
+            </div>
+          )}
+
+          {/* Input manual de Ciudad */}
+          {(city === 'OTHER' || country === 'OTHER') && (
+            <div className="church-reg-input-group">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="church-reg-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <input
+                type="text"
+                placeholder="Escribe tu ciudad"
+                value={customCity}
+                onChange={e => setCustomCity(e.target.value)}
+              />
+            </div>
+          )}
 
           <button
             type="button"
@@ -251,6 +319,26 @@ export default function ChurchRegistrationView({ userId, userDisplayName, onComp
         .church-reg-input-group input:focus {
           border-color: rgba(201, 166, 88, 0.5);
           box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
+        }
+        .church-reg-select {
+          width: 100%;
+          padding: 14px 14px 14px 42px;
+          background: #0f131c;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          color: white;
+          font-size: 14px;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          outline: none;
+          cursor: pointer;
+        }
+        .church-reg-select:focus {
+          border-color: rgba(201, 166, 88, 0.5);
+          box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
+        }
+        .church-reg-select option {
+          background: #0f131c;
+          color: white;
         }
         .church-reg-input-group input::placeholder {
           color: #5a6577;

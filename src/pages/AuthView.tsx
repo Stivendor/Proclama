@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/services/supabase'
-import { Loader2, Music2, ChevronRight, ChevronLeft, Church, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { Loader2, Music2, ChevronRight, ChevronLeft, Church, User, Mail, Lock, Eye, EyeOff, Check, Globe } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import TermsModal from '@/components/TermsModal'
+import { LATAM_COUNTRIES } from '@/constants/latamLocations'
 
 function GoogleIcon() {
   return (
@@ -14,6 +15,46 @@ function GoogleIcon() {
       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
     </svg>
   )
+}
+
+function getEmailSuggestion(email: string): string | null {
+  const emailRegex = /^([^@]+)@([^@]+)$/;
+  const match = email.trim().toLowerCase().match(emailRegex);
+  if (!match) return null;
+
+  const [_, localPart, domain] = match;
+
+  const typoMap: Record<string, string> = {
+    'gamil.com': 'gmail.com',
+    'gamil.co': 'gmail.com',
+    'gmaill.com': 'gmail.com',
+    'gamil.net': 'gmail.com',
+    'gmial.com': 'gmail.com',
+    'gmai.com': 'gmail.com',
+    'gmal.com': 'gmail.com',
+    'gmeil.com': 'gmail.com',
+    
+    'hotamil.com': 'hotmail.com',
+    'hotmial.com': 'hotmail.com',
+    'hotmal.com': 'hotmail.com',
+    'hormail.com': 'hotmail.com',
+    'hotamil.es': 'hotmail.es',
+    'hotmial.es': 'hotmail.es',
+    
+    'outlok.com': 'outlook.com',
+    'outlok.es': 'outlook.es',
+    'outlook.co': 'outlook.com',
+    
+    'yahooo.com': 'yahoo.com',
+    'yaho.com': 'yahoo.com',
+    'yahoo.co': 'yahoo.com',
+  };
+
+  if (typoMap[domain]) {
+    return `${localPart}@${typoMap[domain]}`;
+  }
+
+  return null;
 }
 
 type AuthMode = 'login' | 'register'
@@ -33,18 +74,36 @@ export default function AuthView() {
 
   // Step 2 fields
   const [churchName, setChurchName] = useState('')
+  const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
+  const [customCountry, setCustomCountry] = useState('')
+  const [customCity, setCustomCity] = useState('')
 
   // State
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null)
 
   const cardRef = useRef<HTMLDivElement>(null)
 
+  const handleEmailChange = (val: string) => {
+    setEmail(val)
+    const suggestion = getEmailSuggestion(val)
+    setEmailSuggestion(suggestion)
+  }
+
+  const acceptSuggestion = () => {
+    if (emailSuggestion) {
+      setEmail(emailSuggestion)
+      setEmailSuggestion(null)
+    }
+  }
+
   useEffect(() => {
     cardRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+    setEmailSuggestion(null)
   }, [mode, step])
 
   const handleGoogleLogin = async () => {
@@ -99,6 +158,17 @@ export default function AuthView() {
     setLoading(true)
     setError(null)
 
+    const finalCountry = skipChurch
+      ? ''
+      : country === 'OTHER'
+      ? customCountry.trim()
+      : country;
+    const finalCity = skipChurch
+      ? ''
+      : city === 'OTHER'
+      ? customCity.trim()
+      : city;
+
     try {
       const metadata: Record<string, string> = {
         full_name: fullName.trim(),
@@ -106,8 +176,11 @@ export default function AuthView() {
       if (!skipChurch && churchName.trim()) {
         metadata.church_name = churchName.trim()
       }
-      if (!skipChurch && city.trim()) {
-        metadata.city = city.trim()
+      if (!skipChurch && finalCountry) {
+        metadata.country = finalCountry
+      }
+      if (!skipChurch && finalCity) {
+        metadata.city = finalCity
       }
 
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -148,7 +221,8 @@ export default function AuthView() {
         try {
           const settingsUpdate: Record<string, string> = {}
           if (!skipChurch && churchName.trim()) settingsUpdate.churchName = churchName.trim()
-          if (!skipChurch && city.trim()) settingsUpdate.city = city.trim()
+          if (!skipChurch && finalCountry) settingsUpdate.country = finalCountry
+          if (!skipChurch && finalCity) settingsUpdate.city = finalCity
 
           if (Object.keys(settingsUpdate).length > 0 || fullName.trim()) {
             await supabase.from('profiles').update({
@@ -241,11 +315,16 @@ export default function AuthView() {
                 type="email"
                 placeholder="Correo electrónico"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => handleEmailChange(e.target.value)}
                 autoComplete="email"
                 required
               />
             </div>
+            {emailSuggestion && (
+              <div className="auth-email-suggestion">
+                ¿Quisiste decir <button type="button" onClick={acceptSuggestion}>{emailSuggestion}</button>?
+              </div>
+            )}
             <div className="auth-input-group">
               <Lock size={16} className="auth-input-icon" />
               <input
@@ -294,11 +373,16 @@ export default function AuthView() {
                 type="email"
                 placeholder="Correo electrónico"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => handleEmailChange(e.target.value)}
                 autoComplete="email"
                 required
               />
             </div>
+            {emailSuggestion && (
+              <div className="auth-email-suggestion">
+                ¿Quisiste decir <button type="button" onClick={acceptSuggestion}>{emailSuggestion}</button>?
+              </div>
+            )}
             <div className="auth-input-group">
               <Lock size={16} className="auth-input-icon" />
               <input
@@ -360,16 +444,69 @@ export default function AuthView() {
                 autoComplete="organization"
               />
             </div>
+
+            {/* Selector de País */}
             <div className="auth-input-group">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              <input
-                type="text"
-                placeholder="Ciudad"
-                value={city}
-                onChange={e => setCity(e.target.value)}
-                autoComplete="address-level2"
-              />
+              <Globe size={16} className="auth-input-icon" />
+              <select
+                value={country}
+                onChange={e => {
+                  setCountry(e.target.value)
+                  setCity('')
+                }}
+                className="auth-select"
+              >
+                <option value="" disabled>Selecciona tu país</option>
+                {LATAM_COUNTRIES.map(c => (
+                  <option key={c.code} value={c.name}>{c.name}</option>
+                ))}
+                <option value="OTHER">Otro / No listado</option>
+              </select>
             </div>
+
+            {/* Input manual de País */}
+            {country === 'OTHER' && (
+              <div className="auth-input-group">
+                <Globe size={16} className="auth-input-icon" />
+                <input
+                  type="text"
+                  placeholder="Escribe tu país"
+                  value={customCountry}
+                  onChange={e => setCustomCountry(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Selector de Ciudad (filtrado por País) */}
+            {country && country !== 'OTHER' && (
+              <div className="auth-input-group">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                <select
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  className="auth-select"
+                >
+                  <option value="" disabled>Selecciona tu ciudad</option>
+                  {LATAM_COUNTRIES.find(c => c.name === country)?.cities.map(ct => (
+                    <option key={ct} value={ct}>{ct}</option>
+                  ))}
+                  <option value="OTHER">Otra ciudad / No listada</option>
+                </select>
+              </div>
+            )}
+
+            {/* Input manual de Ciudad */}
+            {(city === 'OTHER' || country === 'OTHER') && (
+              <div className="auth-input-group">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                <input
+                  type="text"
+                  placeholder="Escribe tu ciudad"
+                  value={customCity}
+                  onChange={e => setCustomCity(e.target.value)}
+                />
+              </div>
+            )}
 
             <button
               type="button"
@@ -574,8 +711,54 @@ function AuthStyles() {
         border-color: rgba(201, 166, 88, 0.5);
         box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
       }
+      .auth-select {
+        width: 100%;
+        padding: 14px 14px 14px 42px;
+        background: #0f131c;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        color: white;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+        cursor: pointer;
+      }
+      .auth-select:focus {
+        border-color: rgba(201, 166, 88, 0.5);
+        box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
+      }
+      .auth-select option {
+        background: #0f131c;
+        color: white;
+      }
       .auth-input-group input::placeholder {
         color: #5a6577;
+      }
+      .auth-email-suggestion {
+        font-size: 12px;
+        color: #8b98b0;
+        margin-top: -6px;
+        margin-bottom: 2px;
+        padding-left: 4px;
+        animation: authEmailFadeIn 0.2s ease-out;
+      }
+      .auth-email-suggestion button {
+        background: none;
+        border: none;
+        color: #c9a658;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+        font-size: 12px;
+        outline: none;
+      }
+      .auth-email-suggestion button:hover {
+        color: #d4b164;
+      }
+      @keyframes authEmailFadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
       }
       .auth-eye-btn {
         position: absolute;

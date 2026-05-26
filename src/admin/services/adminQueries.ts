@@ -166,3 +166,26 @@ export async function fetchRegistrationChart() {
 
   return Object.entries(byDay).map(([date, count]) => ({ date, count }));
 }
+
+// --- User locations for geographic map ---
+export async function fetchUserLocations() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("settings");
+  if (error) throw error;
+
+  const counts: Record<string, { city: string; country: string; count: number }> = {};
+  (data ?? []).forEach(profile => {
+    const s = profile.settings as any;
+    if (s?.country && s?.city) {
+      const key = `${s.city}, ${s.country}`;
+      if (counts[key]) {
+        counts[key].count += 1;
+      } else {
+        counts[key] = { city: s.city, country: s.country, count: 1 };
+      }
+    }
+  });
+
+  return Object.values(counts);
+}

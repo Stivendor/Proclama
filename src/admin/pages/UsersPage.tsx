@@ -11,6 +11,7 @@ interface UserProfile {
   full_name?: string | null;
   settings?: {
     churchName?: string;
+    country?: string;
     city?: string;
     onboardingComplete?: boolean;
   };
@@ -49,8 +50,8 @@ export default function UsersPage() {
   }, [searchInput]);
 
   const exportCSV = () => {
-    const rows = [["Nombre", "Email", "Registro", "Rol", "Iglesia", "Ciudad"], ...users.map(u => [
-      u.full_name || "—", u.email, new Date(u.created_at).toLocaleDateString(), u.role, u.settings?.churchName || "—", u.settings?.city || "—"
+    const rows = [["Nombre", "Email", "Registro", "Rol", "Iglesia", "Ciudad", "País"], ...users.map(u => [
+      u.full_name || "—", u.email, new Date(u.created_at).toLocaleDateString(), u.role, u.settings?.churchName || "—", u.settings?.city || "—", u.settings?.country || "—"
     ])];
     const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
@@ -103,7 +104,16 @@ export default function UsersPage() {
           { key: "email", header: "Email", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)" }}>{u.email}</span> },
           { key: "date", header: "Registro", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{new Date(u.created_at).toLocaleDateString()}</span> },
           { key: "church", header: "Iglesia", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{u.settings?.churchName || "—"}</span> },
-          { key: "city", header: "Ciudad", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{u.settings?.city || "—"}</span> },
+          { 
+            key: "location", 
+            header: "Ubicación", 
+            render: (u: UserProfile) => {
+              const cityVal = u.settings?.city;
+              const countryVal = u.settings?.country;
+              const locationStr = [cityVal, countryVal].filter(Boolean).join(", ");
+              return <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{locationStr || "—"}</span>;
+            }
+          },
           { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" || u.role === "superadmin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" || u.role === "superadmin" ? 600 : 400 }}>{u.role === "admin" || u.role === "superadmin" ? "Admin" : "Usuario"}</span> }
         ]}
         data={users}
