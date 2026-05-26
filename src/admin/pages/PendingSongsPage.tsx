@@ -158,85 +158,96 @@ export default function PendingSongsPage() {
               key={s.id} 
               className="admin-report-card"
               style={{ 
+                background: 'var(--bg-elevated)',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Contenedor principal de la fila */}
+              <div style={{
                 padding: '1rem 1.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '1.5rem',
-                background: 'var(--bg-elevated)',
-                borderRadius: '12px',
-                border: '1px solid var(--border)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <input 
-                type="checkbox" 
-                checked={selected.has(s.id)} 
-                onChange={() => toggle(s.id)} 
-                style={{ accentColor: "var(--gold)", width: 18, height: 18, cursor: 'pointer' }} 
-              />
-              
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <strong style={{ fontSize: '15px', color: 'var(--text-primary)' }}>{s.title}</strong>
-                  {s.artist && <span style={{ color: "var(--text-secondary)", fontSize: '14px' }}>— {s.artist}</span>}
+                width: '100%',
+                flexWrap: 'wrap'
+              }}>
+                <input 
+                  type="checkbox" 
+                  checked={selected.has(s.id)} 
+                  onChange={() => toggle(s.id)} 
+                  style={{ accentColor: "var(--gold)", width: 18, height: 18, cursor: 'pointer' }} 
+                />
+                
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '15px', color: 'var(--text-primary)' }}>{s.title}</strong>
+                    {s.artist && <span style={{ color: "var(--text-secondary)", fontSize: '14px' }}>— {s.artist}</span>}
+                  </div>
+                  <div style={{ display: "flex", gap: "12px", marginTop: 4, color: "var(--text-muted)", fontSize: "12px" }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Globe size={12} /> {s.language ?? "Español"}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(s.created_at).toLocaleDateString()}</span>
+                  </div>
                 </div>
-                <div style={{ display: "flex", gap: "12px", marginTop: 4, color: "var(--text-muted)", fontSize: "12px" }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Globe size={12} /> {s.language ?? "Español"}</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={12} /> {new Date(s.created_at).toLocaleDateString()}</span>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: 'wrap' }}>
+                  <button 
+                    className="admin-action-btn secondary" 
+                    style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', padding: '8px 12px' }}
+                    onClick={() => {
+                      setEditingSongLocal(s);
+                      setTitleText(s.title);
+                      setArtistText(s.artist || "");
+                      setLyricsText(s.lyrics || "");
+                      setLanguageText(s.language || "Español");
+                    }}
+                  >
+                    <Edit2 size={14} /> Editar
+                  </button>
+                  
+                  <div style={{ width: '1px', height: '24px', background: 'var(--border)' }}></div>
+                  
+                  <button 
+                    className="admin-action-btn danger" 
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px' }}
+                    onClick={() => reject(s)}
+                    title="Rechazar"
+                  >
+                    <X size={18} />
+                  </button>
+                  
+                  <button 
+                    className="admin-action-btn" 
+                    style={{ background: "var(--green)", color: "#fff", padding: "8px 16px", fontWeight: 600 }} 
+                    onClick={() => approve(s)}
+                  >
+                    <Check size={14} /> Aprobar
+                  </button>
+                  
+                  <button 
+                    className="admin-btn-icon" 
+                    onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                    style={{ marginLeft: '4px' }}
+                  >
+                    {expanded === s.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </button>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <button 
-                  className="admin-action-btn secondary" 
-                  style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', padding: '8px 12px' }}
-                  onClick={() => {
-                    setEditingSongLocal(s);
-                    setTitleText(s.title);
-                    setArtistText(s.artist || "");
-                    setLyricsText(s.lyrics || "");
-                    setLanguageText(s.language || "Español");
-                  }}
-                >
-                  <Edit2 size={14} /> Editar
-                </button>
-                
-                <div style={{ width: '1px', height: '24px', background: 'var(--border)' }}></div>
-                
-                <button 
-                  className="admin-action-btn danger" 
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px' }}
-                  onClick={() => reject(s)}
-                  title="Rechazar"
-                >
-                  <X size={18} />
-                </button>
-                
-                <button 
-                  className="admin-action-btn" 
-                  style={{ background: "var(--green)", color: "#fff", padding: "8px 16px", fontWeight: 600 }} 
-                  onClick={() => approve(s)}
-                >
-                  <Check size={14} /> Aprobar
-                </button>
-                
-                <button 
-                  className="admin-btn-icon" 
-                  onClick={() => setExpanded(expanded === s.id ? null : s.id)}
-                  style={{ marginLeft: '4px' }}
-                >
-                  {expanded === s.id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                </button>
-              </div>
-
+              {/* Caja de letras colapsable (Fluida y Estática) */}
               {expanded === s.id && s.lyrics && (
                 <div style={{ 
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                  borderRadius: '0 0 12px 12px', padding: '1.5rem', marginTop: '-1px',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)', maxHeight: '300px', overflowY: 'auto'
+                  background: 'var(--bg-surface)', 
+                  borderTop: '1px solid var(--border)',
+                  padding: '1.5rem',
+                  maxHeight: '300px', 
+                  overflowY: 'auto'
                 }}>
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: 'monospace' }}>
                     {s.lyrics}
                   </pre>
                 </div>

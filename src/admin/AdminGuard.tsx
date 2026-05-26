@@ -29,7 +29,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
           .eq("id", session.user.id)
           .single();
 
-        setState(data?.role === "admin" ? "authorized" : "denied");
+        setState((data?.role === "admin" || data?.role === "superadmin") ? "authorized" : "denied");
       } catch (err: any) {
         console.error("AdminGuard error:", err);
         if (err.message === "auth_timeout" || err.message?.includes("token")) {

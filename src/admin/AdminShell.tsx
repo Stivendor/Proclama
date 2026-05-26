@@ -6,7 +6,6 @@ import { supabase } from "@/services/supabase";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
-const PlansPage = lazy(() => import("./pages/PlansPage"));
 const PendingSongsPage = lazy(() => import("./pages/PendingSongsPage"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
@@ -31,9 +30,8 @@ function AdminContent() {
 
   const renderPage = () => {
     switch (activeView) {
-      case "dashboard": return <DashboardPage />;
+      case "dashboard": return <DashboardPage onNavigate={setActiveView} />;
       case "users": return <UsersPage />;
-      case "plans": return <PlansPage />;
       case "pending-songs": return <PendingSongsPage />;
       case "reports": return <ReportsPage />;
       case "suggestions": return <SuggestionsPage />;

@@ -24,6 +24,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
 import DeviceBlockedModal from "@/components/DeviceBlockedModal";
 import TermsModal from "@/components/TermsModal";
+import ChurchRegistrationView from "@/pages/ChurchRegistrationView";
 import Toast from "@/components/Toast";
 
 const IS_PROJECTION =
@@ -54,7 +55,6 @@ function AppContent() {
     setUserPlan,
     authStatus,
     setAuthStatus,
-    guestMode,
     forceLanding,
     onboardingDone,
     deviceBlocked,
@@ -67,7 +67,6 @@ function AppContent() {
       setUserPlan: s.setUserPlan,
       authStatus: s.authStatus,
       setAuthStatus: s.setAuthStatus,
-      guestMode: s.guestMode,
       forceLanding: s.forceLanding,
       onboardingDone: s.onboardingDone,
       deviceBlocked: s.deviceBlocked,
@@ -78,6 +77,7 @@ function AppContent() {
 
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [needsChurchReg, setNeedsChurchReg] = useState(false);
 
   const user = useAppStore(s => s.user)
   useSongsRealtime(user?.id)
@@ -164,11 +164,26 @@ function AppContent() {
 
         if (user) {
           setUser(user);
+          useAppStore.getState().setForceLanding(false);
           void syncProfile(user.id).then((profile) => {
             if (profile) void checkDeviceLimit(profile.plan);
           }).catch((err) => {
             console.warn("Profile sync failed:", err);
           });
+
+          // Check if user needs to complete onboarding (Google users without full_name)
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name, settings')
+              .eq('id', user.id)
+              .maybeSingle();
+
+            const settings = profileData?.settings as Record<string, any> | null;
+            if (!profileData?.full_name || !settings?.onboardingComplete) {
+              setNeedsChurchReg(true);
+            }
+          } catch {}
         } else {
           setUser(null);
           setUserRole(null);
@@ -197,6 +212,7 @@ function AppContent() {
 
         if (user) {
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+            useAppStore.getState().setForceLanding(false);
             try {
               // ── Always run: device check + guest migration ──
               const currentPlan = useAppStore.getState().userPlan;
@@ -290,9 +306,21 @@ function AppContent() {
     return <DeviceBlockedModal />;
   }
 
-  if (forceLanding || (!guestMode && !onboardingDone && authStatus !== "authenticated")) {
+  // Show landing for unauthenticated users (guest mode disabled)
+  if (forceLanding || authStatus !== "authenticated") {
     return (
       <LandingView />
+    );
+  }
+
+  // Show church registration for Google users who haven't completed onboarding
+  if (needsChurchReg && user) {
+    return (
+      <ChurchRegistrationView
+        userId={user.id}
+        userDisplayName={user.user_metadata?.full_name || user.user_metadata?.name || null}
+        onComplete={() => setNeedsChurchReg(false)}
+      />
     );
   }
 

@@ -1,17 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ArrowUpDown, Download, Zap, ZapOff, RefreshCcw, Check } from "lucide-react";
+import { Users, Search, ArrowUpDown, Download, RefreshCcw } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
-import { logAdminAction } from "../services/adminLogs";
-import { supabase } from "@/services/supabase";
 
 interface UserProfile {
   id: string;
   email: string;
   created_at: string;
-  plan: string;
   role: string;
-  is_authorized: boolean;
+  full_name?: string | null;
+  settings?: {
+    churchName?: string;
+    city?: string;
+    onboardingComplete?: boolean;
+  };
 }
 
 export default function UsersPage() {
@@ -21,20 +23,18 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [filterPlan, setFilterPlan] = useState("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const pageSize = 50;
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const r = await fetchUsersPaginated(page, pageSize, { search, plan: filterPlan, sortOrder });
+      const r = await fetchUsersPaginated(page, pageSize, { search, sortOrder });
       setUsers(r.data);
       setTotalCount(r.count);
     } catch (e) { console.error(e); }
     finally { if (!silent) setLoading(false); }
-  }, [page, search, filterPlan, sortOrder]);
+  }, [page, search, sortOrder]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -48,39 +48,9 @@ export default function UsersPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  const togglePlan = async (user: UserProfile) => {
-    const newPlan = user.plan === "premium" ? "free" : "premium";
-    if (!confirm(`¿Cambiar plan de ${user.email} a ${newPlan.toUpperCase()}?`)) return;
-    setUpdatingId(user.id);
-    try {
-      await supabase.from("profiles").update({ plan: newPlan }).eq("id", user.id);
-      await logAdminAction({
-        action: "change_plan", targetType: "user", targetId: user.id,
-        targetLabel: user.email, note: `${user.plan} → ${newPlan}`
-      });
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, plan: newPlan } : u));
-    } catch { alert("Error al cambiar plan."); }
-    finally { setUpdatingId(null); }
-  };
-
-  const toggleAuthorized = async (user: UserProfile) => {
-    const newVal = !user.is_authorized;
-    if (!confirm(`¿${newVal ? 'Autorizar' : 'Desautorizar'} a ${user.email} para publicar sin revisión?`)) return;
-    setUpdatingId(user.id);
-    try {
-      await supabase.from("profiles").update({ is_authorized: newVal }).eq("id", user.id);
-      await logAdminAction({
-        action: newVal ? "authorize_user" : "deauthorize_user", targetType: "user", targetId: user.id,
-        targetLabel: user.email
-      });
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_authorized: newVal } : u));
-    } catch { alert("Error al cambiar autorización."); }
-    finally { setUpdatingId(null); }
-  };
-
   const exportCSV = () => {
-    const rows = [["Email", "Registro", "Plan", "Rol"], ...users.map(u => [
-      u.email, new Date(u.created_at).toLocaleDateString(), u.plan, u.role
+    const rows = [["Nombre", "Email", "Registro", "Rol", "Iglesia", "Ciudad"], ...users.map(u => [
+      u.full_name || "—", u.email, new Date(u.created_at).toLocaleDateString(), u.role, u.settings?.churchName || "—", u.settings?.city || "—"
     ])];
     const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
@@ -120,13 +90,7 @@ export default function UsersPage() {
           <input placeholder="Buscar usuario por email..." value={searchInput} onChange={e => setSearchInput(e.target.value)} />
         </div>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.5px" }}>FILTRAR:</span>
-          <select value={filterPlan} onChange={e => { setFilterPlan(e.target.value); setPage(0); }} className="admin-select">
-            <option value="all">Todos los planes</option>
-            <option value="free">Solo Free</option>
-            <option value="premium">Solo Premium</option>
-          </select>
-          <div style={{ width: 1, height: 24, background: "var(--border)", margin: "0 4px" }} />
+          <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.5px" }}>ORDENAR POR FECHA:</span>
           <button className="admin-btn-icon" onClick={() => setSortOrder(o => o === "asc" ? "desc" : "asc")} title={sortOrder === "desc" ? "Más recientes primero" : "Más antiguos primero"}>
             <ArrowUpDown size={16} style={{ transform: sortOrder === "asc" ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
           </button>
@@ -135,24 +99,12 @@ export default function UsersPage() {
 
       <DataTable
         columns={[
-          { key: "email", header: "Email", render: (u: UserProfile) => <span style={{ fontWeight: 500 }}>{u.email}</span> },
+          { key: "name", header: "Nombre", render: (u: UserProfile) => <span style={{ fontWeight: 600 }}>{u.full_name || "—"}</span> },
+          { key: "email", header: "Email", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)" }}>{u.email}</span> },
           { key: "date", header: "Registro", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{new Date(u.created_at).toLocaleDateString()}</span> },
-          { key: "plan", header: "Plan", render: (u: UserProfile) => <span className={`admin-badge ${u.plan}`}>{u.plan.toUpperCase()}</span> },
-          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" ? "var(--blue)" : "var(--text-muted)", fontWeight: u.role === "admin" ? 600 : 400 }}>{u.role === "admin" ? "Admin" : "Usuario"}</span> },
-          { key: "authorized", header: "Autorizado", render: (u: UserProfile) => (
-            <span style={{ 
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              color: u.is_authorized ? 'var(--green)' : 'var(--text-muted)',
-              cursor: 'pointer', fontSize: 13
-            }} onClick={() => toggleAuthorized(u)} title={u.is_authorized ? 'Desautorizar' : 'Autorizar'}>
-              {u.is_authorized ? <><Check size={14} /> Sí</> : 'No'}
-            </span>
-          )},
-          { key: "actions", header: "Acciones", align: "right" as const, render: (u: UserProfile) => (
-            <button className={`admin-action-btn ${u.plan === "premium" ? "danger" : "gold"}`} onClick={() => togglePlan(u)} disabled={updatingId === u.id}>
-              {updatingId === u.id ? <RefreshCcw size={13} className="spin" /> : u.plan === "premium" ? <><ZapOff size={13} /> Quitar</> : <><Zap size={13} /> Premium</>}
-            </button>
-          )}
+          { key: "church", header: "Iglesia", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{u.settings?.churchName || "—"}</span> },
+          { key: "city", header: "Ciudad", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{u.settings?.city || "—"}</span> },
+          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" || u.role === "superadmin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" || u.role === "superadmin" ? 600 : 400 }}>{u.role === "admin" || u.role === "superadmin" ? "Admin" : "Usuario"}</span> }
         ]}
         data={users}
         totalCount={totalCount}

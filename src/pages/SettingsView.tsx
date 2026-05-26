@@ -6,7 +6,6 @@ import {
   Menu,
   Cloud,
   FileText,
-  ShieldCheck,
   X,
   Loader2,
 } from "lucide-react";
@@ -17,9 +16,7 @@ import {
 import { supabase } from "@/services/supabase";
 import TermsModal from "@/components/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
-import MFAModal from "@/components/MFAModal";
 import { PREMIUM_FOR_EVERYONE, usePlan } from "@/hooks/usePlan";
-import { useMercadoPagoCheckout } from "@/components/MercadoPagoCheckout";
 import DeviceList from "@/components/DeviceList";
 import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
@@ -59,7 +56,6 @@ export default function SettingsView() {
 
 
   const { isPremium } = usePlan();
-  const { openCheckout } = useMercadoPagoCheckout();
 
   useEffect(() => {
     fetchBackgrounds();
@@ -68,9 +64,6 @@ export default function SettingsView() {
   // Auth states
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState("");
-
-  // MFA states
-  const [showMFAModal, setShowMFAModal] = useState(false);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -216,8 +209,6 @@ export default function SettingsView() {
                     <div className="session-status">
                       <Cloud size={12} />
                       <span>Sincronización activa</span>
-                      <span className="status-divider">•</span>
-                      <span className="status-plan">Plan Escritura</span>
                     </div>
                   </div>
                 </div>
@@ -250,118 +241,7 @@ export default function SettingsView() {
             )}
           </section>
 
-{/* Planes */}
-          <section className="settings-section">
-            <h2>Planes</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              {/* Plan Básico */}
-              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(255,255,255,0.08)', color: '#d1dae8', fontSize: '12px', fontWeight: 700 }}>Usar Gratis</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)' }}>$0<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> para siempre</span></div>
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Proyección de alto rendimiento</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de Setlists y Notas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Uso local ilimitado y fluido</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ 10 canciones propias</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Acceso a 50 canciones de biblioteca</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 5 archivos de media local</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Biblioteca completa (3,000+ canciones)</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 +50 Fondos exclusivos (Imágenes y Videos)</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Exportación de asistencia CSV y PDF con estadísticas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#778398', fontSize: '14px' }}>🔒 Gestión de carpetas en media local</li>
-                </ul>
-              </div>
-
-              {/* Plan Pro Mensual */}
-              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(201, 166, 88, 0.22)', background: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'rgba(201, 166, 88, 0.14)', color: '#f0dfb6', fontSize: '12px', fontWeight: 700 }}>Pro Mensual</span>
-                  {(isPremium && (subscriptionPlan === 'monthly' || !subscriptionPlan)) && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
-                </div>
-                {!PREMIUM_FOR_EVERYONE && <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$25,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · mes</span></div>
-                  <p style={{ fontSize: '12px', color: '#778398', margin: 0 }}>Cancela cuando quieras</p>
-                </div>}
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Biblioteca completa (3,000+ canciones)</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Búsqueda online de letras de canciones</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Exportación de asistencia CSV y PDF con estadísticas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Canciones propias ilimitadas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Importar Biblias en múltiples idiomas</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ +50 Fondos exclusivos (Imágenes y Videos)</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Gestión de carpetas en media local</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Hasta 25 archivos de media local</li>
-                </ul>
-                {!(isPremium && (subscriptionPlan === 'monthly' || !subscriptionPlan)) && (
-                  <button style={{ background: 'transparent', color: 'var(--gold)', border: '1px solid var(--gold)', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: '8px' }} onClick={() => {
-                    useAppStore.getState().setForceLanding(true, 'planes')
-                  }}>
-                    Mejorar a Mensual
-                  </button>
-                )}
-              </div>
-
-              {/* Plan Pro Anual */}
-              <div style={{ padding: '24px', borderRadius: '16px', border: '1px solid rgba(201, 166, 88, 0.4)', background: 'linear-gradient(145deg, rgba(201, 166, 88, 0.08), rgba(201, 166, 88, 0.02))', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ padding: '6px 12px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '12px', fontWeight: 700 }}>Pro Anual</span>
-                  {(isPremium && subscriptionPlan === 'annual') && <span style={{ padding: '4px 10px', borderRadius: '999px', background: 'var(--gold)', color: '#000', fontSize: '11px', fontWeight: 600 }}>ACTIVO</span>}
-                </div>
-                {!PREMIUM_FOR_EVERYONE && <div>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#f0dfb6' }}>$220,000<span style={{ fontSize: '14px', fontWeight: 400, color: '#778398' }}> · año</span></div>
-                  <p style={{ fontSize: '12px', color: '#c9a658', margin: 0, fontWeight: 600 }}>Ahorra $80.000 (casi 3 meses gratis)</p>
-                </div>}
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Todas las ventajas de Pro Mensual</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Soporte prioritario</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Beneficios y actualizaciones todo el año</li>
-                  <li style={{ display: 'flex', gap: '10px', alignItems: 'center', color: '#d5dce7', fontSize: '14px' }}>✓ Renueva automáticamente cada 12 meses</li>
-                </ul>
-                {!(isPremium && subscriptionPlan === 'annual') && (
-                  <button style={{ background: 'var(--gold)', color: '#000', border: 'none', padding: '14px 24px', borderRadius: '12px', fontWeight: 600, fontSize: '15px', cursor: 'pointer', width: '100%', marginTop: 'auto' }} onClick={() => {
-                    useAppStore.getState().setForceLanding(true, 'planes')
-                  }}>
-                    Mejorar a Anual
-                  </button>
-                )}
-              </div>
-            </div>
-          </section>
-
-
-
-
-
-          {/* Seguridad */}
-          {user && (
-            <section className="settings-section">
-              <h2>Seguridad</h2>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--text-secondary)",
-                  marginBottom: 12,
-                }}
-              >
-                Protege tu cuenta con autenticación de dos factores (TOTP).
-              </p>
-              <button
-                className="btn-secondary"
-                onClick={() => setShowMFAModal(true)}
-              >
-                <ShieldCheck size={15} />
-                Gestionar MFA
-              </button>
-            </section>
-          )}
-
-          {showMFAModal && <MFAModal onClose={() => setShowMFAModal(false)} />}
-
-          {/* Dispositivos conectados — Solo para usuarios Premium */}
+          {/* Dispositivos conectados — Solo para usuarios registrados */}
           {user && isPremium && (
             <section className="settings-section">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -375,7 +255,7 @@ export default function SettingsView() {
                   marginBottom: 12,
                 }}
               >
-                Tu plan Pro permite hasta <strong style={{ color: 'var(--text-primary)' }}>{MAX_DEVICES_PREMIUM} dispositivos</strong>. Puedes revocar el acceso de cualquier equipo desde aquí.
+                Puedes tener un máximo de <strong style={{ color: 'var(--text-primary)' }}>{MAX_DEVICES_PREMIUM} dispositivos</strong> activos simultáneamente. Puedes revocar el acceso de cualquier equipo desde aquí.
               </p>
               <DeviceList />
             </section>

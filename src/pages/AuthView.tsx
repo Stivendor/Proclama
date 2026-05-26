@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '@/services/supabase'
-import { Loader2, Music2 } from 'lucide-react'
+import { Loader2, Music2, ChevronRight, ChevronLeft, Church, User, Mail, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { useAppStore } from '@/stores'
+import { CURRENT_TERMS_VERSION } from '@/constants/terms'
+import TermsModal from '@/components/TermsModal'
 
 function GoogleIcon() {
   return (
@@ -13,9 +16,36 @@ function GoogleIcon() {
   )
 }
 
+type AuthMode = 'login' | 'register'
+type RegisterStep = 1 | 2
+
 export default function AuthView() {
+  const [mode, setMode] = useState<AuthMode>('login')
+  const [step, setStep] = useState<RegisterStep>(1)
+  const [showTermsModal, setShowTermsModal] = useState(false)
+
+  // Step 1 fields
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+
+  // Step 2 fields
+  const [churchName, setChurchName] = useState('')
+  const [city, setCity] = useState('')
+
+  // State
+  const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    cardRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+  }, [mode, step])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -30,121 +60,750 @@ export default function AuthView() {
     }
   }
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email || !password) return setError('Completa todos los campos.')
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        if (error.message.includes('Invalid login')) {
+          setError('Correo o contraseña incorrectos.')
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.')
+        } else {
+          setError(error.message)
+        }
+      }
+    } catch (err: any) {
+      console.error('Login exception occurred:', err)
+      setError(err?.message || 'Error de conexión. Por favor intenta de nuevo en unos momentos.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStep1Next = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!fullName.trim()) return setError('Ingresa tu nombre.')
+    if (!email.trim()) return setError('Ingresa tu correo.')
+    if (!password || password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.')
+    if (!termsAccepted) return setError('Debes aceptar los Términos y Condiciones.')
+    setStep(2)
+  }
+
+  const handleRegister = async (skipChurch = false) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const metadata: Record<string, string> = {
+        full_name: fullName.trim(),
+      }
+      if (!skipChurch && churchName.trim()) {
+        metadata.church_name = churchName.trim()
+      }
+      if (!skipChurch && city.trim()) {
+        metadata.city = city.trim()
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: metadata,
+        }
+      })
+
+      if (signUpError) {
+        let msg = signUpError.message
+        if (msg === '{}' || !msg || msg.trim() === '') {
+          msg = 'Error de Servidor (SMTP/504). El servidor de correo de Supabase tardó demasiado en responder. Por favor, ve a tu panel de Supabase -> Auth -> Email Providers y desactiva la opción "Confirm email" para registrarte sin problemas.'
+        }
+        if (msg.includes('already registered')) {
+          setError('Este correo ya está registrado. Intenta iniciar sesión.')
+        } else {
+          setError(msg)
+        }
+        setLoading(false)
+        return
+      }
+
+      // Accept terms
+      const { acceptTerms } = useAppStore.getState()
+      await acceptTerms(CURRENT_TERMS_VERSION)
+
+      // If user needs email confirmation
+      if (data.user && !data.session) {
+        setSuccessMessage('¡Cuenta creada! Revisa tu correo para confirmar tu cuenta.')
+        setLoading(false)
+        return
+      }
+
+      // If auto-confirmed (e.g. in dev), update profile with church data
+      if (data.user && data.session) {
+        try {
+          const settingsUpdate: Record<string, string> = {}
+          if (!skipChurch && churchName.trim()) settingsUpdate.churchName = churchName.trim()
+          if (!skipChurch && city.trim()) settingsUpdate.city = city.trim()
+
+          if (Object.keys(settingsUpdate).length > 0 || fullName.trim()) {
+            await supabase.from('profiles').update({
+              full_name: fullName.trim(),
+              settings: settingsUpdate,
+            }).eq('id', data.user.id)
+          }
+        } catch (err) {
+          console.warn('Profile update after signup failed:', err)
+        }
+      }
+    } catch (err: any) {
+      console.error('Signup exception occurred:', err)
+      let msg = err?.message || ''
+      if (msg === '{}' || !msg || msg.trim() === '') {
+        msg = 'Error de conexión (Timeout 504). El servidor de correo de Supabase no responde. Desactiva "Confirm email" en tu consola de Supabase para poder registrarte.'
+      }
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (successMessage) {
+    return (
+      <div className="auth-overlay">
+        <div className="auth-card" ref={cardRef}>
+          <div className="auth-header">
+            <div className="auth-logo">
+              <Music2 size={32} color="var(--gold, #c9a658)" />
+              <span>Proclama <span>Pro</span></span>
+            </div>
+            <div className="auth-success-icon">
+              <Check size={32} />
+            </div>
+            <h1>¡Cuenta Creada!</h1>
+            <p>{successMessage}</p>
+          </div>
+          <button
+            type="button"
+            className="auth-btn-primary"
+            onClick={() => {
+              setSuccessMessage(null)
+              setMode('login')
+              setStep(1)
+              setPassword('')
+            }}
+          >
+            Ir a Iniciar Sesión
+          </button>
+        </div>
+        <AuthStyles />
+      </div>
+    )
+  }
+
   return (
     <div className="auth-overlay">
-      <div className="auth-card">
+      <div className="auth-card" ref={cardRef}>
         <div className="auth-header">
           <div className="auth-logo">
-            <Music2 size={32} color="var(--gold)" />
+            <Music2 size={32} color="var(--gold, #c9a658)" />
             <span>Proclama <span>Pro</span></span>
           </div>
-          <h1>Iniciar Sesión</h1>
-          <p>Accede a tus listas y ajustes personales</p>
+
+          {mode === 'login' ? (
+            <>
+              <h1>Iniciar Sesión</h1>
+              <p>Accede a tus listas y ajustes personales</p>
+            </>
+          ) : (
+            <>
+              <h1>Crear Cuenta</h1>
+              <div className="step-indicator">
+                <div className={`step-dot ${step >= 1 ? 'active' : ''}`}><span>1</span></div>
+                <div className="step-line"><div className={`step-line-fill ${step >= 2 ? 'filled' : ''}`} /></div>
+                <div className={`step-dot ${step >= 2 ? 'active' : ''}`}><span>2</span></div>
+              </div>
+              <p>{step === 1 ? 'Datos de tu cuenta' : 'Datos de tu iglesia (opcional)'}</p>
+            </>
+          )}
         </div>
 
-        <button
-          type="button"
-          className="btn-google"
-          onClick={handleGoogleLogin}
-          disabled={googleLoading}
-          aria-label="Continuar con Google"
-        >
-          {googleLoading ? <Loader2 className="spin" size={18} /> : <GoogleIcon />}
-          Continuar con Google
-        </button>
+        {/* ─── LOGIN MODE ─── */}
+        {mode === 'login' && (
+          <form onSubmit={handleLogin} className="auth-form">
+            <div className="auth-input-group">
+              <Mail size={16} className="auth-input-icon" />
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+            <div className="auth-input-group">
+              <Lock size={16} className="auth-input-icon" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Contraseña"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+              <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(v => !v)} tabIndex={-1} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            <button type="submit" className="auth-btn-primary" disabled={loading}>
+              {loading ? <Loader2 className="spin" size={18} /> : 'Iniciar Sesión'}
+            </button>
+
+            <div className="auth-divider"><span>o</span></div>
+
+            <button type="button" className="auth-btn-google" onClick={handleGoogleLogin} disabled={googleLoading}>
+              {googleLoading ? <Loader2 className="spin" size={18} /> : <GoogleIcon />}
+              Continuar con Google
+            </button>
+          </form>
+        )}
+
+        {/* ─── REGISTER STEP 1 ─── */}
+        {mode === 'register' && step === 1 && (
+          <form onSubmit={handleStep1Next} className="auth-form">
+            <div className="auth-input-group">
+              <User size={16} className="auth-input-icon" />
+              <input
+                type="text"
+                placeholder="Nombre completo"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                autoComplete="name"
+                required
+              />
+            </div>
+            <div className="auth-input-group">
+              <Mail size={16} className="auth-input-icon" />
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+            <div className="auth-input-group">
+              <Lock size={16} className="auth-input-icon" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Contraseña (mín. 6 caracteres)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
+                minLength={6}
+                required
+              />
+              <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(v => !v)} tabIndex={-1} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            <label className="auth-checkbox-label">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={e => setTermsAccepted(e.target.checked)}
+              />
+              <span>
+                Acepto los{' '}
+                <button type="button" className="auth-terms-link" onClick={() => setShowTermsModal(true)}>
+                  Términos y Condiciones
+                </button>
+              </span>
+            </label>
+
+            <button type="submit" className="auth-btn-primary">
+              Siguiente <ChevronRight size={18} />
+            </button>
+
+            <div className="auth-divider"><span>o</span></div>
+
+            <button type="button" className="auth-btn-google" onClick={handleGoogleLogin} disabled={googleLoading}>
+              {googleLoading ? <Loader2 className="spin" size={18} /> : <GoogleIcon />}
+              Registrarse con Google
+            </button>
+          </form>
+        )}
+
+        {/* ─── REGISTER STEP 2 (OPTIONAL) ─── */}
+        {mode === 'register' && step === 2 && (
+          <div className="auth-form">
+            <div className="auth-step2-header">
+              <Church size={28} color="var(--gold, #c9a658)" />
+              <p className="auth-step2-hint">Puedes completar estos datos después si lo prefieres.</p>
+            </div>
+
+            <div className="auth-input-group">
+              <Church size={16} className="auth-input-icon" />
+              <input
+                type="text"
+                placeholder="Nombre de tu iglesia"
+                value={churchName}
+                onChange={e => setChurchName(e.target.value)}
+                autoComplete="organization"
+              />
+            </div>
+            <div className="auth-input-group">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="auth-input-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <input
+                type="text"
+                placeholder="Ciudad"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                autoComplete="address-level2"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="auth-btn-primary"
+              onClick={() => handleRegister(false)}
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="spin" size={18} /> : 'Completar Registro'}
+            </button>
+
+            <button
+              type="button"
+              className="auth-btn-secondary"
+              onClick={() => handleRegister(true)}
+              disabled={loading}
+            >
+              Omitir por ahora
+            </button>
+
+            <button
+              type="button"
+              className="auth-back-btn"
+              onClick={() => { setStep(1); setError(null) }}
+            >
+              <ChevronLeft size={16} /> Volver al paso anterior
+            </button>
+          </div>
+        )}
 
         {error && <div className="auth-error">{error}</div>}
 
-        <style>{`
-          .auth-overlay {
-            position: fixed;
-            inset: 0;
-            background: #05070d;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-          }
-          .auth-card {
-            background: #0f131c;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 40px 32px;
-            max-width: 380px;
-            width: 100%;
-          }
-          .auth-header {
-            text-align: center;
-            margin-bottom: 32px;
-          }
-          .auth-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 24px;
-          }
-          .auth-logo span {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 24px;
-            font-weight: 600;
-            color: white;
-          }
-          .auth-logo span span {
-            color: #c9a658;
-          }
-          h1 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 28px;
-            color: white;
-            margin: 0 0 8px;
-          }
-          p {
-            color: #9aa6bb;
-            font-size: 15px;
-            margin: 0;
-          }
-          .btn-google {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            padding: 14px 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.14);
-            background: white;
-            color: #333;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-          }
-          .btn-google:hover:not(:disabled) {
-            background: #f5f5f5;
-          }
-          .btn-google:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-          }
-          .auth-error {
-            margin-top: 16px;
-            padding: 12px 16px;
-            border-radius: 10px;
-            background: rgba(252, 129, 129, 0.12);
-            color: #fca5a5;
-            font-size: 14px;
-            text-align: center;
-          }
-          .spin {
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+        <div className="auth-toggle">
+          {mode === 'login' ? (
+            <p>¿No tienes cuenta? <button type="button" onClick={() => { setMode('register'); setStep(1); setError(null) }}>Crear cuenta</button></p>
+          ) : (
+            <p>¿Ya tienes cuenta? <button type="button" onClick={() => { setMode('login'); setStep(1); setError(null) }}>Iniciar sesión</button></p>
+          )}
+        </div>
       </div>
+
+      {showTermsModal && (
+        <TermsModal
+          mode="optional"
+          onAccept={() => {
+            setTermsAccepted(true)
+            setShowTermsModal(false)
+          }}
+          onClose={() => setShowTermsModal(false)}
+        />
+      )}
+
+      <AuthStyles />
     </div>
+  )
+}
+
+function AuthStyles() {
+  return (
+    <style>{`
+      .auth-overlay {
+        position: fixed;
+        inset: 0;
+        background: #05070d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 3000;
+      }
+      .auth-card {
+        background: #0f131c;
+        border-radius: 20px;
+        border: 1px solid rgba(201, 166, 88, 0.12);
+        padding: 40px 32px;
+        max-width: 420px;
+        width: 100%;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 80px rgba(201, 166, 88, 0.04);
+        animation: authCardIn 0.35s ease-out;
+      }
+      @keyframes authCardIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .auth-header {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .auth-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .auth-logo span {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 24px;
+        font-weight: 600;
+        color: white;
+      }
+      .auth-logo span span {
+        color: #c9a658;
+      }
+      .auth-header h1 {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 24px;
+        color: white;
+        margin: 0 0 8px;
+        font-weight: 700;
+      }
+      .auth-header p {
+        color: #8b98b0;
+        font-size: 14px;
+        margin: 0;
+      }
+
+      /* ── Step indicator ── */
+      .step-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        margin: 16px auto 12px;
+        max-width: 140px;
+      }
+      .step-dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid rgba(201, 166, 88, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.35s ease;
+        background: transparent;
+        flex-shrink: 0;
+      }
+      .step-dot span {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(201, 166, 88, 0.4);
+        transition: color 0.35s ease;
+      }
+      .step-dot.active {
+        border-color: #c9a658;
+        background: rgba(201, 166, 88, 0.12);
+        box-shadow: 0 0 12px rgba(201, 166, 88, 0.2);
+      }
+      .step-dot.active span {
+        color: #c9a658;
+      }
+      .step-line {
+        flex: 1;
+        height: 2px;
+        background: rgba(201, 166, 88, 0.15);
+        position: relative;
+        overflow: hidden;
+      }
+      .step-line-fill {
+        position: absolute;
+        inset: 0;
+        background: #c9a658;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s ease;
+      }
+      .step-line-fill.filled {
+        transform: scaleX(1);
+      }
+
+      /* ── Form ── */
+      .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .auth-input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .auth-input-icon {
+        position: absolute;
+        left: 14px;
+        color: #5a6577;
+        pointer-events: none;
+        z-index: 1;
+        flex-shrink: 0;
+      }
+      .auth-input-group input {
+        width: 100%;
+        padding: 14px 14px 14px 42px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        color: white;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        outline: none;
+      }
+      .auth-input-group input:focus {
+        border-color: rgba(201, 166, 88, 0.5);
+        box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
+      }
+      .auth-input-group input::placeholder {
+        color: #5a6577;
+      }
+      .auth-eye-btn {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: #5a6577;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+      }
+      .auth-eye-btn:hover { color: #8b98b0; }
+
+      /* ── Checkbox ── */
+      .auth-checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 13px;
+        color: #8b98b0;
+        cursor: pointer;
+        padding: 2px 0;
+      }
+      .auth-checkbox-label input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #c9a658;
+        margin-top: 1px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+      .auth-terms-link {
+        background: none;
+        border: none;
+        color: #c9a658;
+        text-decoration: underline;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 0;
+      }
+      .auth-terms-link:hover { color: #d4b164; }
+
+      /* ── Buttons ── */
+      .auth-btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, #d5b164, #bc933b);
+        color: #05070d;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 8px 24px rgba(201, 166, 88, 0.2);
+      }
+      .auth-btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 32px rgba(201, 166, 88, 0.3);
+      }
+      .auth-btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .auth-btn-secondary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(201, 166, 88, 0.3);
+        background: transparent;
+        color: #c9a658;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s;
+      }
+      .auth-btn-secondary:hover:not(:disabled) {
+        background: rgba(201, 166, 88, 0.06);
+        border-color: rgba(201, 166, 88, 0.5);
+      }
+      .auth-btn-secondary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .auth-btn-google {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 13px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: white;
+        color: #333;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+      }
+      .auth-btn-google:hover:not(:disabled) {
+        background: #f5f5f5;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+      .auth-btn-google:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .auth-back-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: none;
+        border: none;
+        color: #6b7a90;
+        font-size: 13px;
+        cursor: pointer;
+        padding: 8px 0;
+        margin-top: 4px;
+      }
+      .auth-back-btn:hover { color: #9aa6bb; }
+
+      /* ── Divider ── */
+      .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #4a5568;
+        font-size: 12px;
+        margin: 2px 0;
+      }
+      .auth-divider::before,
+      .auth-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255,255,255,0.06);
+      }
+
+      /* ── Step 2 header ── */
+      .auth-step2-header {
+        text-align: center;
+        margin-bottom: 4px;
+      }
+      .auth-step2-hint {
+        color: #6b7a90;
+        font-size: 13px;
+        margin: 10px 0 0;
+      }
+
+      /* ── Error ── */
+      .auth-error {
+        margin-top: 8px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        background: rgba(252, 129, 129, 0.1);
+        border: 1px solid rgba(252, 129, 129, 0.2);
+        color: #fca5a5;
+        font-size: 13px;
+        text-align: center;
+      }
+
+      /* ── Success ── */
+      .auth-success-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(201, 166, 88, 0.12);
+        border: 2px solid #c9a658;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 16px;
+        color: #c9a658;
+      }
+
+      /* ── Toggle ── */
+      .auth-toggle {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+      .auth-toggle p {
+        color: #6b7a90;
+        font-size: 13px;
+        margin: 0;
+      }
+      .auth-toggle button {
+        background: none;
+        border: none;
+        color: #c9a658;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 0;
+      }
+      .auth-toggle button:hover { color: #d4b164; }
+
+      /* ── Spinner ── */
+      .spin {
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      @media (max-width: 480px) {
+        .auth-card {
+          padding: 32px 20px;
+          border-radius: 16px;
+        }
+      }
+    `}</style>
   )
 }
