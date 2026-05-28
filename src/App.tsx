@@ -214,18 +214,13 @@ function AppContent() {
           if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
             useAppStore.getState().setForceLanding(false);
             try {
-              // ── Always run: device check + guest migration ──
-              const currentPlan = useAppStore.getState().userPlan;
-              await checkDeviceLimit(currentPlan);
+              // ── Sincronizar perfil inmediatamente en caliente al iniciar sesión / registrarse ──
+              const profile = await syncProfile(user.id);
+              const planToCheck = profile?.plan || useAppStore.getState().userPlan;
 
-              // Migrate guest attendance records to this user
-              // (sync to Supabase is handled by syncProfile if premium)
-              try {
-                const { migrateGuestRecords } = await import("@/services/attendanceSync");
-                await migrateGuestRecords(user.id);
-              } catch (err) {
-                console.warn("Guest record migration failed:", err);
-              }
+              // ── Always run: device check ──
+              await checkDeviceLimit(planToCheck);
+
 
               // ── Terms sync ──
               const currentTerms = useAppStore.getState().termsAccepted;
