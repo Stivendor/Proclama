@@ -308,8 +308,13 @@ function AppContent() {
     return <DeviceBlockedModal />;
   }
 
+  // ── Show premium splash screen while loading session on F5 refresh ──
+  if (authStatus === "loading") {
+    return <FullscreenLoader />;
+  }
+
   // Show landing for unauthenticated users (guest mode disabled)
-  if (forceLanding || authStatus !== "authenticated") {
+  if (forceLanding || authStatus === "unauthenticated") {
     return (
       <LandingView />
     );
@@ -413,6 +418,86 @@ function MainApp() {
         onFontScaleChange={(val) => updateTheme({ fontScale: val })}
       />
       <Toast />
+    </div>
+  );
+}
+
+function FullscreenLoader() {
+  return (
+    <div className="fullscreen-loader-overlay">
+      <div className="fullscreen-loader-content">
+        <div className="fullscreen-loader-logo">
+          <svg className="fullscreen-loader-icon spin-slow" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c9a658" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </svg>
+          <span>Proclama <span>Pro</span></span>
+        </div>
+        <div className="fullscreen-loader-bar">
+          <div className="fullscreen-loader-bar-fill" />
+        </div>
+      </div>
+      <style>{`
+        .fullscreen-loader-overlay {
+          position: fixed;
+          inset: 0;
+          background: #05070d;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+        }
+        .fullscreen-loader-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 24px;
+        }
+        .fullscreen-loader-logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 28px;
+          font-weight: 700;
+          color: white;
+          user-select: none;
+        }
+        .fullscreen-loader-logo span span {
+          color: #c9a658;
+        }
+        .fullscreen-loader-icon {
+          animation: spinSlow 3s linear infinite;
+        }
+        .fullscreen-loader-bar {
+          width: 140px;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 2px;
+          overflow: hidden;
+          position: relative;
+        }
+        .fullscreen-loader-bar-fill {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          width: 50%;
+          background: #c9a658;
+          border-radius: 2px;
+          animation: loaderPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes spinSlow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes loaderPulse {
+          0% { left: -50%; width: 30%; }
+          50% { width: 40%; }
+          100% { left: 110%; width: 30%; }
+        }
+      `}</style>
     </div>
   );
 }
