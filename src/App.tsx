@@ -157,58 +157,7 @@ function AppContent() {
       30000
     );
 
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const user = session?.user ?? null;
-
-        if (user) {
-          setUser(user);
-          useAppStore.getState().setForceLanding(false);
-          void syncProfile(user.id).then((profile) => {
-            if (profile) void checkDeviceLimit(profile.plan);
-          }).catch((err) => {
-            console.warn("Profile sync failed:", err);
-          });
-
-          // Check if user needs to complete onboarding (Google users without full_name) - Non-blocking to prevent login hangs
-          void (async () => {
-            try {
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('full_name, settings')
-                .eq('id', user.id)
-                .maybeSingle();
-
-              const settings = profileData?.settings as Record<string, any> | null;
-              if (!profileData?.full_name || !settings?.onboardingComplete) {
-                setNeedsChurchReg(true);
-              }
-            } catch {}
-          })();
-        } else {
-          setUser(null);
-          setUserRole(null);
-          setUserPlan("free");
-        }
-
-        setAuthStatus(session ? "authenticated" : "unauthenticated");
-      } catch (err) {
-        console.error("Auth init error:", err);
-        setAuthStatus("unauthenticated");
-      } finally {
-        clearTimeout(authTimeout);
-      }
-    };
-
-    initAuth();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Evitar que INITIAL_SESSION con sesión nula pise un estado ya inicializado con éxito por initAuth
-      if (event === "INITIAL_SESSION" && !session && useAppStore.getState().user) {
-        return;
-      }
-
       try {
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "INITIAL_SESSION") {
           return;
@@ -240,26 +189,40 @@ function AppContent() {
                   await syncTermsAcceptance(user.id, currentTerms.version, currentTerms.acceptedAt);
                   useAppStore.getState().setTermsSyncPending(false);
                 }
-                return;
+              } else {
+                const { fetchTermsAcceptance } = await import("@/services/supabase");
+                const remoteTerms = await fetchTermsAcceptance(user.id);
+                if (remoteTerms) {
+                  useAppStore.getState().setTermsAccepted(remoteTerms);
+                }
+
+                if (useAppStore.getState().checkTermsVersion()) {
+                  setShowTermsUpdateModal(true);
+                }
               }
 
-              const { fetchTermsAcceptance } = await import("@/services/supabase");
-              const remoteTerms = await fetchTermsAcceptance(user.id);
-              if (remoteTerms) {
-                useAppStore.getState().setTermsAccepted(remoteTerms);
-              }
-
-              if (useAppStore.getState().checkTermsVersion()) {
-                setShowTermsUpdateModal(true);
-                return;
-              }
-              
               const { termsSyncPending, termsAccepted } = useAppStore.getState();
               if (termsSyncPending && termsAccepted) {
                 const { syncTermsAcceptance } = await import("@/services/supabase");
                 await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt);
                 useAppStore.getState().setTermsSyncPending(false);
               }
+
+              // Check if user needs to complete onboarding (Google users without full_name) - Non-blocking
+              void (async () => {
+                try {
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('full_name, settings')
+                    .eq('id', user.id)
+                    .maybeSingle();
+
+                  const settings = profileData?.settings as Record<string, any> | null;
+                  if (!profileData?.full_name || !settings?.onboardingComplete) {
+                    setNeedsChurchReg(true);
+                  }
+                } catch {}
+              })();
             } catch (err) {
               console.warn("Post-login sync tasks had issues:", err);
             }
@@ -274,6 +237,7 @@ function AppContent() {
       } catch (err) {
         console.error("Auth event processing failed:", err);
       } finally {
+        clearTimeout(authTimeout);
         setAuthStatus(session ? "authenticated" : "unauthenticated");
       }
     });
