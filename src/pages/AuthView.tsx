@@ -220,7 +220,7 @@ export default function AuthView() {
         return
       }
 
-      // If auto-confirmed (e.g. in dev), update profile with church data and complete onboarding
+      // If auto-confirmed (e.g. in dev/prod with email confirm off), update profile and redirect immediately
       if (data.user && data.session) {
         try {
           const settingsUpdate: Record<string, any> = {
@@ -236,6 +236,16 @@ export default function AuthView() {
           }).eq('id', data.user.id)
         } catch (err) {
           console.warn('Profile update after signup failed:', err)
+        }
+
+        // ── MANUALLY UPDATE STORE TO REDIRECT LOGGED IN USERS IMMEDIATELY ──
+        try {
+          const store = useAppStore.getState()
+          store.setUser(data.user)
+          store.setForceLanding(false)
+          store.setAuthStatus('authenticated')
+        } catch (storeErr) {
+          console.warn('Manual store update failed:', storeErr)
         }
       }
     } catch (err: any) {
