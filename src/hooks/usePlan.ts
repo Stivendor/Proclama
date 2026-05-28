@@ -1,8 +1,8 @@
 import { useAppStore } from '@/stores'
 
 /**
- * Flag global: mientras sea true, TODOS los usuarios tienen acceso premium.
- * Cambiar a false cuando se active el modelo freemium.
+ * Flag global: true = TODOS los usuarios autenticados tienen acceso premium.
+ * El modelo actual es 100% gratuito para usuarios registrados.
  */
 export const PREMIUM_FOR_EVERYONE = true  
 

@@ -389,7 +389,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, plan, premium_expires_at, subscription_plan, is_authorized')
+    .select('role, terms_version, terms_accepted_at, full_name')
     .eq('id', userId)
     .single()
 
@@ -398,21 +398,14 @@ export async function fetchProfile(userId: string) {
     return null
   }
   
-  let computedPlan = data.plan
-  if (computedPlan === 'premium' && data.premium_expires_at) {
-    const expiresAt = new Date(data.premium_expires_at)
-    if (expiresAt < new Date()) {
-      computedPlan = 'free'
-      // Optimistically update the database in the background (fire and forget)
-      supabase.from('profiles').update({ plan: 'free' }).eq('id', userId).then(() => {})
-    }
-  }
+  // Map database role 'superadmin' to React frontend 'admin' role
+  const mappedRole = (data.role === 'superadmin' || data.role === 'admin') ? 'admin' : 'user'
 
   return { 
-    role: data.role as 'admin' | 'user', 
-    plan: computedPlan as 'free' | 'premium',
-    subscriptionPlan: data.subscription_plan as 'monthly' | 'annual' | undefined,
-    isAuthorized: data.is_authorized ?? false
+    role: mappedRole as 'admin' | 'user', 
+    plan: 'premium' as 'free' | 'premium',
+    subscriptionPlan: 'annual' as 'monthly' | 'annual' | undefined,
+    isAuthorized: true
   }
 }
 

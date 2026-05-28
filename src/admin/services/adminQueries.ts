@@ -16,36 +16,44 @@ export async function fetchUsersPaginated(
 
   let query = supabase
     .from("profiles")
-    .select("id, email, created_at, plan, role, is_authorized", { count: "exact" })
+    .select("id, email, created_at, role, settings, full_name", { count: "exact" })
     .range(from, to)
     .order("created_at", { ascending: filters.sortOrder === "asc" });
 
   if (filters.search) query = query.ilike("email", `%${filters.search}%`);
-  if (filters.plan && filters.plan !== "all") query = query.eq("plan", filters.plan);
   if (filters.role && filters.role !== "all") query = query.eq("role", filters.role);
 
   const { data, count, error } = await query;
   if (error) throw error;
-  return { data: data ?? [], count: count ?? 0 };
+
+  const mappedData = (data ?? []).map(u => ({
+    ...u,
+    plan: "premium",
+    is_authorized: true
+  }));
+
+  return { data: mappedData, count: count ?? 0 };
 }
 
 // --- Dashboard stats ---
 export async function fetchAdminStats() {
-  const [users, premium, songs, reports, pending, feedback] = await Promise.all([
+  const [users, songs, reports, pending, feedback, devices, attendance] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("plan", "premium"),
     supabase.from("songs").select("id", { count: "exact", head: true }).eq("is_verified", true),
     supabase.from("song_reports").select("id", { count: "exact", head: true }),
     supabase.from("songs").select("id", { count: "exact", head: true }).eq("is_public", true).eq("is_verified", false),
     supabase.from("feedback").select("id", { count: "exact", head: true }).eq("status", "unread"),
+    supabase.from("user_devices").select("id", { count: "exact", head: true }),
+    supabase.from("attendance_records").select("id", { count: "exact", head: true }),
   ]);
   return {
     totalUsers: users.count ?? 0,
-    premiumUsers: premium.count ?? 0,
     verifiedSongs: songs.count ?? 0,
     openReports: reports.count ?? 0,
     pendingSongs: pending.count ?? 0,
     unreadFeedback: feedback.count ?? 0,
+    totalDevices: devices.count ?? 0,
+    totalAttendance: attendance.count ?? 0,
   };
 }
 
@@ -157,4 +165,27 @@ export async function fetchRegistrationChart() {
   });
 
   return Object.entries(byDay).map(([date, count]) => ({ date, count }));
+}
+
+// --- User locations for geographic map ---
+export async function fetchUserLocations() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("settings");
+  if (error) throw error;
+
+  const counts: Record<string, { city: string; country: string; count: number }> = {};
+  (data ?? []).forEach(profile => {
+    const s = profile.settings as any;
+    if (s?.country && s?.city) {
+      const key = `${s.city}, ${s.country}`;
+      if (counts[key]) {
+        counts[key].count += 1;
+      } else {
+        counts[key] = { city: s.city, country: s.country, count: 1 };
+      }
+    }
+  });
+
+  return Object.values(counts);
 }

@@ -403,12 +403,19 @@ export default function LibraryView() {
   }
 
   const handlePublish = async (song: Song) => {
+    if (!user?.id) {
+      setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
+      setTimeout(() => setImportStatus(null), 4000)
+      return
+    }
+
     const now = new Date()
     let isVerified = false
-    if (user?.id) {
+    try {
       const profile = await fetchProfile(user.id)
       if (profile?.isAuthorized) isVerified = true
-    }
+    } catch {}
+
     try {
       if (song.remoteId) {
         await updateSongRemote(song.remoteId, { isPublic: true, isVerified, updatedAt: now })
@@ -416,13 +423,14 @@ export default function LibraryView() {
       } else {
         const created = await createSong({
           ...song,
+          userId: user.id, // Explicitly set user.id so RLS can authorize the insert
           isPublic: true,
           isVerified,
           createdAt: now,
           updatedAt: now,
         })
         if (!created) {
-          setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
+          setImportStatus('Error al publicar. Verifica tu conexión e intenta de nuevo.')
           setTimeout(() => setImportStatus(null), 4000)
           return
         }
@@ -431,7 +439,8 @@ export default function LibraryView() {
         }
       }
       setImportStatus(`✅ "${song.title}" publicada en la comunidad${isVerified ? '' : ' (pendiente de revisión)'}`)
-    } catch {
+    } catch (err: any) {
+      console.error('Error in handlePublish:', err)
       setImportStatus(`Error al publicar "${song.title}"`)
     }
     setTimeout(() => setImportStatus(null), 4000)

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, Lock, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap, Instagram } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap, Instagram } from 'lucide-react'
 
 const TikTokIcon = ({ size = 24, color = 'currentColor' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -12,8 +12,6 @@ import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
-import { useMercadoPagoCheckout } from '@/components/MercadoPagoCheckout'
-import { PREMIUM_FOR_EVERYONE, usePlan } from '@/hooks/usePlan'
 
 declare global {
   interface Window {
@@ -28,9 +26,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingView() {
-  const { setGuestMode, acceptTerms, setActiveView, setForceLanding, forceLandingSection, user, landingShowAuth, setLandingShowAuth } = useAppStore()
-  const { isPremium } = usePlan()
-  const { openCheckout } = useMercadoPagoCheckout()
+  const { acceptTerms, setActiveView, setForceLanding, forceLandingSection, user, landingShowAuth, setLandingShowAuth } = useAppStore()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   
   const [interestEmail, setInterestEmail] = useState('')
@@ -106,43 +102,6 @@ export default function LandingView() {
     setInterestStatus(result.alreadyRegistered ? 'duplicate' : 'success')
   }
 
-  const handleBuyPro = async (planType: 'monthly' | 'annual') => {
-    if (PREMIUM_FOR_EVERYONE) {
-      acceptTerms(CURRENT_TERMS_VERSION)
-      setForceLanding(false)
-      setActiveView('library')
-      return
-    }
-    
-    if (isPremium) {
-      setActiveView('library')
-      return
-    }
-    if (!user?.id) {
-      localStorage.setItem('pendingCheckout', 'true')
-      localStorage.setItem('pendingPlan', planType)
-      setLandingShowAuth(true)
-      return
-    }
-    openCheckout({
-      userId: user.id,
-      userEmail: user.email || undefined,
-      planType
-    })
-  }
-
-  const checkPendingCheckout = useCallback(() => {
-    if (localStorage.getItem('pendingCheckout') === 'true' && user?.id && !isPremium) {
-      const planType = (localStorage.getItem('pendingPlan') as 'monthly' | 'annual') || 'monthly'
-      localStorage.removeItem('pendingCheckout')
-      localStorage.removeItem('pendingPlan')
-      openCheckout({
-        userId: user.id,
-        userEmail: user.email || undefined,
-        planType
-      })
-    }
-  }, [user, isPremium, openCheckout])
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver((entries) => {
@@ -158,9 +117,7 @@ export default function LandingView() {
     return () => observerRef.current?.disconnect()
   }, [])
 
-  useEffect(() => {
-    checkPendingCheckout()
-  }, [user, isPremium])
+
 
   if (landingShowAuth) {
     return (
@@ -182,30 +139,30 @@ export default function LandingView() {
       <div className="landing-bg" aria-hidden="true" />
 
       <nav className="landing-nav animate-fade-down">
-        <div className="landing-logo">
-          <Music2 size={28} color="#c9a658" />
-          <span>Proclama <span>Pro</span></span>
-        </div>
-        <div className="nav-links">
-          <a href="#funciones">Funciones</a>
-          <a href="#showcase">Showcase</a>
-          <a href="#planes">Planes</a>
-          <a href="#interest-form">Actualizaciones</a>
-        </div>
-        <div className="nav-actions">
-          {user ? (
-            <div className="user-signed-in">
-              <span className="user-name">{userName || userEmail?.split('@')[0]}</span>
-              <button 
-                className="signout-btn" 
-                onClick={handleSignOut}
-              >
-                <LogOut size={14} /> Salir
-              </button>
-            </div>
-          ) : (
-            <button className="landing-btn-line" onClick={() => setLandingShowAuth(true)}>Acceder</button>
-          )}
+        <div className="landing-nav-container">
+          <div className="landing-logo">
+            <Music2 size={28} color="#c9a658" />
+            <span>Proclama <span>Pro</span></span>
+          </div>
+          <div className="nav-links">
+            <a href="#funciones">Funciones</a>
+            <a href="#showcase">Showcase</a>
+          </div>
+          <div className="nav-actions">
+            {user ? (
+              <div className="user-signed-in">
+                <span className="user-name">{userName || userEmail?.split('@')[0]}</span>
+                <button 
+                  className="signout-btn" 
+                  onClick={handleSignOut}
+                >
+                  <LogOut size={14} /> Salir
+                </button>
+              </div>
+            ) : (
+              <button className="landing-btn-line" onClick={() => setLandingShowAuth(true)}>Acceder</button>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -222,9 +179,7 @@ export default function LandingView() {
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
               <button className="landing-btn-primary" onClick={() => {
-                acceptTerms(CURRENT_TERMS_VERSION)
-                setGuestMode(true)
-                setForceLanding(false)
+                setLandingShowAuth(true)
               }}>
                 Entrar a Proclama <ChevronRight size={18} />
               </button>
@@ -255,26 +210,36 @@ export default function LandingView() {
           <div className="section-head animate-on-scroll">
             <h2>¿Por qué usar la app?</h2>
           </div>
-          <div className="feature-grid">
+          <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             <article className="feature-card animate-on-scroll delay-1">
               <Cpu size={28} color="#c9a658" />
-              <h3>Arranque inmediato</h3>
-              <p>Abre la interfaz y empieza a trabajar al segundo. Sin registros obligatorios ni pantallas de carga lentas.</p>
+              <h3>Registro 100% Gratis</h3>
+              <p>Crea tu cuenta en segundos. Obtén acceso inmediato y permanente a todas las funciones profesionales sin costo alguno.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-2">
               <BookOpen size={28} color="#c9a658" />
-              <h3>Biblioteca integrada</h3>
-              <p>Más de 3,000 canciones listas para buscar y proyectar desde el primer momento, sin configurar nada.</p>
+              <h3>Biblioteca de 3,000+ Canciones</h3>
+              <p>Busca, edita y proyecta al instante gracias a una biblioteca masiva integrada y soporte para letras online.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-3">
-              <Shield size={28} color="#c9a658" />
-              <h3>Confiabilidad total</h3>
-              <p>Tus setlists y notas viven en tu navegador. Si el internet falla, tu proyección no se detiene; todo sigue funcionando localmente.</p>
+              <FileSpreadsheet size={28} color="#c9a658" />
+              <h3>Sincronización de Asistencia</h3>
+              <p>Respalda y sincroniza la asistencia de tu iglesia en la nube automáticamente, permitiendo consultarla de forma segura desde otros dispositivos.</p>
             </article>
             <article className="feature-card animate-on-scroll delay-4">
               <Globe size={28} color="#c9a658" />
-              <h3>Biblia multilingüe</h3>
-              <p>Consulta y proyecta pasajes en múltiples versiones: Reina Valera 1960, NVI, PDT, LBLA, NTV (español) y KJV, ESV, WEB, NASB, NET (inglés).</p>
+              <h3>Biblias Multilingües</h3>
+              <p>Proyecta escrituras en español e inglés, incluyendo Reina Valera 1960, NVI, KJV, ESV y la opción de importar muchas más.</p>
+            </article>
+            <article className="feature-card animate-on-scroll delay-1" style={{ animationDelay: '0.1s' }}>
+              <Sparkles size={28} color="#c9a658" />
+              <h3>Motion Backgrounds</h3>
+              <p>Personaliza tus presentaciones con más de 50 fondos animados premium e imágenes de alta definición pre-cargadas.</p>
+            </article>
+            <article className="feature-card animate-on-scroll delay-2" style={{ animationDelay: '0.2s' }}>
+              <Shield size={28} color="#c9a658" />
+              <h3>Confiabilidad Offline</h3>
+              <p>Tus setlists, notas y canciones se guardan de forma local y segura. Si el internet falla, tu proyección no se detiene en ningún momento.</p>
             </article>
           </div>
         </section>
@@ -354,126 +319,7 @@ export default function LandingView() {
           </div>
         </section>
 
-        <section id="planes" className="section pricing-section">
-          <div className="section-head animate-on-scroll">
-            <h2>Elige tu plan</h2>
-            <p>Durante el lanzamiento: todos los beneficios Pro disponibles.</p>
-          </div>
 
-              {/* ACTIVAR CUANDO SE VAYA A LANZAR EL PRECIO OFICIAL */}
-          {/* <div className="urgency-banner animate-on-scroll delay-1">
-            <div className="urgency-col urgency-now">
-              <span className="urgency-label">Precio de lanzamiento</span>
-              <div className="urgency-price">$99,900 COP</div>
-              <span className="urgency-sub">pago único · acceso de por vida</span>
-              <span className="urgency-badge-active">Precio especial</span>
-            </div>
-            <div className="urgency-separator">→</div>
-            <div className="urgency-col urgency-later">
-              <span className="urgency-label">Precio regular (desde mes 3)</span>
-              <div className="urgency-price-later">$39,900 COP</div>
-              <span className="urgency-sub">por año</span>
-              <span className="urgency-badge-later">Próximamente</span>
-            </div>
-            <p className="urgency-note">Este precio no vuelve. Quienes entren ahora conservan su licencia de por vida.</p>
-          </div> */}
-
-          <div className="plans-grid animate-on-scroll delay-2">
-            <article className="plan-card">
-              <span className="plan-badge">Gratis</span>
-              <h3>Plan Básico</h3>
-              <div className="plan-price">$0 <span>/ siempre</span></div>
-              <ul>
-                <li><Check size={16} /> Proyección de alto rendimiento</li>
-                <li><Check size={16} /> Gestión de Setlists y Notas</li>
-                <li><Check size={16} /> Uso local ilimitado y fluido</li>
-                <li><Check size={16} /> 10 canciones propias</li>
-                <li><Check size={16} /> Acceso a 50 canciones de biblioteca</li>
-                <li><Check size={16} /> Hasta 5 archivos de media local</li>
-                <li className="locked"><Lock size={14} /> Biblioteca completa (3,000+ canciones)</li>
-                <li className="locked"><Lock size={14} /> +50 Fondos exclusivos (Imágenes y Videos)</li>
-                <li className="locked"><Lock size={14} /> Búsqueda global extendida (LRC Lib)</li>
-                <li className="locked"><Lock size={14} /> Exportación CSV y PDF</li>
-              </ul>
-              <button className="landing-btn-secondary plan-btn-outline" onClick={() => {
-                acceptTerms(CURRENT_TERMS_VERSION)
-                setGuestMode(true)
-                setForceLanding(false)
-              }}>Usar Gratis</button>
-            </article>
-
-            <article className="plan-card plan-pro">
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Mensual</span>
-              <h3>Plan Pro Mensual</h3>
-              {!PREMIUM_FOR_EVERYONE && <div className="plan-price-pro">$25,000 <span>/ mes</span></div>}
-              <span className="plan-sub-badge">Cancela cuando quieras</span>
-              <ul>
-                <li><Check size={16} /> Biblioteca de 3,000+ canciones completas</li>
-                <li><Check size={16} /> Búsqueda online de letras de canciones</li>
-                <li><Check size={16} /> Exportación de asistencia CSV y PDF con estadísticas</li>
-                <li><Check size={16} /> Canciones propias ilimitadas</li>
-                <li><Check size={16} /> Importar Biblias en múltiples idiomas</li>
-                <li><Check size={16} /> +50 Fondos exclusivos (Imágenes y Videos)</li>
-                <li><Check size={16} /> Gestión de carpetas en media local</li>
-                <li><Check size={16} /> Hasta 25 archivos de media local</li>
-                <li><Check size={16} /> Uso local ilimitado y fluido</li>
-              </ul>
-              <button className="landing-btn-secondary" style={{ borderColor: 'rgba(201, 166, 88, 0.4)', color: '#d4af55' }} onClick={() => handleBuyPro('monthly')}>
-                <Sparkles size={16} /> Suscribirse al mes
-              </button>
-            </article>
-
-            <article className="plan-card plan-pro" style={{ background: 'linear-gradient(145deg, rgba(201,166,88,0.08), rgba(201,166,88,0.02))', borderColor: 'rgba(201,166,88,0.3)' }}>
-              <span className="plan-badge plan-badge-pro"><Sparkles size={12} /> Anual (Recomendado)</span>
-              <h3>Plan Pro Anual</h3>
-              {!PREMIUM_FOR_EVERYONE && <div className="plan-price-pro">$220,000 <span>/ año</span></div>}
-              <span className="plan-sub-badge" style={{ color: '#c9a658' }}>Ahorra $80.000 (casi 3 meses gratis)</span>
-              <ul>
-                <li><Check size={16} /> Todas las ventajas de Pro Mensual</li>
-                <li><Check size={16} /> Soporte prioritario</li>
-                <li><Check size={16} /> Beneficios y actualizaciones todo el año</li>
-                <li><Check size={16} /> Renueva automáticamente cada 12 meses</li>
-              </ul>
-              <button className="landing-btn-primary" onClick={() => handleBuyPro('annual')}>
-                <Sparkles size={16} /> Suscribirse al año
-              </button>
-            </article>
-          </div>
-        </section>
-
-        <section id="interest-form" className="section narrow animate-on-scroll">
-          <div className="interest-card">
-            <div className="pill"><Mail size={14} color="#c9a658" /> ¿Aún no decides?</div>
-            <h2>Recibe actualizaciones</h2>
-            <p>Déjanos tu correo para enterarte de las novedades y mejoras que vengan pronto.</p> 
-            {interestStatus === 'success' ? (
-              <div className="interest-state"><Check size={18} color="#27c93f" /> Listo. Te avisaremos pronto.</div>
-            ) : interestStatus === 'duplicate' ? (
-              <div className="interest-state"><Check size={18} color="#c9a658" /> Ya estás en la lista.</div>
-            ) : (
-              <form className="interest-form" onSubmit={handleInterestSubmit}>
-                <div className="interest-input">
-                  <Mail size={16} color="#8b98b0" />
-                  <label htmlFor="interest-email" className="sr-only">Correo electrónico</label>
-                  <input
-                    id="interest-email"
-                    type="email"
-                    placeholder="tu@correo.com…"
-                    value={interestEmail}
-                    onChange={(e) => setInterestEmail(e.target.value)}
-                    required
-                    disabled={interestStatus === 'loading'}
-                    autoComplete="email"
-                  />
-                </div>
-                <button type="submit" className="landing-btn-primary" disabled={interestStatus === 'loading'}>
-                  {interestStatus === 'loading' ? 'Enviando…' : 'Notificarme'}
-                </button>
-                {interestStatus === 'error' && <p className="error-line">Ocurrió un error. Intenta de nuevo.</p>}
-              </form>
-            )}
-          </div>
-        </section>
       </main>
 
       <footer className="landing-footer">
@@ -512,7 +358,7 @@ export default function LandingView() {
             await acceptTerms(CURRENT_TERMS_VERSION)
             setForceLanding(false)
             setActiveView('library')
-            setGuestMode(true)
+            setLandingShowAuth(true)
           }}
           onClose={() => setShowTermsForGuest(false)}
         />
@@ -566,13 +412,24 @@ export default function LandingView() {
             radial-gradient(circle at bottom left, rgba(52, 152, 219, 0.12), transparent 26%),
             linear-gradient(180deg, #05070d, #0a0e17);
         }
-        .landing-nav,
         .landing-main,
         .landing-footer { position: relative; z-index: 1; }
         .landing-nav {
+          position: sticky;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 1000;
+          background: rgba(5, 7, 13, 0.75);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(201, 166, 88, 0.08);
+          width: 100%;
+        }
+        .landing-nav-container {
           max-width: 1180px;
           margin: 0 auto;
-          padding: 24px 5%;
+          padding: 16px 5%;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -587,9 +444,20 @@ export default function LandingView() {
           font-weight: 600;
         }
         .landing-logo span span { color: #c9a658; }
-        .nav-links { display: flex; gap: 24px; }
-        .nav-links a { color: #9aa6bb; text-decoration: none; font-size: 14px; font-family: 'Outfit', sans-serif; }
-        .nav-links a:hover { color: #e7edf8; }
+        .nav-links { display: flex; gap: 8px; }
+        .nav-links a {
+          color: #9aa6bb;
+          text-decoration: none;
+          font-size: 14px;
+          font-family: 'Outfit', sans-serif;
+          padding: 8px 16px;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+        .nav-links a:hover {
+          color: #e7edf8;
+          background: rgba(255, 255, 255, 0.05);
+        }
         .nav-actions { display: flex; align-items: center; gap: 12px; }
 
         /* ── Botones de la landing (clases únicas, sin conflicto) ── */

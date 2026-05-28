@@ -47,7 +47,9 @@ export default function DataTable<T>({
             data.map((row) => (
               <tr key={rowKey(row)}>
                 {columns.map((col) => (
-                  <td key={col.key} style={{ textAlign: col.align ?? "left" }}>{col.render(row)}</td>
+                  <td key={col.key} style={{ textAlign: col.align ?? "left" }}>
+                    {typeof col.render === "function" ? col.render(row) : ((row as any)[col.key] ?? "—")}
+                  </td>
                 ))}
               </tr>
             ))
