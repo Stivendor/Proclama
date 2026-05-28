@@ -171,19 +171,21 @@ function AppContent() {
             console.warn("Profile sync failed:", err);
           });
 
-          // Check if user needs to complete onboarding (Google users without full_name)
-          try {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name, settings')
-              .eq('id', user.id)
-              .maybeSingle();
+          // Check if user needs to complete onboarding (Google users without full_name) - Non-blocking to prevent login hangs
+          void (async () => {
+            try {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name, settings')
+                .eq('id', user.id)
+                .maybeSingle();
 
-            const settings = profileData?.settings as Record<string, any> | null;
-            if (!profileData?.full_name || !settings?.onboardingComplete) {
-              setNeedsChurchReg(true);
-            }
-          } catch {}
+              const settings = profileData?.settings as Record<string, any> | null;
+              if (!profileData?.full_name || !settings?.onboardingComplete) {
+                setNeedsChurchReg(true);
+              }
+            } catch {}
+          })();
         } else {
           setUser(null);
           setUserRole(null);
