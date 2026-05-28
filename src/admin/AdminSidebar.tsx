@@ -6,7 +6,7 @@ import { useState } from "react";
 
 export type AdminView =
   | "dashboard" | "users" | "pending-songs"
-  | "reports" | "suggestions" | "global-library" | "activity-logs";
+  | "reports" | "suggestions" | "global-library" | "activity-logs" | "plans";
 
 interface Props {
   activeView: AdminView;
@@ -18,6 +18,7 @@ interface Props {
 const NAV_ITEMS: { id: AdminView; label: string; icon: React.ReactNode }[] = [
   { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { id: "users", label: "Usuarios", icon: <Users size={18} /> },
+  { id: "plans", label: "Planes & Pagos", icon: <CreditCard size={18} /> },
   { id: "pending-songs", label: "Pendientes", icon: <Clock size={18} /> },
   { id: "reports", label: "Reportes", icon: <AlertCircle size={18} /> },
   { id: "suggestions", label: "Sugerencias", icon: <MessageSquare size={18} /> },

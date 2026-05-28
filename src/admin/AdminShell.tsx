@@ -11,6 +11,7 @@ const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const SuggestionsPage = lazy(() => import("./pages/SuggestionsPage"));
 const GlobalLibraryPage = lazy(() => import("./pages/GlobalLibraryPage"));
 const ActivityLogsPage = lazy(() => import("./pages/ActivityLogsPage"));
+const PlansPage = lazy(() => import("./pages/PlansPage"));
 
 function AdminContent() {
   const [activeView, setActiveView] = useState<AdminView>("dashboard");
@@ -37,6 +38,7 @@ function AdminContent() {
       case "suggestions": return <SuggestionsPage />;
       case "global-library": return <GlobalLibraryPage />;
       case "activity-logs": return <ActivityLogsPage />;
+      case "plans": return <PlansPage />;
     }
   };
 
