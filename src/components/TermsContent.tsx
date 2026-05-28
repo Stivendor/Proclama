@@ -14,10 +14,10 @@ export default function TermsContent() {
       </section>
 
       <section className="terms-section">
-        <h2>2. Descripción del Servicio</h2>
+        <h2>2. Descripción del Servicio y Modelo de Lanzamiento</h2>
         <p>
           Proclama es una plataforma integral de presentación y gestión para comunidades de fe.
-          El servicio se ofrece bajo un modelo **100% gratuito** que desbloquea todas las funciones avanzadas para usuarios registrados, incluyendo:
+          Con motivo de su **lanzamiento oficial**, el servicio se ofrece actualmente de forma abierta bajo un **modelo Premium Pro libre de costo** para todos los usuarios registrados iniciales. Esto desbloquea todas las funciones avanzadas del sistema, incluyendo:
         </p>
         <ul>
           <li>Acceso completo a la biblioteca integrada de más de 3,000 canciones.</li>
@@ -65,13 +65,13 @@ export default function TermsContent() {
       </section>
 
       <section className="terms-section">
-        <h2>6. Carácter Gratuito del Servicio</h2>
+        <h2>6. Carácter de Lanzamiento y Planes</h2>
         <p>
-          Proclama es una herramienta de distribución gratuita para el apoyo ministerial:
+          Proclama se distribuye actualmente bajo un modelo promocional de lanzamiento:
         </p>
         <ul>
-          <li>No se realizan cargos, suscripciones de pago ni cobros ocultos por el uso de las funciones integradas.</li>
-          <li>El equipo de Proclama se reserva el derecho de implementar futuras actualizaciones funcionales libres de costo. Cualquier cambio en los términos del servicio será notificado oportunamente.</li>
+          <li><strong>Versión Pro Abierta:</strong> Durante esta fase inicial de lanzamiento, todos los usuarios registrados reciben acceso completo y libre de costo a las capacidades Premium y características Pro del sistema.</li>
+          <li>El equipo de Proclama se reserva el derecho de implementar planes de suscripción Premium en el futuro para garantizar la sostenibilidad y continuidad de los servidores. Cualquier cambio de esta índole será notificado oportunamente a todos los usuarios, resguardando siempre sus datos e historial a salvo.</li>
         </ul>
       </section>
 
@@ -88,7 +88,7 @@ export default function TermsContent() {
           Para soporte técnico o dudas legales, puedes contactarnos a través de la sección de <strong>Sugerencias</strong> en la aplicación o enviando un correo a nuestro equipo de soporte técnico.
         </p>
         <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)' }}>
-          Última actualización: 26 de Mayo de 2026
+          Última actualización: 28 de Mayo de 2026
         </p>
       </section>
     </div>
