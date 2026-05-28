@@ -4,7 +4,7 @@ import { useAppStore } from '@/stores'
  * Flag global: true = TODOS los usuarios autenticados tienen acceso premium.
  * El modelo actual es 100% gratuito para usuarios registrados.
  */
-export const PREMIUM_FOR_EVERYONE = true  
+export const PREMIUM_FOR_EVERYONE = false  
 
 /** Límite de canciones propias para usuarios free */
 export const FREE_SONG_LIMIT = 10

@@ -389,7 +389,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, terms_version, terms_accepted_at, full_name')
+    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, is_authorized')
     .eq('id', userId)
     .single()
 
@@ -403,9 +403,10 @@ export async function fetchProfile(userId: string) {
 
   return { 
     role: mappedRole as 'admin' | 'user', 
-    plan: 'premium' as 'free' | 'premium',
-    subscriptionPlan: 'annual' as 'monthly' | 'annual' | undefined,
-    isAuthorized: true
+    plan: (data.plan || 'free') as 'free' | 'premium',
+    premiumExpiresAt: data.premium_expires_at,
+    subscriptionPlan: (data.plan === 'premium' ? 'annual' : undefined) as 'monthly' | 'annual' | undefined,
+    isAuthorized: data.is_authorized !== false
   }
 }
 
