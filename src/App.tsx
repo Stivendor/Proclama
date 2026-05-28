@@ -202,6 +202,11 @@ function AppContent() {
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Evitar que INITIAL_SESSION con sesión nula pise un estado ya inicializado con éxito por initAuth
+      if (event === "INITIAL_SESSION" && !session && useAppStore.getState().user) {
+        return;
+      }
+
       try {
         if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "INITIAL_SESSION") {
           return;
