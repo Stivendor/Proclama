@@ -65,7 +65,7 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
 }
 
 // ─── Funciones para Songs ──────────────────────────────────────────────────
-export async function fetchSongs(): Promise<Song[]> {
+export async function fetchSongs(since?: string): Promise<Song[]> {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   const userId = user?.id
@@ -83,8 +83,12 @@ export async function fetchSongs(): Promise<Song[]> {
       query = query.eq('is_public', true)
     }
 
+    if (since) {
+      query = query.gt('updated_at', since)
+    }
+
     query = query.range(from, from + step - 1)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: true })
 
     const { data, error } = await query
 

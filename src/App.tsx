@@ -8,24 +8,25 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSongsRealtime } from "@/hooks/useSongsRealtime";
 import { onMessage } from "@/services/projection";
 import Sidebar from "@/components/Sidebar";
-import LibraryView from "@/pages/LibraryView";
-import SongEditorModal from "@/components/SongEditorModal";
-import SetlistsView from "@/pages/SetlistsView";
-import SettingsView from "@/pages/SettingsView";
-import ControlPanel from "@/components/ControlPanel";
-import ProjectionWindow from "@/pages/ProjectionWindow";
-import ProjectionPreview from "@/components/ProjectionPreview";
-import BibleView from "@/pages/BibleView";
-import CountdownView from "@/pages/CountdownView";
-import NotesView from "@/pages/NotesView";
-import TermsView from "@/pages/TermsView";
-import FondosView from "@/pages/FondosView";
-import OnboardingFlow from "@/components/OnboardingFlow";
 import LandingView from "@/pages/LandingView";
-import DeviceBlockedModal from "@/components/DeviceBlockedModal";
-import TermsModal from "@/components/TermsModal";
-import ChurchRegistrationView from "@/pages/ChurchRegistrationView";
-import Toast from "@/components/Toast";
+
+const LibraryView = lazy(() => import("@/pages/LibraryView"));
+const SongEditorModal = lazy(() => import("@/components/SongEditorModal"));
+const SetlistsView = lazy(() => import("@/pages/SetlistsView"));
+const SettingsView = lazy(() => import("@/pages/SettingsView"));
+const ControlPanel = lazy(() => import("@/components/ControlPanel"));
+const ProjectionWindow = lazy(() => import("@/pages/ProjectionWindow"));
+const ProjectionPreview = lazy(() => import("@/components/ProjectionPreview"));
+const BibleView = lazy(() => import("@/pages/BibleView"));
+const CountdownView = lazy(() => import("@/pages/CountdownView"));
+const NotesView = lazy(() => import("@/pages/NotesView"));
+const TermsView = lazy(() => import("@/pages/TermsView"));
+const FondosView = lazy(() => import("@/pages/FondosView"));
+const OnboardingFlow = lazy(() => import("@/components/OnboardingFlow"));
+const DeviceBlockedModal = lazy(() => import("@/components/DeviceBlockedModal"));
+const TermsModal = lazy(() => import("@/components/TermsModal"));
+const ChurchRegistrationView = lazy(() => import("@/pages/ChurchRegistrationView"));
+const Toast = lazy(() => import("@/components/Toast"));
 
 const IS_PROJECTION =
   typeof window !== "undefined" &&
@@ -94,59 +95,7 @@ function AppContent() {
     if (initRef.current) return;
     initRef.current = true;
 
-    const syncProfile = async (userId: string) => {
-      const { fetchProfile } = await import("@/services/supabase");
-      const profile = await fetchProfile(userId);
-      if (profile) {
-        setUserRole(profile.role);
-        setUserPlan(profile.plan);
-        useAppStore.getState().setSubscriptionPlan(profile.subscriptionPlan);
-
-        // 1) Migrar registros de guest si existen
-        // 2) Pull remote → local (download records from other devices)
-        // 3) Push local → remote (upload pending records)
-        if (profile.plan === "premium" || profile.role === "admin") {
-          import("@/services/attendanceSync").then(async ({ pullRemoteRecords, syncAttendanceRecords, migrateGuestRecords }) => {
-            try {
-              await migrateGuestRecords(userId);
-              await pullRemoteRecords(userId);
-              await syncAttendanceRecords(userId);
-            } catch {}
-          }).catch(() => {});
-        }
-      }
-      return profile;
-    };
-
-    const checkDeviceLimit = async (plan: string) => {
-      if (plan !== 'premium') return;
-      try {
-        const { getDeviceId, getDeviceName } = await import('@/utils/deviceFingerprint');
-        const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
-        const { MAX_DEVICES_PREMIUM } = await import('@/constants/plans');
-        const deviceId = getDeviceId();
-        const deviceName = getDeviceName();
-        
-        // 1. Obtener dispositivos actuales
-        const devices = await fetchUserDevices(deviceId);
-        const isAlreadyRegistered = devices.some(d => d.deviceId === deviceId);
-        
-        // 2. Si no está registrado y ya hay el máximo permitido o más, bloquear
-        if (!isAlreadyRegistered && devices.length >= MAX_DEVICES_PREMIUM) {
-          useAppStore.getState().setUserDevices(devices);
-          useAppStore.getState().setDeviceBlocked(true);
-          return;
-        }
-
-        // 3. Registrar/Actualizar y permitir
-        const updatedDevices = await registerDevice(deviceId, deviceName);
-        useAppStore.getState().setUserDevices(updatedDevices);
-        useAppStore.getState().setDeviceBlocked(false);
-      } catch (err) {
-        console.warn('Device check failed:', err);
-      }
-    };
-
+    // Safety net: if auth doesn't resolve within 10s, show landing
     const authTimeout = setTimeout(
       () => {
         if (useAppStore.getState().authStatus === "loading") {
@@ -154,7 +103,7 @@ function AppContent() {
           setAuthStatus("unauthenticated");
         }
       },
-      30000
+      10000
     );
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -167,78 +116,109 @@ function AppContent() {
         setUser(user);
 
         if (user) {
-          if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-            useAppStore.getState().setForceLanding(false);
+          // Show the app immediately — no waiting for sync
+          useAppStore.getState().setForceLanding(false);
+          clearTimeout(authTimeout);
+          setAuthStatus("authenticated");
+
+          // Background sync
+          (async () => {
             try {
-              // ── Sincronizar perfil inmediatamente en caliente al iniciar sesión / registrarse ──
-              const profile = await syncProfile(user.id);
+              const { fetchProfile } = await import("@/services/supabase");
+              const profile = await fetchProfile(user.id);
+              if (profile) {
+                setUserRole(profile.role);
+                setUserPlan(profile.plan);
+                useAppStore.getState().setSubscriptionPlan(profile.subscriptionPlan);
+
+                if (profile.plan === "premium" || profile.role === "admin") {
+                  import("@/services/attendanceSync").then(async ({ pullRemoteRecords, syncAttendanceRecords, migrateGuestRecords }) => {
+                    try {
+                      await migrateGuestRecords(user.id);
+                      await pullRemoteRecords(user.id);
+                      await syncAttendanceRecords(user.id);
+                    } catch {}
+                  }).catch(() => {});
+                }
+              }
+
+              // Sync cloud settings AFTER profile fetch to avoid DB trigger race
+              useAppStore.getState().fetchCloudSettings();
+
               const planToCheck = profile?.plan || useAppStore.getState().userPlan;
 
-              // ── Always run: device check ──
-              await checkDeviceLimit(planToCheck);
+              // Device check (non-blocking)
+              if (planToCheck === 'premium') {
+                import('@/utils/deviceFingerprint').then(async ({ getDeviceId, getDeviceName }) => {
+                  const { fetchUserDevices, registerDevice } = await import('@/services/supabase');
+                  const { MAX_DEVICES_PREMIUM } = await import('@/constants/plans');
+                  const deviceId = getDeviceId();
+                  const deviceName = getDeviceName();
+                  const devices = await fetchUserDevices(deviceId);
+                  if (!devices.some(d => d.deviceId === deviceId) && devices.length >= MAX_DEVICES_PREMIUM) {
+                    useAppStore.getState().setUserDevices(devices);
+                    useAppStore.getState().setDeviceBlocked(true);
+                  } else {
+                    const updatedDevices = await registerDevice(deviceId, deviceName);
+                    useAppStore.getState().setUserDevices(updatedDevices);
+                    useAppStore.getState().setDeviceBlocked(false);
+                  }
+                }).catch(err => console.warn('Device check failed:', err));
+              }
 
-
-              // ── Terms sync ──
+              // Terms sync (non-blocking)
+              const { fetchTermsAcceptance, syncTermsAcceptance } = await import('@/services/supabase');
               const currentTerms = useAppStore.getState().termsAccepted;
               const shouldUpdateTerms = useAppStore.getState().checkTermsVersion();
               
               if (currentTerms && !shouldUpdateTerms) {
                 const { termsSyncPending } = useAppStore.getState();
                 if (termsSyncPending && currentTerms) {
-                  const { syncTermsAcceptance } = await import("@/services/supabase");
                   await syncTermsAcceptance(user.id, currentTerms.version, currentTerms.acceptedAt);
                   useAppStore.getState().setTermsSyncPending(false);
                 }
               } else {
-                const { fetchTermsAcceptance } = await import("@/services/supabase");
                 const remoteTerms = await fetchTermsAcceptance(user.id);
-                if (remoteTerms) {
-                  useAppStore.getState().setTermsAccepted(remoteTerms);
-                }
-
-                if (useAppStore.getState().checkTermsVersion()) {
-                  setShowTermsUpdateModal(true);
-                }
+                if (remoteTerms) useAppStore.getState().setTermsAccepted(remoteTerms);
+                if (useAppStore.getState().checkTermsVersion()) setShowTermsUpdateModal(true);
               }
 
               const { termsSyncPending, termsAccepted } = useAppStore.getState();
               if (termsSyncPending && termsAccepted) {
-                const { syncTermsAcceptance } = await import("@/services/supabase");
                 await syncTermsAcceptance(user.id, termsAccepted.version, termsAccepted.acceptedAt);
                 useAppStore.getState().setTermsSyncPending(false);
               }
 
-              // Check if user needs to complete onboarding (Google users without full_name) - Non-blocking
-              void (async () => {
-                try {
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('full_name, settings')
-                    .eq('id', user.id)
-                    .maybeSingle();
+              // Only Google users without full_name need church registration
+              if (user.app_metadata?.provider === 'google') {
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('full_name, settings')
+                  .eq('id', user.id)
+                  .maybeSingle();
 
-                  const settings = profileData?.settings as Record<string, any> | null;
-                  if (!profileData?.full_name || !settings?.onboardingComplete) {
-                    setNeedsChurchReg(true);
-                  }
-                } catch {}
-              })();
+                const settings = profileData?.settings as Record<string, any> | null;
+                if (!profileData?.full_name || !settings?.onboardingComplete) {
+                  setNeedsChurchReg(true);
+                }
+              }
             } catch (err) {
               console.warn("Post-login sync tasks had issues:", err);
             }
-          }
+          })();
         } else {
           setUserRole(null);
           setUserPlan("free");
           if (event === "SIGNED_OUT") {
             useAppStore.getState().logout();
           }
+          clearTimeout(authTimeout);
+          setAuthStatus("unauthenticated");
         }
       } catch (err) {
         console.error("Auth event processing failed:", err);
-      } finally {
         clearTimeout(authTimeout);
-        setAuthStatus(session ? "authenticated" : "unauthenticated");
+        setAuthStatus("unauthenticated");
       }
     });
 
@@ -263,34 +243,42 @@ function AppContent() {
   }
 
   if (IS_PROJECTION) {
-    return <ProjectionWindow />;
+    return (
+      <Suspense fallback={null}>
+        <ProjectionWindow />
+      </Suspense>
+    );
   }
 
   if (!mounted) return null;
 
   if (deviceBlocked) {
-    return <DeviceBlockedModal />;
+    return (
+      <Suspense fallback={null}>
+        <DeviceBlockedModal />
+      </Suspense>
+    );
   }
 
   if (authStatus === "loading") {
     return null;
   }
 
-  // Show landing for unauthenticated users (guest mode disabled)
+  // Show landing for unauthenticated users
   if (forceLanding || authStatus === "unauthenticated") {
-    return (
-      <LandingView />
-    );
+    return <LandingView />;
   }
 
   // Show church registration for Google users who haven't completed onboarding
   if (needsChurchReg && user) {
     return (
-      <ChurchRegistrationView
-        userId={user.id}
-        userDisplayName={user.user_metadata?.full_name || user.user_metadata?.name || null}
-        onComplete={() => setNeedsChurchReg(false)}
-      />
+      <Suspense fallback={null}>
+        <ChurchRegistrationView
+          userId={user.id}
+          userDisplayName={user.user_metadata?.full_name || user.user_metadata?.name || null}
+          onComplete={() => setNeedsChurchReg(false)}
+        />
+      </Suspense>
     );
   }
 
@@ -335,52 +323,64 @@ function MainApp() {
 
   return (
     <div className={`app-shell ${!isSidebarOpen ? "sidebar-hidden" : ""}`}>
-      {!onboardingDone && <OnboardingFlow />}
-      <SongEditorModal />
+      <Suspense fallback={null}>
+        {!onboardingDone && <OnboardingFlow />}
+      </Suspense>
+      <Suspense fallback={null}>
+        <SongEditorModal />
+      </Suspense>
       <Sidebar />
       <main className="main-content">
-        {activeView === "library" && <LibraryView />}
-        {activeView === "setlists" && <SetlistsView />}
-        {activeView === "settings" && <SettingsView />}
-        {activeView === "bible" && <BibleView />}
-        {activeView === "countdown" && <CountdownView />}
-        {activeView === "notes" && <NotesView />}
-        {activeView === "terms" && <TermsView />}
-        {activeView === "fondos" && <FondosView />}
+        <Suspense fallback={<div className="view-loading" />}>
+          {activeView === "library" && <LibraryView />}
+          {activeView === "setlists" && <SetlistsView />}
+          {activeView === "settings" && <SettingsView />}
+          {activeView === "bible" && <BibleView />}
+          {activeView === "countdown" && <CountdownView />}
+          {activeView === "notes" && <NotesView />}
+          {activeView === "terms" && <TermsView />}
+          {activeView === "fondos" && <FondosView />}
+        </Suspense>
       </main>
       <aside className="right-panel">
-        <ControlPanel />
+        <Suspense fallback={null}>
+          <ControlPanel />
+        </Suspense>
       </aside>
-      <ProjectionPreview 
-        textColor={theme.textColor}
-        fontFamily={theme.fontFamily}
-        textUppercase={theme.textUppercase}
-        textShadow={theme.textShadow}
-        transition={theme.transition}
-        verseReferencePosition={theme.verseReferencePosition}
-        hideText={projectionState.hideText}
-        backgroundType={theme.backgroundType}
-        background={theme.background}
-        backgroundImageUrl={theme.backgroundImageUrl}
-        backgroundThumbnail={theme.backgroundThumbnail}
-        backgroundVideoUrl={theme.backgroundVideoUrl}
-        backgroundBlur={theme.backgroundBlur}
-        backgroundOverlayOpacity={theme.backgroundOverlayOpacity}
-        showBibleVersion={theme.showBibleVersion}
-        onTextColorChange={(color) => updateTheme({ textColor: color })}
-        onFontFamilyChange={(font) => updateTheme({ fontFamily: font })}
-        onTextUppercaseChange={(val) => updateTheme({ textUppercase: val })}
-        onTextShadowChange={(val) => updateTheme({ textShadow: val })}
-        onTransitionChange={(val) => updateTheme({ transition: val as any })}
-        onVersePositionChange={(val) => updateTheme({ verseReferencePosition: val as any })}
-        onHideTextChange={(val) => setHideText(val)}
-        onBlurChange={(val) => updateTheme({ backgroundBlur: val })}
-        onOpacityChange={(val) => updateTheme({ backgroundOverlayOpacity: val })}
-        onShowBibleVersionChange={(val) => updateTheme({ showBibleVersion: val })}
-        fontScale={theme.fontScale}
-        onFontScaleChange={(val) => updateTheme({ fontScale: val })}
-      />
-      <Toast />
+      <Suspense fallback={null}>
+        <ProjectionPreview 
+          textColor={theme.textColor}
+          fontFamily={theme.fontFamily}
+          textUppercase={theme.textUppercase}
+          textShadow={theme.textShadow}
+          transition={theme.transition}
+          verseReferencePosition={theme.verseReferencePosition}
+          hideText={projectionState.hideText}
+          backgroundType={theme.backgroundType}
+          background={theme.background}
+          backgroundImageUrl={theme.backgroundImageUrl}
+          backgroundThumbnail={theme.backgroundThumbnail}
+          backgroundVideoUrl={theme.backgroundVideoUrl}
+          backgroundBlur={theme.backgroundBlur}
+          backgroundOverlayOpacity={theme.backgroundOverlayOpacity}
+          showBibleVersion={theme.showBibleVersion}
+          onTextColorChange={(color) => updateTheme({ textColor: color })}
+          onFontFamilyChange={(font) => updateTheme({ fontFamily: font })}
+          onTextUppercaseChange={(val) => updateTheme({ textUppercase: val })}
+          onTextShadowChange={(val) => updateTheme({ textShadow: val })}
+          onTransitionChange={(val) => updateTheme({ transition: val as any })}
+          onVersePositionChange={(val) => updateTheme({ verseReferencePosition: val as any })}
+          onHideTextChange={(val) => setHideText(val)}
+          onBlurChange={(val) => updateTheme({ backgroundBlur: val })}
+          onOpacityChange={(val) => updateTheme({ backgroundOverlayOpacity: val })}
+          onShowBibleVersionChange={(val) => updateTheme({ showBibleVersion: val })}
+          fontScale={theme.fontScale}
+          onFontScaleChange={(val) => updateTheme({ fontScale: val })}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Toast />
+      </Suspense>
     </div>
   );
 }

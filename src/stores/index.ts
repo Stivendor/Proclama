@@ -371,7 +371,6 @@ export const useAppStore = create<AppStore>()(
       user: null,
       setUser: (u) => {
         set({ user: u })
-        if (u) get().fetchCloudSettings()
       },
 
       fetchCloudSettings: async () => {
@@ -511,7 +510,6 @@ export const useAppStore = create<AppStore>()(
         guestMode: state.guestMode,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
-        forceLanding: state.forceLanding,
         liveSlidesViewGrid: state.liveSlidesViewGrid,
       })
     }
