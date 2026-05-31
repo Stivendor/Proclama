@@ -16,6 +16,7 @@ export interface Song {
   isPublic: boolean      // Indica si la canción es visible para todos
   isVerified: boolean     // Solo las canciones verificadas aparecen públicamente
   importadaDe?: number    // remoteId original si fue importada desde Comunidad
+  localOverride?: boolean // true = edición local de canción de comunidad; el sync no sobreescribe estos campos
   createdAt: Date
   updatedAt: Date
 }

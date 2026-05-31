@@ -203,6 +203,10 @@ export default function LibraryView() {
 
             if (!existing) {
               toAdd.push(rs)
+            } else if (existing.localOverride) {
+              // La canción tiene ediciones locales del usuario — no sobreescribir con datos remotos.
+              // Solo actualizamos campos que no afectan el contenido editado (ej. usageCount).
+              toUpdate.push({ id: existing.id!, changes: { usageCount: rs.usageCount } })
             } else if (rs.userId === user?.id || userRole === 'admin') {
               toUpdate.push({ id: existing.id!, changes: rs })
             }

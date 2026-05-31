@@ -6,6 +6,7 @@ import type { Slide } from '@/types'
  *   - Estrofas separadas por una o más líneas en blanco
  *   - Etiquetas opcionales: [Coro], [Verso 1], [Puente], etc.
  *   - Máximo `linesPerSlide` líneas por slide (divide automáticamente estrofas largas)
+ *   - `linesPerSlide = 0` = modo "original": respeta los bloques tal como están, sin subdividir
  */
 export function parseLyrics(lyrics: string, linesPerSlide = 4): Slide[] {
   const slides: Slide[] = []
@@ -30,14 +31,23 @@ export function parseLyrics(lyrics: string, linesPerSlide = 4): Slide[] {
 
     if (contentLines.length === 0) continue
 
-    // Dividir en sub-slides si tiene más líneas que el máximo
-    for (let i = 0; i < contentLines.length; i += linesPerSlide) {
-      const chunk = contentLines.slice(i, i + linesPerSlide)
+    if (linesPerSlide === 0) {
+      // Modo "original": el bloque completo es un solo slide, sin subdividir
       slides.push({
         index: slideIndex++,
-        label: i === 0 ? label : '',
-        lines: chunk
+        label,
+        lines: contentLines
       })
+    } else {
+      // Dividir en sub-slides si tiene más líneas que el máximo
+      for (let i = 0; i < contentLines.length; i += linesPerSlide) {
+        const chunk = contentLines.slice(i, i + linesPerSlide)
+        slides.push({
+          index: slideIndex++,
+          label: i === 0 ? label : '',
+          lines: chunk
+        })
+      }
     }
   }
 

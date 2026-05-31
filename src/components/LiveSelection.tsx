@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { Play, List, LayoutGrid, AlertTriangle } from 'lucide-react'
+import { Play, List, LayoutGrid, AlertTriangle, AlignJustify } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import ReportSongModal from './ReportSongModal'
@@ -54,6 +54,13 @@ export const LiveSelection = memo(function LiveSelection() {
                 {num}
               </button>
             ))}
+            <button
+              className={`toggle-icon-btn ${theme.linesPerSlide === 0 ? 'active' : ''}`}
+              onClick={() => updateTheme({ linesPerSlide: 0 })}
+              title="Original — respeta la separación de estrofas tal como están escritas, sin reorganizar"
+            >
+              <AlignJustify size={14} />
+            </button>
           </div>
 
           <div className="view-toggle-group">

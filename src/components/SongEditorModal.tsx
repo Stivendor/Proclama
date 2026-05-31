@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Save, X, Trash2, Globe, Cloud, Music } from 'lucide-react'
 import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
-import { useAppStore } from '@/stores'
+import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import { createSong, updateSong, deleteSong } from '@/services/supabase'
 
@@ -45,6 +45,16 @@ export default function SongEditorModal() {
   const canEditCloud = !!editingSong?.remoteId && (userRole === 'admin' || editingSong.userId === user?.id)
   const isCommunitySong = !!editingSong?.remoteId && !canEditCloud
 
+  // Si la canción editada es la que está activa en proyección, la recarga automáticamente
+  const refreshProjectionIfActive = (updatedSong: Song) => {
+    const projStore = useProjectionStore.getState()
+    const activeSongId = projStore.state.songId
+    const currentSlide = projStore.state.currentSlide
+    if (activeSongId != null && updatedSong.id != null && activeSongId === updatedSong.id) {
+      projStore.loadSong(updatedSong, false, currentSlide)
+    }
+  }
+
   const handleSave = async () => {
     if (!form.title.trim()) { setTitleError('El título es requerido'); return }
     setTitleError('')
@@ -54,6 +64,28 @@ export default function SongEditorModal() {
       const now = new Date()
 
       if (editingSong?.id) {
+        if (isCommunitySong) {
+          // Canción de comunidad: guardar cambios solo en local.
+          // Mantiene remoteId/isPublic/isVerified para seguir en pestaña Comunidad.
+          // localOverride=true evita que el sync remoto sobreescriba estos campos.
+          await db.songs.update(editingSong.id, {
+            title: form.title,
+            artist: form.artist,
+            lyrics: form.lyrics,
+            key: form.key,
+            tags: form.tags,
+            language: form.language,
+            localOverride: true,
+            updatedAt: now,
+          })
+          setSaving(false)
+          closeEditor()
+          useAppStore.getState().setToast(`✅ Cambios guardados localmente en "${form.title}"`)
+          // Refrescar proyección si esta canción está activa
+          refreshProjectionIfActive({ ...editingSong, ...form, updatedAt: now })
+          return
+        }
+
         await db.songs.update(editingSong.id, {
           ...form,
           remoteId: canEditCloud ? editingSong.remoteId : undefined,
@@ -99,6 +131,19 @@ export default function SongEditorModal() {
 
       if (!editingSong) {
         useAppStore.getState().setToast(`✅ "${form.title}" guardada en Mi Cancionero`)
+      }
+
+      // Refrescar proyección si la canción editada es la que está activa
+      if (editingSong?.id) {
+        const updatedSong: Song = {
+          ...editingSong,
+          ...form,
+          remoteId: canEditCloud ? editingSong.remoteId : undefined,
+          isPublic: canEditCloud ? editingSong.isPublic : false,
+          isVerified: canEditCloud ? editingSong.isVerified : false,
+          updatedAt: now,
+        }
+        refreshProjectionIfActive(updatedSong)
       }
 
       // Sincronizar a la nube después de cerrar (no bloquea el modal)
@@ -178,7 +223,7 @@ export default function SongEditorModal() {
           }}>
             <Globe size={18} color="var(--blue)" />
             <p style={{ margin: 0, lineHeight: 1.4 }}>
-              Esta canción es de la comunidad. Tus ediciones se guardarán como una <strong>copia personal</strong> en tu biblioteca local.
+              Esta canción es de la comunidad. Tus ediciones se guardarán <strong>solo en este dispositivo</strong> y la canción seguirá visible en la pestaña Comunidad. Los cambios <strong>no se sincronizarán</strong> a la nube.
             </p>
           </div>
         )}
