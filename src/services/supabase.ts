@@ -65,7 +65,7 @@ function mapSongToPayload(song: Omit<Song, 'id'>) {
 }
 
 // ─── Funciones para Songs ──────────────────────────────────────────────────
-export async function fetchSongs(): Promise<Song[]> {
+export async function fetchSongs(since?: string): Promise<Song[]> {
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
   const userId = user?.id
@@ -83,8 +83,12 @@ export async function fetchSongs(): Promise<Song[]> {
       query = query.eq('is_public', true)
     }
 
+    if (since) {
+      query = query.gt('updated_at', since)
+    }
+
     query = query.range(from, from + step - 1)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: true })
 
     const { data, error } = await query
 
@@ -389,7 +393,7 @@ export async function deleteSetlist(id: number): Promise<void> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, terms_version, terms_accepted_at, full_name')
+    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, is_authorized')
     .eq('id', userId)
     .single()
 
@@ -403,9 +407,10 @@ export async function fetchProfile(userId: string) {
 
   return { 
     role: mappedRole as 'admin' | 'user', 
-    plan: 'premium' as 'free' | 'premium',
-    subscriptionPlan: 'annual' as 'monthly' | 'annual' | undefined,
-    isAuthorized: true
+    plan: (data.plan || 'free') as 'free' | 'premium',
+    premiumExpiresAt: data.premium_expires_at,
+    subscriptionPlan: (data.plan === 'premium' ? 'annual' : undefined) as 'monthly' | 'annual' | undefined,
+    isAuthorized: data.is_authorized !== false
   }
 }
 

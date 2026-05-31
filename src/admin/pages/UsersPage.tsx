@@ -1,13 +1,16 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ArrowUpDown, Download, RefreshCcw } from "lucide-react";
+import { Users, Search, ArrowUpDown, Download, RefreshCcw, Zap, ZapOff } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
+import { supabase } from "@/services/supabase";
+import { logAdminAction } from "../services/adminLogs";
 
 interface UserProfile {
   id: string;
   email: string;
   created_at: string;
   role: string;
+  plan: "free" | "premium";
   full_name?: string | null;
   settings?: {
     churchName?: string;
@@ -58,6 +61,31 @@ export default function UsersPage() {
     a.href = URL.createObjectURL(blob);
     a.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
+  };
+
+  const handleTogglePlan = async (userId: string, email: string, currentPlan: "free" | "premium") => {
+    const newPlan = currentPlan === "premium" ? "free" : "premium";
+    const actionText = newPlan === "premium" ? "activar" : "desactivar";
+    const confirm = window.confirm(`¿Seguro que deseas ${actionText} el plan Premium para ${email}?`);
+    if (!confirm) return;
+
+    try {
+      const { error } = await supabase.from("profiles").update({ plan: newPlan }).eq("id", userId);
+      if (error) throw error;
+
+      await logAdminAction({
+        action: "change_plan",
+        targetType: "user",
+        targetId: userId,
+        targetLabel: email,
+        note: `Plan cambiado: ${currentPlan} → ${newPlan} desde la lista de usuarios.`
+      });
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
+    } catch (err) {
+      console.error("Error changing plan:", err);
+      alert("Error al cambiar el plan del usuario.");
+    }
   };
 
   return (
@@ -114,7 +142,49 @@ export default function UsersPage() {
               return <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{locationStr || "—"}</span>;
             }
           },
-          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" || u.role === "superadmin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" || u.role === "superadmin" ? 600 : 400 }}>{u.role === "admin" || u.role === "superadmin" ? "Admin" : "Usuario"}</span> }
+          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" || u.role === "superadmin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" || u.role === "superadmin" ? 600 : 400 }}>{u.role === "admin" || u.role === "superadmin" ? "Admin" : "Usuario"}</span> },
+          { 
+            key: "plan", 
+            header: "Plan", 
+            render: (u: UserProfile) => (
+              <span className={`admin-badge ${u.plan === "premium" ? "gold" : ""}`}>
+                {u.plan === "premium" ? "Premium" : "Free"}
+              </span>
+            )
+          },
+          {
+            key: "actions",
+            header: "Acciones",
+            render: (u: UserProfile) => {
+              const isUserAdmin = u.role === "admin" || u.role === "superadmin";
+              if (isUserAdmin) return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
+              
+              const isPremium = u.plan === "premium";
+              return (
+                <div style={{ display: "flex", gap: 8 }}>
+                  {isPremium ? (
+                    <button 
+                      className="admin-action-btn danger" 
+                      onClick={() => handleTogglePlan(u.id, u.email, u.plan)}
+                      title="Quitar Premium"
+                      style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <ZapOff size={11} /> Quitar Premium
+                    </button>
+                  ) : (
+                    <button 
+                      className="admin-action-btn gold" 
+                      onClick={() => handleTogglePlan(u.id, u.email, u.plan)}
+                      title="Hacer Premium"
+                      style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <Zap size={11} /> Hacer Premium
+                    </button>
+                  )}
+                </div>
+              );
+            }
+          }
         ]}
         data={users}
         totalCount={totalCount}

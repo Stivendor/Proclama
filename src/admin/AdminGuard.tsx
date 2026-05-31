@@ -32,13 +32,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         setState((data?.role === "admin" || data?.role === "superadmin") ? "authorized" : "denied");
       } catch (err: any) {
         console.error("AdminGuard error:", err);
-        if (err.message === "auth_timeout" || err.message?.includes("token")) {
-          // Si se queda colgado, forzamos limpieza del token corrupto
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith("sb-") && key.endsWith("-auth-token")) {
-              localStorage.removeItem(key);
-            }
-          });
+        if (err.message === "auth_timeout") {
           window.location.href = "/";
         } else {
           setState("denied");

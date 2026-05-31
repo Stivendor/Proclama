@@ -106,7 +106,7 @@ export const useProjectionStore = create<ProjectionStore>()(
           songArtist: song.artist,
           isBible,
           lyricsRaw: song.lyrics,
-          slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide || 2),
+          slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide ?? 2),
           currentSlide: initialSlide,
           hideText: false,
         }
@@ -180,7 +180,7 @@ export const useProjectionStore = create<ProjectionStore>()(
 
         // Si cambió la cantidad de líneas por slide y hay una canción cargada, reparceamos
         if (theme.linesPerSlide !== undefined && currentState.lyricsRaw && !currentState.isBible) {
-          slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide)
+          slides = parseLyrics(currentState.lyricsRaw, theme.linesPerSlide ?? 2)
         }
 
         const newState = { ...currentState, theme: newTheme, slides }
@@ -371,7 +371,6 @@ export const useAppStore = create<AppStore>()(
       user: null,
       setUser: (u) => {
         set({ user: u })
-        if (u) get().fetchCloudSettings()
       },
 
       fetchCloudSettings: async () => {
@@ -511,7 +510,6 @@ export const useAppStore = create<AppStore>()(
         guestMode: state.guestMode,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
-        forceLanding: state.forceLanding,
         liveSlidesViewGrid: state.liveSlidesViewGrid,
       })
     }

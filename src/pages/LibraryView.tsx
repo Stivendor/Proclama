@@ -93,15 +93,33 @@ export default function LibraryView() {
     let cancelled = false
 
     const sync = async () => {
-      setLoadingRemote(true)
-      setRemoteError(null)
+      let isFirstLoad = false
       try {
+        const localSongs = await db.songs.toArray()
+        isFirstLoad = localSongs.length === 0
+
+        // Only block UI with loading indicator on first load
+        if (isFirstLoad) {
+          setLoadingRemote(true)
+        }
+        setRemoteError(null)
+
+        // Determine incremental sync starting point
+        let lastLocalUpdatedAt: string | undefined = undefined
+        if (localSongs.length > 0) {
+          const maxTime = Math.max(...localSongs.map(s => s.updatedAt ? new Date(s.updatedAt).getTime() : 0))
+          if (maxTime > 0) {
+            // 5 second buffer to prevent race conditions or clock skew
+            lastLocalUpdatedAt = new Date(maxTime - 5000).toISOString()
+          }
+        }
+
         // Smart Sync: Merge remote songs into local Dexie optimized with Aggressive Deduplication & Retries
         const fetchWithRetry = async (retries = 3, delay = 1000): Promise<Song[]> => {
           try {
-            const songs = await fetchSongs()
-            // Si no hay canciones y no somos guests, podría ser un error de carga de sesión, reintentamos
-            if (songs.length === 0 && user && retries > 0) {
+            const songs = await fetchSongs(lastLocalUpdatedAt)
+            // If it's first load, we expect songs. If empty and we are authenticated, retry.
+            if (isFirstLoad && songs.length === 0 && user && retries > 0) {
               await new Promise(resolve => setTimeout(resolve, delay))
               return fetchWithRetry(retries - 1, delay * 2)
             }
@@ -133,8 +151,6 @@ export default function LibraryView() {
           }
         }
         const remoteSongs = Array.from(uniqueRemoteMap.values())
-
-        const localSongs = await db.songs.toArray()
 
         // --- PASO 1: Limpieza de duplicados locales existentes ---
         const uniqueLocal = new Map<string, Song>()
@@ -187,6 +203,10 @@ export default function LibraryView() {
 
             if (!existing) {
               toAdd.push(rs)
+            } else if (existing.localOverride) {
+              // La canción tiene ediciones locales del usuario — no sobreescribir con datos remotos.
+              // Solo actualizamos campos que no afectan el contenido editado (ej. usageCount).
+              toUpdate.push({ id: existing.id!, changes: { usageCount: rs.usageCount } })
             } else if (rs.userId === user?.id || userRole === 'admin') {
               toUpdate.push({ id: existing.id!, changes: rs })
             }
@@ -201,7 +221,7 @@ export default function LibraryView() {
         console.error('Error syncing songs from Supabase:', err)
         if (!cancelled) setRemoteError('No se pudo sincronizar con Supabase. Usando datos locales.')
       } finally {
-        if (!cancelled) setLoadingRemote(false)
+        if (!cancelled && isFirstLoad) setLoadingRemote(false)
       }
     }
     sync()

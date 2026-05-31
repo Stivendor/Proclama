@@ -205,9 +205,13 @@ export default function AuthView() {
         return
       }
 
-      // Accept terms
-      const { acceptTerms } = useAppStore.getState()
-      await acceptTerms(CURRENT_TERMS_VERSION)
+      // Accept terms securely to prevent any terms sync errors from hanging the signup loading state
+      try {
+        const { acceptTerms } = useAppStore.getState()
+        await acceptTerms(CURRENT_TERMS_VERSION)
+      } catch (termsErr) {
+        console.warn('Accept terms failed during registration, but continuing:', termsErr)
+      }
 
       // If user needs email confirmation
       if (data.user && !data.session) {
@@ -216,22 +220,32 @@ export default function AuthView() {
         return
       }
 
-      // If auto-confirmed (e.g. in dev), update profile with church data
+      // If auto-confirmed (e.g. in dev/prod with email confirm off), update profile and redirect immediately
       if (data.user && data.session) {
         try {
-          const settingsUpdate: Record<string, string> = {}
+          const settingsUpdate: Record<string, any> = {
+            onboardingComplete: true, // Mark onboarding complete immediately to prevent redundant popups
+          }
           if (!skipChurch && churchName.trim()) settingsUpdate.churchName = churchName.trim()
           if (!skipChurch && finalCountry) settingsUpdate.country = finalCountry
           if (!skipChurch && finalCity) settingsUpdate.city = finalCity
 
-          if (Object.keys(settingsUpdate).length > 0 || fullName.trim()) {
-            await supabase.from('profiles').update({
-              full_name: fullName.trim(),
-              settings: settingsUpdate,
-            }).eq('id', data.user.id)
-          }
+          await supabase.from('profiles').update({
+            full_name: fullName.trim(),
+            settings: settingsUpdate,
+          }).eq('id', data.user.id)
         } catch (err) {
           console.warn('Profile update after signup failed:', err)
+        }
+
+        // ── MANUALLY UPDATE STORE TO REDIRECT LOGGED IN USERS IMMEDIATELY ──
+        try {
+          const store = useAppStore.getState()
+          store.setUser(data.user)
+          store.setForceLanding(false)
+          store.setAuthStatus('authenticated')
+        } catch (storeErr) {
+          console.warn('Manual store update failed:', storeErr)
         }
       }
     } catch (err: any) {

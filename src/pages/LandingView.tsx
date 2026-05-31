@@ -150,8 +150,15 @@ export default function LandingView() {
           </div>
           <div className="nav-actions">
             {user ? (
-              <div className="user-signed-in">
+              <div className="user-signed-in" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span className="user-name">{userName || userEmail?.split('@')[0]}</span>
+                <button 
+                  className="landing-btn-line" 
+                  onClick={() => setForceLanding(false)}
+                  style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  Ir a la App
+                </button>
                 <button 
                   className="signout-btn" 
                   onClick={handleSignOut}
@@ -179,9 +186,13 @@ export default function LandingView() {
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
               <button className="landing-btn-primary" onClick={() => {
-                setLandingShowAuth(true)
+                if (user) {
+                  setForceLanding(false)
+                } else {
+                  setLandingShowAuth(true)
+                }
               }}>
-                Entrar a Proclama <ChevronRight size={18} />
+                {user ? 'Ir a la aplicación' : 'Entrar a Proclama'} <ChevronRight size={18} />
               </button>
               <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
                 Ver funciones Pro
