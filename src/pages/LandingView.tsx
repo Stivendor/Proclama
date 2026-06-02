@@ -12,6 +12,7 @@ import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
+import { t } from '@/i18n'
 
 declare global {
   interface Window {
@@ -26,7 +27,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function LandingView() {
-  const { acceptTerms, setActiveView, setForceLanding, forceLandingSection, user, landingShowAuth, setLandingShowAuth } = useAppStore()
+  const { acceptTerms, setActiveView, setForceLanding, forceLandingSection, user, landingShowAuth, setLandingShowAuth, language, setLanguage } = useAppStore()
   const [showTermsForGuest, setShowTermsForGuest] = useState(false)
   
   const [interestEmail, setInterestEmail] = useState('')
@@ -123,7 +124,7 @@ export default function LandingView() {
     return (
       <div className="landing-auth">
         <button className="back-btn" onClick={() => setLandingShowAuth(false)}>
-          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> Volver
+          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} /> {t(language, 'nav.back')}
         </button>
         <AuthView />
         <style>{`
@@ -145,8 +146,8 @@ export default function LandingView() {
             <span>Proclama <span>Pro</span></span>
           </div>
           <div className="nav-links">
-            <a href="#funciones">Funciones</a>
-            <a href="#showcase">Showcase</a>
+            <a href="#funciones">{t(language, 'nav.features')}</a>
+            <a href="#showcase">{t(language, 'nav.showcase')}</a>
           </div>
           <div className="nav-actions">
             {user ? (
@@ -157,18 +158,26 @@ export default function LandingView() {
                   onClick={() => setForceLanding(false)}
                   style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  Ir a la App
+                  {t(language, 'nav.goToApp')}
                 </button>
                 <button 
                   className="signout-btn" 
                   onClick={handleSignOut}
                 >
-                  <LogOut size={14} /> Salir
+                  <LogOut size={14} /> {t(language, 'nav.signOut')}
                 </button>
               </div>
             ) : (
-              <button className="landing-btn-line" onClick={() => setLandingShowAuth(true)}>Acceder</button>
+              <button className="landing-btn-line" onClick={() => setLandingShowAuth(true)}>{t(language, 'nav.signIn')}</button>
             )}
+            <button
+              className="lang-toggle"
+              onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}
+              aria-label={language === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+            >
+              <Globe size={16} />
+              <span>{language === 'es' ? 'EN' : 'ES'}</span>
+            </button>
           </div>
         </div>
       </nav>
@@ -177,12 +186,12 @@ export default function LandingView() {
         <section className="hero">
           <div className="hero-copy">
             <h1 className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
-              Sin esperas, sin interrupciones.
+              {t(language, 'landing.hero.title')}
               <br />
-              <span>Tu contenido siempre listo para proyectar.</span>
+              <span>{t(language, 'landing.hero.titleHighlight')}</span>
             </h1>
             <p className="animate-fade-up" style={{ animationDelay: '0.16s' }}>
-              Entra directo a la acción. Gestiona tus setlists y accede a una biblioteca masiva al instante, con una interfaz diseñada para responder aunque no tengas conexión.
+              {t(language, 'landing.hero.subtitle')}
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
               <button className="landing-btn-primary" onClick={() => {
@@ -192,14 +201,14 @@ export default function LandingView() {
                   setLandingShowAuth(true)
                 }
               }}>
-                {user ? 'Ir a la aplicación' : 'Entrar a Proclama'} <ChevronRight size={18} />
+                {user ? t(language, 'landing.hero.ctaAuthenticated') : t(language, 'landing.hero.ctaGuest')} <ChevronRight size={18} />
               </button>
               <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
-                Ver funciones Pro
+                {t(language, 'landing.hero.viewFeatures')}
               </button>
               {canInstall && (
                 <button className="landing-btn-download" onClick={handleInstall}>
-                  <Download size={16} /> Descargar App
+                  <Download size={16} /> {t(language, 'landing.hero.downloadApp')}
                 </button>
               )}
             </div>
@@ -219,46 +228,46 @@ export default function LandingView() {
 
         <section id="funciones" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>¿Por qué usar la app?</h2>
+            <h2>{t(language, 'landing.features.title')}</h2>
           </div>
           <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             <article className="feature-card animate-on-scroll delay-1">
               <Cpu size={28} color="#c9a658" />
-              <h3>Registro 100% Gratis</h3>
-              <p>Crea tu cuenta en segundos. Obtén acceso inmediato y permanente a todas las funciones profesionales sin costo alguno.</p>
+              <h3>{t(language, 'landing.features.card1Title')}</h3>
+              <p>{t(language, 'landing.features.card1Desc')}</p>
             </article>
             <article className="feature-card animate-on-scroll delay-2">
               <BookOpen size={28} color="#c9a658" />
-              <h3>Biblioteca de 3,000+ Canciones</h3>
-              <p>Busca, edita y proyecta al instante gracias a una biblioteca masiva integrada y soporte para letras online.</p>
+              <h3>{t(language, 'landing.features.card2Title')}</h3>
+              <p>{t(language, 'landing.features.card2Desc')}</p>
             </article>
             <article className="feature-card animate-on-scroll delay-3">
               <FileSpreadsheet size={28} color="#c9a658" />
-              <h3>Sincronización de Asistencia</h3>
-              <p>Respalda y sincroniza la asistencia de tu iglesia en la nube automáticamente, permitiendo consultarla de forma segura desde otros dispositivos.</p>
+              <h3>{t(language, 'landing.features.card3Title')}</h3>
+              <p>{t(language, 'landing.features.card3Desc')}</p>
             </article>
             <article className="feature-card animate-on-scroll delay-4">
               <Globe size={28} color="#c9a658" />
-              <h3>Biblias Multilingües</h3>
-              <p>Proyecta escrituras en español e inglés, incluyendo Reina Valera 1960, NVI, KJV, ESV y la opción de importar muchas más.</p>
+              <h3>{t(language, 'landing.features.card4Title')}</h3>
+              <p>{t(language, 'landing.features.card4Desc')}</p>
             </article>
             <article className="feature-card animate-on-scroll delay-1" style={{ animationDelay: '0.1s' }}>
               <Sparkles size={28} color="#c9a658" />
-              <h3>Motion Backgrounds</h3>
-              <p>Personaliza tus presentaciones con más de 50 fondos animados premium e imágenes de alta definición pre-cargadas.</p>
+              <h3>{t(language, 'landing.features.card5Title')}</h3>
+              <p>{t(language, 'landing.features.card5Desc')}</p>
             </article>
             <article className="feature-card animate-on-scroll delay-2" style={{ animationDelay: '0.2s' }}>
               <Shield size={28} color="#c9a658" />
-              <h3>Confiabilidad Offline</h3>
-              <p>Tus setlists, notas y canciones se guardan de forma local y segura. Si el internet falla, tu proyección no se detiene en ningún momento.</p>
+              <h3>{t(language, 'landing.features.card6Title')}</h3>
+              <p>{t(language, 'landing.features.card6Desc')}</p>
             </article>
           </div>
         </section>
 
         <section id="showcase" className="section showcase-section">
           <div className="section-head animate-on-scroll">
-            <h2>Funciones diseñadas para la iglesia</h2>
-            <p>Cada herramienta ha sido pensada para que nada te distraiga de lo más importante.</p>
+            <h2>{t(language, 'landing.showcase.title')}</h2>
+            <p>{t(language, 'landing.showcase.subtitle')}</p>
           </div>
 
           <div className="showcase-grid">
@@ -266,12 +275,12 @@ export default function LandingView() {
             <div className="showcase-item animate-on-scroll">
               <div className="showcase-content">
                 <div className="feature-icon"><Globe size={24} color="#c9a658" /></div>
-                <h3>Biblias en múltiples versiones</h3>
-                <p>Accede a una biblioteca espiritual sin fronteras. Incluye las versiones más usadas como Reina Valera 1960, NVI y KJV, con la posibilidad de importar más de 1,000 versiones en cientos de idiomas gratis.</p>
+                <h3>{t(language, 'landing.showcase.biblesTitle')}</h3>
+                <p>{t(language, 'landing.showcase.biblesDesc')}</p>
                 <ul className="feature-list">
-                  <li><Check size={16} /> Versiones clave: RV1960, NVI, LBLA, KJV y más</li>
-                  <li><Check size={16} /> +1,000 Biblias adicionales para importar</li>
-                  <li><Check size={16} /> Búsqueda y proyección instantánea</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem1')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem2')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem3')}</li>
                 </ul>
               </div>
               <div className="showcase-visual">
@@ -288,12 +297,12 @@ export default function LandingView() {
             <div className="showcase-item inverted animate-on-scroll">
               <div className="showcase-content">
                 <div className="feature-icon"><FileSpreadsheet size={24} color="#c9a658" /></div>
-                <h3>Setlists y Confiabilidad Total</h3>
-                <p>Organiza tu servicio en minutos. Crea listas de reproducción con tus canciones favoritas que funcionan 100% sin conexión.</p>
+                <h3>{t(language, 'landing.showcase.setlistsTitle')}</h3>
+                <p>{t(language, 'landing.showcase.setlistsDesc')}</p>
                 <ul className="feature-list">
-                  <li><Check size={16} /> Arrastrar y soltar canciones</li>
-                  <li><Check size={16} /> Búsqueda rápida en tu biblioteca</li>
-                  <li><Check size={16} /> Funcionamiento local garantizado</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem1')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem2')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem3')}</li>
                 </ul>
               </div>
               <div className="showcase-visual">
@@ -310,12 +319,12 @@ export default function LandingView() {
             <div className="showcase-item animate-on-scroll">
               <div className="showcase-content">
                 <div className="feature-icon"><Search size={24} color="#c9a658" /></div>
-                <h3>Búsqueda Online Global</h3>
-                <p>¿No encuentras una canción? Búscala en nuestra base de datos global conectada a internet. Miles de letras listas para proyectar al instante.</p>
+                <h3>{t(language, 'landing.showcase.searchTitle')}</h3>
+                <p>{t(language, 'landing.showcase.searchDesc')}</p>
                 <ul className="feature-list">
-                  <li><Check size={16} /> Conexión con base de datos global</li>
-                  <li><Check size={16} /> Importación directa a tu biblioteca</li>
-                  <li><Check size={16} /> Letras verificadas y actualizadas</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.searchItem1')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.searchItem2')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.searchItem3')}</li>
                 </ul>
               </div>
               <div className="showcase-visual">
@@ -336,8 +345,8 @@ export default function LandingView() {
       <footer className="landing-footer">
         <div className="landing-footer-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '24px' }}>
           
-          <div className="social-section">
-            <h4 style={{ margin: '0 0 16px', color: '#e7edf8', fontSize: '16px', fontWeight: '600' }}>Síguenos en nuestras redes</h4>
+            <div className="social-section">
+              <h4 style={{ margin: '0 0 16px', color: '#e7edf8', fontSize: '16px', fontWeight: '600' }}>{t(language, 'landing.footer.followUs')}</h4>
             <div className="social-links" style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <a href="https://instagram.com/proclamapro" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Instagram">
                 <Instagram size={24} />
@@ -352,12 +361,12 @@ export default function LandingView() {
 
           <div className="footer-contact">
             <p style={{ fontStyle: 'italic', marginBottom: '12px', fontSize: '13px', color: '#8b98b0' }}>
-              "Id por todo el mundo y predicad el evangelio a toda criatura." — Marcos 16:15
+              {t(language, 'landing.footer.verse')}
             </p>
             <div style={{ marginBottom: '16px', color: '#9aa6bb' }}>
-              ¿Dudas? Escríbenos a: <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold', marginLeft: '4px' }}>proclamapro@gmail.com</a>
+              {t(language, 'landing.footer.contact')} <a href="mailto:proclamapro@gmail.com" style={{ color: '#c9a658', textDecoration: 'none', fontWeight: 'bold', marginLeft: '4px' }}>proclamapro@gmail.com</a>
             </div>
-            <div style={{ color: '#778398', fontSize: '14px' }}>© 2026 Proclama</div>
+            <div style={{ color: '#778398', fontSize: '14px' }}>{t(language, 'landing.footer.copyright')}</div>
           </div>
         </div>
       </footer>
@@ -1030,6 +1039,30 @@ export default function LandingView() {
           background: rgba(255,255,255,0.06);
           color: #fca5a5;
           border-color: rgba(252, 165, 165, 0.3);
+        }
+        .lang-toggle {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(255,255,255,0.14);
+          background: transparent;
+          color: #9aa6bb;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: 'Outfit', sans-serif;
+          flex-shrink: 0;
+        }
+        .lang-toggle:hover {
+          background: rgba(255,255,255,0.06);
+          color: #e7edf8;
+          border-color: rgba(255,255,255,0.22);
+        }
+        @media (max-width: 600px) {
+          .lang-toggle span { display: none; }
         }
       `}</style>
     </div>

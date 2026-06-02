@@ -402,8 +402,7 @@ export async function fetchProfile(userId: string) {
     return null
   }
   
-  // Map database role 'superadmin' to React frontend 'admin' role
-  const mappedRole = (data.role === 'superadmin' || data.role === 'admin') ? 'admin' : 'user'
+  const mappedRole = data.role === 'admin' ? 'admin' : 'user'
 
   return { 
     role: mappedRole as 'admin' | 'user', 

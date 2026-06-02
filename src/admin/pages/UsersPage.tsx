@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ArrowUpDown, Download, RefreshCcw, Zap, ZapOff } from "lucide-react";
+import { Users, Search, ArrowUpDown, Download, RefreshCcw, Zap, ZapOff, UserCheck, UserX } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
 import { supabase } from "@/services/supabase";
@@ -12,6 +12,7 @@ interface UserProfile {
   role: string;
   plan: "free" | "premium";
   full_name?: string | null;
+  is_authorized: boolean;
   settings?: {
     churchName?: string;
     country?: string;
@@ -88,6 +89,29 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleAuthorized = async (userId: string, email: string, current: boolean) => {
+    const newVal = !current;
+    const action = newVal ? "Autorizar" : "Desautorizar";
+    if (!window.confirm(`¿${action} a ${email} para publicar sin revisión?`)) return;
+    try {
+      const { error } = await supabase.from("profiles").update({ is_authorized: newVal }).eq("id", userId);
+      if (error) throw error;
+
+      await logAdminAction({
+        action: newVal ? "authorize_user" : "deauthorize_user",
+        targetType: "user",
+        targetId: userId,
+        targetLabel: email,
+        note: `Usuario ${newVal ? "autorizado" : "desautorizado"} para publicar sin revisión.`
+      });
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_authorized: newVal } : u));
+    } catch (err) {
+      console.error("Error toggling authorization:", err);
+      alert("Error al cambiar autorización del usuario.");
+    }
+  };
+
   return (
     <div className="admin-page">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -142,7 +166,7 @@ export default function UsersPage() {
               return <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{locationStr || "—"}</span>;
             }
           },
-          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" || u.role === "superadmin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" || u.role === "superadmin" ? 600 : 400 }}>{u.role === "admin" || u.role === "superadmin" ? "Admin" : "Usuario"}</span> },
+          { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" ? 600 : 400 }}>{u.role === "admin" ? "Admin" : "Usuario"}</span> },
           { 
             key: "plan", 
             header: "Plan", 
@@ -153,15 +177,37 @@ export default function UsersPage() {
             )
           },
           {
+            key: "authorized",
+            header: "Autorizado",
+            render: (u: UserProfile) => {
+              const isUserAdmin = u.role === "admin";
+              if (isUserAdmin) return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
+              return (
+                <span style={{ color: u.is_authorized ? "var(--green, #22c55e)" : "var(--text-muted)", fontWeight: 600, fontSize: 13 }}>
+                  {u.is_authorized ? "Sí" : "No"}
+                </span>
+              );
+            }
+          },
+          {
             key: "actions",
             header: "Acciones",
             render: (u: UserProfile) => {
-              const isUserAdmin = u.role === "admin" || u.role === "superadmin";
+              const isUserAdmin = u.role === "admin";
               if (isUserAdmin) return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
               
               const isPremium = u.plan === "premium";
               return (
                 <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    className={`admin-action-btn ${u.is_authorized ? "danger" : "gold"}`}
+                    onClick={() => handleToggleAuthorized(u.id, u.email, u.is_authorized)}
+                    title={u.is_authorized ? "Desautorizar" : "Autorizar"}
+                    style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
+                  >
+                    {u.is_authorized ? <UserX size={11} /> : <UserCheck size={11} />}
+                    {u.is_authorized ? "Desautorizar" : "Autorizar"}
+                  </button>
                   {isPremium ? (
                     <button 
                       className="admin-action-btn danger" 
