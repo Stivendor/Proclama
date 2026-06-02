@@ -346,6 +346,9 @@ interface AppStore {
 
   toast: string | null
   setToast: (msg: string | null) => void
+
+  language: 'es' | 'en'
+  setLanguage: (lang: 'es' | 'en') => void
 }
 
 export const useAppStore = create<AppStore>()(
@@ -500,6 +503,12 @@ export const useAppStore = create<AppStore>()(
 
       toast: null,
       setToast: (msg) => set({ toast: msg }),
+
+      language: 'es',
+      setLanguage: (lang) => {
+        set({ language: lang })
+        document.documentElement.lang = lang
+      },
     }),
     {
       name: 'proclama-app',
@@ -511,6 +520,7 @@ export const useAppStore = create<AppStore>()(
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,
         liveSlidesViewGrid: state.liveSlidesViewGrid,
+        language: state.language,
       })
     }
   )

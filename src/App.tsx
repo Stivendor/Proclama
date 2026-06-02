@@ -88,6 +88,8 @@ function AppContent() {
 
   useEffect(() => {
     setMounted(true);
+    const lang = useAppStore.getState().language
+    document.documentElement.lang = lang
   }, []);
 
   useEffect(() => {

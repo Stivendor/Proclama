@@ -8,6 +8,7 @@ import {
   FileText,
   X,
   Loader2,
+  Globe,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -20,6 +21,7 @@ import { PREMIUM_FOR_EVERYONE, usePlan } from "@/hooks/usePlan";
 import DeviceList from "@/components/DeviceList";
 import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
+import { t } from "@/i18n";
 
 export default function SettingsView() {
   const {
@@ -33,6 +35,8 @@ export default function SettingsView() {
     acceptTerms,
     setActiveView,
     subscriptionPlan,
+    language,
+    setLanguage,
   } = useAppStore(
     useShallow((s) => ({
       settings: s.settings,
@@ -45,6 +49,8 @@ export default function SettingsView() {
       acceptTerms: s.acceptTerms,
       setActiveView: s.setActiveView,
       subscriptionPlan: s.subscriptionPlan,
+      language: s.language,
+      setLanguage: s.setLanguage,
     })),
   );
   const [saved, setSaved] = useState(false);
@@ -117,14 +123,14 @@ export default function SettingsView() {
               <Menu size={20} />
             </button>
           )}
-          <h1>Ajustes</h1>
+          <h1>{t(language, 'settings.title')}</h1>
         </div>
         <button
           className="btn-primary"
           onClick={handleSave}
-          aria-label="Guardar todos los ajustes"
+          aria-label={t(language, 'settings.save')}
         >
-          <Save size={15} /> {saved ? "¡Guardado!" : "Guardar"}
+          <Save size={15} /> {saved ? t(language, 'settings.saved') : t(language, 'settings.save')}
         </button>
       </div>
 
@@ -132,25 +138,25 @@ export default function SettingsView() {
         <div className="settings-config-col">
           {/* Cuenta y Sincronización */}
           <section className="settings-section">
-            <h2>Cuenta Proclama</h2>
+            <h2>{t(language, 'settings.account')}</h2>
             {!user ? (
               <div className="auth-card">
                 <div className="sync-benefits">
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
                     <span>
-                      <strong>Acceso Pro:</strong> Búsqueda de letras online en tiempo real (Genius/LRC)
+                      <strong>{t(language, 'settings.proAccess')}</strong> {t(language, 'settings.proDesc')}
                     </span>
                   </div>
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
                     <span>
-                      <strong>Reportes:</strong> Exporta tu historial de asistencia a CSV para Excel
+                      <strong>{t(language, 'settings.reports')}</strong> {t(language, 'settings.reportsDesc')}
                     </span>
                   </div>
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
-                    <span><strong>Comunidad:</strong> Comparte tus canciones con la biblioteca global</span>
+                    <span><strong>{t(language, 'settings.community')}</strong> {t(language, 'settings.communityDesc')}</span>
                   </div>
                 </div>
 
@@ -187,7 +193,7 @@ export default function SettingsView() {
                       />
                     </svg>
                   )}
-                  Continuar con Google
+                  {t(language, 'settings.continueWithGoogle')}
                 </button>
 
                 {authError && (
@@ -208,7 +214,7 @@ export default function SettingsView() {
                     <div className="session-email">{user.email}</div>
                     <div className="session-status">
                       <Cloud size={12} />
-                      <span>Sincronización activa</span>
+                      <span>{t(language, 'settings.syncActive')}</span>
                     </div>
                   </div>
                 </div>
@@ -226,7 +232,7 @@ export default function SettingsView() {
                     }}
                   >
                     <LogOut size={16} />
-                    <span>Cerrar Sesión</span>
+                    <span>{t(language, 'settings.signOut')}</span>
                   </button>
 
                   <button
@@ -234,19 +240,19 @@ export default function SettingsView() {
                     onClick={() => setActiveView("terms")}
                   >
                     <FileText size={16} />
-                    <span>Términos y Condiciones</span>
+                    <span>{t(language, 'settings.terms')}</span>
                   </button>
                 </div>
               </div>
             )}
           </section>
 
-          {/* Dispositivos conectados — Solo para usuarios registrados */}
+          {/* Connected devices — Registered users only */}
           {user && isPremium && (
             <section className="settings-section">
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Monitor size={18} />
-                Dispositivos conectados
+                {t(language, 'settings.connectedDevices')}
               </h2>
               <p
                 style={{
@@ -255,11 +261,40 @@ export default function SettingsView() {
                   marginBottom: 12,
                 }}
               >
-                Puedes tener un máximo de <strong style={{ color: 'var(--text-primary)' }}>{MAX_DEVICES_PREMIUM} dispositivos</strong> activos simultáneamente. Puedes revocar el acceso de cualquier equipo desde aquí.
+                {t(language, 'settings.connectedDevicesDesc', { maxDevices: MAX_DEVICES_PREMIUM })}
               </p>
               <DeviceList />
             </section>
           )}
+
+          {/* Language selector */}
+          <section className="settings-section">
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Globe size={18} />
+              {t(language, 'settings.language')}
+            </h2>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 8 }}>
+              {t(language, 'settings.languageDesc')}
+            </p>
+            <div className="language-selector">
+              <button
+                className={`lang-option${language === 'es' ? ' active' : ''}`}
+                onClick={() => setLanguage('es')}
+              >
+                <span className="lang-flag">🇪🇸</span>
+                <span>{t(language, 'settings.spanish')}</span>
+                {language === 'es' && <span className="lang-check">✓</span>}
+              </button>
+              <button
+                className={`lang-option${language === 'en' ? ' active' : ''}`}
+                onClick={() => setLanguage('en')}
+              >
+                <span className="lang-flag">🇺🇸</span>
+                <span>{t(language, 'settings.english')}</span>
+                {language === 'en' && <span className="lang-check">✓</span>}
+              </button>
+            </div>
+          </section>
 
         </div>
       </div>
@@ -491,6 +526,44 @@ export default function SettingsView() {
           .session-actions-grid {
             grid-template-columns: 1fr;
           }
+        }
+
+        .language-selector {
+          display: flex;
+          gap: 10px;
+        }
+        .lang-option {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 18px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--bg-surface);
+          color: var(--text-secondary);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .lang-option:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-light);
+          color: var(--text-primary);
+        }
+        .lang-option.active {
+          border-color: var(--gold);
+          background: rgba(212, 175, 55, 0.08);
+          color: var(--gold);
+        }
+        .lang-flag {
+          font-size: 20px;
+          line-height: 1;
+        }
+        .lang-check {
+          margin-left: auto;
+          font-weight: 700;
         }
       `}</style>
     </div>
