@@ -22,6 +22,7 @@ type SupabaseSongRow = {
   is_public: boolean
   is_verified: boolean
   source_url?: string | null
+  rejection_reason?: string | null
   usage_count: number | null
   created_at: string | null
   updated_at: string | null
