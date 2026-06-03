@@ -101,8 +101,9 @@ export default function PendingSongsPage() {
 
   const approve = async (song: PendingSong) => {
     try {
-      const { error } = await supabase.from("songs").update({ is_verified: true }).eq("id", song.id);
+      const { data, error } = await supabase.from("songs").update({ is_verified: true }).eq("id", song.id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("No se pudo aprobar. Posible falta de permisos RLS.");
       
       await logAdminAction({ action: "approve_song", targetType: "song", targetId: String(song.id), targetLabel: song.title });
       
@@ -123,16 +124,18 @@ export default function PendingSongsPage() {
     if (reason === null) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("songs")
         .update({ 
           is_public: false, 
           is_verified: false, 
           rejection_reason: reason || null 
         })
-        .eq("id", song.id);
+        .eq("id", song.id)
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("No se pudo rechazar. Posible falta de permisos RLS.");
       
       // Intentar actualizar localmente si existe usando remoteId
       try {
