@@ -21,6 +21,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "dexie": "^3.2.4",
     "dexie-react-hooks": "^1.1.7",
+    "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "leaflet": "^1.9.4",
