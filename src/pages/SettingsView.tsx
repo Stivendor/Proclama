@@ -9,6 +9,8 @@ import {
   X,
   Loader2,
   Globe,
+  Church,
+  MapPin,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -22,6 +24,7 @@ import DeviceList from "@/components/DeviceList";
 import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
 import { t } from "@/i18n";
+import { LATAM_COUNTRIES } from "@/constants/latamLocations";
 
 export default function SettingsView() {
   const {
@@ -59,7 +62,22 @@ export default function SettingsView() {
       ? settings.attendanceCategories
       : ['Caballeros', 'Damas', 'Amigos', 'Niños']
   );
-
+  const [churchName, setChurchName] = useState(settings.churchName ?? "");
+  const initialListedCountry = LATAM_COUNTRIES.find((item) => item.name === settings.country);
+  const initialCountry = settings.country
+    ? initialListedCountry
+      ? settings.country
+      : "OTHER"
+    : "";
+  const initialCity = settings.city
+    ? initialListedCountry?.cities.includes(settings.city)
+      ? settings.city
+      : "OTHER"
+    : "";
+  const [country, setCountry] = useState(initialCountry);
+  const [city, setCity] = useState(initialCity);
+  const [customCountry, setCustomCountry] = useState(initialCountry === "OTHER" ? settings.country ?? "" : "");
+  const [customCity, setCustomCity] = useState(initialCity === "OTHER" ? settings.city ?? "" : "");
 
   const { isPremium } = usePlan();
 
@@ -88,7 +106,15 @@ export default function SettingsView() {
     updateSettings({ [key]: value } as any);
 
   const handleSave = () => {
-    updateSettings({ attendanceCategories });
+    const finalCountry = country === "OTHER" ? customCountry.trim() : country.trim();
+    const finalCity = city === "OTHER" || country === "OTHER" ? customCity.trim() : city.trim();
+
+    updateSettings({
+      attendanceCategories,
+      churchName: churchName.trim(),
+      country: finalCountry,
+      city: finalCity,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -113,6 +139,8 @@ export default function SettingsView() {
     { value: "slide", label: "Slide (deslizar)" },
     { value: "instant", label: "Instantáneo" },
   ];
+
+  const selectedCountry = LATAM_COUNTRIES.find((item) => item.name === country);
 
   return (
     <div className="settings-view">
@@ -267,6 +295,106 @@ export default function SettingsView() {
             </section>
           )}
 
+          {/* Informacion opcional de iglesia */}
+          <section className="settings-section">
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Church size={18} />
+              {t(language, 'settings.churchInfo')}
+            </h2>
+            <p className="settings-section-copy">
+              {t(language, 'settings.churchInfoDesc')}
+            </p>
+            <div className="church-info-grid">
+              <label className="settings-field">
+                <span>{t(language, 'settings.churchName')}</span>
+                <div className="settings-input-wrap">
+                  <Church size={16} aria-hidden="true" />
+                  <input
+                    type="text"
+                    value={churchName}
+                    onChange={(event) => setChurchName(event.target.value)}
+                    placeholder={t(language, 'settings.churchNamePlaceholder')}
+                    autoComplete="organization"
+                  />
+                </div>
+              </label>
+
+              <label className="settings-field">
+                <span>{t(language, 'settings.country')}</span>
+                <div className="settings-input-wrap">
+                  <Globe size={16} aria-hidden="true" />
+                  <select
+                    value={country}
+                    onChange={(event) => {
+                      setCountry(event.target.value);
+                      setCity("");
+                      setCustomCity("");
+                    }}
+                    autoComplete="country-name"
+                  >
+                    <option value="">{t(language, 'settings.chooseCountry')}</option>
+                    {LATAM_COUNTRIES.map((item) => (
+                      <option key={item.code} value={item.name}>{item.name}</option>
+                    ))}
+                    <option value="OTHER">{t(language, 'settings.otherCountry')}</option>
+                  </select>
+                </div>
+              </label>
+
+              {country === "OTHER" && (
+                <label className="settings-field">
+                  <span>{t(language, 'settings.customCountry')}</span>
+                  <div className="settings-input-wrap">
+                    <Globe size={16} aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={customCountry}
+                      onChange={(event) => setCustomCountry(event.target.value)}
+                      placeholder={t(language, 'settings.countryPlaceholder')}
+                      autoComplete="country-name"
+                    />
+                  </div>
+                </label>
+              )}
+
+              {country && country !== "OTHER" && (
+                <label className="settings-field">
+                  <span>{t(language, 'settings.city')}</span>
+                  <div className="settings-input-wrap">
+                    <MapPin size={16} aria-hidden="true" />
+                    <select
+                      value={city}
+                      onChange={(event) => setCity(event.target.value)}
+                      autoComplete="address-level2"
+                    >
+                      <option value="">{t(language, 'settings.chooseCity')}</option>
+                      {selectedCountry?.cities.map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                      <option value="OTHER">{t(language, 'settings.otherCity')}</option>
+                    </select>
+                  </div>
+                </label>
+              )}
+
+              {(city === "OTHER" || country === "OTHER") && (
+                <label className="settings-field">
+                  <span>{t(language, 'settings.customCity')}</span>
+                  <div className="settings-input-wrap">
+                    <MapPin size={16} aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={customCity}
+                      onChange={(event) => setCustomCity(event.target.value)}
+                      placeholder={t(language, 'settings.cityPlaceholder')}
+                      autoComplete="address-level2"
+                    />
+                  </div>
+                </label>
+              )}
+            </div>
+          </section>
+
           {/* Language selector */}
           <section className="settings-section">
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -349,6 +477,67 @@ export default function SettingsView() {
           display: flex; align-items: center; justify-content: center; color: var(--gold);
         }
         .input-tip { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
+        .settings-section-copy {
+          font-size: 13px;
+          color: var(--text-secondary);
+          margin: 0 0 16px;
+          line-height: 1.5;
+        }
+        .church-info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+        .church-info-grid .settings-field:first-child {
+          grid-column: 1 / -1;
+        }
+        .settings-field {
+          display: flex;
+          flex-direction: column;
+          gap: 7px;
+          min-width: 0;
+          color: var(--text-secondary);
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .settings-input-wrap {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-height: 44px;
+          padding: 0 12px;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--bg-surface);
+          transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .settings-input-wrap:focus-within {
+          border-color: var(--gold);
+          background: var(--bg-elevated);
+          box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+        }
+        .settings-input-wrap svg {
+          color: var(--text-muted);
+          flex-shrink: 0;
+        }
+        .settings-input-wrap input,
+        .settings-input-wrap select {
+          width: 100%;
+          min-width: 0;
+          border: 0;
+          outline: 0;
+          background: transparent;
+          color: var(--text-primary);
+          font: inherit;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .settings-input-wrap select {
+          cursor: pointer;
+        }
+        .settings-input-wrap input::placeholder {
+          color: var(--text-muted);
+        }
         .sync-benefits {
           display: flex;
           flex-direction: column;
@@ -524,6 +713,9 @@ export default function SettingsView() {
         
         @media (max-width: 480px) {
           .session-actions-grid {
+            grid-template-columns: 1fr;
+          }
+          .church-info-grid {
             grid-template-columns: 1fr;
           }
         }
