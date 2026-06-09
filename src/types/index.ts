@@ -162,6 +162,9 @@ export interface AppSettings {
   defaultTheme: ProjectionTheme
   attendanceCategories: string[]
   serviceNameTemplates: string[]
+  churchName?: string
+  country?: string
+  city?: string
 }
 
 // ─── Biblia ───────────────────────────────────────────────────────────────────
