@@ -1,5 +1,4 @@
 
-
 // ─── Song ─────────────────────────────────────────────────────────────────────
 export interface Song {
   id?: number
@@ -52,9 +51,10 @@ export interface ProjectionState {
   theme: ProjectionTheme
   media?: {
     url: string
-    type: 'image' | 'video'
+    type: 'image' | 'video' | 'youtube'
     isBackgroundMode?: boolean
     objectFit?: 'cover' | 'contain'
+    name?: string
   } | null
   hideText?: boolean
   mediaStatus?: {
@@ -67,7 +67,7 @@ export interface ProjectionState {
 export interface LocalMedia {
   id: string;
   url: string;
-  type: "image" | "video";
+  type: "image" | "video" | "youtube";
   name: string;
   size: number;
   createdAt: number;

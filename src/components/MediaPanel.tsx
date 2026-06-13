@@ -1,5 +1,5 @@
 import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
-import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX } from "lucide-react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX, Youtube } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
@@ -9,6 +9,12 @@ import { usePlan } from "@/hooks/usePlan";
 import { LocalMedia } from "@/types";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+
+function getYoutubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
 
 export default function MediaPanel() {
   const {
@@ -50,6 +56,7 @@ export default function MediaPanel() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"newest" | "name" | "size">("newest");
   const [showFolderPremiumInfo, setShowFolderPremiumInfo] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -64,8 +71,13 @@ export default function MediaPanel() {
         if (cancelled) return;
 
         const loaded: LocalMedia[] = rows.map((row) => {
-          const url = URL.createObjectURL(row.file);
-          objectUrlsRef.current[row.id] = url;
+          let url = "";
+          if (row.type === "youtube") {
+            url = row.youtubeUrl || "";
+          } else if (row.file) {
+            url = URL.createObjectURL(row.file);
+            objectUrlsRef.current[row.id] = url;
+          }
           return {
             id: row.id,
             url,
@@ -357,7 +369,58 @@ export default function MediaPanel() {
         url: item.url,
         type: item.type,
         isBackgroundMode: true,
+        name: item.name,
       });
+    }
+  };
+
+  const handleAddYoutube = async () => {
+    setError(null);
+    if (!youtubeUrl.trim()) return;
+    const videoId = getYoutubeId(youtubeUrl);
+    if (!videoId) {
+      setError("Enlace de YouTube no válido.");
+      return;
+    }
+
+    const name = window.prompt("Nombre para el video de YouTube (ej: Video de bienvenida)", "Video de YouTube")?.trim();
+    if (name === null) return; // cancelado
+    const finalName = name || `YouTube: ${videoId}`;
+
+    // Validar límites
+    if (localMediaList.length >= mediaLimits.maxFiles) {
+      setError(`Límite alcanzado: máximo ${mediaLimits.maxFiles} archivos en tu plan.`);
+      return;
+    }
+
+    const now = Date.now();
+    const id = crypto.randomUUID();
+    try {
+      await db.local_media.put({
+        id,
+        name: finalName,
+        type: "youtube",
+        size: 0,
+        createdAt: now,
+        youtubeUrl: youtubeUrl.trim(),
+        folderId: selectedMediaFolderId,
+      });
+
+      const newItem: LocalMedia = {
+        id,
+        url: youtubeUrl.trim(),
+        type: "youtube",
+        name: finalName,
+        size: 0,
+        createdAt: now,
+        folderId: selectedMediaFolderId,
+      };
+
+      setLocalMediaList((prev) => [...prev, newItem]);
+      setYoutubeUrl("");
+    } catch (err) {
+      console.error("Error saving youtube media:", err);
+      setError("No se pudo guardar el video de YouTube.");
     }
   };
 
@@ -376,8 +439,10 @@ export default function MediaPanel() {
       console.error("Error deleting local media:", err);
     }
 
-    URL.revokeObjectURL(item.url);
-    delete objectUrlsRef.current[id];
+    if (item.type !== "youtube") {
+      URL.revokeObjectURL(item.url);
+      delete objectUrlsRef.current[id];
+    }
     setLocalMediaList((prev) => prev.filter((m) => m.id !== id));
   };
 
@@ -569,7 +634,23 @@ export default function MediaPanel() {
         </div>
       )}
 
-      {state.media?.type === "video" && <VideoControls />}
+      {(state.media?.type === "video" || state.media?.type === "youtube") && <VideoControls />}
+
+      <div className="youtube-input-row">
+        <input
+          type="text"
+          placeholder="Pegar enlace de YouTube..."
+          value={youtubeUrl}
+          onChange={(e) => setYoutubeUrl(e.target.value)}
+          className="youtube-url-input"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleAddYoutube();
+          }}
+        />
+        <button className="btn-add-youtube" onClick={handleAddYoutube} title="Agregar video de YouTube">
+          <Plus size={14} /> <Youtube size={14} />
+        </button>
+      </div>
 
       {loading ? (
         <div className="media-upload-zone">
@@ -610,6 +691,13 @@ export default function MediaPanel() {
                 <div className="media-item-thumb">
                   {item.type === "video" ? (
                     <video src={item.url} muted />
+                  ) : item.type === "youtube" ? (
+                    <div style={{ width: "100%", height: "100%", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", background: "#1a1a24" }}>
+                      <img src={`https://img.youtube.com/vi/${getYoutubeId(item.url)}/mqdefault.jpg`} alt="youtube-thumb" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.45)" }}>
+                        <Youtube size={24} className="youtube-play-icon" />
+                      </div>
+                    </div>
                   ) : (
                     <img src={item.url} alt="thumb" />
                   )}
@@ -666,6 +754,54 @@ export default function MediaPanel() {
       )}
 
       <style>{`
+        .youtube-input-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+        .youtube-url-input {
+          flex: 1;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 6px 12px;
+          color: var(--text-primary);
+          font-size: 12px;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .youtube-url-input:focus {
+          border-color: var(--gold);
+        }
+        .btn-add-youtube {
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          color: var(--text-muted);
+          border-radius: var(--radius-sm);
+          padding: 6px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+        }
+        .btn-add-youtube:hover {
+          border-color: var(--gold);
+          color: var(--text-primary);
+          background: rgba(212, 175, 55, 0.05);
+        }
+        .youtube-play-icon {
+          color: #ef4444;
+          transition: transform 0.2s, color 0.2s;
+        }
+        .media-item-card:hover .youtube-play-icon {
+          transform: scale(1.15);
+          color: #ff0000;
+          filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.6));
+        }
+
         .media-panel { 
           padding: 16px; 
           border-top: 1px solid var(--border); 
