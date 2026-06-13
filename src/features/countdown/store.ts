@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CountdownConfig, CountdownState, CountdownTheme } from '@/types'
 import { sendCountdownUpdate } from '@/services/projection'
-import { DEFAULT_THEME } from './index'
+import { DEFAULT_THEME } from '@/stores'
 
 export const DEFAULT_COUNTDOWN_THEME: CountdownTheme = DEFAULT_THEME as unknown as CountdownTheme
 

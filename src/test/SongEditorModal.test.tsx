@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import SongEditorModal from '@/components/SongEditorModal'
+import SongEditorModal from '@/components/songs/SongEditorModal'
 import { createSong, deleteSong, updateSong } from '@/services/supabase'
 import { db } from '@/db'
 
@@ -31,6 +31,13 @@ vi.mock('@/stores', () => ({
       user: { id: 'user-1' },
       userRole: 'user',
     }),
+  useProjectionStore: {
+    getState: () => ({
+      currentSong: null,
+      state: { songId: null },
+      loadSong: vi.fn(),
+    }),
+  },
 }))
 
 vi.mock('@/services/supabase', () => ({

@@ -2,7 +2,7 @@ import { memo, useState } from 'react'
 import { Play, List, LayoutGrid, AlertTriangle, AlignJustify } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import ReportSongModal from './ReportSongModal'
+import ReportSongModal from '@/components/songs/ReportSongModal'
 
 export const LiveSelection = memo(function LiveSelection() {
   const { slides, currentSlide, songTitle, goToSlide, hideText } = useProjectionStore(useShallow(s => ({

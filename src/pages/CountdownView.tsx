@@ -1,7 +1,7 @@
 import { Play, Pause, RotateCcw, Menu } from 'lucide-react'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { useShallow } from 'zustand/react/shallow'
-import { useCountdownStore } from '@/stores/countdown'
+import { useCountdownStore } from '@/features/countdown'
 
 export default function CountdownView() {
   const { isSidebarOpen, toggleSidebar, settings } = useAppStore(useShallow(s => ({

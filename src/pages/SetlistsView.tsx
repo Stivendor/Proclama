@@ -8,10 +8,10 @@ import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
-import OnlineSearchModal from '@/components/OnlineSearchModal'
-import ConfirmDialog from '@/components/ConfirmDialog'
+import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
-import { LiveSelection } from '@/components/LiveSelection'
+import { LiveSelection } from '@/components/projection/LiveSelection'
 import { usePlan, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 
 const SortableSongItem = memo(function SortableSongItem({ 

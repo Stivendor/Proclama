@@ -7,7 +7,7 @@ const TikTokIcon = ({ size = 24, color = 'currentColor' }) => (
   </svg>
 )
 import AuthView from './AuthView'
-import TermsModal from '@/components/TermsModal'
+import TermsModal from '@/components/terms/TermsModal'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'

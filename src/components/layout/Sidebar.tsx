@@ -2,7 +2,7 @@ import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, Clou
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
-import FeedbackFAB from '@/components/FeedbackFAB'
+import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
 

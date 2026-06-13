@@ -8,7 +8,7 @@ import { useAppStore } from '@/stores'
 import { usePlan } from '@/hooks/usePlan'
 import { useOnlineSearch, type OnlineSearchResult } from '@/hooks/useOnlineSearch'
 import type { Song } from '@/types'
-import PremiumFeatureModal from '@/components/PremiumFeatureModal'
+import PremiumFeatureModal from '@/components/ui/PremiumFeatureModal'
 
 interface SearchResult extends OnlineSearchResult {
   internalSong?: Song

@@ -1,7 +1,7 @@
 import { ArrowLeft, FileText } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION, TERMS_LAST_UPDATED } from '@/constants/terms'
-import TermsContent from '@/components/TermsContent'
+import TermsContent from '@/components/terms/TermsContent'
 
 export default function TermsView() {
   const { termsAccepted, setActiveView } = useAppStore(s => ({
