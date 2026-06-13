@@ -9,9 +9,11 @@ export default function VideoControls() {
     sendMediaCommand: s.sendMediaCommand
   })))
 
-  if (!media || media.type !== 'video' || !mediaStatus) return null
+  if (!media || (media.type !== 'video' && media.type !== 'youtube')) return null
 
-  const { currentTime, duration, isPlaying } = mediaStatus
+  const currentTime = mediaStatus?.currentTime ?? 0
+  const duration = mediaStatus?.duration ?? 0
+  const isPlaying = mediaStatus?.isPlaying ?? false
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -27,7 +29,7 @@ export default function VideoControls() {
   return (
     <div className="video-controls">
       <div className="video-controls-header">
-        <span className="video-name">{media.url.split('/').pop()}</span>
+        <span className="video-name">{media.name || media.url.split('/').pop()}</span>
       </div>
       
       <div className="video-timeline-row">

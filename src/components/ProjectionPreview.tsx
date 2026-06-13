@@ -84,6 +84,12 @@ const saveMediaState = (show: boolean): void => {
   }
 }
 
+function getYoutubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
 // Helper: Validate projection state
 const validateProjectionState = (state: any): ProjectionState | null => {
   if (!state || typeof state !== 'object') return null
@@ -285,6 +291,12 @@ function ProjectionPreview({
                     autoPlay muted loop playsInline 
                     style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }}
                   />
+                ) : projectionState.media.type === 'youtube' ? (
+                  <img 
+                    src={`https://img.youtube.com/vi/${getYoutubeId(projectionState.media.url)}/hqdefault.jpg`} 
+                    alt="" 
+                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }} 
+                  />
                 ) : (
                   <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }} />
                 )}
@@ -452,6 +464,7 @@ function ProjectionPreview({
               {renderPreviewContent()}
             </div>
           </div>
+
           <div className="preview-canvas-controls-left">
             <div className="preview-canvas-row">
               <label><span>Color de Texto</span></label>

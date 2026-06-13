@@ -4,6 +4,134 @@ import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme 
 import { DEFAULT_THEME, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
+function getYoutubeId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function loadYoutubeAPI(callback: () => void) {
+  if ((window as any).YT && (window as any).YT.Player) {
+    callback();
+    return;
+  }
+  
+  const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+  if (existingScript) {
+    const interval = setInterval(() => {
+      if ((window as any).YT && (window as any).YT.Player) {
+        clearInterval(interval);
+        callback();
+      }
+    }, 100);
+    return;
+  }
+
+  const previousCallback = (window as any).onYouTubeIframeAPIReady;
+  (window as any).onYouTubeIframeAPIReady = () => {
+    if (previousCallback) previousCallback();
+    callback();
+  };
+
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  const firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+}
+
+function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; ytPlayerRef: React.MutableRefObject<any>; objectFit: 'cover' | 'contain' }) {
+  const containerId = 'youtube-player-element';
+  const videoId = getYoutubeId(url);
+  const playerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!videoId) return;
+
+    let destroyed = false;
+    let player: any = null;
+
+    loadYoutubeAPI(() => {
+      if (destroyed) return;
+      
+      player = new (window as any).YT.Player(containerId, {
+        videoId: videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+          iv_load_policy: 3,
+          mute: 0,
+        },
+        events: {
+          onReady: (event: any) => {
+            if (destroyed) return;
+            playerRef.current = event.target;
+            ytPlayerRef.current = event.target;
+            event.target.playVideo();
+          },
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              event.target.playVideo();
+            }
+          }
+        }
+      });
+    });
+
+    return () => {
+      destroyed = true;
+      if (player && typeof player.destroy === 'function') {
+        player.destroy();
+      }
+      ytPlayerRef.current = null;
+    };
+  }, [videoId, ytPlayerRef]);
+
+  if (!videoId) {
+    return (
+      <div style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        Enlace de YouTube no válido
+      </div>
+    );
+  }
+
+  const isCover = objectFit === 'cover';
+  
+  return (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden',
+      background: '#000'
+    }}>
+      <div 
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          ...(isCover ? {
+            width: '177.77777778vh',
+            height: '56.25vw',
+            minWidth: '100%',
+            minHeight: '100%',
+          } : {
+            width: '100%',
+            height: '100%',
+          })
+        }}
+      >
+        <div id={containerId} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
+      </div>
+    </div>
+  );
+}
+
 const INITIAL_STATE: ProjectionState = {
   songId: null, songTitle: '', slides: [], currentSlide: 0, theme: DEFAULT_THEME, media: null
 }
@@ -15,6 +143,7 @@ export default function ProjectionWindow() {
   const [canvasSize, setCanvasSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [fontSize, setFontSize] = useState(72)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const ytPlayerRef = useRef<any>(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -54,7 +183,16 @@ export default function ProjectionWindow() {
       if (msg.type === 'PROJECTION_UPDATE') setState(msg.payload)
       else if (msg.type === 'MEDIA_COMMAND') {
         const { action, value } = msg.payload
-        if (videoRef.current) {
+        if (stateRef.current.media?.type === 'youtube' && ytPlayerRef.current) {
+          const player = ytPlayerRef.current
+          try {
+            if (action === 'play') player.playVideo()
+            else if (action === 'pause') player.pauseVideo()
+            else if (action === 'seek' && value !== undefined) player.seekTo(value, true)
+          } catch (e) {
+            console.error('Error commanding YouTube player:', e)
+          }
+        } else if (videoRef.current) {
           if (action === 'play') videoRef.current.play().catch(() => null)
           else if (action === 'pause') videoRef.current.pause()
           else if (action === 'seek' && value !== undefined) videoRef.current.currentTime = value
@@ -67,10 +205,23 @@ export default function ProjectionWindow() {
   }, [])
 
   useEffect(() => {
-    if (state.media?.type !== 'video') return
+    if (state.media?.type !== 'video' && state.media?.type !== 'youtube') return
     const interval = setInterval(() => {
-      const v = videoRef.current
-      if (v && v.readyState >= 1) sendMediaStatus(v.currentTime, v.duration || 0, !v.paused)
+      if (state.media?.type === 'youtube') {
+        const player = ytPlayerRef.current
+        if (player && typeof player.getCurrentTime === 'function' && typeof player.getPlayerState === 'function') {
+          try {
+            const currentTime = player.getCurrentTime()
+            const duration = player.getDuration() || 0
+            const playerState = player.getPlayerState()
+            const isPlaying = playerState === 1 // YT.PlayerState.PLAYING is 1
+            sendMediaStatus(currentTime, duration, isPlaying)
+          } catch (e) {}
+        }
+      } else {
+        const v = videoRef.current
+        if (v && v.readyState >= 1) sendMediaStatus(v.currentTime, v.duration || 0, !v.paused)
+      }
     }, 500)
     return () => clearInterval(interval)
   }, [state.media?.url, state.media?.type])
@@ -223,6 +374,12 @@ export default function ProjectionWindow() {
                 src={state.media.url}
                 autoPlay loop
                 style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }}
+              />
+            ) : state.media.type === 'youtube' ? (
+              <YoutubePlayerContainer
+                url={state.media.url}
+                ytPlayerRef={ytPlayerRef}
+                objectFit={state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')}
               />
             ) : (
               <img src={state.media.url}
