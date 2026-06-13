@@ -13,8 +13,11 @@ function getMeasurementContext() {
 }
 
 /**
- * Calcula el font-size máximo (px) que cabe en el canvas fijo usando la API de Canvas
+ * Calcula el font-size máximo (px) que cabe en el canvas usando la API de Canvas
  * para mediciones exactas segun la fuente, peso y transformaciones (mayúsculas).
+ *
+ * @param canvasOverride - Dimensiones reales del viewport (para pantallas verticales u otros tamaños).
+ *                         Si no se pasa, usa CANVAS_SIZE fijo (1920x1080).
  */
 export function calcCanvasFontSize(
   slide: Slide,
@@ -22,9 +25,10 @@ export function calcCanvasFontSize(
   songTitle: string,
   isBible: boolean,
   titleAtTop: boolean,
-  titleAtBottom: boolean
+  titleAtBottom: boolean,
+  canvasOverride?: { width: number; height: number }
 ): number {
-  const canvas = CANVAS_SIZE
+  const canvas = canvasOverride ?? CANVAS_SIZE
   const availW = canvas.width  * (1 - SAFE_PADDING_X * 2)
   const availH = canvas.height * (1 - SAFE_PADDING_Y * 2)
   // ctx puede ser null en entornos sin DOM o sin soporte de Canvas (ej: vitest sin el paquete canvas)
@@ -38,7 +42,7 @@ export function calcCanvasFontSize(
 
   // Título solo si es Biblia (es la referencia)
   if (isBible && songTitle && titleAtTop) rows.push({ text: prepare(songTitle), rel: 0.7 })
-  
+
   // Las etiquetas de verso ([Coro], [Verso 1]) ya no se incluyen en el cálculo
   slide.lines.forEach(line => rows.push({ text: prepare(line), rel: 1 }))
 
@@ -60,13 +64,12 @@ export function calcCanvasFontSize(
         // Usamos peso 900 para coincidir con el estilo 'Premium' de la proyección
         ctx.font = `900 ${rowFontSize}px ${theme.fontFamily || 'sans-serif'}`
         const words = row.text.split(' ')
-        let currentLineH = rowFontSize * LINE_HEIGHT
         let currentLineWidth = 0
 
         for (let i = 0; i < words.length; i++) {
           const word = words[i]
           let wordWidth = ctx.measureText(word).width
-          
+
           // Medición fallback si ctx.measureText no funciona (ej: en tests)
           if (wordWidth === 0 && word.length > 0) {
             wordWidth = word.length * rowFontSize * charRatioFallback
@@ -86,7 +89,7 @@ export function calcCanvasFontSize(
             currentLineWidth += spacingWidth + wordWidth
           }
         }
-        totalH += visualLines * currentLineH
+        totalH += visualLines * rowFontSize * LINE_HEIGHT
       } else {
         // Fallback matemático puro si NO hay context (Legacy approach)
         const charsPerLine = availW / (rowFontSize * charRatioFallback)
