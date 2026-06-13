@@ -1,7 +1,7 @@
-  import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme } from '@/types'
-import { DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
+import { DEFAULT_THEME, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
 const INITIAL_STATE: ProjectionState = {
@@ -11,31 +11,29 @@ const INITIAL_STATE: ProjectionState = {
 export default function ProjectionWindow() {
   const [state, setState] = useState<ProjectionState>(INITIAL_STATE)
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
-  const [scale, setScale] = useState(1)
+  // Canvas dinámico: se adapta al viewport real (soporta pantallas verticales, horizontales, cualquier resolución)
+  const [canvasSize, setCanvasSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [fontSize, setFontSize] = useState(72)
   const videoRef = useRef<HTMLVideoElement>(null)
   const stateRef = useRef(state)
   stateRef.current = state
-  const canvas = CANVAS_SIZE
 
-  // Escalar el canvas fijo al viewport actual
-  const updateScale = useCallback(() => {
-    const scaleX = window.innerWidth  / canvas.width
-    const scaleY = window.innerHeight / canvas.height
-    setScale(Math.min(scaleX, scaleY))
-  }, [canvas.width, canvas.height])
+  // Actualiza el tamaño del canvas al tamaño real del viewport
+  const updateCanvasSize = useCallback(() => {
+    setCanvasSize({ width: window.innerWidth, height: window.innerHeight })
+  }, [])
 
   useEffect(() => {
-    updateScale()
-    window.addEventListener('resize', updateScale)
-    document.addEventListener('fullscreenchange', updateScale)
+    updateCanvasSize()
+    window.addEventListener('resize', updateCanvasSize)
+    document.addEventListener('fullscreenchange', updateCanvasSize)
     return () => {
-      window.removeEventListener('resize', updateScale)
-      document.removeEventListener('fullscreenchange', updateScale)
+      window.removeEventListener('resize', updateCanvasSize)
+      document.removeEventListener('fullscreenchange', updateCanvasSize)
     }
-  }, [updateScale])
+  }, [updateCanvasSize])
 
-  // Recalcular font-size contra el canvas fijo (no el viewport)
+  // Recalcular font-size contra el canvas dinámico
   const recalcFont = useCallback(() => {
     const { slides, currentSlide, theme, songTitle, isBible } = stateRef.current
     const slide = slides[currentSlide]
@@ -43,9 +41,9 @@ export default function ProjectionWindow() {
     const showTitle = (theme.showTitle || isBible) && songTitle
     const titleAtTop = !!showTitle && (isBible ? theme.verseReferencePosition !== 'bottom' : theme.titlePosition === 'top')
     const titleAtBottom = !!showTitle && (isBible ? theme.verseReferencePosition === 'bottom' : theme.titlePosition === 'bottom')
-    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom)
+    const size = calcCanvasFontSize(slide, theme, songTitle, !!isBible, titleAtTop, titleAtBottom, canvasSize)
     setFontSize(size)
-  }, [])
+  }, [canvasSize])
 
   useEffect(() => {
     recalcFont()
@@ -84,7 +82,7 @@ export default function ProjectionWindow() {
 
   const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = state
   const slide = slides[currentSlide]
-  
+
   // Título solo para Biblia (es la cita bibliográfica)
   const showTitle = isBible && songTitle
   const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
@@ -109,11 +107,15 @@ export default function ProjectionWindow() {
   const calcCountdownSize = (theme: CountdownTheme, title: string | undefined, remainingSeconds: number) => {
     const ctx = document.createElement('canvas').getContext('2d')
     if (!ctx) {
-      return { timerFontSize: theme.fontSize || 160, titleFontSize: Math.max(14, Math.floor((theme.fontSize || 160) * 0.25)) }
+      return {
+        timerFontSize: theme.fontSize || 160,
+        titleFontSize: Math.max(14, Math.floor((theme.fontSize || 160) * 0.25))
+      }
     }
 
-    const safeWidth = canvas.width * 0.92
-    const safeHeight = canvas.height * 0.92
+    // Usa canvasSize dinámico para que el countdown también escale correctamente
+    const safeWidth = canvasSize.width * 0.92
+    const safeHeight = canvasSize.height * 0.92
     const titleHeightReserve = title ? safeHeight * 0.16 : 0
     const timerHeightMax = safeHeight - titleHeightReserve
     const timerText = formatTime(remainingSeconds)
@@ -171,13 +173,13 @@ export default function ProjectionWindow() {
     fontSize: `${fontSize}px`,
   }
 
-  // El canvas fijo se centra y escala al viewport
+  // El canvas ocupa exactamente el viewport: sin scale, sin transform de centrado
   const canvasStyle: React.CSSProperties = {
     position: 'absolute',
-    width: canvas.width, height: canvas.height,
-    top: '50%', left: '50%',
-    transform: `translate(-50%, -50%) scale(${scale})`,
-    transformOrigin: 'center center',
+    width: canvasSize.width,
+    height: canvasSize.height,
+    top: 0,
+    left: 0,
     overflow: 'hidden',
   }
 
@@ -202,20 +204,22 @@ export default function ProjectionWindow() {
           </video>
         )}
 
-        <div style={{ position: 'absolute', inset: 0, zIndex: 5,
-          backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 5,
+          backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})`
+        }} />
 
         {state.media && (
-          <div style={{ 
+          <div style={{
             position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
             background: state.media.isBackgroundMode ? 'transparent' : '#000',
             filter: state.media.isBackgroundMode ? bgFilter : 'none',
             transform: state.media.isBackgroundMode ? bgTransform : 'none',
           }}>
             {state.media.type === 'video' ? (
-              <video 
+              <video
                 key={state.media.url}
-                ref={videoRef} 
+                ref={videoRef}
                 src={state.media.url}
                 autoPlay loop
                 style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }}
@@ -238,13 +242,20 @@ export default function ProjectionWindow() {
               fontSize: `${countdownSizes.timerFontSize}px`
             }}>
               {countdown.config.title && (
-                <div style={{ fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
-                  fontSize: `${countdownSizes.titleFontSize}px`, marginBottom: '0.5em', textTransform: 'uppercase', letterSpacing: '4px', textShadow: strongShadow }}>
+                <div style={{
+                  fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
+                  fontSize: `${countdownSizes.titleFontSize}px`, marginBottom: '0.5em',
+                  textTransform: 'uppercase', letterSpacing: '4px', textShadow: strongShadow
+                }}>
                   {countdown.config.title}
                 </div>
               )}
-              <div style={{ fontFamily: activeTheme.fontFamily, color: (activeTheme as any).timerColor || activeTheme.textColor,
-                fontSize: '1em', fontVariantNumeric: 'tabular-nums', fontWeight: 'bold', textShadow: strongShadow, lineHeight: 1 }}>
+              <div style={{
+                fontFamily: activeTheme.fontFamily,
+                color: (activeTheme as any).timerColor || activeTheme.textColor,
+                fontSize: '1em', fontVariantNumeric: 'tabular-nums',
+                fontWeight: 'bold', textShadow: strongShadow, lineHeight: 1
+              }}>
                 {formatTime(countdown.remainingTime)}
               </div>
             </div>
@@ -256,15 +267,17 @@ export default function ProjectionWindow() {
           <div key={`${songTitle}-${currentSlide}`} style={{
             position: 'absolute', inset: 0, zIndex: 10,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: `${canvas.height * 0.07}px ${canvas.width * 0.08}px`,
+            padding: `${canvasSize.height * 0.07}px ${canvasSize.width * 0.08}px`,
             boxSizing: 'border-box', textAlign: 'center',
             opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
             animation: theme.transition === 'slide' ? 'slideUp 0.3s ease-out' : theme.transition === 'fade' ? 'fadeIn 0.4s ease' : 'none'
           }}>
             <div style={textStyle}>
               {titleAtTop && (
-                <div style={{ opacity: 1, fontSize: '0.7em',
-                  marginBottom: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
+                <div style={{
+                  opacity: 1, fontSize: '0.7em',
+                  marginBottom: '0.4em', letterSpacing: '0', textShadow: strongShadow
+                }}>
                   {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>
               )}
@@ -272,8 +285,10 @@ export default function ProjectionWindow() {
                 {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
               </div>
               {titleAtBottom && (
-                <div style={{ opacity: 1, fontSize: '0.7em',
-                  marginTop: '0.4em', letterSpacing: '0', textShadow: strongShadow }}>
+                <div style={{
+                  opacity: 1, fontSize: '0.7em',
+                  marginTop: '0.4em', letterSpacing: '0', textShadow: strongShadow
+                }}>
                   {songTitle}{isBible && theme.showBibleVersion && songArtist && ` (${songArtist})`}
                 </div>
               )}
@@ -282,16 +297,19 @@ export default function ProjectionWindow() {
         )}
 
         {!isCountdownActive && !slide && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
-            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out' 
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+            opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out'
           }}>
             <div style={{ fontFamily: theme.fontFamily, color: theme.textColor, opacity: 0.15, fontSize: '8rem' }}></div>
           </div>
         )}
 
         {!isCountdownActive && slide && (
-          <div style={{ position: 'absolute', bottom: 16, right: 24, zIndex: 20,
-            color: 'rgba(255,255,255,0.3)', fontSize: '1.2rem', fontFamily: 'monospace' }}>
+          <div style={{
+            position: 'absolute', bottom: 16, right: 24, zIndex: 20,
+            color: 'rgba(255,255,255,0.3)', fontSize: '1.2rem', fontFamily: 'monospace'
+          }}>
             {currentSlide + 1} / {slides.length}
           </div>
         )}
