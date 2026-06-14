@@ -3,7 +3,7 @@ import { supabase } from '@/services/supabase'
 import { Loader2, Music2, ChevronRight, ChevronLeft, Church, User, Mail, Lock, Eye, EyeOff, Check, Globe } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
-import TermsModal from '@/components/TermsModal'
+import TermsModal from '@/components/terms/TermsModal'
 import { LATAM_COUNTRIES } from '@/constants/latamLocations'
 
 function GoogleIcon() {

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, memo } from 'react'
 import { ChevronDown, ChevronUp, Eye, EyeOff, Tv2 } from 'lucide-react'
 import { onMessage, openProjectionWindow } from '@/services/projection'
 import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/stores'
-import { useCountdownStore } from '@/stores/countdown'
+import { useCountdownStore } from '@/features/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
@@ -15,35 +15,6 @@ interface PreviewState {
   countdownState: CountdownState | null
 }
 
-interface ProjectionPreviewProps {
-  textColor?: string
-  fontFamily?: string
-  textUppercase?: boolean
-  textShadow?: boolean
-  transition?: string
-  verseReferencePosition?: string
-  hideText?: boolean
-  backgroundType?: string
-  background?: string
-  backgroundImageUrl?: string
-  backgroundThumbnail?: string
-  backgroundVideoUrl?: string
-  backgroundBlur?: number
-  backgroundOverlayOpacity?: number
-  onTextColorChange?: (color: string) => void
-  onFontFamilyChange?: (font: string) => void
-  onTextUppercaseChange?: (val: boolean) => void
-  onTextShadowChange?: (val: boolean) => void
-  onTransitionChange?: (val: string) => void
-  onVersePositionChange?: (val: string) => void
-  onHideTextChange?: (val: boolean) => void
-  onBlurChange?: (val: number) => void
-  onOpacityChange?: (val: number) => void
-  showBibleVersion?: boolean
-  onShowBibleVersionChange?: (val: boolean) => void
-  fontScale?: number
-  onFontScaleChange?: (val: number) => void
-}
 
 // Helper: Load collapsed state from localStorage
 const loadCollapsedState = (): boolean => {
@@ -106,17 +77,18 @@ const validateProjectionState = (state: any): ProjectionState | null => {
   }
 }
 
-function ProjectionPreview({ 
-  textColor, fontFamily, textUppercase, textShadow, transition, 
-  verseReferencePosition, hideText, backgroundType, background, 
-  backgroundImageUrl, backgroundThumbnail, backgroundVideoUrl, 
-  backgroundBlur, backgroundOverlayOpacity, 
-  onTextColorChange, onFontFamilyChange, onTextUppercaseChange, 
-  onTextShadowChange, onTransitionChange, onVersePositionChange, 
-  onHideTextChange, onBlurChange, onOpacityChange,
-  showBibleVersion, onShowBibleVersionChange,
-  fontScale = 1, onFontScaleChange
-}: ProjectionPreviewProps) {
+function ProjectionPreview() {
+  const { updateTheme, setHideText, state: projStore } = useProjectionStore(
+    (s) => ({ updateTheme: s.updateTheme, setHideText: s.setHideText, state: s.state })
+  )
+  const theme = projStore.theme
+  const {
+    textColor = '#ffffff', fontFamily = 'Montserrat', textUppercase = true,
+    textShadow: textShadowEnabled = true, transition = 'fade',
+    verseReferencePosition = 'bottom', backgroundBlur = 0,
+    backgroundOverlayOpacity = 0.3, showBibleVersion = true, fontScale = 1
+  } = theme
+  const hideText = projStore.hideText
   const [state, setState] = useState<PreviewState>({
     isCollapsed: loadCollapsedState(),
     projectionState: null,
@@ -469,19 +441,19 @@ function ProjectionPreview({
             <div className="preview-canvas-row">
               <label><span>Color de Texto</span></label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                <input 
-                  type="color" 
-                  value={textColor || '#ffffff'} 
-                  onChange={(e) => onTextColorChange?.(e.target.value)}
+                <input
+                  type="color"
+                  value={textColor}
+                  onChange={(e) => updateTheme({ textColor: e.target.value })}
                 />
-                <span className="preview-value-text">{textColor || '#ffffff'}</span>
+                <span className="preview-value-text">{textColor}</span>
               </div>
             </div>
             <div className="preview-canvas-row">
               <label><span>Fuente</span></label>
-              <select 
-                value={fontFamily || 'Montserrat'}
-                onChange={(e) => onFontFamilyChange?.(e.target.value)}
+              <select
+                value={fontFamily}
+                onChange={(e) => updateTheme({ fontFamily: e.target.value })}
               >
                 <option value="Montserrat">Montserrat</option>
                 <option value="Arial">Arial</option>
@@ -494,18 +466,18 @@ function ProjectionPreview({
             </div>
             <div className="preview-canvas-row">
               <label><span>Tamaño: </span>{Math.round(fontScale * 100)}%</label>
-              <input 
+              <input
                 type="range" min="0.1" max="1.0" step="0.05"
-                value={fontScale} 
-                onChange={(e) => onFontScaleChange?.(Number(e.target.value))} 
+                value={fontScale}
+                onChange={(e) => updateTheme({ fontScale: Number(e.target.value) })}
                 style={{ width: '80px' }}
               />
             </div>
             <div className="preview-canvas-row">
               <label><span>Transición</span></label>
-              <select 
-                value={transition || 'fade'}
-                onChange={(e) => onTransitionChange?.(e.target.value)}
+              <select
+                value={transition}
+                onChange={(e) => updateTheme({ transition: e.target.value as any })}
               >
                 <option value="fade">Fade (suave)</option>
                 <option value="slide">Slide</option>
@@ -515,36 +487,36 @@ function ProjectionPreview({
             <div className="preview-canvas-row">
               <label>Posición Cita</label>
               <div className="preview-canvas-btns">
-                <button className={verseReferencePosition === 'top' ? 'active' : ''} onClick={() => onVersePositionChange?.('top')}>Arriba</button>
-                <button className={verseReferencePosition === 'bottom' || !verseReferencePosition ? 'active' : ''} onClick={() => onVersePositionChange?.('bottom')}>Abajo</button>
+                <button className={verseReferencePosition === 'top' ? 'active' : ''} onClick={() => updateTheme({ verseReferencePosition: 'top' as any })}>Arriba</button>
+                <button className={verseReferencePosition === 'bottom' || !verseReferencePosition ? 'active' : ''} onClick={() => updateTheme({ verseReferencePosition: 'bottom' as any })}>Abajo</button>
               </div>
             </div>
             <div className="preview-canvas-row">
               <label>
-                <input 
-                  type="checkbox" 
-                  checked={textShadow !== false} 
-                  onChange={(e) => onTextShadowChange?.(e.target.checked)}
+                <input
+                  type="checkbox"
+                  checked={textShadowEnabled}
+                  onChange={(e) => updateTheme({ textShadow: e.target.checked })}
                 />
                 Sombra en el texto
               </label>
             </div>
             <div className="preview-canvas-row">
               <label>
-                <input 
-                  type="checkbox" 
-                  checked={textUppercase === true} 
-                  onChange={(e) => onTextUppercaseChange?.(e.target.checked)}
+                <input
+                  type="checkbox"
+                  checked={textUppercase}
+                  onChange={(e) => updateTheme({ textUppercase: e.target.checked })}
                 />
                 Texto en mayúsculas
               </label>
             </div>
             <div className="preview-canvas-row">
               <label>
-                <input 
-                  type="checkbox" 
-                  checked={showBibleVersion !== false} 
-                  onChange={(e) => onShowBibleVersionChange?.(e.target.checked)}
+                <input
+                  type="checkbox"
+                  checked={showBibleVersion}
+                  onChange={(e) => updateTheme({ showBibleVersion: e.target.checked })}
                 />
                 Mostrar versión (Biblia)
               </label>
@@ -552,26 +524,26 @@ function ProjectionPreview({
           </div>
           <div className="preview-canvas-controls-right">
             <div className="preview-canvas-slider-group">
-              <label><span>Blur: </span>{backgroundBlur || 0}px</label>
-              <input 
-                type="range" min="0" max="50" 
-                value={backgroundBlur || 0} 
-                onChange={(e) => onBlurChange?.(Number(e.target.value))} 
+              <label><span>Blur: </span>{backgroundBlur}px</label>
+              <input
+                type="range" min="0" max="50"
+                value={backgroundBlur}
+                onChange={(e) => updateTheme({ backgroundBlur: Number(e.target.value) })}
               />
             </div>
             <div className="preview-canvas-slider-group">
-              <label><span>Oscurecer: </span>{Math.round((backgroundOverlayOpacity ?? 0.3) * 100)}%</label>
-              <input 
+              <label><span>Oscurecer: </span>{Math.round(backgroundOverlayOpacity * 100)}%</label>
+              <input
                 type="range" min="0" max="0.9" step="0.05"
-                value={backgroundOverlayOpacity ?? 0.3} 
-                onChange={(e) => onOpacityChange?.(Number(e.target.value))} 
+                value={backgroundOverlayOpacity}
+                onChange={(e) => updateTheme({ backgroundOverlayOpacity: Number(e.target.value) })}
               />
             </div>
           </div>
           <div className="preview-canvas-controls-extra">
-            <button 
+            <button
               className={`preview-hide-text-btn ${hideText ? 'active' : ''}`}
-              onClick={() => onHideTextChange?.(!hideText)}
+              onClick={() => setHideText(!hideText)}
               title={hideText ? 'Mostrar Texto' : 'Ocultar Texto'}
             >
               {hideText ? <Eye size={18} /> : <EyeOff size={18} />}

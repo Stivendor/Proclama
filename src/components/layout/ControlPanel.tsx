@@ -1,7 +1,7 @@
 import { Type, Eye } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore } from '@/stores'
-import MediaPanel from './MediaPanel'
+import MediaPanel from '@/components/media/MediaPanel'
 
 export default function ControlPanel() {
   const { slides, currentSlide, hideText, songTitle, nextSlide, prevSlide, goToSlide, setHideText, clearSong } = useProjectionStore(useShallow(s => ({

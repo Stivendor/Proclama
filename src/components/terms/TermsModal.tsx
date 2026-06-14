@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, FileText } from 'lucide-react'
-import TermsContent from '@/components/TermsContent'
+import TermsContent from '@/components/terms/TermsContent'
 
 interface TermsModalProps {
   mode: 'required' | 'optional'

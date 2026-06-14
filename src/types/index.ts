@@ -204,11 +204,8 @@ export interface Notice {
 }
 
 export interface AttendanceBreakdown {
+  categoryNames?: string[]
   values?: number[]
-  caballeros?: number
-  damas?: number
-  amigos?: number
-  ninos?: number
 }
 
 /** Asistencia por fecha; Dexie + Supabase `attendance_records` (no mezclar con `church_notes`). */
@@ -220,10 +217,6 @@ export interface AttendanceRecord {
   serviceName?: string
   categoryNames?: string[]
   values?: number[]
-  caballeros?: number
-  damas?: number
-  amigos?: number
-  ninos?: number
   createdAt: string
   updatedAt: string
   lastSyncedAt?: string

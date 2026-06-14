@@ -5,12 +5,12 @@ import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
-import OnlineSearchModal from '@/components/OnlineSearchModal'
-import ConfirmDialog from '@/components/ConfirmDialog'
+import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
-import { LiveSelection } from '@/components/LiveSelection'
+import { LiveSelection } from '@/components/projection/LiveSelection'
 
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({

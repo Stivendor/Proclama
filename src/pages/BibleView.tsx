@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore, useAppStore } from '@/stores'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
-import ImportBibleModal from '@/components/ImportBibleModal'
+import ImportBibleModal from '@/components/songs/ImportBibleModal'
 
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS

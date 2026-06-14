@@ -52,18 +52,8 @@ export async function syncAttendanceRecords(
         break
       }
 
-      const values = record.values?.length
-        ? record.values
-        : [
-            record.caballeros ?? 0,
-            record.damas ?? 0,
-            record.amigos ?? 0,
-            record.ninos ?? 0,
-          ]
-
-      const categoryNames = record.categoryNames?.length
-        ? record.categoryNames
-        : ['Caballeros', 'Damas', 'Amigos', 'Niños'].slice(0, values.length)
+      const values = record.values ?? []
+      const categoryNames = record.categoryNames ?? []
 
       const payload: any = {
         user_id: userId,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, Lock, Download, Check } from 'lucide-react'
 import { usePlan } from '@/hooks/usePlan'
-import { useBibleAPI } from '@/hooks/useBibleAPI'
+import { useBibleAPI } from '@/features/bible'
 import { useAppStore } from '@/stores'
 import { db } from '@/db'
 import type { HelloAOBibleInfo, ImportedBibleReference } from '@/types'

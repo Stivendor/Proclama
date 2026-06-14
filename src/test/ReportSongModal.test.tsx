@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import ReportSongModal from '@/components/ReportSongModal'
+import ReportSongModal from '@/components/songs/ReportSongModal'
 import { createSongReport } from '@/services/supabase'
 
 vi.mock('@/services/supabase', () => ({

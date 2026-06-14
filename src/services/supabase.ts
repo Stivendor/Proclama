@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Song, Setlist, ChurchNote, AttendanceRecord, AttendanceBreakdown } from '@/types'
+import type { Song } from '@/types'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
@@ -287,114 +287,13 @@ export async function deleteSong(id: number): Promise<boolean> {
   return true
 }
 
-// ─── Funciones para Setlists ──────────────────────────────────────────────
-/**
- * Mapea una fila de Supabase (con underscore) al objeto Setlist del frontend (camelCase)
- */
-function mapRowToSetlist(row: any): Setlist {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    name: row.name,
-    date: new Date(row.date),
-    songIds: row.song_ids || [],
-    notes: row.notes || '',
-    createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at)
-  }
-}
-
-export async function fetchSetlists(): Promise<Setlist[]> {
-  const { data: { session }, error: userError } = await supabase.auth.getSession();
-  const user = session?.user;
-  if (userError || !user) return []
-
-  try {
-    const { data, error } = await supabase
-      .from('setlists')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
-    if (error) throw error
-    return (data || []).map(mapRowToSetlist)
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return []
-    console.error('[Setlists] Error al obtener:', err)
-    return []
-  }
-}
-
-export async function createSetlist(setlist: Omit<Setlist, 'id'>): Promise<Setlist | null> {
-  console.log('[Setlists] Iniciando creación...', { userId: setlist.userId })
-  const now = new Date().toISOString()
-  const payload = {
-    name: setlist.name,
-    date: setlist.date.toISOString().split('T')[0],
-    user_id: setlist.userId,
-    notes: setlist.notes || '',
-    song_ids: setlist.songIds || [],
-    created_at: now,
-    updated_at: now
-  }
-  try {
-    const { data, error } = await supabase
-      .from('setlists')
-      .insert([payload])
-      .select()
-      .single()
-    if (error) throw error
-    console.log('[Setlists] Creación exitosa')
-    return mapRowToSetlist(data)
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return null
-    console.error('[Setlists] Error al crear:', err)
-    return null
-  }
-}
-
-export async function updateSetlist(id: number, updates: Partial<Setlist>): Promise<Setlist | null> {
-  const payload: any = { updated_at: new Date().toISOString() }
-  if (updates.name !== undefined) payload.name = updates.name
-  if (updates.date !== undefined) payload.date = updates.date.toISOString().split('T')[0]
-  if (updates.songIds !== undefined) payload.song_ids = updates.songIds
-  if (updates.notes !== undefined) payload.notes = updates.notes
-
-  try {
-    const { data, error } = await supabase
-      .from('setlists')
-      .update(payload)
-      .eq('id', id)
-      .select()
-      .single()
-    if (error) throw error
-    return mapRowToSetlist(data)
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return null
-    console.error('Error updating setlist:', err)
-    return null
-  }
-}
-
-export async function deleteSetlist(id: number): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('setlists')
-      .delete()
-      .eq('id', id)
-    if (error) throw error
-  } catch (err: any) {
-    if (err?.name === 'AbortError') return
-    console.error('Error deleting setlist:', err)
-  }
-}
-
 // ─── Funciones para Settings ──────────────────────────────────────────────
 
 
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, is_authorized')
+    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, is_authorized, subscription_plan')
     .eq('id', userId)
     .single()
 
@@ -402,14 +301,16 @@ export async function fetchProfile(userId: string) {
     console.warn('Error fetching profile:', error.message)
     return null
   }
-  
-  const mappedRole = data.role === 'admin' ? 'admin' : 'user'
 
-  return { 
-    role: mappedRole as 'admin' | 'user', 
-    plan: (data.plan || 'free') as 'free' | 'premium',
-    premiumExpiresAt: data.premium_expires_at,
-    subscriptionPlan: (data.plan === 'premium' ? 'annual' : undefined) as 'monthly' | 'annual' | undefined,
+  const mappedRole = data.role === 'admin' ? 'admin' : 'user'
+  const premiumExpiresAt: string | null = data.premium_expires_at
+  const isPremiumActive = data.plan === 'premium' && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date())
+
+  return {
+    role: mappedRole as 'admin' | 'user',
+    plan: isPremiumActive ? 'premium' : 'free' as 'free' | 'premium',
+    premiumExpiresAt,
+    subscriptionPlan: (data.subscription_plan ?? undefined) as 'monthly' | 'annual' | undefined,
     isAuthorized: data.is_authorized !== false
   }
 }

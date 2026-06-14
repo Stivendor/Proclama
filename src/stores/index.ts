@@ -284,6 +284,9 @@ interface AppStore {
   
   activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'
   setActiveView: (v: AppStore['activeView']) => void
+  // Internal: registered by RouterSync so setActiveView can push history
+  _navigate: ((path: string) => void) | null
+  _setNavigate: (fn: (path: string) => void) => void
 
   isEditorOpen: boolean;
   setEditorOpen: (o: boolean) => void;
@@ -407,7 +410,12 @@ export const useAppStore = create<AppStore>()(
       setGuestMode: (v) => set({ guestMode: v }),
 
       activeView: 'library',
-      setActiveView: (v) => set({ activeView: v }),
+      setActiveView: (v) => {
+        set({ activeView: v })
+        get()._navigate?.('/' + v)
+      },
+      _navigate: null,
+      _setNavigate: (fn) => set({ _navigate: fn }),
 
       recentSongs: [],
       addRecentSong: (song) => set(s => {
