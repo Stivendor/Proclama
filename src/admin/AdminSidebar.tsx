@@ -1,12 +1,12 @@
 import {
   LayoutDashboard, Users, CreditCard, Clock, AlertCircle,
-  MessageSquare, Library, ScrollText, ArrowLeft, Menu, X
+  MessageSquare, Library, ScrollText, ArrowLeft, Menu, X, Film
 } from "lucide-react";
 import { useState } from "react";
 
 export type AdminView =
   | "dashboard" | "users" | "pending-songs"
-  | "reports" | "suggestions" | "global-library" | "activity-logs" | "plans";
+  | "reports" | "suggestions" | "global-library" | "activity-logs" | "plans" | "backgrounds";
 
 interface Props {
   activeView: AdminView;
@@ -23,6 +23,7 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: React.ReactNode }[] = [
   { id: "reports", label: "Reportes", icon: <AlertCircle size={18} /> },
   { id: "suggestions", label: "Sugerencias", icon: <MessageSquare size={18} /> },
   { id: "global-library", label: "Biblioteca", icon: <Library size={18} /> },
+  { id: "backgrounds", label: "Fondos", icon: <Film size={18} /> },
   { id: "activity-logs", label: "Logs", icon: <ScrollText size={18} /> },
 ];
 

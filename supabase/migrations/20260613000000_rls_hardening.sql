@@ -49,17 +49,6 @@ CREATE POLICY "Admins can update any profile"
     )
   );
 
--- ─── SETLISTS ─────────────────────────────────────────────────────────────────
-ALTER TABLE public.setlists ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can manage own setlists" ON public.setlists;
-CREATE POLICY "Users can manage own setlists"
-  ON public.setlists
-  FOR ALL
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
 -- ─── USER_DEVICES ─────────────────────────────────────────────────────────────
 ALTER TABLE public.user_devices ENABLE ROW LEVEL SECURITY;
 

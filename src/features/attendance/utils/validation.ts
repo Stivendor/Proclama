@@ -61,21 +61,16 @@ export function parseField(v: string | undefined): number {
 }
 
 /**
- * Calculates total attendance from a breakdown (supports both array and legacy format).
+ * Calculates total attendance from a breakdown.
  */
-export function totalAttendance(a?: { values?: number[]; caballeros?: number; damas?: number; amigos?: number; ninos?: number }): number {
+export function totalAttendance(a?: { values?: number[] }): number {
   if (!a) return 0
-  if (a.values?.length) {
-    return a.values.reduce((sum, v) => sum + (v || 0), 0)
-  }
-  return (a.caballeros ?? 0) + (a.damas ?? 0) + (a.amigos ?? 0) + (a.ninos ?? 0)
+  return (a.values ?? []).reduce((sum, v) => sum + (v || 0), 0)
 }
 
 /**
- * Resolves an AttendanceRecord's values into a number array, handling both
- * new array format and legacy field format.
+ * Resolves an AttendanceRecord's values into a number array.
  */
 export function resolveValues(r: AttendanceRecord): number[] {
-  if (r.values?.length) return r.values
-  return [r.caballeros ?? 0, r.damas ?? 0, r.amigos ?? 0, r.ninos ?? 0]
+  return r.values ?? []
 }

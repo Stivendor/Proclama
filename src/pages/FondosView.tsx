@@ -191,8 +191,8 @@ export default function FondosView() {
   const [displayCount, setDisplayCount] = useState(12);
   const [galleryExpanded, setGalleryExpanded] = useState(false);
   const [textoExpanded, setTextoExpanded] = useState(false);
-  const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [imageCategory, setImageCategory] = useState<string | null>(null);
+  const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState(false);
 
@@ -204,17 +204,11 @@ export default function FondosView() {
   const state = { theme, media };
 
   const filteredBackgrounds = backgrounds.filter((bg) => {
-    // No mostrar si sabemos que está rota
     if (brokenImageIds.has(bg.id)) return false;
-
-    if (state.theme.backgroundType === "video") {
-      return (bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)) && (!videoCategory || bg.category === videoCategory)
-    }
     if (state.theme.backgroundType === "image") {
-      const isVideo = bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)
-      return !isVideo && (!imageCategory || bg.category === imageCategory)
+      return bg.type === "image" && (!imageCategory || bg.category === imageCategory)
     }
-    return true
+    return false
   })
   const displayedBackgrounds = filteredBackgrounds.slice(0, galleryExpanded ? filteredBackgrounds.length : displayCount);
   const hasMore = !galleryExpanded && displayCount < filteredBackgrounds.length;
@@ -232,10 +226,14 @@ export default function FondosView() {
 
   const availableVideoCategories = Array.from(new Set(
     backgrounds
-      .filter(bg => bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/))
+      .filter(bg => bg.type === "video")
       .map(bg => bg.category)
       .filter(Boolean)
   )) as string[];
+
+  const filteredVideos = backgrounds.filter(bg =>
+    bg.type === "video" && (!videoCategory || bg.category === videoCategory)
+  );
 
   return (
     <div className="fondos-view">
@@ -376,47 +374,55 @@ export default function FondosView() {
             {state.theme.backgroundType === "video" && (
               <div className="gallery-container">
                 <label><Film size={14} /> Galería de Videos</label>
-                <div className="gallery-filters-header">
-                  <div className="category-pills">
-                    <button 
-                      className={`pill ${!videoCategory ? "active" : ""}`} 
-                      onClick={() => setVideoCategory(null)}
-                    >
-                      Todos
-                    </button>
-                    {availableVideoCategories.map((cat) => {
-                      const count = backgrounds.filter(bg => bg.category === cat && (bg.type === 'video' || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/))).length;
-                      return (
-                        <button 
-                          key={cat} 
-                          className={`pill ${videoCategory === cat ? "active" : ""}`} 
-                          onClick={() => setVideoCategory(cat)}
-                        >
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                          <span className="pill-count">{count}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
-                  {displayedBackgrounds.map((bg) => (
-                    <div key={bg.id} className={`gallery-item ${state.theme.backgroundVideoUrl === bg.url ? "active" : ""}`} onClick={() => isPremium && updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })}>
-                      <video 
-                        src={bg.url} 
-                        muted 
-                        onError={() => {
-                          setBrokenImageIds(prev => {
-                            const next = new Set(prev);
-                            next.add(bg.id);
-                            return next;
-                          });
-                        }}
-                      />
-                      {state.theme.backgroundVideoUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
-                      {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
+                {availableVideoCategories.length > 0 && (
+                  <div className="gallery-filters-header">
+                    <div className="category-pills">
+                      <button
+                        className={`pill ${!videoCategory ? "active" : ""}`}
+                        onClick={() => setVideoCategory(null)}
+                      >
+                        Todos
+                        <span className="pill-count">{backgrounds.filter(bg => bg.type === "video").length}</span>
+                      </button>
+                      {availableVideoCategories.map((cat) => {
+                        const count = backgrounds.filter(bg => bg.type === "video" && bg.category === cat).length;
+                        return (
+                          <button
+                            key={cat}
+                            className={`pill ${videoCategory === cat ? "active" : ""}`}
+                            onClick={() => setVideoCategory(cat)}
+                          >
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            <span className="pill-count">{count}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  ))}
+                  </div>
+                )}
+                <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
+                  {filteredVideos.map((bg) => {
+                    const isActive = state.theme.backgroundVideoUrl === bg.url
+                    return (
+                      <div
+                        key={bg.id}
+                        className={`gallery-item ${isActive ? "active" : ""}`}
+                        onClick={() => {
+                          if (!isPremium) return
+                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
+                        }}
+                      >
+                        <video src={bg.url} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        {isActive && <div className="active-overlay"><CheckCircle size={14} /></div>}
+                        {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
+                      </div>
+                    )
+                  })}
+                  {filteredVideos.length === 0 && (
+                    <p style={{ color: "var(--text-muted)", fontSize: 13, gridColumn: "1/-1" }}>
+                      {videoCategory ? `No hay videos con la etiqueta "${videoCategory}".` : "Aún no hay videos disponibles."}
+                    </p>
+                  )}
                   {!isPremium && (
                     <div className="gallery-premium-promo">
                       <Lock size={20} />
@@ -425,11 +431,6 @@ export default function FondosView() {
                     </div>
                   )}
                 </div>
-                {hasMore && isPremium && (
-                  <button className="load-more-btn" onClick={() => setDisplayCount((c) => c + 12)}>
-                    Cargar más ({filteredBackgrounds.length - displayCount} restantes)
-                  </button>
-                )}
               </div>
             )}
 

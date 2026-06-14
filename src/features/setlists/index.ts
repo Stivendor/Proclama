@@ -1,7 +1,2 @@
-// Setlist service functions — sourced from the shared supabase service layer
-export {
-  fetchSetlists,
-  createSetlist,
-  updateSetlist,
-  deleteSetlist,
-} from '@/services/supabase'
+// Setlists are local-only (Dexie). No Supabase sync.
+export {}

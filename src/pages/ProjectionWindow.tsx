@@ -132,6 +132,7 @@ function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; 
   );
 }
 
+
 const INITIAL_STATE: ProjectionState = {
   songId: null, songTitle: '', slides: [], currentSlide: 0, theme: DEFAULT_THEME, media: null
 }
@@ -354,6 +355,7 @@ export default function ProjectionWindow() {
             <source src={theme.backgroundVideoUrl} type="video/mp4" />
           </video>
         )}
+
 
         <div style={{
           position: 'absolute', inset: 0, zIndex: 5,
