@@ -63,7 +63,6 @@ export function useAuth() {
               if (profile) {
                 setUserRole(profile.role)
                 setUserPlan(profile.plan)
-                useAppStore.getState().setSubscriptionPlan(profile.subscriptionPlan)
 
                 if (profile.plan === 'premium' || profile.role === 'admin') {
                   import('@/services/attendanceSync')
@@ -82,8 +81,8 @@ export function useAuth() {
 
               const planToCheck = profile?.plan || useAppStore.getState().userPlan
 
-              // Device check
-              if (planToCheck === 'premium') {
+              // Device check — admins are exempt from the device limit
+              if (planToCheck === 'premium' && profile?.role !== 'admin') {
                 import('@/utils/deviceFingerprint')
                   .then(async ({ getDeviceId, getDeviceName }) => {
                     const { fetchUserDevices, registerDevice } = await import('@/services/supabase')

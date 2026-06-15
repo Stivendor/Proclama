@@ -37,7 +37,6 @@ export default function SettingsView() {
     fetchBackgrounds,
     acceptTerms,
     setActiveView,
-    subscriptionPlan,
     language,
     setLanguage,
   } = useAppStore(
@@ -51,7 +50,6 @@ export default function SettingsView() {
       fetchBackgrounds: s.fetchBackgrounds,
       acceptTerms: s.acceptTerms,
       setActiveView: s.setActiveView,
-      subscriptionPlan: s.subscriptionPlan,
       language: s.language,
       setLanguage: s.setLanguage,
     })),
