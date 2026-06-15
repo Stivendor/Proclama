@@ -34,7 +34,7 @@ export default function LibraryView() {
       return 0
     }
   }, [user?.id]) ?? 0
-  const [libraryTab, setLibraryTab] = useState<'locals' | 'community'>('locals')
+  const [libraryTab, setLibraryTab] = useState<'locals' | 'community'>('community')
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
@@ -430,13 +430,8 @@ export default function LibraryView() {
     }
 
     const now = new Date()
-    let isVerified = false
     try {
-      const profile = await fetchProfile(user.id)
-      if (profile?.isAuthorized) isVerified = true
-    } catch {}
-
-    try {
+      const isVerified = false
       if (song.remoteId) {
         await updateSongRemote(song.remoteId, { isPublic: true, isVerified, updatedAt: now })
         await db.songs.update(song.id!, { isPublic: true, isVerified, updatedAt: now })
