@@ -89,13 +89,17 @@ export default function NotesView() {
 
   // Local state for the form
   const [serviceName, setServiceName] = useState('')
+  const [serviceTime, setServiceTime] = useState('')
   const [att, setAtt] = useState<string[]>([])
 
   // Sync attendance inputs when the saved record changes
   useEffect(() => {
     if (attendanceRecord) {
       setServiceName(attendanceRecord.serviceName ?? '')
+      setServiceTime(attendanceRecord.time ?? '')
       setAtt(resolveValues(attendanceRecord).map(String))
+    } else {
+      setServiceTime('')
     }
     setAttError('')
   }, [attendanceRecord, selectedDate, setAttError])
@@ -255,12 +259,15 @@ export default function NotesView() {
           </button>
 
           <input
-            type="date"
+            type="datetime-local"
             className={`input${attError === 'Debes seleccionar una fecha válida' ? ' input--error' : ''}`}
             style={{ width: 'auto' }}
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            aria-label="Seleccionar fecha"
+            value={selectedDate ? `${selectedDate}T${serviceTime || '00:00'}` : ''}
+            onChange={e => {
+              const [date, time] = e.target.value.split('T')
+              if (date) { setSelectedDate(date); setServiceTime(time || '') }
+            }}
+            aria-label="Seleccionar fecha y hora"
           />
         </div>
       </div>
@@ -412,7 +419,7 @@ export default function NotesView() {
               serviceNameTemplates={serviceNameTemplates}
               onAddTemplate={(name) => updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })}
               onDeleteTemplate={(name) => updateSettings({ serviceNameTemplates: serviceNameTemplates.filter(t => t !== name) })}
-              onEnter={() => saveAttendance(att, serviceName, attendanceCategories)}
+              onEnter={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories)}
               error={hasServiceNameError ? attError : undefined}
               onClearError={() => attError && setAttError('')}
             />
@@ -423,7 +430,7 @@ export default function NotesView() {
             onUpdateCategories={(newCats) => updateSettings({ attendanceCategories: newCats })}
             values={att}
             onChangeValues={setAtt}
-            onSave={() => saveAttendance(att, serviceName, attendanceCategories)}
+            onSave={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories)}
             isLoading={isLoadingAttendance}
             error={attError}
             onClearError={() => setAttError('')}

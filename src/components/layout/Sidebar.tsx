@@ -1,13 +1,18 @@
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, ClipboardEdit, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
+import { PREMIUM_FOR_EVERYONE } from '@/hooks/usePlan'
 
 export default function Sidebar() {
   const { updateAvailable, updateApp } = useSWUpdate()
+  const [launchBannerDismissed, setLaunchBannerDismissed] = useState(
+    () => localStorage.getItem('launch-banner-v1') === '1'
+  )
   const { activeView, setActiveView, openEditor, toggleSidebar, user, goToLanding, language } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
@@ -99,6 +104,31 @@ export default function Sidebar() {
           </button>
         )}
       </nav>
+
+      {PREMIUM_FOR_EVERYONE && user && !launchBannerDismissed && (
+        <div style={{
+          margin: '0 10px 8px',
+          padding: '10px 11px',
+          borderRadius: 10,
+          background: 'rgba(212, 168, 67, 0.08)',
+          border: '1px solid rgba(212, 168, 67, 0.22)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 8,
+        }}>
+          <Sparkles size={13} color="#d4a843" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, flex: 1 }}>
+            Estás disfrutando de <strong style={{ color: '#d4a843' }}>Premium gratis</strong> — oferta de lanzamiento por tiempo limitado.
+          </span>
+          <button
+            onClick={() => { localStorage.setItem('launch-banner-v1', '1'); setLaunchBannerDismissed(true) }}
+            aria-label="Cerrar"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, flexShrink: 0, display: 'flex' }}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       <div className="sidebar-sync-status">
         {updateAvailable && (

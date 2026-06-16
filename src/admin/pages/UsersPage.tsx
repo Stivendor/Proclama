@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, ArrowUpDown, Download, RefreshCcw, Zap, ZapOff, UserCheck, UserX } from "lucide-react";
+import { Users, Search, ArrowUpDown, Download, RefreshCcw } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
-import { supabase } from "@/services/supabase";
-import { logAdminAction } from "../services/adminLogs";
 
 interface UserProfile {
   id: string;
@@ -12,7 +10,7 @@ interface UserProfile {
   role: string;
   plan: "free" | "premium";
   full_name?: string | null;
-  is_authorized: boolean;
+  premium_expires_at?: string | null;
   settings?: {
     churchName?: string;
     country?: string;
@@ -62,54 +60,6 @@ export default function UsersPage() {
     a.href = URL.createObjectURL(blob);
     a.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
-  };
-
-  const handleTogglePlan = async (userId: string, email: string, currentPlan: "free" | "premium") => {
-    const newPlan = currentPlan === "premium" ? "free" : "premium";
-    const actionText = newPlan === "premium" ? "activar" : "desactivar";
-    const confirm = window.confirm(`¿Seguro que deseas ${actionText} el plan Premium para ${email}?`);
-    if (!confirm) return;
-
-    try {
-      const { error } = await supabase.from("profiles").update({ plan: newPlan }).eq("id", userId);
-      if (error) throw error;
-
-      await logAdminAction({
-        action: "change_plan",
-        targetType: "user",
-        targetId: userId,
-        targetLabel: email,
-        note: `Plan cambiado: ${currentPlan} → ${newPlan} desde la lista de usuarios.`
-      });
-
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: newPlan } : u));
-    } catch (err) {
-      console.error("Error changing plan:", err);
-      alert("Error al cambiar el plan del usuario.");
-    }
-  };
-
-  const handleToggleAuthorized = async (userId: string, email: string, current: boolean) => {
-    const newVal = !current;
-    const action = newVal ? "Autorizar" : "Desautorizar";
-    if (!window.confirm(`¿${action} a ${email} para publicar sin revisión?`)) return;
-    try {
-      const { error } = await supabase.from("profiles").update({ is_authorized: newVal }).eq("id", userId);
-      if (error) throw error;
-
-      await logAdminAction({
-        action: newVal ? "authorize_user" : "deauthorize_user",
-        targetType: "user",
-        targetId: userId,
-        targetLabel: email,
-        note: `Usuario ${newVal ? "autorizado" : "desautorizado"} para publicar sin revisión.`
-      });
-
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_authorized: newVal } : u));
-    } catch (err) {
-      console.error("Error toggling authorization:", err);
-      alert("Error al cambiar autorización del usuario.");
-    }
   };
 
   return (
@@ -167,9 +117,9 @@ export default function UsersPage() {
             }
           },
           { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" ? 600 : 400 }}>{u.role === "admin" ? "Admin" : "Usuario"}</span> },
-          { 
-            key: "plan", 
-            header: "Plan", 
+          {
+            key: "plan",
+            header: "Plan",
             render: (u: UserProfile) => (
               <span className={`admin-badge ${u.plan === "premium" ? "gold" : ""}`}>
                 {u.plan === "premium" ? "Premium" : "Free"}
@@ -177,60 +127,20 @@ export default function UsersPage() {
             )
           },
           {
-            key: "authorized",
-            header: "Autorizado",
+            key: "expires",
+            header: "Vence",
             render: (u: UserProfile) => {
-              const isUserAdmin = u.role === "admin";
-              if (isUserAdmin) return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
+              if (u.plan !== "premium") return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
+              if (!u.premium_expires_at) return <span style={{ color: "var(--gold)", fontSize: 12 }}>De por vida</span>;
+              const expired = new Date(u.premium_expires_at) < new Date();
               return (
-                <span style={{ color: u.is_authorized ? "var(--green, #22c55e)" : "var(--text-muted)", fontWeight: 600, fontSize: 13 }}>
-                  {u.is_authorized ? "Sí" : "No"}
+                <span style={{ color: expired ? "var(--red, #ef4444)" : "var(--text-secondary)", fontSize: 12 }}>
+                  {new Date(u.premium_expires_at).toLocaleDateString("es-CO")}
+                  {expired && " ✗"}
                 </span>
               );
             }
           },
-          {
-            key: "actions",
-            header: "Acciones",
-            render: (u: UserProfile) => {
-              const isUserAdmin = u.role === "admin";
-              if (isUserAdmin) return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
-              
-              const isPremium = u.plan === "premium";
-              return (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    className={`admin-action-btn ${u.is_authorized ? "danger" : "gold"}`}
-                    onClick={() => handleToggleAuthorized(u.id, u.email, u.is_authorized)}
-                    title={u.is_authorized ? "Desautorizar" : "Autorizar"}
-                    style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    {u.is_authorized ? <UserX size={11} /> : <UserCheck size={11} />}
-                    {u.is_authorized ? "Desautorizar" : "Autorizar"}
-                  </button>
-                  {isPremium ? (
-                    <button 
-                      className="admin-action-btn danger" 
-                      onClick={() => handleTogglePlan(u.id, u.email, u.plan)}
-                      title="Quitar Premium"
-                      style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <ZapOff size={11} /> Quitar Premium
-                    </button>
-                  ) : (
-                    <button 
-                      className="admin-action-btn gold" 
-                      onClick={() => handleTogglePlan(u.id, u.email, u.plan)}
-                      title="Hacer Premium"
-                      style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <Zap size={11} /> Hacer Premium
-                    </button>
-                  )}
-                </div>
-              );
-            }
-          }
         ]}
         data={users}
         totalCount={totalCount}

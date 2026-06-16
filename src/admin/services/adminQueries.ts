@@ -16,7 +16,7 @@ export async function fetchUsersPaginated(
 
   let query = supabase
     .from("profiles")
-    .select("id, email, created_at, role, settings, full_name, plan, is_authorized", { count: "exact" })
+    .select("id, email, created_at, role, settings, full_name, plan, premium_expires_at", { count: "exact" })
     .range(from, to)
     .order("created_at", { ascending: filters.sortOrder === "asc" });
 
@@ -29,7 +29,6 @@ export async function fetchUsersPaginated(
   const mappedData = (data ?? []).map(u => ({
     ...u,
     plan: u.plan || "free",
-    is_authorized: u.is_authorized !== false
   }));
 
   return { data: mappedData, count: count ?? 0 };

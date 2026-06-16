@@ -293,7 +293,7 @@ export async function deleteSong(id: number): Promise<boolean> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, is_authorized, subscription_plan')
+    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at')
     .eq('id', userId)
     .single()
 
@@ -310,22 +310,7 @@ export async function fetchProfile(userId: string) {
     role: mappedRole as 'admin' | 'user',
     plan: isPremiumActive ? 'premium' : 'free' as 'free' | 'premium',
     premiumExpiresAt,
-    subscriptionPlan: (data.subscription_plan ?? undefined) as 'monthly' | 'annual' | undefined,
-    isAuthorized: data.is_authorized !== false
   }
-}
-
-export async function setUserAuthorized(userId: string, authorized: boolean) {
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_authorized: authorized })
-    .eq('id', userId)
-
-  if (error) {
-    console.error('Error updating authorization:', error.message)
-    return false
-  }
-  return true
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
@@ -406,6 +391,27 @@ export async function registerPremiumInterest(email: string, userId: string | nu
 }
 
 // ─── Funciones para Pagos ───────────────────────────────────────────────────
+
+export async function setUserSubscription(
+  userId: string,
+  plan: 'free' | 'premium',
+  expiresAt: string | null   // ISO timestamp or null = lifetime
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      plan,
+      premium_expires_at: plan === 'premium' ? expiresAt : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+
+  if (error) {
+    console.error('Error updating subscription:', error.message)
+    return false
+  }
+  return true
+}
 
 export async function activatePremiumForUser(userId: string): Promise<boolean> {
   const { error } = await supabase

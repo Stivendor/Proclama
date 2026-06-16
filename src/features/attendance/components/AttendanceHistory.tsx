@@ -155,8 +155,8 @@ export default function AttendanceHistory({ records, categories, onEdit, onDelet
                 <tr key={attendanceRowKey(r)} style={{ borderBottom: i === currentRecords.length - 1 ? 'none' : '1px solid var(--border)' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 500 }}>
                     {r.serviceName
-                      ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 11, color: "var(--text-muted)", display: 'block', marginTop: 2 }}>{formatDate(r.date)}</span></>
-                      : formatDate(r.date)
+                      ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 11, color: "var(--text-muted)", display: 'block', marginTop: 2 }}>{formatDate(r.date)}{r.time ? ` · ${r.time}` : ''}</span></>
+                      : <>{formatDate(r.date)}{r.time ? <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · {r.time}</span> : null}</>
                     }
                   </td>
                   {categories.map((_, idx) => (
