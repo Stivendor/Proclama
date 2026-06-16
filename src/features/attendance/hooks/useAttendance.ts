@@ -51,7 +51,7 @@ export function useAttendance(userId: string) {
     [allAttendanceRows]
   )
 
-  async function saveAttendance(values: string[], serviceName: string, categoryNames?: string[]) {
+  async function saveAttendance(values: string[], serviceName: string, time?: string, categoryNames?: string[]) {
     if (!selectedDate) {
       setError('Debes seleccionar una fecha válida')
       return false
@@ -70,7 +70,9 @@ export function useAttendance(userId: string) {
     
     const numValues = values.map(parseField)
     const now = new Date().toISOString()
-    const existingAr = attendanceRecord
+    // Solo reusar el registro cargado si el nombre del culto coincide; si no, crear uno nuevo
+    const normalizedName = serviceName.trim() || undefined
+    const existingAr = attendanceRecord?.serviceName === normalizedName ? attendanceRecord : undefined
     
     const row: AttendanceRecord = {
       ...existingAr,
@@ -79,6 +81,7 @@ export function useAttendance(userId: string) {
       values: numValues,
       categoryNames: categoryNames || existingAr?.categoryNames,
       serviceName: serviceName.trim() || undefined,
+      time: time?.trim() || undefined,
       createdAt: existingAr?.createdAt ?? now,
       updatedAt: now,
     }
