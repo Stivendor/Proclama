@@ -41,6 +41,7 @@ export function useAttendanceRealtime(userId: string, isPremium: boolean) {
               values: r.category_values || [],
               categoryNames: r.category_names || [],
               serviceName: r.service_name || undefined,
+              time: r.service_time || undefined,
               createdAt: r.created_at,
               updatedAt: r.updated_at,
             }

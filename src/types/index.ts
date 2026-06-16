@@ -215,6 +215,7 @@ export interface AttendanceRecord {
   userId: string
   date: string
   serviceName?: string
+  time?: string          // 'HH:MM', opcional — hora del culto
   categoryNames?: string[]
   values?: number[]
   createdAt: string
