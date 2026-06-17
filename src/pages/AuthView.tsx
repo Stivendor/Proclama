@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile'
 import { supabase } from '@/services/supabase'
 import { Loader2, Music2, ChevronRight, ChevronLeft, Church, User, Mail, Lock, Eye, EyeOff, Check, Globe } from 'lucide-react'
 import { useAppStore } from '@/stores'
@@ -86,7 +87,9 @@ export default function AuthView() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null)
 
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+  const turnstileRef = useRef<TurnstileInstance>(null)
 
   const handleEmailChange = (val: string) => {
     setEmail(val)
@@ -104,6 +107,7 @@ export default function AuthView() {
   useEffect(() => {
     cardRef.current?.querySelector<HTMLInputElement>('input')?.focus()
     setEmailSuggestion(null)
+    setCaptchaToken(null)
   }, [mode, step])
 
   const handleGoogleLogin = async () => {
@@ -122,11 +126,12 @@ export default function AuthView() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) return setError('Completa todos los campos.')
+    if (!captchaToken) return setError('Completa la verificación de seguridad.')
     setLoading(true)
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
       if (error) {
         if (error.message.includes('Invalid login')) {
           setError('Correo o contraseña incorrectos.')
@@ -141,6 +146,8 @@ export default function AuthView() {
       setError(err?.message || 'Error de conexión. Por favor intenta de nuevo en unos momentos.')
     } finally {
       setLoading(false)
+      turnstileRef.current?.reset()
+      setCaptchaToken(null)
     }
   }
 
@@ -155,6 +162,7 @@ export default function AuthView() {
   }
 
   const handleRegister = async (skipChurch = false) => {
+    if (!captchaToken) return setError('Completa la verificación de seguridad.')
     setLoading(true)
     setError(null)
 
@@ -188,13 +196,14 @@ export default function AuthView() {
         password,
         options: {
           data: metadata,
+          captchaToken,
         }
       })
 
       if (signUpError) {
         let msg = signUpError.message
         if (msg === '{}' || !msg || msg.trim() === '') {
-          msg = 'Error de Servidor (SMTP/504). El servidor de correo de Supabase tardó demasiado en responder. Por favor, ve a tu panel de Supabase -> Auth -> Email Providers y desactiva la opción "Confirm email" para registrarte sin problemas.'
+          msg = 'Error al enviar el correo de verificación. Por favor intenta de nuevo en unos momentos.'
         }
         if (msg.includes('already registered')) {
           setError('Este correo ya está registrado. Intenta iniciar sesión.')
@@ -249,10 +258,12 @@ export default function AuthView() {
         }
       }
     } catch (err: any) {
+      turnstileRef.current?.reset()
+      setCaptchaToken(null)
       console.error('Signup exception occurred:', err)
       let msg = err?.message || ''
       if (msg === '{}' || !msg || msg.trim() === '') {
-        msg = 'Error de conexión (Timeout 504). El servidor de correo de Supabase no responde. Desactiva "Confirm email" en tu consola de Supabase para poder registrarte.'
+        msg = 'Error de conexión. Por favor intenta de nuevo en unos momentos.'
       }
       setError(msg)
     } finally {
@@ -354,7 +365,15 @@ export default function AuthView() {
               </button>
             </div>
 
-            <button type="submit" className="auth-btn-primary" disabled={loading}>
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+              onSuccess={setCaptchaToken}
+              options={{ theme: 'dark', size: 'flexible' }}
+              style={{ margin: '4px 0' }}
+            />
+
+            <button type="submit" className="auth-btn-primary" disabled={loading || !captchaToken}>
               {loading ? <Loader2 className="spin" size={18} /> : 'Iniciar Sesión'}
             </button>
 
@@ -522,11 +541,19 @@ export default function AuthView() {
               </div>
             )}
 
+            <Turnstile
+              ref={turnstileRef}
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+              onSuccess={setCaptchaToken}
+              options={{ theme: 'dark', size: 'flexible' }}
+              style={{ margin: '4px 0' }}
+            />
+
             <button
               type="button"
               className="auth-btn-primary"
               onClick={() => handleRegister(false)}
-              disabled={loading}
+              disabled={loading || !captchaToken}
             >
               {loading ? <Loader2 className="spin" size={18} /> : 'Completar Registro'}
             </button>
@@ -535,7 +562,7 @@ export default function AuthView() {
               type="button"
               className="auth-btn-secondary"
               onClick={() => handleRegister(true)}
-              disabled={loading}
+              disabled={loading || !captchaToken}
             >
               Omitir por ahora
             </button>
