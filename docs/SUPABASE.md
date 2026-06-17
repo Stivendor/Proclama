@@ -49,12 +49,9 @@ Datos de usuario extendidos (role, plan, preferencias).
 |---------|------|-------------|
 | `id` | `uuid PK FK → auth.users` | Misma ID que auth.users |
 | `email` | `text` | Email del usuario |
-| `role` | `text` | `'admin'` o `'user'` |
+| `role` | `text` | `'admin'` o `'user'` (CHECK constraint) |
 | `plan` | `text` | `'free'` o `'premium'` |
-| `is_authorized` | `boolean` | Auto-verificación (usuarios de confianza) |
-| `subscription_plan` | `text` | `'monthly'`, `'annual'` o `'lifetime'` |
-| `premium_expires_at` | `timestamptz` | Fecha de expiración del premium |
-| `mp_subscription_id` | `text` | ID de suscripción en MercadoPago |
+| `premium_expires_at` | `timestamptz` | Fecha de expiración del premium (`NULL` = vitalicio) |
 | `terms_version` | `text` | Versión de términos aceptada |
 | `terms_accepted_at` | `timestamptz` | Fecha de aceptación de términos |
 | `settings` | `jsonb` | Preferencias del usuario |
@@ -106,7 +103,6 @@ Auditoría de acciones del panel de administración.
 - `feedback` — Comentarios de usuarios
 - `premium_interest` — Interés en plan premium
 - `user_devices` — Dispositivos registrados por usuario
-- `payments` / `payment_errors` / `payment_notifications` — Pagos MercadoPago
 
 ---
 
@@ -134,7 +130,6 @@ Las políticas deben permitir:
 | `DELETE` | No | Sí |
 
 ### Notas de Seguridad
-- Las tablas de pagos (`payments`, `payment_errors`) solo deben ser accesibles via Edge Functions con Service Role, nunca desde el cliente.
 - Las políticas RLS deben versionarse en migraciones SQL dentro del repositorio.
 - El cliente nunca debe tener acceso directo a tablas sensibles.
 
@@ -148,8 +143,16 @@ Las migraciones están en `supabase/migrations/` y se ejecutan con `supabase mig
 |---------|-------------|
 | `20260510_attendance_records_complements.sql` | Índices + trigger updated_at |
 | `20260513000000_song_reports_anonymous_insert.sql` | Tabla song_reports + RLS |
-| `20260516000000_subscription_fields.sql` | Campos de suscripción en profiles |
+| `20260516000000_subscription_fields.sql` | Agrega `premium_expires_at` a profiles |
 | `20260519000000_songs_admin_rls_policies.sql` | Políticas RLS admin para songs |
+| `20260603000000_add_rejection_reason.sql` | Columna `rejection_reason` en songs |
+| `20260613000000_rls_hardening.sql` | Endurecimiento de políticas RLS |
+| `20260613000001_protect_profile_sensitive_fields.sql` | Protección de campos sensibles en profiles |
+| `20260615000000_simplify_roles.sql` | Colapsa roles a `admin`/`user` con CHECK constraint |
+| `20260615000001_remove_mp_columns.sql` | Elimina `mp_subscription_id` y `subscription_plan` |
+| `20260615000002_protect_premium_expiry.sql` | RLS para proteger `premium_expires_at` |
+| `20260615000003_remove_is_authorized.sql` | Elimina columna `is_authorized` |
+| `20260615000004_add_attendance_time.sql` | Agrega hora al registro de asistencia |
 
 ---
 
@@ -173,8 +176,6 @@ Requiere crear la función RPC en Supabase. Si no existe, `searchSongs()` en el 
 
 | Función | Propósito |
 |---------|-----------|
-| `api-bible-proxy` | Proxy para API de Biblia, protege API key |
-| `create-mercadopago-preference` | Crea preferencia de pago MP |
-| `mercadopago-webhook` | Webhook de MercadoPago |
+| `api-bible-proxy` | Proxy para API de Biblia, protege la API key del servidor |
 
-Todas las funciones usan `ALLOWED_CORS_ORIGINS` para restringir CORS y validan autenticación antes de operar.
+Las funciones validan autenticación y restringen CORS antes de operar.

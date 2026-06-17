@@ -2,7 +2,7 @@
 
 ## Visión General
 
-Proclama es una aplicación web de código abierto para proyección de alabanzas y Biblia en iglesias. Está construida con React 18 + TypeScript + Vite 6 y sigue una arquitectura **offline-first** con persistencia local (IndexedDB) y sincronización opcional en la nube (Supabase).
+Proclama es una aplicación web de código abierto para proyección de alabanzas y Biblia en iglesias. Está construida con React 18 + TypeScript + Vite 8 y sigue una arquitectura **offline-first** con persistencia local (IndexedDB) y sincronización opcional en la nube (Supabase).
 
 ---
 
@@ -48,7 +48,7 @@ Proclama es una aplicación web de código abierto para proyección de alabanzas
 ┌───────────────────────────▼─────────────────────────────────┐
 │                    SUPABASE (PostgreSQL)                      │
 │  songs · setlists · profiles · backgrounds · song_reports   │
-│  attendance_records · admin_logs · feedback · payments       │
+│  attendance_records · admin_logs · feedback                  │
 │  user_devices · premium_interest                             │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -122,7 +122,7 @@ La transición a `/admin` se detecta con `window.location.pathname.startsWith("/
 
 | Categoría | Tecnología |
 |-----------|-----------|
-| Frontend | React 18 + TypeScript + Vite 6 |
+| Frontend | React 18 + TypeScript + Vite 8 |
 | Estado | Zustand 4 + persist middleware |
 | DB local | Dexie 3 (IndexedDB) |
 | Backend | Supabase (Auth, DB, Realtime, Edge Functions) |
