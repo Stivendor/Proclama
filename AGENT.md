@@ -10,7 +10,7 @@ Proclama es un sistema de proyección de alabanzas y Biblia para iglesias, dise�
 
 | Capa | Tecnología |
 |---|---|
-| Framework | React 18 + TypeScript + Vite 6 |
+| Framework | React 18 + TypeScript + Vite 8 |
 | Estado global | Zustand (con `persist` para settings) |
 | DB local (offline) | Dexie (IndexedDB) v4 + `dexie-react-hooks` |
 | DB cloud | Supabase (PostgreSQL) |
@@ -287,6 +287,7 @@ CREATE POLICY "Users manage own attendance"
 | Servicio | Uso | Configuración |
 |---|---|---|
 | Supabase | DB cloud + Auth + Storage | `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` en `.env.local` |
+| Cloudflare Turnstile | Protección anti-bot en login y registro | `VITE_TURNSTILE_SITE_KEY` en `.env.local` |
 | lrclib.net | Búsqueda de letras (sin API key) | Ninguna |
 | bible-api.com | Fallback bíblico | Ninguna |
 
@@ -310,6 +311,7 @@ Solo activos cuando el foco no está en `INPUT`, `TEXTAREA` o `SELECT`.
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_TURNSTILE_SITE_KEY=your-turnstile-site-key
 ```
 
 ---

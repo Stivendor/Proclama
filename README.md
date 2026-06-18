@@ -1,6 +1,6 @@
 # Proclama
 
-Sistema de proyección de alabanzas y Biblia para iglesias, construido con React 18, TypeScript y Vite 6.
+Sistema de proyección de alabanzas y Biblia para iglesias, construido con React 18, TypeScript y Vite 8.
 Funciona directamente en el navegador, sin instalación, con soporte para uso local, sincronización opcional en la nube y una ventana de proyección independiente.
 
 ---
@@ -98,21 +98,21 @@ Proclama reúne en una sola aplicación web:
 - **Dashboard**: Estadísticas generales (usuarios, canciones, reportes, feedback).
 - **Pendientes**: Moderación de canciones — aprobar, rechazar (con motivo) o editar antes de aprobar. Aprobación masiva con checkbox.
 - **Biblioteca Global**: Tabla paginada de todas las canciones con búsqueda y filtros. Alternar verificación, editar o eliminar.
-- **Usuarios**: Lista de usuarios con filtros. Cambiar rol (admin/user), plan (free/premium) y autorización.
+- **Usuarios**: Lista de usuarios con filtros. Cambiar rol (admin/user) y plan (free/premium).
 - **Reportes**: Reportes de usuarios sobre canciones inapropiadas.
 - **Feedback**: Comentarios de usuarios con filtro por estado.
 - Auditoría completa: todas las acciones se registran en `admin_logs`.
 
-### Control de Dispositivos (Premium)
+### Control de Dispositivos
 
 - Registro automático de dispositivos por huella digital.
-- Límite de dispositivos para cuentas premium.
 - Gestión y revocación de dispositivos desde configuración.
 
 ### Autenticación y Seguridad
 
 - Login con email/contraseña via Supabase Auth.
 - Soporte MFA (TOTP) con código QR.
+- Protección anti-bot con Cloudflare Turnstile en login y registro.
 - Términos y condiciones con control de versión.
 - Cierre de sesión atómico — limpia estado global y local.
 
@@ -166,12 +166,14 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 
 | Categoría | Tecnología |
 |-----------|-----------|
-| Frontend | React 18, TypeScript, Vite 6 |
+| Frontend | React 18, TypeScript, Vite 8 |
 | Estado global | Zustand 4 |
 | Persistencia local | Dexie 3 v4 (IndexedDB) |
 | Autenticación y nube | Supabase |
 | UI e iconografía | CSS personalizado, Lucide React |
 | Drag and drop | @dnd-kit/core, @dnd-kit/sortable |
+| Routing | react-router-dom 7 |
+| Bot protection | @marsidev/react-turnstile (Cloudflare Turnstile) |
 | PWA | vite-plugin-pwa |
 | SSG | vite-react-ssg |
 | Observabilidad | @vercel/analytics, @vercel/speed-insights |
@@ -269,20 +271,19 @@ Crea un archivo `.env.local` a partir de la plantilla:
 cp .env.example .env.local
 ```
 
-Las únicas variables requeridas para desarrollo son las de Supabase:
+Las variables requeridas para desarrollo:
 
 ```bash
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_TURNSTILE_SITE_KEY=your-turnstile-site-key   # clave pública de Cloudflare Turnstile
 ```
 
-El resto de secretos (MercadoPago, API Bible, webhooks) se configuran directamente en Supabase Edge Functions con `supabase secrets set`, nunca en Vite.
+Los secretos de servidor (API Bible, Service Role) se configuran directamente en Supabase Edge Functions con `supabase secrets set`, nunca en Vite.
 
 Notas de seguridad:
 
 - Las variables con prefijo `VITE_` son públicas para el navegador. **Nunca** pongas tokens privados, service role keys o access tokens con ese prefijo.
-- Los secretos de MercadoPago, API Bible y Service Role deben configurarse como secretos de Supabase Edge Functions, no en el frontend.
-- Para checkout en Edge Functions, usa `ALLOWED_CORS_ORIGINS` con la lista explícita de orígenes permitidos.
 - Ver `.env.example` para la lista completa de variables disponibles.
 
 - Supabase es necesario para autenticación y sincronización en la nube.
@@ -308,14 +309,12 @@ Notas de seguridad:
 
 ## Seguridad y Operacion
 
-- Auditoria vigente: [docs/security-audit-2026-05-02.md](docs/security-audit-2026-05-02.md).
 - Ejecuta `npm audit --omit=dev` antes de publicar una version.
 - Manten `supabase/.temp/`, `.env.local`, logs locales y dumps fuera del control de versiones.
 - Las funciones premium del cliente son controles de interfaz; cualquier permiso real debe validarse con RLS, Supabase Auth o Edge Functions.
 - Las tablas con datos por usuario deben tener RLS activo y policies versionadas en migraciones.
-- Los webhooks de pago deben validar firma, monto, moneda, producto y usuario antes de activar planes.
-- El checkout de MercadoPago restringe CORS con `ALLOWED_CORS_ORIGINS`; evita volver a `Access-Control-Allow-Origin: *`.
 - IndexedDB y localStorage no estan cifrados: evita guardar secretos o datos que no deban quedar en el dispositivo.
+- **Modelo de lanzamiento**: durante el período de lanzamiento, `PREMIUM_FOR_EVERYONE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
 
 ---
 
@@ -370,7 +369,6 @@ npm run test:ui   # Tests con interfaz UI Vitest
 | [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Arquitectura detallada, flujo de datos, stores, componentes |
 | [docs/SUPABASE.md](docs/SUPABASE.md) | Esquema de base de datos, RLS, migraciones, Edge Functions |
 | [docs/ADMIN.md](docs/ADMIN.md) | Guía del panel de administración |
-| [docs/security-audit-2026-05-02.md](docs/security-audit-2026-05-02.md) | Auditoría de seguridad |
 
 ---
 

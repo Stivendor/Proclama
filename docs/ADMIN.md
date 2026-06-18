@@ -56,7 +56,6 @@ Tabla paginada de todas las canciones en Supabase.
 Lista paginada de usuarios con filtros por búsqueda, plan y rol.
 
 **Acciones**:
-- Alternar autorización (`is_authorized`): usuarios autorizados publican canciones sin moderación
 - Cambiar plan entre free/premium
 - Cambiar rol entre user/admin
 
@@ -101,14 +100,19 @@ src/admin/
 ├── AdminErrorBoundary.tsx      # Manejo de errores
 ├── components/
 │   ├── DataTable.tsx           # Tabla paginable reutilizable
-│   └── StatCard.tsx            # Tarjeta de estadística
+│   ├── StatCard.tsx            # Tarjeta de estadística
+│   └── Map.tsx                 # Mapa (leaflet) de actividad
 ├── pages/
 │   ├── DashboardPage.tsx
 │   ├── PendingSongsPage.tsx
 │   ├── GlobalLibraryPage.tsx
 │   ├── UsersPage.tsx
+│   ├── PlansPage.tsx           # Gestión manual de planes premium
 │   ├── ReportsPage.tsx
-│   └── FeedbackPage.tsx
+│   ├── FeedbackPage.tsx
+│   ├── BackgroundsPage.tsx     # Gestión de fondos globales
+│   ├── SuggestionsPage.tsx     # Sugerencias de usuarios
+│   └── ActivityLogsPage.tsx    # Historial de audit logs
 └── services/
     ├── adminQueries.ts         # Queries a Supabase
     └── adminLogs.ts            # Registro de acciones
