@@ -40,6 +40,11 @@ Thumbs.db
 coverage/
 .nyc_output/
 
+# Playwright
+test-results/
+playwright-report/
+tests/.auth/
+
 # Misc
 .turbo/
 .parcel-cache/
