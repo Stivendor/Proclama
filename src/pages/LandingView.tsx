@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, Check, ChevronRight, Cpu, Download, FileSpreadsheet, Globe, LogOut, Mail, Music2, Search, Shield, Sparkles, User, Video, Zap, Instagram } from 'lucide-react'
+import { BookOpen, Check, ChevronRight, Download, FileSpreadsheet, Globe, LogOut, Music2, Search, Sparkles, User, Zap, Instagram } from 'lucide-react'
 
 const TikTokIcon = ({ size = 24, color = 'currentColor' }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -185,6 +185,7 @@ export default function LandingView() {
       <main className="landing-main">
         <section className="hero">
           <div className="hero-copy">
+            <span className="hero-badge animate-fade-up">{t(language, 'landing.hero.badge')}</span>
             <h1 className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
               {t(language, 'landing.hero.title')}
               <br />
@@ -203,8 +204,8 @@ export default function LandingView() {
               }}>
                 {user ? t(language, 'landing.hero.ctaAuthenticated') : t(language, 'landing.hero.ctaGuest')} <ChevronRight size={18} />
               </button>
-              <button className="landing-btn-secondary" onClick={() => document.getElementById('funciones')?.scrollIntoView({ behavior: 'smooth' })}>
-                {t(language, 'landing.hero.viewFeatures')}
+              <button className="landing-btn-secondary" onClick={() => document.getElementById('reportes')?.scrollIntoView({ behavior: 'smooth' })}>
+                {t(language, 'landing.hero.viewReports')}
               </button>
               {canInstall && (
                 <button className="landing-btn-download" onClick={handleInstall}>
@@ -216,9 +217,11 @@ export default function LandingView() {
 
           <div className="hero-panel animate-pop-in" style={{ animationDelay: '0.4s' }}>
             <div className="hero-screenshot-container">
-              <img 
-                src="/app.jpg" 
-                alt="Proclama Interface" 
+              {/* ponytail: /projection.jpg = captura real de una letra proyectada (subir). Cae a /app.jpg si falta. */}
+              <img
+                src="/projection.jpg"
+                onError={(e) => { e.currentTarget.src = '/app.jpg' }}
+                alt="Letra proyectada en pantalla con Proclama"
                 className="hero-screenshot"
               />
               <div className="screenshot-overlay" />
@@ -226,40 +229,30 @@ export default function LandingView() {
           </div>
         </section>
 
+        {/* Beneficios — bento asimétrico, reemplaza las 6 tarjetas idénticas */}
         <section id="funciones" className="section">
           <div className="section-head animate-on-scroll">
-            <h2>{t(language, 'landing.features.title')}</h2>
+            <h2>{t(language, 'landing.benefits.title')}</h2>
           </div>
-          <div className="feature-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-            <article className="feature-card animate-on-scroll delay-1">
-              <Cpu size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card1Title')}</h3>
-              <p>{t(language, 'landing.features.card1Desc')}</p>
+          <div className="benefits-grid">
+            <article className="bento bento-stat animate-on-scroll">
+              <span className="bento-num">{t(language, 'landing.benefits.statValue')}</span>
+              <p>{t(language, 'landing.benefits.statLabel')}</p>
             </article>
-            <article className="feature-card animate-on-scroll delay-2">
-              <BookOpen size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card2Title')}</h3>
-              <p>{t(language, 'landing.features.card2Desc')}</p>
+            <article className="bento animate-on-scroll delay-1">
+              <Zap size={26} color="#c9a658" />
+              <h3>{t(language, 'landing.benefits.resilienceTitle')}</h3>
+              <p>{t(language, 'landing.benefits.resilienceDesc')}</p>
             </article>
-            <article className="feature-card animate-on-scroll delay-3">
-              <FileSpreadsheet size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card3Title')}</h3>
-              <p>{t(language, 'landing.features.card3Desc')}</p>
+            <article className="bento animate-on-scroll delay-2">
+              <BookOpen size={26} color="#c9a658" />
+              <h3>{t(language, 'landing.benefits.biblesTitle')}</h3>
+              <p>{t(language, 'landing.benefits.biblesDesc')}</p>
             </article>
-            <article className="feature-card animate-on-scroll delay-4">
-              <Globe size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card4Title')}</h3>
-              <p>{t(language, 'landing.features.card4Desc')}</p>
-            </article>
-            <article className="feature-card animate-on-scroll delay-1" style={{ animationDelay: '0.1s' }}>
-              <Sparkles size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card5Title')}</h3>
-              <p>{t(language, 'landing.features.card5Desc')}</p>
-            </article>
-            <article className="feature-card animate-on-scroll delay-2" style={{ animationDelay: '0.2s' }}>
-              <Shield size={28} color="#c9a658" />
-              <h3>{t(language, 'landing.features.card6Title')}</h3>
-              <p>{t(language, 'landing.features.card6Desc')}</p>
+            <article className="bento bento-wide animate-on-scroll delay-3">
+              <Check size={26} color="#c9a658" />
+              <h3>{t(language, 'landing.benefits.freeTitle')}</h3>
+              <p>{t(language, 'landing.benefits.freeDesc')}</p>
             </article>
           </div>
         </section>
@@ -271,51 +264,7 @@ export default function LandingView() {
           </div>
 
           <div className="showcase-grid">
-            {/* Función 1: Biblias */}
-            <div className="showcase-item animate-on-scroll">
-              <div className="showcase-content">
-                <div className="feature-icon"><Globe size={24} color="#c9a658" /></div>
-                <h3>{t(language, 'landing.showcase.biblesTitle')}</h3>
-                <p>{t(language, 'landing.showcase.biblesDesc')}</p>
-                <ul className="feature-list">
-                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem1')}</li>
-                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem2')}</li>
-                  <li><Check size={16} /> {t(language, 'landing.showcase.biblesItem3')}</li>
-                </ul>
-              </div>
-              <div className="showcase-visual">
-                <div className="screenshot-reveal reveal-right">
-                  <div className="screenshot-frame">
-                    <img src="/bible.jpg" alt="Biblias Multilingües" />
-                  </div>
-                  <div className="visual-glow" />
-                </div>
-              </div>
-            </div>
-
-            {/* Función 2: Setlists y Confiabilidad */}
-            <div className="showcase-item inverted animate-on-scroll">
-              <div className="showcase-content">
-                <div className="feature-icon"><FileSpreadsheet size={24} color="#c9a658" /></div>
-                <h3>{t(language, 'landing.showcase.setlistsTitle')}</h3>
-                <p>{t(language, 'landing.showcase.setlistsDesc')}</p>
-                <ul className="feature-list">
-                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem1')}</li>
-                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem2')}</li>
-                  <li><Check size={16} /> {t(language, 'landing.showcase.setlistsItem3')}</li>
-                </ul>
-              </div>
-              <div className="showcase-visual">
-                <div className="screenshot-reveal reveal-left">
-                  <div className="screenshot-frame">
-                    <img src="/setlist.jpg" alt="Gestión de Setlists" />
-                  </div>
-                  <div className="visual-glow" />
-                </div>
-              </div>
-            </div>
-
-            {/* Función 3: Búsqueda Online */}
+            {/* Función 1: Búsqueda rápida en la Biblia */}
             <div className="showcase-item animate-on-scroll">
               <div className="showcase-content">
                 <div className="feature-icon"><Search size={24} color="#c9a658" /></div>
@@ -330,13 +279,73 @@ export default function LandingView() {
               <div className="showcase-visual">
                 <div className="screenshot-reveal reveal-right">
                   <div className="screenshot-frame">
-                    <img src="/search.jpg" alt="Búsqueda Online de Canciones" />
+                    <img src="/bible.jpg" alt="Búsqueda de pasajes en la Biblia" />
+                  </div>
+                  <div className="visual-glow" />
+                </div>
+              </div>
+            </div>
+
+            {/* Función 2: Biblioteca colaborativa */}
+            <div className="showcase-item inverted animate-on-scroll">
+              <div className="showcase-content">
+                <div className="feature-icon"><Music2 size={24} color="#c9a658" /></div>
+                <h3>{t(language, 'landing.showcase.libraryTitle')}</h3>
+                <p>{t(language, 'landing.showcase.libraryDesc')}</p>
+                <ul className="feature-list">
+                  <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem1')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem2')}</li>
+                  <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem3')}</li>
+                </ul>
+              </div>
+              <div className="showcase-visual">
+                <div className="screenshot-reveal reveal-left">
+                  <div className="screenshot-frame">
+                    <img src="/search.jpg" alt="Biblioteca colaborativa de canciones" />
                   </div>
                   <div className="visual-glow" />
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Función 3 (DESTACADA): Reportes de asistencia — visual más prominente */}
+          <div id="reportes" className="reports-feature animate-on-scroll">
+            <div className="reports-head">
+              <span className="reports-badge"><Sparkles size={14} /> {t(language, 'landing.showcase.reportsBadge')}</span>
+              <h3>{t(language, 'landing.showcase.reportsTitle')}</h3>
+              <p>{t(language, 'landing.showcase.reportsDesc')}</p>
+            </div>
+            {/* ponytail: /report.jpg = captura grande del PDF con gráficas (subir). Mientras falte, muestra el hueco marcado. */}
+            <div className="reports-visual">
+              <div className="ph-label">Sube la captura del reporte PDF a <code>/public/report.jpg</code></div>
+              <img
+                src="/report.jpg"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+                alt="Reporte PDF de asistencia con gráficas y estadísticas"
+              />
+            </div>
+            <ul className="reports-list">
+              <li><FileSpreadsheet size={18} /> {t(language, 'landing.showcase.reportsItem1')}</li>
+              <li><Download size={18} /> {t(language, 'landing.showcase.reportsItem2')}</li>
+              <li><Check size={18} /> {t(language, 'landing.showcase.reportsItem3')}</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Testimonio — placeholder estructurado para humanizar */}
+        <section className="section testimonial-section">
+          <figure className="testimonial-card animate-on-scroll">
+            <span className="testimonial-label">{t(language, 'landing.testimonial.label')}</span>
+            <blockquote>{t(language, 'landing.testimonial.quote')}</blockquote>
+            <figcaption>
+              <div className="testimonial-avatar" aria-hidden="true"><User size={24} /></div>
+              <div>
+                <strong>{t(language, 'landing.testimonial.name')}</strong>
+                <span>{t(language, 'landing.testimonial.role')}</span>
+              </div>
+            </figcaption>
+          </figure>
         </section>
 
 
@@ -428,8 +437,7 @@ export default function LandingView() {
           z-index: 0;
           pointer-events: none;
           background:
-            radial-gradient(circle at top right, rgba(201, 166, 88, 0.16), transparent 28%),
-            radial-gradient(circle at bottom left, rgba(52, 152, 219, 0.12), transparent 26%),
+            radial-gradient(circle at 78% 8%, rgba(201, 166, 88, 0.1), transparent 30%),
             linear-gradient(180deg, #05070d, #0a0e17);
         }
         .landing-main,
@@ -586,18 +594,27 @@ export default function LandingView() {
           font-size: 13px;
           font-weight: 600;
         }
+        .hero-badge {
+          display: inline-block;
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(201, 166, 88, 0.28);
+          background: rgba(201, 166, 88, 0.07);
+          color: #d9c189;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 0.2px;
+        }
         .hero-copy h1 {
-          margin: 20px 0 16px;
-          font-family: 'Montserrat', sans-serif;
-          font-size: clamp(42px, 5vw, 68px);
-          line-height: 1.04;
+          margin: 22px 0 18px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          font-size: clamp(44px, 5.4vw, 74px);
+          line-height: 1.0;
+          letter-spacing: -0.02em;
           text-wrap: balance;
         }
-        .hero-copy h1 span {
-          background: linear-gradient(90deg, #fff, #c9a658);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
+        .hero-copy h1 span { color: #c9a658; }
         .hero-copy p,
         .section-head p,
         .hero-card p,
@@ -647,8 +664,10 @@ export default function LandingView() {
         .section-head { text-align: center; margin-bottom: 42px; }
         .section-head h2, .interest-card h2 {
           margin: 0 0 12px;
-          font-family: 'Montserrat', sans-serif;
-          font-size: clamp(30px, 4vw, 40px);
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          letter-spacing: -0.015em;
+          font-size: clamp(30px, 4vw, 44px);
           text-wrap: balance;
         }
         .feature-grid {
@@ -683,9 +702,12 @@ export default function LandingView() {
         .showcase-item.inverted .showcase-visual { order: 1; }
         
         .showcase-content h3 {
-          font-size: 36px;
+          font-size: clamp(26px, 3vw, 34px);
           margin: 20px 0;
-          font-family: 'Montserrat', sans-serif;
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          letter-spacing: -0.015em;
+          line-height: 1.12;
           color: white;
         }
         .showcase-content p { font-size: 17px; margin-bottom: 24px; }
@@ -717,7 +739,7 @@ export default function LandingView() {
         .visual-glow {
           position: absolute;
           inset: -20px;
-          background: radial-gradient(circle at center, rgba(201, 166, 88, 0.15), transparent 70%);
+          background: radial-gradient(circle at center, rgba(201, 166, 88, 0.06), transparent 70%);
           z-index: 1;
           pointer-events: none;
         }
@@ -737,6 +759,183 @@ export default function LandingView() {
           .feature-list { align-items: center; }
           .showcase-grid { gap: 100px; }
         }
+        /* ── Beneficios (bento asimétrico) ───────────────────────── */
+        .benefits-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+        .bento {
+          border-radius: 22px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+          padding: 28px;
+        }
+        .bento h3 {
+          font-size: 19px;
+          font-weight: 700;
+          margin: 14px 0 8px;
+        }
+        .bento-stat {
+          grid-row: span 2;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          background: linear-gradient(160deg, rgba(201,166,88,0.12), rgba(201,166,88,0.02));
+          border-color: rgba(201, 166, 88, 0.2);
+        }
+        .bento-num {
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          font-size: clamp(56px, 7vw, 96px);
+          line-height: 0.95;
+          color: #c9a658;
+          letter-spacing: -0.02em;
+        }
+        .bento-stat p { margin-top: 16px; font-size: 16px; }
+        .bento-wide { grid-column: span 2; }
+        @media (max-width: 760px) {
+          .benefits-grid { grid-template-columns: 1fr; }
+          .bento-stat { grid-row: auto; text-align: center; align-items: center; }
+          .bento-wide { grid-column: auto; }
+        }
+
+        /* ── Reportes (función destacada, visual prominente) ─────── */
+        .reports-feature {
+          margin-top: 140px;
+          padding: 48px clamp(20px, 4vw, 56px) 40px;
+          border-radius: 28px;
+          border: 1px solid rgba(201, 166, 88, 0.22);
+          background:
+            radial-gradient(circle at 50% 0%, rgba(201,166,88,0.12), transparent 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+        }
+        .reports-head { max-width: 720px; margin: 0 auto 36px; text-align: center; }
+        .reports-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 999px;
+          background: rgba(201, 166, 88, 0.14);
+          border: 1px solid rgba(201, 166, 88, 0.3);
+          color: #f0dfb6;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+        .reports-head h3 {
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 600;
+          letter-spacing: -0.015em;
+          font-size: clamp(28px, 3.6vw, 42px);
+          line-height: 1.08;
+          margin: 18px 0 14px;
+        }
+        .reports-head p { font-size: 17px; }
+        .reports-visual {
+          position: relative;
+          max-width: 880px;
+          margin: 0 auto;
+          border-radius: 18px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.55);
+          background: #0a0e17;
+          min-height: 280px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .reports-visual img { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+        .ph-label {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 24px;
+          color: #5e6b82;
+          font-size: 14px;
+          border: 1px dashed rgba(255,255,255,0.12);
+          border-radius: 18px;
+        }
+        .ph-label code {
+          color: #c9a658;
+          background: rgba(201,166,88,0.1);
+          padding: 2px 6px;
+          border-radius: 6px;
+        }
+        .reports-list {
+          list-style: none;
+          padding: 0;
+          margin: 32px auto 0;
+          max-width: 880px;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+        }
+        .reports-list li {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          color: #d5dce7;
+          font-size: 15px;
+          line-height: 1.5;
+        }
+        .reports-list li svg { flex-shrink: 0; color: #c9a658; margin-top: 2px; }
+        @media (max-width: 760px) {
+          .reports-feature { margin-top: 90px; }
+          .reports-list { grid-template-columns: 1fr; }
+        }
+
+        /* ── Testimonio (placeholder humano) ─────────────────────── */
+        .testimonial-section { display: flex; justify-content: center; }
+        .testimonial-card {
+          position: relative;
+          max-width: 720px;
+          width: 100%;
+          padding: 40px;
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
+        }
+        .testimonial-label {
+          display: inline-block;
+          margin-bottom: 18px;
+          padding: 4px 12px;
+          border-radius: 999px;
+          border: 1px dashed rgba(201,166,88,0.4);
+          color: #9c8a5e;
+          font-size: 12px;
+        }
+        .testimonial-card blockquote {
+          margin: 0 0 24px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 400;
+          font-size: clamp(20px, 2.4vw, 26px);
+          line-height: 1.45;
+          color: #e7edf8;
+        }
+        .testimonial-card figcaption { display: flex; align-items: center; gap: 14px; }
+        .testimonial-avatar {
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: rgba(201,166,88,0.12);
+          border: 1px solid rgba(201,166,88,0.25);
+          color: #c9a658;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .testimonial-card figcaption strong { display: block; color: #e7edf8; font-size: 15px; }
+        .testimonial-card figcaption span { color: #9aa6bb; font-size: 14px; }
+
         .feature-card, .plan-card, .interest-card {
           border-radius: 22px;
           border: 1px solid rgba(255,255,255,0.08);
