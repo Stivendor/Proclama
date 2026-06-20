@@ -3,18 +3,20 @@ import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { supabase } from '@/services/supabase'
 import { onMessage } from '@/services/projection'
+import { isPremiumFromProfile } from '@/hooks/usePlan'
 
 export function useAuth() {
   const [needsChurchReg, setNeedsChurchReg] = useState(false)
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false)
   const initRef = useRef(false)
 
-  const { setUser, setUserRole, setUserPlan, setAuthStatus, acceptTerms, checkTermsVersion } =
+  const { setUser, setUserRole, setUserPlan, setPremiumExpiresAt, setAuthStatus, acceptTerms, checkTermsVersion } =
     useAppStore(
       useShallow((s) => ({
         setUser: s.setUser,
         setUserRole: s.setUserRole,
         setUserPlan: s.setUserPlan,
+        setPremiumExpiresAt: s.setPremiumExpiresAt,
         setAuthStatus: s.setAuthStatus,
         acceptTerms: s.acceptTerms,
         checkTermsVersion: s.checkTermsVersion,
@@ -60,11 +62,20 @@ export function useAuth() {
               const { fetchProfile } = await import('@/services/supabase')
               const profile = await fetchProfile(user.id)
 
+              const profileIsPremium = profile
+                ? isPremiumFromProfile({
+                    plan: profile.plan,
+                    role: profile.role,
+                    premiumExpiresAt: profile.premiumExpiresAt,
+                  })
+                : false
+
               if (profile) {
                 setUserRole(profile.role)
                 setUserPlan(profile.plan)
+                setPremiumExpiresAt(profile.premiumExpiresAt)
 
-                if (profile.plan === 'premium' || profile.role === 'admin') {
+                if (profileIsPremium) {
                   import('@/services/attendanceSync')
                     .then(async ({ pullRemoteRecords, syncAttendanceRecords, migrateGuestRecords }) => {
                       try {
@@ -79,10 +90,8 @@ export function useAuth() {
 
               useAppStore.getState().fetchCloudSettings()
 
-              const planToCheck = profile?.plan || useAppStore.getState().userPlan
-
               // Device check — admins are exempt from the device limit
-              if (planToCheck === 'premium' && profile?.role !== 'admin') {
+              if (profileIsPremium && profile?.role !== 'admin') {
                 import('@/utils/deviceFingerprint')
                   .then(async ({ getDeviceId, getDeviceName }) => {
                     const { fetchUserDevices, registerDevice } = await import('@/services/supabase')

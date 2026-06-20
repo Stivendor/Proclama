@@ -19,7 +19,7 @@ vi.mock('@/components/DeviceList', () => ({
 }))
 
 vi.mock('@/hooks/usePlan', () => ({
-  PREMIUM_FOR_EVERYONE: true,
+  FOUNDING_PHASE: true,
   usePlan: () => ({ isPremium: false }),
 }))
 

@@ -8,7 +8,7 @@ import type { Song } from '@/types'
 import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
-import { usePlan, FREE_SONG_LIMIT, FREE_PROJECTION_LIMIT } from '@/hooks/usePlan'
+import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
 
@@ -22,8 +22,7 @@ export default function LibraryView() {
     clearRecentSongs: s.clearRecentSongs
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { canCreateSong, canUseGenius, canProjectSong, isPremium } = usePlan()
-  const [blockedMessage, setBlockedMessage] = useState<string | null>(null)
+  const { canCreateSong, canUseGenius } = usePlan()
 
   // Conteo de canciones propias del usuario (para el límite free)
   const ownSongCount = useLiveQuery(async () => {
@@ -60,12 +59,6 @@ export default function LibraryView() {
     return () => clearTimeout(timer)
   }, [remoteError])
 
-  // Auto-dismiss blocked message after 5 seconds
-  useEffect(() => {
-    if (!blockedMessage) return
-    const timer = setTimeout(() => setBlockedMessage(null), 5000)
-    return () => clearTimeout(timer)
-  }, [blockedMessage])
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
@@ -330,14 +323,7 @@ export default function LibraryView() {
   }
 
   const handleLoad = async (song: Song) => {
-    const rank = songRanking.get(song.id ?? 0) ?? Infinity
-    const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
-
-    if (blocked) {
-      setBlockedMessage(`Esta canción requiere el Plan Pro. Solo puedes proyectar las 50 más populares gratis.`)
-      return
-    }
-
+    // La proyección nunca se bloquea: cualquier usuario proyecta cualquier canción.
     loadSong(song)
     if (song.id != null) {
       const newUsage = (song.usageCount || 0) + 1
@@ -549,21 +535,16 @@ export default function LibraryView() {
                 </button>
               </div>
               <div className="recent-songs-list">
-                {recentSongs.map(rs => {
-                  const rank = songRanking.get(rs.id ?? 0) ?? Infinity
-                  const blocked = !isPremium && (rs.userId !== user?.id || !rs.userId) && rank > FREE_PROJECTION_LIMIT
-                  return (
-                    <button
-                      key={rs.id}
-                      className={`btn-recent-song ${blocked ? 'blocked' : ''}`}
-                      onClick={() => handleLoad(rs)}
-                      title={blocked ? 'Esta canción requiere el Plan Pro' : `Cargar ${rs.title}`}
-                    >
-                      {blocked && <Lock size={10} style={{ marginRight: 4 }} />}
-                      {rs.title}
-                    </button>
-                  )
-                })}
+                {recentSongs.map(rs => (
+                  <button
+                    key={rs.id}
+                    className="btn-recent-song"
+                    onClick={() => handleLoad(rs)}
+                    title={`Cargar ${rs.title}`}
+                  >
+                    {rs.title}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -596,18 +577,15 @@ export default function LibraryView() {
               <>
                 {songs.map(song => {
                   const rank = songRanking.get(song.id ?? 0) ?? Infinity
-                  const blocked = !isPremium && (song.userId !== user?.id || !song.userId) && rank > FREE_PROJECTION_LIMIT
                   return (
                     <SongListItem
                       key={song.id}
                       song={song}
                       rank={rank}
-                      blocked={blocked}
                       onEdit={handleEdit}
                       onLoad={handleLoad}
                       onDelete={handleDelete}
                       onPublish={handlePublish}
-                      onBlocked={() => setBlockedMessage(`Solo usuarios premium pueden proyectar canciones más allá del top ${FREE_PROJECTION_LIMIT}`)}
                     />
                   )
                 })}
@@ -672,19 +650,6 @@ export default function LibraryView() {
         />
       )}
 
-      {blockedMessage && (
-        <ConfirmDialog
-          message={blockedMessage}
-          onConfirm={() => {
-            setBlockedMessage(null)
-            useAppStore.getState().setForceLanding(true, 'planes')
-          }}
-          onCancel={() => setBlockedMessage(null)}
-          confirmLabel="Ver Planes Pro"
-          cancelLabel="Cerrar"
-          icon={<Lock size={20} color="var(--gold)" />}
-        />
-      )}
       {importStatus && (
         <div role="status" aria-live="polite" style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
@@ -700,15 +665,13 @@ export default function LibraryView() {
 }
 
 const SongListItem = memo(function SongListItem({
-  song, rank, blocked, onEdit, onLoad, onDelete, onBlocked, showImport, onImport, onPublish
+  song, rank, onEdit, onLoad, onDelete, showImport, onImport, onPublish
 }: {
   song: Song,
   rank?: number,
-  blocked?: boolean,
   onEdit: (s: Song) => void,
   onLoad: (s: Song) => void,
   onDelete: (s: Song) => void,
-  onBlocked?: () => void
   showImport?: boolean
   onImport?: (s: Song) => void
   onPublish?: (s: Song) => void
@@ -718,10 +681,6 @@ const SongListItem = memo(function SongListItem({
   const isActive = activeTitle === song.title
 
   const handleClick = () => {
-    if (blocked) {
-      onBlocked?.()
-      return
-    }
     onLoad(song)
   }
 
@@ -736,15 +695,14 @@ const SongListItem = memo(function SongListItem({
 
   return (
     <div
-      className={`song-card-compact ${isActive ? 'active' : ''} ${blocked ? 'blocked' : ''}`}
+      className={`song-card-compact ${isActive ? 'active' : ''}`}
       onClick={handleClick}
     >
       <div className="song-card-info">
         <div className="song-card-title-row">
           <div className="song-card-title">{song.title}</div>
           {getStatusIcon()}
-          {blocked && <span title={`Top ${FREE_PROJECTION_LIMIT}+ — Solo premium`}><Lock size={12} className="status-icon-blocked" /></span>}
-          {rank && rank > 0 && !blocked && <span className="rank-badge" title={`#${rank} en uso`}>#{rank}</span>}
+          {rank && rank > 0 && <span className="rank-badge" title={`#${rank} en uso`}>#{rank}</span>}
         </div>
         <div className="song-card-artist">{song.artist || 'Sin artista'}</div>
       </div>

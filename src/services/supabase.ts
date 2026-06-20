@@ -304,11 +304,15 @@ export async function fetchProfile(userId: string) {
 
   const mappedRole = data.role === 'admin' ? 'admin' : 'user'
   const premiumExpiresAt: string | null = data.premium_expires_at
-  const isPremiumActive = data.plan === 'premium' && (!premiumExpiresAt || new Date(premiumExpiresAt) > new Date())
+  // Devolvemos el plan CRUDO ('free'|'trial'|'paid'|'founding'); la decisión de
+  // "es premium" la toma isPremiumFromProfile / public.is_premium (fuente de verdad).
+  const rawPlan = (['free', 'trial', 'paid', 'founding'].includes(data.plan)
+    ? data.plan
+    : 'free') as 'free' | 'trial' | 'paid' | 'founding'
 
   return {
     role: mappedRole as 'admin' | 'user',
-    plan: isPremiumActive ? 'premium' : 'free' as 'free' | 'premium',
+    plan: rawPlan,
     premiumExpiresAt,
   }
 }

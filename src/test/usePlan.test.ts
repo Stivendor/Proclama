@@ -1,137 +1,107 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { FREE_SONG_LIMIT } from '@/hooks/usePlan'
+import { describe, it, expect } from 'vitest'
+import { FREE_SONG_LIMIT, FOUNDING_PHASE, isPremiumFromProfile, type PlanTier } from '@/hooks/usePlan'
 
 /**
  * Tests de la lógica de planes freemium.
- * usePlan() es un hook de React que depende de Zustand, por lo que
- * testeamos la lógica pura directamente (sin renderizar componentes).
+ * usePlan() es un hook de React (Zustand), así que testeamos la lógica pura:
+ *  - isPremiumFromProfile: la fuente de verdad de "es premium" (espeja public.is_premium).
+ *  - buildPlanLogic: la matriz de capacidades post-lanzamiento (con FOUNDING_PHASE simulado en false).
  */
 
-// Lógica pura extraída de usePlan para testear sin hooks
-const PREMIUM_FOR_EVERYONE = false
+const FUTURE = new Date(Date.now() + 86_400_000).toISOString() // +1 día
+const PAST = new Date(Date.now() - 86_400_000).toISOString() // -1 día
 
-function buildPlanLogic(userPlan: 'free' | 'premium', userRole: 'admin' | 'user' | null) {
-  const isPremium = PREMIUM_FOR_EVERYONE || userRole === 'admin' || userPlan === 'premium'
+describe('FREE_SONG_LIMIT', () => {
+  it('es 30', () => {
+    expect(FREE_SONG_LIMIT).toBe(30)
+  })
+})
+
+describe('isPremiumFromProfile (función real)', () => {
+  it('durante FOUNDING_PHASE, todos son premium', () => {
+    // En esta fase el flag está en true: cualquier perfil es premium.
+    expect(FOUNDING_PHASE).toBe(true)
+    expect(isPremiumFromProfile({ plan: 'free', role: 'user', premiumExpiresAt: null })).toBe(true)
+  })
+})
+
+/**
+ * Lógica de capacidades para CUANDO FOUNDING_PHASE pase a false.
+ * Mantiene la matriz Free vs Pro documentada y probada antes de activar pagos.
+ */
+function premiumFromPlan(plan: PlanTier, role: 'admin' | 'user' | null, expiresAt: string | null): boolean {
+  if (role === 'admin') return true
+  const ms = expiresAt ? new Date(expiresAt).getTime() : null
+  const notExpired = ms == null || ms > Date.now()
+  switch (plan) {
+    case 'founding': return true
+    case 'paid': return notExpired
+    case 'trial': return ms != null && ms > Date.now()
+    default: return false
+  }
+}
+
+function buildPlanLogic(plan: PlanTier, role: 'admin' | 'user' | null, expiresAt: string | null = null) {
+  const isPremium = premiumFromPlan(plan, role, expiresAt)
   return {
     isPremium,
     plan: isPremium ? 'premium' : ('free' as const),
     canCreateSong: (ownSongCount: number) => isPremium || ownSongCount < FREE_SONG_LIMIT,
+    canProjectSong: () => true,
     canUseGenius: isPremium,
     canSync: isPremium,
-    canUseMediaBackgrounds: true,
+    canUseMediaBackgrounds: isPremium,
+    canViewAttendance: true,
     canExportReports: isPremium,
+    canImportBibles: isPremium,
   }
 }
 
-describe('FREE_SONG_LIMIT', () => {
-  it('es 10', () => {
-    expect(FREE_SONG_LIMIT).toBe(10)
-  })
-})
-
-describe('Plan free', () => {
+describe('Plan free (post-lanzamiento)', () => {
   const plan = buildPlanLogic('free', 'user')
 
-  it('isPremium es false', () => {
-    expect(plan.isPremium).toBe(false)
-  })
-
-  it('plan es "free"', () => {
-    expect(plan.plan).toBe('free')
-  })
-
-  it('puede crear canciones hasta el límite', () => {
-    expect(plan.canCreateSong(0)).toBe(true)
-    expect(plan.canCreateSong(9)).toBe(true)
+  it('isPremium es false', () => expect(plan.isPremium).toBe(false))
+  it('puede proyectar siempre (core nunca se bloquea)', () => expect(plan.canProjectSong()).toBe(true))
+  it('puede ver asistencia básica', () => expect(plan.canViewAttendance).toBe(true))
+  it('crea canciones hasta el límite', () => {
     expect(plan.canCreateSong(FREE_SONG_LIMIT - 1)).toBe(true)
-  })
-
-  it('no puede crear canciones al alcanzar el límite', () => {
     expect(plan.canCreateSong(FREE_SONG_LIMIT)).toBe(false)
-    expect(plan.canCreateSong(FREE_SONG_LIMIT + 1)).toBe(false)
-    expect(plan.canCreateSong(100)).toBe(false)
   })
-
-  it('no puede usar Genius', () => {
+  it('NO usa Genius, sync, media, reportes ni importar biblias', () => {
     expect(plan.canUseGenius).toBe(false)
-  })
-
-  it('no puede sincronizar', () => {
     expect(plan.canSync).toBe(false)
-  })
-
-  it('puede usar fondos multimedia (siempre disponible)', () => {
-    expect(plan.canUseMediaBackgrounds).toBe(true)
-  })
-
-  it('no puede exportar reportes', () => {
+    expect(plan.canUseMediaBackgrounds).toBe(false)
     expect(plan.canExportReports).toBe(false)
+    expect(plan.canImportBibles).toBe(false)
   })
 })
 
-describe('Plan premium', () => {
-  const plan = buildPlanLogic('premium', 'user')
+describe('Plan founding (permanente)', () => {
+  const plan = buildPlanLogic('founding', 'user')
+  it('es premium sin vencimiento', () => expect(plan.isPremium).toBe(true))
+  it('crea canciones ilimitadas', () => expect(plan.canCreateSong(1000)).toBe(true))
+})
 
-  it('isPremium es true', () => {
-    expect(plan.isPremium).toBe(true)
+describe('Plan paid (suscripción)', () => {
+  it('activo mientras no venza (o vitalicio si null)', () => {
+    expect(buildPlanLogic('paid', 'user', FUTURE).isPremium).toBe(true)
+    expect(buildPlanLogic('paid', 'user', null).isPremium).toBe(true)
   })
-
-  it('plan es "premium"', () => {
-    expect(plan.plan).toBe('premium')
-  })
-
-  it('puede crear canciones ilimitadas', () => {
-    expect(plan.canCreateSong(0)).toBe(true)
-    expect(plan.canCreateSong(FREE_SONG_LIMIT)).toBe(true)
-    expect(plan.canCreateSong(1000)).toBe(true)
-  })
-
-  it('puede usar Genius', () => {
-    expect(plan.canUseGenius).toBe(true)
-  })
-
-  it('puede sincronizar', () => {
-    expect(plan.canSync).toBe(true)
-  })
-
-  it('puede exportar reportes', () => {
-    expect(plan.canExportReports).toBe(true)
+  it('vencido pierde premium', () => {
+    expect(buildPlanLogic('paid', 'user', PAST).isPremium).toBe(false)
   })
 })
 
-describe('Admin siempre tiene acceso premium', () => {
-  const plan = buildPlanLogic('free', 'admin')
-
-  it('isPremium es true aunque el plan sea free', () => {
-    expect(plan.isPremium).toBe(true)
-  })
-
-  it('puede crear canciones ilimitadas', () => {
-    expect(plan.canCreateSong(1000)).toBe(true)
-  })
-
-  it('puede usar Genius', () => {
-    expect(plan.canUseGenius).toBe(true)
-  })
-
-  it('puede sincronizar', () => {
-    expect(plan.canSync).toBe(true)
+describe('Plan trial (prueba con fecha)', () => {
+  it('requiere fecha futura', () => {
+    expect(buildPlanLogic('trial', 'user', FUTURE).isPremium).toBe(true)
+    expect(buildPlanLogic('trial', 'user', PAST).isPremium).toBe(false)
+    expect(buildPlanLogic('trial', 'user', null).isPremium).toBe(false)
   })
 })
 
-describe('canCreateSong — casos borde', () => {
-  it('exactamente en el límite: free no puede', () => {
-    const plan = buildPlanLogic('free', 'user')
-    expect(plan.canCreateSong(FREE_SONG_LIMIT)).toBe(false)
-  })
-
-  it('un por debajo del límite: free puede', () => {
-    const plan = buildPlanLogic('free', 'user')
-    expect(plan.canCreateSong(FREE_SONG_LIMIT - 1)).toBe(true)
-  })
-
-  it('con 0 canciones: free puede', () => {
-    const plan = buildPlanLogic('free', 'user')
-    expect(plan.canCreateSong(0)).toBe(true)
+describe('Admin siempre premium', () => {
+  it('aunque el plan sea free', () => {
+    expect(buildPlanLogic('free', 'admin').isPremium).toBe(true)
   })
 })

@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
-import { useAppStore } from '@/stores'
 import type { AttendanceRecord } from '@/types'
 import { validateAttendance, validateServiceName, parseField } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
@@ -110,7 +109,7 @@ export function useAttendance(userId: string) {
     }
     
     // Remote sync deletion
-    if (r.remoteId && (useAppStore.getState().userPlan === 'premium' || useAppStore.getState().userRole === 'admin')) {
+    if (r.remoteId && isPremium) {
       import('@/services/attendanceSync').then(({ deleteRemoteRecord }) => {
         if (r.remoteId) deleteRemoteRecord(r.remoteId).catch(console.warn)
       })
@@ -121,7 +120,7 @@ export function useAttendance(userId: string) {
     await db.attendance_records.where('userId').equals(userId).delete()
     
     // Remote sync deletion
-    if (useAppStore.getState().userPlan === 'premium' || useAppStore.getState().userRole === 'admin') {
+    if (isPremium) {
       import('@/services/attendanceSync').then(({ deleteRemoteHistory }) => {
         deleteRemoteHistory(userId).catch(console.warn)
       })
