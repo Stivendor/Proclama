@@ -86,10 +86,9 @@ const es = {
       reportsItem3: 'Datos para liderar, no solo para proyectar',
     },
     testimonial: {
-      label: 'Reemplaza este bloque con un testimonio real',
-      quote: '“Pega aquí lo que dijo una iglesia real que usa Proclama: qué problema le resolvió y qué cambió en su servicio o en su liderazgo.”',
-      name: 'Nombre del líder o pastor',
-      role: 'Iglesia · Ciudad',
+      quote: '“Proclama ha sido una bendición para nuestra iglesia y departamento de comunicaciones ya que es una herramienta fácil de usar y muy rápida a la hora de proyectar alabanzas y versículos.”',
+      name: 'Stiven. Lider de comunicaciones',
+      role: 'IPUC Granizal · Medellín, Colombia',
     },
     footer: {
       followUs: 'Síguenos en nuestras redes',

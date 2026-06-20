@@ -12,7 +12,7 @@ interface ImportBibleModalProps {
 }
 
 export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBibleModalProps) {
-  const { isPremium } = usePlan()
+  const { canImportBibles } = usePlan()
   const setActiveView = useAppStore(s => s.setActiveView)
   const { fetchBibles, loading, error } = useBibleAPI()
 
@@ -21,10 +21,10 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
   const [importedIds, setImportedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    if (isPremium) {
+    if (canImportBibles) {
       loadBibles()
     }
-  }, [isPremium])
+  }, [canImportBibles])
 
   useEffect(() => {
     const loadImported = async () => {
@@ -119,7 +119,7 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
           opacity: 0.8
         }} />
 
-        {!isPremium ? (
+        {!canImportBibles ? (
           <div style={{
             flex: 1,
             display: 'flex',

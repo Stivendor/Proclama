@@ -88,7 +88,7 @@ const en: Translations = {
       reportsItem3: 'Data to lead, not just to project',
     },
     testimonial: {
-      label: 'Replace this block with a real testimonial',
+
       quote: '“Put here what a real church using Proclama said: what problem it solved and what changed in their service or their leadership.”',
       name: 'Leader or pastor name',
       role: 'Church · City',

@@ -23,10 +23,19 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     { global: { headers: { Authorization: authHeader } } }
   )
-  const { error: authError } = await supabaseClient.auth.getUser()
-  if (authError) {
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+  if (authError || !user) {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Premium gate: este proxy consume cuota de API.Bible (costo real) -> solo Pro.
+  const { data: isPremium, error: premiumError } = await supabaseClient.rpc('is_premium', { uid: user.id })
+  if (premiumError || !isPremium) {
+    return new Response(JSON.stringify({ error: 'Requiere plan Pro' }), {
+      status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }

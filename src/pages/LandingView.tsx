@@ -185,7 +185,6 @@ export default function LandingView() {
       <main className="landing-main">
         <section className="hero">
           <div className="hero-copy">
-            <span className="hero-badge animate-fade-up">{t(language, 'landing.hero.badge')}</span>
             <h1 className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
               {t(language, 'landing.hero.title')}
               <br />
@@ -336,7 +335,7 @@ export default function LandingView() {
         {/* Testimonio — placeholder estructurado para humanizar */}
         <section className="section testimonial-section">
           <figure className="testimonial-card animate-on-scroll">
-            <span className="testimonial-label">{t(language, 'landing.testimonial.label')}</span>
+            
             <blockquote>{t(language, 'landing.testimonial.quote')}</blockquote>
             <figcaption>
               <div className="testimonial-avatar" aria-hidden="true"><User size={24} /></div>

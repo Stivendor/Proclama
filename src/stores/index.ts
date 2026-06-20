@@ -272,8 +272,10 @@ interface AppStore {
   fetchCloudSettings: () => Promise<void>
   userRole: 'admin' | 'user' | null
   setUserRole: (r: 'admin' | 'user' | null) => void
-  userPlan: 'free' | 'premium'
-  setUserPlan: (p: 'free' | 'premium') => void
+  userPlan: 'free' | 'trial' | 'paid' | 'founding'
+  setUserPlan: (p: 'free' | 'trial' | 'paid' | 'founding') => void
+  premiumExpiresAt: string | null
+  setPremiumExpiresAt: (v: string | null) => void
   authStatus: 'loading' | 'authenticated' | 'unauthenticated'
   setAuthStatus: (s: 'loading' | 'authenticated' | 'unauthenticated') => void
   
@@ -399,6 +401,8 @@ export const useAppStore = create<AppStore>()(
       setUserRole: (r) => set({ userRole: r }),
       userPlan: 'free',
       setUserPlan: (p) => set({ userPlan: p }),
+      premiumExpiresAt: null,
+      setPremiumExpiresAt: (v) => set({ premiumExpiresAt: v }),
       authStatus: 'loading',
       setAuthStatus: (s) => set({ authStatus: s }),
 
@@ -484,11 +488,12 @@ export const useAppStore = create<AppStore>()(
       userDevices: [],
       setUserDevices: (devices) => set({ userDevices: devices }),
 
-      logout: () => set({ 
-        user: null, 
-        userRole: null, 
-        userPlan: 'free', 
-        authStatus: 'unauthenticated', 
+      logout: () => set({
+        user: null,
+        userRole: null,
+        userPlan: 'free',
+        premiumExpiresAt: null,
+        authStatus: 'unauthenticated',
         guestMode: false,
         // NO borrar termsAccepted para que persista entre guest y logged in
         activeSetlist: null,

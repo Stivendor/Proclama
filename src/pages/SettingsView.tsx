@@ -19,7 +19,7 @@ import {
 import { supabase } from "@/services/supabase";
 import TermsModal from "@/components/terms/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
-import { PREMIUM_FOR_EVERYONE, usePlan } from "@/hooks/usePlan";
+import { usePlan } from "@/hooks/usePlan";
 import DeviceList from "@/components/auth/DeviceList";
 import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";

@@ -6,7 +6,7 @@ import { supabase } from '@/services/supabase'
 import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
-import { PREMIUM_FOR_EVERYONE } from '@/hooks/usePlan'
+import { FOUNDING_PHASE } from '@/hooks/usePlan'
 
 export default function Sidebar() {
   const { updateAvailable, updateApp } = useSWUpdate()
@@ -105,7 +105,7 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {PREMIUM_FOR_EVERYONE && user && !launchBannerDismissed && (
+      {FOUNDING_PHASE && user && !launchBannerDismissed && (
         <div style={{
           margin: '0 10px 8px',
           padding: '10px 11px',
