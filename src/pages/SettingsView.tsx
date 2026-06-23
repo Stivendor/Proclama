@@ -16,7 +16,7 @@ import { useShallow } from "zustand/react/shallow";
 import {
   useAppStore,
 } from "@/stores";
-import { supabase } from "@/services/supabase";
+import { supabase, startTrial } from "@/services/supabase";
 import TermsModal from "@/components/terms/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 import { usePlan } from "@/hooks/usePlan";
@@ -25,6 +25,8 @@ import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
 import { t } from "@/i18n";
 import { LATAM_COUNTRIES } from "@/constants/latamLocations";
+import PricingCards from "@/components/pricing/PricingCards";
+import { isTrialEligible } from "@/components/pricing/pricingHelpers";
 
 export default function SettingsView() {
   const {
@@ -39,6 +41,9 @@ export default function SettingsView() {
     setActiveView,
     language,
     setLanguage,
+    userPlan,
+    premiumExpiresAt,
+    trialStartedAt,
   } = useAppStore(
     useShallow((s) => ({
       settings: s.settings,
@@ -52,6 +57,9 @@ export default function SettingsView() {
       setActiveView: s.setActiveView,
       language: s.language,
       setLanguage: s.setLanguage,
+      userPlan: s.userPlan,
+      premiumExpiresAt: s.premiumExpiresAt,
+      trialStartedAt: s.trialStartedAt,
     })),
   );
   const [saved, setSaved] = useState(false);
@@ -78,6 +86,24 @@ export default function SettingsView() {
   const [customCity, setCustomCity] = useState(initialCity === "OTHER" ? settings.city ?? "" : "");
 
   const { isPremium } = usePlan();
+  const [startingTrial, setStartingTrial] = useState(false);
+  const [planMsg, setPlanMsg] = useState<string | null>(null);
+
+  const handleStartTrial = async () => {
+    if (!window.confirm(t(language, 'settings.plan.trialConfirm'))) return;
+    setStartingTrial(true);
+    setPlanMsg(null);
+    const res = await startTrial();
+    if (res.ok) {
+      useAppStore.getState().setUserPlan('trial');
+      useAppStore.getState().setPremiumExpiresAt(res.expiresAt);
+      useAppStore.getState().setTrialStartedAt(new Date().toISOString());
+      setPlanMsg(t(language, 'settings.plan.trialSuccess'));
+    } else {
+      setPlanMsg(res.error);
+    }
+    setStartingTrial(false);
+  };
 
   useEffect(() => {
     fetchBackgrounds();
@@ -272,6 +298,35 @@ export default function SettingsView() {
               </div>
             )}
           </section>
+
+          {/* Plan section */}
+          {user && (
+            <section className="settings-section">
+              <h2>{t(language, 'settings.plan.title')}</h2>
+              {isPremium && (
+                <p className="settings-plan-status">
+                  {userPlan === 'trial'
+                    ? t(language, 'settings.plan.trialActive')
+                    : t(language, 'settings.plan.proActive')}
+                  {' · '}
+                  {premiumExpiresAt
+                    ? t(language, 'settings.plan.expiresPrefix', {
+                        date: new Date(premiumExpiresAt).toLocaleDateString(language === 'en' ? 'en-US' : 'es-CO'),
+                      })
+                    : t(language, 'settings.plan.lifetime')}
+                </p>
+              )}
+              <PricingCards
+                variant="app"
+                isPremium={isPremium}
+                trialEligible={isTrialEligible({ isPremium, trialStartedAt })}
+                onStartTrial={handleStartTrial}
+                startingTrial={startingTrial}
+                userEmail={user.email ?? undefined}
+              />
+              {planMsg && <p className="settings-plan-msg">{planMsg}</p>}
+            </section>
+          )}
 
           {/* Connected devices — Registered users only */}
           {user && isPremium && (
@@ -755,6 +810,14 @@ export default function SettingsView() {
           margin-left: auto;
           font-weight: 700;
         }
+        .settings-plan-status { color: var(--gold, #c9a658); font-weight: 600; margin: 0 0 16px; }
+        .settings-plan-msg { margin-top: 12px; color: var(--green, #34d399); font-size: 14px; }
+        .settings-section .pricing-toggle { background: var(--bg-surface); border: 1px solid var(--border); }
+        .settings-section .plan-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+        .settings-section .plan-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+        .settings-section .plan-btn-primary { background: var(--gold, #c9a658); color: #1a1206; font-weight: 700; padding: 11px; border-radius: 10px; text-align: center; }
+        .settings-section .plan-btn-outline { border: 1px solid var(--border); padding: 11px; border-radius: 10px; text-align: center; color: var(--text-primary); }
+        .settings-section .plan-current { color: var(--text-secondary); font-size: 13px; margin-top: 14px; }
       `}</style>
     </div>
   );
