@@ -81,6 +81,7 @@ const en: Translations = {
     },
     pricing: {
       title: 'Simple plans, no surprises',
+      period: 'Period',
       monthly: 'Monthly',
       annual: 'Annual',
       annualBadge: '2 months free',

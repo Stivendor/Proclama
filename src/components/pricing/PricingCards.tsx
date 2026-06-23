@@ -36,7 +36,7 @@ export default function PricingCards(props: PricingCardsProps) {
 
   return (
     <div className="pricing">
-      <div className="pricing-toggle" role="group" aria-label="Periodo">
+      <div className="pricing-toggle" role="group" aria-label={t(language, 'landing.pricing.period')}>
         <button
           className={period === 'monthly' ? 'active' : ''}
           onClick={() => setPeriod('monthly')}

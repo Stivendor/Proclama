@@ -79,6 +79,7 @@ const es = {
     },
     pricing: {
       title: 'Planes simples, sin sorpresas',
+      period: 'Periodo',
       monthly: 'Mensual',
       annual: 'Anual',
       annualBadge: '2 meses gratis',
