@@ -139,6 +139,7 @@ export default function AttendanceHistory({ records, categories, onEdit, onDelet
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
               <th style={{ padding: '12px 16px', fontWeight: 600 }}>Fecha</th>
+              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Predicador</th>
               {categories.map((cat, idx) => (
                 <th key={idx} style={{ padding: '12px 8px', textAlign: 'center', fontWeight: 600 }}>{cat}</th>
               ))}
@@ -157,6 +158,12 @@ export default function AttendanceHistory({ records, categories, onEdit, onDelet
                     {r.serviceName
                       ? <><strong>{r.serviceName}</strong><span style={{ fontSize: 11, color: "var(--text-muted)", display: 'block', marginTop: 2 }}>{formatDate(r.date)}{r.time ? ` · ${r.time}` : ''}</span></>
                       : <>{formatDate(r.date)}{r.time ? <span style={{ fontSize: 11, color: "var(--text-muted)" }}> · {r.time}</span> : null}</>
+                    }
+                  </td>
+                  <td style={{ padding: '12px 16px', color: 'var(--text-primary)' }}>
+                    {r.preacher
+                      ? <>{r.preacher}{r.topic ? <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>{r.topic}</span> : null}</>
+                      : <span style={{ color: 'var(--text-muted)' }}>—</span>
                     }
                   </td>
                   {categories.map((_, idx) => (

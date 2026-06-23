@@ -139,12 +139,15 @@ function drawTrendChart(
 // ─── CSV ───────────────────────────────────────────────────────────────────────
 
 export function exportAttendanceCSV(records: AttendanceRecord[], categories: string[]) {
-  const headers = ['Fecha', 'Culto', ...categories, 'Total']
+  const headers = ['Fecha', 'Culto', 'Predicador', 'Tema', ...categories, 'Total']
+  const escape = (v: string) => /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
   const rows = records.map(r => {
     const vals = resolveValues(r)
     return [
       r.date,
-      r.serviceName || '-',
+      escape(r.serviceName || '-'),
+      escape(r.preacher || '-'),
+      escape(r.topic || '-'),
       ...vals,
       vals.reduce((a, b) => a + (b || 0), 0),
     ]
@@ -284,6 +287,46 @@ export function exportAttendancePDF(records: AttendanceRecord[], categories: str
 
   curY = (doc as any).lastAutoTable.finalY + 10
 
+  // ── Asistencia por predicador ───────────────────────────────────────────────
+  const byPreacher = new Map<string, number[]>()
+  sorted.forEach(r => {
+    const key = (r.preacher && r.preacher.trim()) || 'Sin asignar'
+    const arr = byPreacher.get(key) ?? []
+    arr.push(getTotal(r))
+    byPreacher.set(key, arr)
+  })
+  const preacherRows = [...byPreacher.entries()]
+    .map(([name, totals]) => ({ name, cultos: totals.length, ...calcStats(totals) }))
+    .sort((a, b) => b.sum - a.sum)
+    .map(p => [p.name, p.cultos, p.avg, p.max, p.sum.toLocaleString('es')])
+
+  if (curY > pageH - 50) { doc.addPage(); curY = 20 }
+
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(...DARK)
+  doc.text('Asistencia por predicador', margin, curY)
+  curY += 4
+
+  autoTable(doc, {
+    head: [['Predicador', 'Cultos', 'Promedio', 'Máximo', 'Total acumulado']],
+    body: preacherRows,
+    startY: curY,
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    headStyles: { fillColor: GOLD, textColor: DARK, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: LIGHT },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      1: { halign: 'center' },
+      2: { halign: 'center' },
+      3: { halign: 'center' },
+      4: { halign: 'right' },
+    },
+  })
+
+  curY = (doc as any).lastAutoTable.finalY + 10
+
   // ── Tabla de registros ──────────────────────────────────────────────────────
   // Si no cabe en la página actual, nueva página
   if (curY > pageH - 60) {
@@ -297,12 +340,13 @@ export function exportAttendancePDF(records: AttendanceRecord[], categories: str
   doc.text('Detalle de registros', margin, curY)
   curY += 4
 
-  const tableHead = [['Fecha', 'Culto', ...categories, 'Total']]
+  const tableHead = [['Fecha', 'Culto', 'Predicador', ...categories, 'Total']]
   const tableRows = sorted.map(r => {
     const vals = resolveValues(r)
     return [
       formatDate(r.date),
       r.serviceName || '—',
+      r.preacher || '—',
       ...vals.map(v => v || 0),
       vals.reduce((a, b) => a + (b || 0), 0),
     ]

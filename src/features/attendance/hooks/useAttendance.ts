@@ -50,7 +50,7 @@ export function useAttendance(userId: string) {
     [allAttendanceRows]
   )
 
-  async function saveAttendance(values: string[], serviceName: string, time?: string, categoryNames?: string[]) {
+  async function saveAttendance(values: string[], serviceName: string, time?: string, categoryNames?: string[], preacher?: string, topic?: string) {
     if (!selectedDate) {
       setError('Debes seleccionar una fecha válida')
       return false
@@ -81,6 +81,8 @@ export function useAttendance(userId: string) {
       categoryNames: categoryNames || existingAr?.categoryNames,
       serviceName: serviceName.trim() || undefined,
       time: time?.trim() || undefined,
+      preacher: preacher?.trim() || undefined,
+      topic: topic?.trim() || undefined,
       createdAt: existingAr?.createdAt ?? now,
       updatedAt: now,
     }
