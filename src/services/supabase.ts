@@ -401,10 +401,13 @@ export async function setUserSubscription(
   plan: 'free' | 'premium',
   expiresAt: string | null   // ISO timestamp or null = lifetime
 ): Promise<boolean> {
+  // El enum real es free|trial|paid|founding. "premium" desde el admin = 'paid'
+  // (con vencimiento, o null = de por vida). is_premium() lo reconoce.
+  const dbPlan = plan === 'premium' ? 'paid' : 'free'
   const { error } = await supabase
     .from('profiles')
     .update({
-      plan,
+      plan: dbPlan,
       premium_expires_at: plan === 'premium' ? expiresAt : null,
       updated_at: new Date().toISOString(),
     })
@@ -415,63 +418,6 @@ export async function setUserSubscription(
     return false
   }
   return true
-}
-
-export async function activatePremiumForUser(userId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      plan: 'premium',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId)
-
-  if (error) {
-    console.error('Error activating premium:', error.message)
-    return false
-  }
-  return true
-}
-
-export async function deactivatePremiumForUser(userId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      plan: 'free',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', userId)
-
-  if (error) {
-    console.error('Error deactivating premium:', error.message)
-    return false
-  }
-  return true
-}
-
-export async function isUserPremium(): Promise<boolean> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const user = session?.user;
-  if (!user) return false
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('plan, premium_expires_at')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  if (error || !data) return false
-  
-  if (data.plan === 'premium') {
-    if (data.premium_expires_at) {
-      const expiresAt = new Date(data.premium_expires_at)
-      if (expiresAt < new Date()) {
-        return false
-      }
-    }
-    return true
-  }
-  return false
 }
 
 // ─── Funciones para Device Control ────────────────────────────────────────────
