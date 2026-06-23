@@ -5,14 +5,22 @@ import { useAppStore } from '@/stores'
  * Al activar el modelo de pago, ponlo en false (solo tras correr el
  * grandfathering de la Fase 6 y tener el enforcement server-side listo).
  */
-export const FOUNDING_PHASE = true
+export const FOUNDING_PHASE = false
 
 /** Canciones propias que un usuario free puede crear */
 export const FREE_SONG_LIMIT = 30
 
-/** Límites de media local (solo aplican a Pro; el free no sube media) */
-export const PREMIUM_MEDIA_MAX_FILES = 25
-export const PREMIUM_MEDIA_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024 // 2GB
+/**
+ * Límites de media local. La media vive en el disco del usuario (IndexedDB),
+ * no en nuestra infra, así que el premium no tiene tope: el cap solo existe
+ * para el free como muestra/funnel.
+ */
+export const PREMIUM_MEDIA_MAX_FILES = Infinity
+export const PREMIUM_MEDIA_MAX_TOTAL_BYTES = Infinity
+
+/** El free también sube media local, pero acotada */
+export const FREE_MEDIA_MAX_FILES = 5
+export const FREE_MEDIA_MAX_TOTAL_BYTES = 250 * 1024 * 1024 // 250MB
 
 export type PlanTier = 'free' | 'trial' | 'paid' | 'founding'
 
@@ -74,7 +82,7 @@ export function usePlan() {
 
   const mediaLimits = isPremium
     ? { maxFiles: PREMIUM_MEDIA_MAX_FILES, maxTotalBytes: PREMIUM_MEDIA_MAX_TOTAL_BYTES }
-    : { maxFiles: 0, maxTotalBytes: 0 }
+    : { maxFiles: FREE_MEDIA_MAX_FILES, maxTotalBytes: FREE_MEDIA_MAX_TOTAL_BYTES }
 
   /** Ver asistencia básica en la app (todos) */
   const canViewAttendance = true
