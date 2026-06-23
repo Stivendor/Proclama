@@ -324,7 +324,10 @@ export async function startTrial(): Promise<{ ok: true; expiresAt: string } | { 
   if (error) {
     return { ok: false, error: error.message }
   }
-  return { ok: true, expiresAt: data as string }
+  if (!data || typeof data !== 'string') {
+    return { ok: false, error: 'Respuesta inesperada al iniciar la prueba.' }
+  }
+  return { ok: true, expiresAt: data }
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
