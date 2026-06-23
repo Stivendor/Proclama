@@ -31,7 +31,16 @@ export default function PricingCards(props: PricingCardsProps) {
     ? t(language, 'landing.pricing.perYear')
     : t(language, 'landing.pricing.perMonth')
 
-  const showTrialBtn = props.variant === 'app' && props.trialEligible
+  // "Empezar prueba gratuita de 1 mes": gancho del plan mensual. En landing
+  // lleva a registro (el trial se activa logueado); en app activa el trial si
+  // la cuenta es elegible. Se muestra solo con el toggle en Mensual.
+  const trialAction =
+    props.variant === 'marketing'
+      ? props.onFreeCta
+      : props.trialEligible
+        ? props.onStartTrial
+        : undefined
+  const showTrialBtn = period === 'monthly' && !!trialAction
   const showSubscribe = !(props.variant === 'app' && props.isPremium)
 
   return (
@@ -87,7 +96,7 @@ export default function PricingCards(props: PricingCardsProps) {
           </ul>
           <div className="plan-actions">
             {showTrialBtn && (
-              <button className="plan-btn-primary" onClick={props.onStartTrial} disabled={props.startingTrial}>
+              <button className="plan-btn-primary" onClick={trialAction} disabled={props.startingTrial}>
                 {props.startingTrial
                   ? t(language, 'settings.plan.starting')
                   : t(language, 'landing.pricing.premium.ctaTrial')}
@@ -95,7 +104,7 @@ export default function PricingCards(props: PricingCardsProps) {
             )}
             {showSubscribe && (
               <a
-                className="plan-btn-outline"
+                className={showTrialBtn ? 'plan-btn-outline' : 'plan-btn-primary'}
                 href={subscribeWhatsappUrl(period, props.userEmail)}
                 target="_blank"
                 rel="noopener noreferrer"

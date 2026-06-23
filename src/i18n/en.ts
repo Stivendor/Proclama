@@ -108,7 +108,7 @@ const en: Translations = {
         f4: 'Video/image backgrounds and unlimited local media',
         f5: 'PDF attendance reports with charts',
         f6: '1,000+ Bible versions',
-        ctaTrial: 'Try 1 month free',
+        ctaTrial: 'Start your 1-month free trial',
         ctaSubscribe: 'Subscribe',
       },
     },

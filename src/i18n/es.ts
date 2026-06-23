@@ -106,7 +106,7 @@ const es = {
         f4: 'Fondos de video/imágenes y media local ilimitada',
         f5: 'Reportes PDF de asistencia con gráficas',
         f6: '+1.000 versiones de la Biblia',
-        ctaTrial: 'Probar 1 mes gratis',
+        ctaTrial: 'Empezar prueba gratuita de 1 mes',
         ctaSubscribe: 'Suscribirme',
       },
     },
