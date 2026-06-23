@@ -565,17 +565,19 @@ export default function MediaPanel() {
             <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
             <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
             <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
-            <li>Con Premium puedes subir hasta 25 archivos de media local.</li>
+            <li>El plan free sube hasta 5 archivos; con Premium es ilimitado.</li>
           </ul>
         </div>
       )}
 
       <div className="media-limits">
         <span>
-          {localMediaList.length}/{mediaLimits.maxFiles} archivos
+          {localMediaList.length}
+          {Number.isFinite(mediaLimits.maxFiles) ? `/${mediaLimits.maxFiles}` : ""} archivos
         </span>
         <span>
-          {formatBytes(currentTotalBytes)} / {formatBytes(mediaLimits.maxTotalBytes)}
+          {formatBytes(currentTotalBytes)}
+          {Number.isFinite(mediaLimits.maxTotalBytes) ? ` / ${formatBytes(mediaLimits.maxTotalBytes)}` : ""}
         </span>
         {isPremium && <span className="media-premium-badge">Premium</span>}
       </div>

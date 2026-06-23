@@ -2,13 +2,14 @@ import { useEffect, useState, useCallback } from "react";
 import { Users, Search, ArrowUpDown, Download, RefreshCcw } from "lucide-react";
 import DataTable from "../components/DataTable";
 import { fetchUsersPaginated } from "../services/adminQueries";
+import type { PlanTier } from "@/hooks/usePlan";
 
 interface UserProfile {
   id: string;
   email: string;
   created_at: string;
-  role: string;
-  plan: "free" | "premium";
+  role: "admin" | "user";
+  plan: PlanTier;
   full_name?: string | null;
   premium_expires_at?: string | null;
   settings?: {
@@ -18,6 +19,7 @@ interface UserProfile {
     onboardingComplete?: boolean;
   };
 }
+
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -117,30 +119,6 @@ export default function UsersPage() {
             }
           },
           { key: "role", header: "Rol", render: (u: UserProfile) => <span style={{ color: u.role === "admin" ? "var(--gold)" : "var(--text-muted)", fontWeight: u.role === "admin" ? 600 : 400 }}>{u.role === "admin" ? "Admin" : "Usuario"}</span> },
-          {
-            key: "plan",
-            header: "Plan",
-            render: (u: UserProfile) => (
-              <span className={`admin-badge ${u.plan === "premium" ? "gold" : ""}`}>
-                {u.plan === "premium" ? "Premium" : "Free"}
-              </span>
-            )
-          },
-          {
-            key: "expires",
-            header: "Vence",
-            render: (u: UserProfile) => {
-              if (u.plan !== "premium") return <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>;
-              if (!u.premium_expires_at) return <span style={{ color: "var(--gold)", fontSize: 12 }}>De por vida</span>;
-              const expired = new Date(u.premium_expires_at) < new Date();
-              return (
-                <span style={{ color: expired ? "var(--red, #ef4444)" : "var(--text-secondary)", fontSize: 12 }}>
-                  {new Date(u.premium_expires_at).toLocaleDateString("es-CO")}
-                  {expired && " ✗"}
-                </span>
-              );
-            }
-          },
         ]}
         data={users}
         totalCount={totalCount}

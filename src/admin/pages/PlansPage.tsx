@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CreditCard, Zap, ZapOff } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { logAdminAction } from "../services/adminLogs";
 import { setUserSubscription, supabase } from "@/services/supabase";
+import { isPremiumFromProfile, type PlanTier } from "@/hooks/usePlan";
 
 type Duration = "1m" | "3m" | "6m" | "12m" | "lifetime";
+
+interface PlanRow {
+  id: string;
+  email: string;
+  full_name: string | null;
+  plan: PlanTier;
+  role: "admin" | "user";
+  premium_expires_at: string | null;
+}
+
+const PLAN_LABELS: Record<PlanTier, string> = {
+  free: "Free",
+  trial: "Prueba",
+  paid: "Pago",
+  founding: "Fundador",
+};
+
+const rowIsPremium = (u: PlanRow) =>
+  isPremiumFromProfile({ plan: u.plan, role: u.role, premiumExpiresAt: u.premium_expires_at });
 
 const DURATIONS: { key: Duration; label: string }[] = [
   { key: "1m",       label: "1 mes" },
@@ -32,19 +52,27 @@ function formatExpiry(iso: string | null) {
 }
 
 export default function PlansPage() {
-  const [stats, setStats] = useState({ free: 0, premium: 0 });
+  const [users, setUsers] = useState<PlanRow[]>([]);
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
   const [duration, setDuration] = useState<Duration>("1m");
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState("");
 
-  useEffect(() => {
-    Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("plan", "free"),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).eq("plan", "premium"),
-    ]).then(([f, p]) => setStats({ free: f.count ?? 0, premium: p.count ?? 0 }));
+  const load = useCallback(async () => {
+    // ponytail: trae todas las filas y cuenta en cliente; ok para cientos de
+    // usuarios, mover a una función SQL si la base crece a decenas de miles.
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, plan, role, premium_expires_at")
+      .order("created_at", { ascending: false });
+    setUsers((data as PlanRow[]) ?? []);
   }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const premiumCount = users.filter(rowIsPremium).length;
+  const stats = { premium: premiumCount, free: users.length - premiumCount };
 
   const overridePlan = async (newPlan: "free" | "premium") => {
     if (!email || !reason) { setMsg("Email y razón son obligatorios."); return; }
@@ -69,10 +97,7 @@ export default function PlansPage() {
       const expiryText = newPlan === "premium" ? ` — vence ${formatExpiry(expiresAt)}` : "";
       setMsg(`Plan de ${email} cambiado a ${newPlan.toUpperCase()}${expiryText}.`);
       setEmail(""); setReason("");
-      setStats(prev => ({
-        free: prev.free + (newPlan === "free" ? 1 : -1),
-        premium: prev.premium + (newPlan === "premium" ? 1 : -1),
-      }));
+      await load();
     } catch { setMsg("Error al cambiar plan."); }
     finally { setUpdating(false); }
   };
@@ -155,6 +180,49 @@ export default function PlansPage() {
             </div>
             {msg && <p style={{ fontSize: 13, color: msg.includes("Error") ? "var(--red)" : "var(--green)" }}>{msg}</p>}
           </div>
+        </div>
+      </div>
+
+      <div style={{ background: "var(--bg-elevated)", borderRadius: 16, border: "1px solid var(--border)", padding: 24, marginTop: 24 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>Usuarios y suscripciones</h3>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ textAlign: "left", color: "var(--text-muted)", borderBottom: "1px solid var(--border)" }}>
+                <th style={{ padding: "8px 12px", fontWeight: 600 }}>Email</th>
+                <th style={{ padding: "8px 12px", fontWeight: 600 }}>Nombre</th>
+                <th style={{ padding: "8px 12px", fontWeight: 600 }}>Plan</th>
+                <th style={{ padding: "8px 12px", fontWeight: 600 }}>Vence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => {
+                const premium = rowIsPremium(u);
+                const expired = u.premium_expires_at ? new Date(u.premium_expires_at) < new Date() : false;
+                return (
+                  <tr key={u.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "8px 12px", color: "var(--text-secondary)" }}>{u.email}</td>
+                    <td style={{ padding: "8px 12px", fontWeight: 600 }}>{u.full_name || "—"}</td>
+                    <td style={{ padding: "8px 12px" }}>
+                      <span className={`admin-badge ${premium ? "gold" : ""}`}>{PLAN_LABELS[u.plan] ?? u.plan}</span>
+                    </td>
+                    <td style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-muted)" }}>
+                      {!premium ? "—" : !u.premium_expires_at ? (
+                        <span style={{ color: "var(--gold)" }}>De por vida</span>
+                      ) : (
+                        <span style={{ color: expired ? "var(--red, #ef4444)" : "var(--text-secondary)" }}>
+                          {new Date(u.premium_expires_at).toLocaleDateString("es-CO")}{expired && " ✗"}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: "20px 12px", textAlign: "center", color: "var(--text-muted)" }}>Sin usuarios.</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
