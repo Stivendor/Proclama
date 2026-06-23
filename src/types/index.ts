@@ -141,8 +141,15 @@ export interface CountdownConfig {
 
 export interface CountdownState {
   config: CountdownConfig
-  status: 'idle' | 'running' | 'paused' | 'finished'
+  status: 'idle' | 'running' | 'paused' | 'finished' | 'clock'
   remainingTime: number
+}
+
+// ─── Ticker / banda de avisos ─────────────────────────────────────────────────
+export interface TickerState {
+  active: boolean
+  position: 'top' | 'bottom'
+  text: string
 }
 
 // ─── Broadcast messages entre ventanas ────────────────────────────────────────
@@ -156,12 +163,15 @@ export type BroadcastMessage =
   | { type: 'MEDIA_COMMAND'; payload: { action: 'play' | 'pause' | 'seek'; value?: number } }
   | { type: 'MEDIA_STATUS'; payload: { currentTime: number; duration: number; isPlaying: boolean } }
   | { type: 'COUNTDOWN_UPDATE'; payload: CountdownState }
+  | { type: 'TICKER_UPDATE'; payload: TickerState }
+  | { type: 'PROJECTION_READY' }
 
 // ─── Settings de la app ───────────────────────────────────────────────────────
 export interface AppSettings {
   defaultTheme: ProjectionTheme
   attendanceCategories: string[]
   serviceNameTemplates: string[]
+  preacherTemplates: string[]
   churchName?: string
   country?: string
   city?: string
@@ -216,6 +226,8 @@ export interface AttendanceRecord {
   date: string
   serviceName?: string
   time?: string          // 'HH:MM', opcional — hora del culto
+  preacher?: string      // opcional — quién predicó
+  topic?: string         // opcional — tema de la predicación (texto libre)
   categoryNames?: string[]
   values?: number[]
   createdAt: string

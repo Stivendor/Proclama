@@ -1,4 +1,4 @@
-import type { BroadcastMessage, ProjectionState, CountdownState } from '@/types'
+import type { BroadcastMessage, ProjectionState, CountdownState, TickerState } from '@/types'
 
 export const CHANNEL_NAME = 'proclama-projection'
 
@@ -15,6 +15,10 @@ export function sendProjectionUpdate(state: ProjectionState) {
 
 export function sendCountdownUpdate(state: CountdownState) {
   getChannel().postMessage({ type: 'COUNTDOWN_UPDATE', payload: state } satisfies BroadcastMessage)
+}
+
+export function sendTickerUpdate(state: TickerState) {
+  getChannel().postMessage({ type: 'TICKER_UPDATE', payload: state } satisfies BroadcastMessage)
 }
 
 export function sendSlideCommand(cmd: 'NEXT_SLIDE' | 'PREV_SLIDE') {
