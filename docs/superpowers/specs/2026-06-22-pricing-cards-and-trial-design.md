@@ -102,8 +102,9 @@ Mensaje (plantilla A):
 ## 5. Integración por vista
 
 ### 5.1 Landing (`src/pages/LandingView.tsx`, `variant='marketing'`)
-- Nueva sección de precios. Reutiliza el CSS ya presente pero muerto (`.plans-grid`, `.plan-card`, `.plan-price`, `.plan-badge`, etc.).
-- CTAs:
+- Nueva sección de precios con `id="precios"`, toggle por defecto en **Mensual**. Reutiliza el CSS ya presente pero muerto (`.plans-grid`, `.plan-card`, `.plan-price`, `.plan-badge`, etc.).
+- **CTA primario del hero:** hoy es "Ir a la aplicación" (logueado) / registro (invitado) y entra a la app. Se cambia a **"Ver los planes"** → scroll suave a `#precios`, para todos. La entrada a la app se conserva en el nav ("Ir a la aplicación", `nav.goToApp`). El CTA de registro vive ahora dentro de la tarjeta Free, a un scroll de distancia.
+- CTAs de las tarjetas:
   - Free → "Empezar gratis" → registro.
   - Premium → "Probar 1 mes gratis" → registro (el trial real se activa luego en Ajustes) + "Suscribirme" → WhatsApp (sin correo).
 
