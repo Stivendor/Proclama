@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
-import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme } from '@/types'
+import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme, TickerState } from '@/types'
 import { DEFAULT_THEME, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
 
@@ -140,6 +140,12 @@ const INITIAL_STATE: ProjectionState = {
 export default function ProjectionWindow() {
   const [state, setState] = useState<ProjectionState>(INITIAL_STATE)
   const [countdown, setCountdown] = useState<CountdownState | null>(null)
+  // Gana lo último que el operador proyectó: contador/reloj o contenido (canción/Biblia/media).
+  // Así no hay que ocultar el contador para mostrar una letra: al proyectar contenido, se oculta solo.
+  const [showTimer, setShowTimer] = useState(false)
+  const prevCdStatus = useRef<CountdownState['status'] | undefined>(undefined)
+  const [ticker, setTicker] = useState<TickerState | null>(null)
+  const [now, setNow] = useState(() => new Date())
   // Canvas dinámico: se adapta al viewport real (soporta pantallas verticales, horizontales, cualquier resolución)
   const [canvasSize, setCanvasSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [fontSize, setFontSize] = useState(72)
@@ -181,7 +187,11 @@ export default function ProjectionWindow() {
 
   useEffect(() => {
     const off = onMessage((msg: BroadcastMessage) => {
-      if (msg.type === 'PROJECTION_UPDATE') setState(msg.payload)
+      if (msg.type === 'PROJECTION_UPDATE') {
+        setState(msg.payload)
+        // Proyectar contenido (slides o media) toma prioridad y oculta contador/reloj
+        if (msg.payload.slides?.length || msg.payload.media) setShowTimer(false)
+      }
       else if (msg.type === 'MEDIA_COMMAND') {
         const { action, value } = msg.payload
         if (stateRef.current.media?.type === 'youtube' && ytPlayerRef.current) {
@@ -200,7 +210,17 @@ export default function ProjectionWindow() {
         }
       } else if (msg.type === 'PING') {
         getChannel().postMessage({ type: 'PONG' })
-      } else if (msg.type === 'COUNTDOWN_UPDATE') setCountdown(msg.payload)
+      } else if (msg.type === 'COUNTDOWN_UPDATE') {
+        setCountdown(msg.payload)
+        const prev = prevCdStatus.current
+        const st = msg.payload.status
+        // Mostrar el contador/reloj solo ante una acción del operador (arranque o reloj),
+        // no en los ticks de cada segundo (no deben robar el foco al contenido).
+        if (st === 'clock' || (st === 'running' && prev !== 'running')) setShowTimer(true)
+        else if (st === 'idle') setShowTimer(false)
+        prevCdStatus.current = st
+      }
+      else if (msg.type === 'TICKER_UPDATE') setTicker(msg.payload)
     })
     return off
   }, [])
@@ -227,9 +247,20 @@ export default function ProjectionWindow() {
     return () => clearInterval(interval)
   }, [state.media?.url, state.media?.type])
 
+  // Reloj en vivo: solo corre cuando el modo reloj está activo
+  useEffect(() => {
+    if (countdown?.status !== 'clock') return
+    setNow(new Date())
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [countdown?.status])
+
   useEffect(() => {
     document.body.style.cssText = 'background:#000;margin:0;overflow:hidden'
     document.documentElement.requestFullscreen?.().catch(() => null)
+    // Avisa al control para que reemita el estado actual (contador/reloj/banda) si esta ventana
+    // se abrió o recargó después de activarlos.
+    getChannel().postMessage({ type: 'PROJECTION_READY' } as BroadcastMessage)
   }, [])
 
   const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = state
@@ -240,7 +271,7 @@ export default function ProjectionWindow() {
   const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
   const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
 
-  const isCountdownActive = countdown && countdown.status !== 'idle'
+  const isCountdownActive = showTimer && countdown && countdown.status !== 'idle'
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
 
   const bgStyle: React.CSSProperties = {
@@ -256,7 +287,14 @@ export default function ProjectionWindow() {
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
-  const calcCountdownSize = (theme: CountdownTheme, title: string | undefined, remainingSeconds: number) => {
+  const formatClock = (d: Date) => {
+    const h24 = d.getHours()
+    const ampm = h24 >= 12 ? 'PM' : 'AM'
+    const h12 = h24 % 12 || 12
+    return `${h12}:${d.getMinutes().toString().padStart(2, '0')} ${ampm}`
+  }
+
+  const calcCountdownSize = (theme: CountdownTheme, title: string | undefined, timerText: string) => {
     const ctx = document.createElement('canvas').getContext('2d')
     if (!ctx) {
       return {
@@ -268,15 +306,18 @@ export default function ProjectionWindow() {
     // Usa canvasSize dinámico para que el countdown también escale correctamente
     const safeWidth = canvasSize.width * 0.92
     const safeHeight = canvasSize.height * 0.92
-    const titleHeightReserve = title ? safeHeight * 0.16 : 0
+    // Reserva de altura constante: sin ella, el reloj (sin título) crece más que el contador y se desborda.
+    const titleHeightReserve = safeHeight * 0.16
     const timerHeightMax = safeHeight - titleHeightReserve
-    const timerText = formatTime(remainingSeconds)
     const fontWeight = 900
     const lineHeightFactor = 1.05
 
+    // tabular-nums hace que cada dígito ocupe el ancho del más ancho; medimos con '0'
+    // para no subestimar (p.ej. "11:29" tiene "1" angostos pero se renderizan anchos).
+    const measureText = timerText.replace(/[0-9]/g, '0')
     const fits = (size: number) => {
       ctx.font = `${fontWeight} ${size}px ${theme.fontFamily}`
-      const textWidth = ctx.measureText(timerText).width
+      const textWidth = ctx.measureText(measureText).width
       const textHeight = size * lineHeightFactor
       return textWidth <= safeWidth && textHeight <= timerHeightMax
     }
@@ -390,9 +431,12 @@ export default function ProjectionWindow() {
           </div>
         )}
 
-        {/* Countdown */}
+        {/* Countdown / Reloj */}
         {isCountdownActive && (() => {
-          const countdownSizes = calcCountdownSize(countdown.config.theme, countdown.config.title, countdown.remainingTime)
+          const isClock = countdown.status === 'clock'
+          const displayText = isClock ? formatClock(now) : formatTime(countdown.remainingTime)
+          const title = isClock ? undefined : countdown.config.title
+          const countdownSizes = calcCountdownSize(countdown.config.theme, title, displayText)
           return (
             <div style={{
               position: 'absolute', inset: 0, zIndex: 10,
@@ -400,13 +444,13 @@ export default function ProjectionWindow() {
               opacity: hideText ? 0 : 1, transition: 'opacity 0.5s ease-in-out',
               fontSize: `${countdownSizes.timerFontSize}px`
             }}>
-              {countdown.config.title && (
+              {title && (
                 <div style={{
                   fontFamily: activeTheme.fontFamily, color: activeTheme.textColor, opacity: 0.8,
                   fontSize: `${countdownSizes.titleFontSize}px`, marginBottom: '0.5em',
                   textTransform: 'uppercase', letterSpacing: '4px', textShadow: strongShadow
                 }}>
-                  {countdown.config.title}
+                  {title}
                 </div>
               )}
               <div style={{
@@ -415,7 +459,7 @@ export default function ProjectionWindow() {
                 fontSize: '1em', fontVariantNumeric: 'tabular-nums',
                 fontWeight: 'bold', textShadow: strongShadow, lineHeight: 1
               }}>
-                {formatTime(countdown.remainingTime)}
+                {displayText}
               </div>
             </div>
           )
@@ -472,7 +516,30 @@ export default function ProjectionWindow() {
             {currentSlide + 1} / {slides.length}
           </div>
         )}
+
+        {/* Banda de avisos (ticker) */}
+        {ticker?.active && ticker.text.trim() && (
+          <div style={{
+            position: 'absolute', left: 0, right: 0, zIndex: 30,
+            top: ticker.position === 'top' ? 0 : undefined,
+            bottom: ticker.position === 'bottom' ? 0 : undefined,
+            background: 'rgba(0,0,0,0.65)', overflow: 'hidden', whiteSpace: 'nowrap',
+            padding: `${Math.round(canvasSize.height * 0.012)}px 0`,
+          }}>
+            <div style={{
+              display: 'inline-block', paddingLeft: '100%', willChange: 'transform',
+              animation: `ticker-scroll ${Math.max(12, Math.round(ticker.text.length * 0.35))}s linear infinite`,
+              color: '#fff', fontFamily: theme.fontFamily, fontWeight: 700,
+              fontSize: `${Math.round(canvasSize.height * 0.05)}px`,
+              textShadow: '0 2px 6px rgba(0,0,0,0.8)',
+            }}>
+              {ticker.text}
+            </div>
+          </div>
+        )}
       </div>
+
+      <style>{`@keyframes ticker-scroll { from { transform: translateX(0) } to { transform: translateX(-100%) } }`}</style>
     </div>
   )
 }

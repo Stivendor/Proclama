@@ -1,25 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  ClipboardEdit, Users, Megaphone, Plus, Pencil, Trash2,
-  Check, Tv2, BarChart2, Download, Lock, X, FileText
+  Users, Tv2, BarChart2, Download, Lock, X, FileText, Trash2
 } from 'lucide-react'
-import { db } from '@/db'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, openProjectionWindow } from '@/services/projection'
-import type { ChurchNote, Notice } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
 
 import { useAttendance } from '@/features/attendance/hooks/useAttendance'
 import AttendanceHistory from '@/features/attendance/components/AttendanceHistory'
 import ServiceNameSelector from '@/features/attendance/components/ServiceNameSelector'
+import TemplateCombobox from '@/features/attendance/components/TemplateCombobox'
 import AttendanceForm from '@/features/attendance/components/AttendanceForm'
-import PremiumFeatureModal from '@/components/ui/PremiumFeatureModal'
 import { exportAttendanceCSV, exportAttendancePDF } from '@/features/attendance/utils/pdf'
-import { validateNoticeText, todayISO, formatDate, resolveValues } from '@/features/attendance/utils/validation'
+import { todayISO, formatDate, resolveValues } from '@/features/attendance/utils/validation'
 
 function buildAttendanceLyrics(values: number[], categories: string[], date: string, name?: string): string {
   const total = values.reduce((sum, v) => sum + v, 0)
@@ -37,11 +33,9 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
 
 export default function NotesView() {
   const { canExportReports } = usePlan()
-  const { user, userPlan, userRole, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({ 
-    user: s.user, 
-    userPlan: s.userPlan,
-    userRole: s.userRole,
-    settings: s.settings, 
+  const { user, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({
+    user: s.user,
+    settings: s.settings,
     updateSettings: s.updateSettings,
     fetchCloudSettings: s.fetchCloudSettings
   })))
@@ -55,6 +49,7 @@ export default function NotesView() {
 
   const attendanceCategories = settings.attendanceCategories || ['Caballeros', 'Damas', 'Amigos', 'Niños']
   const serviceNameTemplates = settings.serviceNameTemplates || []
+  const preacherTemplates = settings.preacherTemplates || []
 
   // Attendance hook
   const {
@@ -90,6 +85,8 @@ export default function NotesView() {
   // Local state for the form
   const [serviceName, setServiceName] = useState('')
   const [serviceTime, setServiceTime] = useState('')
+  const [preacher, setPreacher] = useState('')
+  const [topic, setTopic] = useState('')
   const [att, setAtt] = useState<string[]>([])
 
   // Sync attendance inputs when the saved record changes
@@ -97,59 +94,22 @@ export default function NotesView() {
     if (attendanceRecord) {
       setServiceName(attendanceRecord.serviceName ?? '')
       setServiceTime(attendanceRecord.time ?? '')
+      setPreacher(attendanceRecord.preacher ?? '')
+      setTopic(attendanceRecord.topic ?? '')
       setAtt(resolveValues(attendanceRecord).map(String))
     } else {
       setServiceTime('')
+      setPreacher('')
+      setTopic('')
     }
     setAttError('')
   }, [attendanceRecord, selectedDate, setAttError])
 
-  // Notices
-  const [newNoticeText, setNewNoticeText] = useState('')
-  const [noticeError, setNoticeError] = useState('')
-  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null)
-  const [editingText, setEditingText] = useState('')
-  const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const { loadSong, projectionState, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
-    loadSong: s.loadSong,
-    projectionState: { songTitle: s.state.songTitle, slides: s.state.slides },
+  const { projectionSongTitle, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
+    projectionSongTitle: s.state.songTitle,
     projectionWindow: s.projectionWindow,
     setProjectionWindow: s.setProjectionWindow,
   })))
-
-  const churchNote = useLiveQuery(
-    () => db.church_notes.where({ date: selectedDate, userId }).first(),
-    [selectedDate, userId]
-  )
-
-  // ─── Helpers ────────────────────────────────────────────────────────────────
-  function buildNoticeNote(overrides: Partial<ChurchNote>): ChurchNote {
-    const now = new Date().toISOString()
-    const base = churchNote ?? {
-      userId,
-      date: selectedDate,
-      notices: [],
-      createdAt: now,
-      updatedAt: now,
-    }
-    return {
-      ...base,
-      attendance: undefined,
-      serviceName: undefined,
-      updatedAt: now,
-      ...overrides,
-    } as ChurchNote
-  }
-
-  async function persistNote(updated: ChurchNote) {
-    const stripped: ChurchNote = {
-      ...updated,
-      attendance: undefined,
-      serviceName: undefined,
-    }
-    await db.church_notes.put(stripped)
-  }
 
   // ─── Project Attendance ──────────────────────────────────────────────────────
   function projectAttendance() {
@@ -174,69 +134,11 @@ export default function NotesView() {
     }
   }
 
-  const isAttendanceProjected = projectionState.songTitle === 'Asistencia'
+  const isAttendanceProjected = projectionSongTitle === 'Asistencia'
   const savedTotal = attendanceRecord ? resolveValues(attendanceRecord).reduce((a, b) => a + b, 0) : 0
 
   // ─── Delete History ─────────────────────────────────────────────────────────────────
   const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false)
-
-  // ─── Notices ─────────────────────────────────────────────────────────────────
-  async function addNotice() {
-    if (!validateNoticeText(newNoticeText)) {
-      setNoticeError('El aviso no puede estar vacío')
-      return
-    }
-    setNoticeError('')
-    const now = new Date().toISOString()
-    const newNotice: Notice = { id: crypto.randomUUID(), text: newNoticeText.trim(), createdAt: now, updatedAt: now }
-    await persistNote(buildNoticeNote({ notices: [...(churchNote?.notices ?? []), newNotice] }))
-    setNewNoticeText('')
-    setShowAddForm(false)
-  }
-
-  async function confirmDeleteNotice() {
-    if (!deletingNoticeId) return
-    await persistNote(buildNoticeNote({ notices: (churchNote?.notices ?? []).filter(n => n.id !== deletingNoticeId) }))
-    setDeletingNoticeId(null)
-  }
-
-  function startEdit(notice: Notice) {
-    setEditingNoticeId(notice.id)
-    setEditingText(notice.text)
-    setNoticeError('')
-  }
-
-  async function confirmEditNotice() {
-    if (!editingNoticeId || !validateNoticeText(editingText)) {
-      setNoticeError('El aviso no puede estar vacío')
-      return
-    }
-    setNoticeError('')
-    const now = new Date().toISOString()
-    await persistNote(buildNoticeNote({
-      notices: (churchNote?.notices ?? []).map(n =>
-        n.id === editingNoticeId ? { ...n, text: editingText.trim(), updatedAt: now } : n
-      ),
-    }))
-    setEditingNoticeId(null)
-    setEditingText('')
-  }
-
-  function cancelEdit() { setEditingNoticeId(null); setEditingText(''); setNoticeError('') }
-
-  function projectNotice(notice: Notice) {
-    loadSong({
-      id: undefined, title: 'Aviso', artist: '',
-      lyrics: notice.text, key: '', tags: [], language: 'Español',
-      usageCount: 0, isPublic: false, isVerified: false,
-      createdAt: new Date(), updatedAt: new Date(),
-    }, false, 0)
-
-    if (!projectionWindow || projectionWindow.closed) {
-      const w = openProjectionWindow()
-      setProjectionWindow(w)
-    }
-  }
 
   const isToday = selectedDate === todayISO()
 
@@ -244,8 +146,8 @@ export default function NotesView() {
     <div className="notes-view">
       <div className="view-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <ClipboardEdit size={20} color="var(--gold)" />
-          <h1>Notas</h1>
+          <Users size={20} color="var(--gold)" />
+          <h1>Asistencia</h1>
           {isToday && <span className="date-today-badge">Hoy</span>}
         </div>
         <div className="header-actions">
@@ -419,9 +321,35 @@ export default function NotesView() {
               serviceNameTemplates={serviceNameTemplates}
               onAddTemplate={(name) => updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })}
               onDeleteTemplate={(name) => updateSettings({ serviceNameTemplates: serviceNameTemplates.filter(t => t !== name) })}
-              onEnter={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories)}
+              onEnter={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
               error={hasServiceNameError ? attError : undefined}
               onClearError={() => attError && setAttError('')}
+            />
+          </div>
+
+          <div className="attendance-service-row">
+            <label htmlFor="preacher-manual" className="attendance-field-label">Predicador</label>
+            <TemplateCombobox
+              id="preacher-manual"
+              value={preacher}
+              onChange={setPreacher}
+              templates={preacherTemplates}
+              onAddTemplate={(name) => updateSettings({ preacherTemplates: [...preacherTemplates, name] })}
+              onDeleteTemplate={(name) => updateSettings({ preacherTemplates: preacherTemplates.filter(t => t !== name) })}
+              placeholder="Selecciona o escribe un predicador..."
+            />
+          </div>
+
+          <div className="attendance-service-row">
+            <label htmlFor="topic-manual" className="attendance-field-label">Tema (opcional)</label>
+            <input
+              id="topic-manual"
+              type="text"
+              className="input"
+              placeholder="Tema de la predicación..."
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
             />
           </div>
 
@@ -430,7 +358,7 @@ export default function NotesView() {
             onUpdateCategories={(newCats) => updateSettings({ attendanceCategories: newCats })}
             values={att}
             onChangeValues={setAtt}
-            onSave={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories)}
+            onSave={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
             isLoading={isLoadingAttendance}
             error={attError}
             onClearError={() => setAttError('')}
@@ -438,98 +366,6 @@ export default function NotesView() {
           <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginTop: 8, paddingLeft: 4 }}>
             Refresca la app para sincronizar tu asistencia
           </small>
-        </section>
-
-        {/* ── Avisos ── */}
-        <section className="notes-section" aria-labelledby="notices-label">
-          <div className="notes-section-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Megaphone size={15} />
-              <span id="notices-label">Avisos</span>
-            </div>
-            <button
-              className="btn-ghost"
-              onClick={() => { setShowAddForm(v => !v); setNewNoticeText(''); setNoticeError('') }}
-              aria-expanded={showAddForm}
-            >
-              <Plus size={14} />
-              Añadir
-            </button>
-          </div>
-
-          {showAddForm && (
-            <div className="notice-form">
-              <label htmlFor="new-notice-input" className="sr-only">Texto del aviso</label>
-              <textarea
-                id="new-notice-input"
-                className="input"
-                rows={3}
-                placeholder="Escribe el aviso..."
-                value={newNoticeText}
-                onChange={e => { setNewNoticeText(e.target.value); setNoticeError('') }}
-                autoFocus
-              />
-              {noticeError && !editingNoticeId && (
-                <p className="field-error" role="alert" aria-live="polite">{noticeError}</p>
-              )}
-              <div className="notice-form-actions">
-                <button className="btn-ghost" onClick={() => { setShowAddForm(false); setNewNoticeText(''); setNoticeError('') }}>Cancelar</button>
-                <button className="btn-primary" onClick={addNotice}><Check size={14} />Añadir</button>
-              </div>
-            </div>
-          )}
-
-          {churchNote?.notices && churchNote.notices.length > 0 && (
-            <ul className="notice-list" aria-label="Lista de avisos">
-              {churchNote.notices.map(notice => {
-                const isProjected = projectionState.songTitle === 'Aviso' &&
-                  projectionState.slides.some(s => s.lines.join('\n') === notice.text.split('\n').slice(0, 4).join('\n'))
-                return (
-                  <li key={notice.id} className={`notice-item${isProjected ? ' notice-item--projected' : ''}`}>
-                    {editingNoticeId === notice.id ? (
-                      <div className="notice-form" style={{ flex: 1 }}>
-                        <label htmlFor={`edit-${notice.id}`} className="sr-only">Editar aviso</label>
-                        <textarea
-                          id={`edit-${notice.id}`}
-                          className="input"
-                          rows={3}
-                          value={editingText}
-                          onChange={e => { setEditingText(e.target.value); setNoticeError('') }}
-                          autoFocus
-                        />
-                        {noticeError && editingNoticeId === notice.id && (
-                          <p className="field-error" role="alert" aria-live="polite">{noticeError}</p>
-                        )}
-                        <div className="notice-form-actions">
-                          <button className="btn-ghost" onClick={cancelEdit}>Cancelar</button>
-                          <button className="btn-primary" onClick={confirmEditNotice}><Check size={14} />Guardar</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <p className="notice-text">{notice.text}</p>
-                        <div className="notice-actions">
-                          <button className="btn-icon" onClick={() => startEdit(notice)} aria-label="Editar" title="Editar"><Pencil size={14} /></button>
-                          <button
-                            className={`btn-icon${isProjected ? ' notice-project-active' : ''}`}
-                            onClick={() => projectNotice(notice)}
-                            aria-label="Proyectar" title="Proyectar"
-                          ><Tv2 size={14} /></button>
-                          <button className="btn-icon danger" onClick={() => setDeletingNoticeId(notice.id)} aria-label="Eliminar" title="Eliminar"><Trash2 size={14} /></button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-
-          {(!churchNote?.notices || churchNote.notices.length === 0) && !showAddForm && (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
-              No hay avisos para esta fecha
-            </p>
-          )}
         </section>
       </div>
 
@@ -542,16 +378,6 @@ export default function NotesView() {
           }}
           onCancel={() => setShowDeleteHistoryConfirm(false)}
           confirmLabel="Borrar todo"
-          danger
-        />
-      )}
-
-      {deletingNoticeId && (
-        <ConfirmDialog
-          message="¿Eliminar este aviso? Esta acción no se puede deshacer."
-          onConfirm={confirmDeleteNotice}
-          onCancel={() => setDeletingNoticeId(null)}
-          confirmLabel="Eliminar"
           danger
         />
       )}

@@ -37,7 +37,8 @@ export const DEFAULT_THEME: ProjectionTheme = {
 export const DEFAULT_SETTINGS: AppSettings = {
   defaultTheme: DEFAULT_THEME,
   attendanceCategories: ['Caballeros', 'Damas', 'Amigos', 'Niños'],
-  serviceNameTemplates: []
+  serviceNameTemplates: [],
+  preacherTemplates: []
 }
 
 // ─── Projection Store ──────────────────────────────────────────────────────────

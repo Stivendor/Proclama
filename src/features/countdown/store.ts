@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CountdownConfig, CountdownState, CountdownTheme } from '@/types'
-import { sendCountdownUpdate } from '@/services/projection'
+import { sendCountdownUpdate, onMessage } from '@/services/projection'
 import { DEFAULT_THEME } from '@/stores'
 
 export const DEFAULT_COUNTDOWN_THEME: CountdownTheme = DEFAULT_THEME as unknown as CountdownTheme
@@ -26,6 +26,7 @@ interface CountdownStore {
   pause: () => void
   resume: () => void
   reset: () => void
+  showClock: () => void
   tick: () => void
 }
 
@@ -57,7 +58,7 @@ export const useCountdownStore = create<CountdownStore>()(
 
       start: () => {
         const st = get()
-        if (st.status === 'idle' || st.status === 'finished') {
+        if (st.status !== 'running' && st.status !== 'paused') {
           const totalSeconds = st.config.durationMinutes * 60 + st.config.durationSeconds
           set({ status: 'running', remainingTime: totalSeconds })
         } else if (st.status === 'paused') {
@@ -96,6 +97,13 @@ export const useCountdownStore = create<CountdownStore>()(
         }
       },
 
+      // Reloj en vivo: la hora la pinta la ventana de proyección, aquí solo emitimos el modo.
+      showClock: () => {
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null }
+        set({ status: 'clock', remainingTime: 0 })
+        sendCountdownUpdate({ config: get().config, status: 'clock', remainingTime: 0 })
+      },
+
       tick: () => {
         const st = get()
         if (st.status !== 'running') return
@@ -115,9 +123,21 @@ export const useCountdownStore = create<CountdownStore>()(
     }),
     {
       name: 'proclama-countdown',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         config: state.config
       })
     }
   )
 )
+
+// Reemitir el contador/reloj cuando una ventana de proyección recién abierta lo solicite
+if (typeof BroadcastChannel !== 'undefined') {
+  onMessage((msg) => {
+    if (msg.type === 'PROJECTION_READY') {
+      const st = useCountdownStore.getState()
+      if (st.status !== 'idle') {
+        sendCountdownUpdate({ config: st.config, status: st.status, remainingTime: st.remainingTime })
+      }
+    }
+  })
+}
