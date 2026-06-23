@@ -19,6 +19,7 @@ describe('subscribeWhatsappUrl', () => {
     const text = decodeURIComponent(url.split('text=')[1])
     expect(text).toContain('plan Anual')
     expect(text).toContain('a@b.com')
+    expect(text).toContain('Mi correo de la cuenta es a@b.com.')
     expect(text).toContain('¿Cómo hago el pago?')
   })
 
