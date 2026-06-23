@@ -228,7 +228,7 @@ export default function ProjectionWindow() {
   }, [state.media?.url, state.media?.type])
 
   useEffect(() => {
-    document.body.style.cssText = 'background:#000;margin:0;overflow:hidden;cursor:none'
+    document.body.style.cssText = 'background:#000;margin:0;overflow:hidden'
     document.documentElement.requestFullscreen?.().catch(() => null)
   }, [])
 
