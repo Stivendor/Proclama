@@ -276,6 +276,8 @@ interface AppStore {
   setUserPlan: (p: 'free' | 'trial' | 'paid' | 'founding') => void
   premiumExpiresAt: string | null
   setPremiumExpiresAt: (v: string | null) => void
+  trialStartedAt: string | null
+  setTrialStartedAt: (v: string | null) => void
   authStatus: 'loading' | 'authenticated' | 'unauthenticated'
   setAuthStatus: (s: 'loading' | 'authenticated' | 'unauthenticated') => void
   
@@ -403,6 +405,8 @@ export const useAppStore = create<AppStore>()(
       setUserPlan: (p) => set({ userPlan: p }),
       premiumExpiresAt: null,
       setPremiumExpiresAt: (v) => set({ premiumExpiresAt: v }),
+      trialStartedAt: null,
+      setTrialStartedAt: (v) => set({ trialStartedAt: v }),
       authStatus: 'loading',
       setAuthStatus: (s) => set({ authStatus: s }),
 
@@ -493,6 +497,7 @@ export const useAppStore = create<AppStore>()(
         userRole: null,
         userPlan: 'free',
         premiumExpiresAt: null,
+        trialStartedAt: null,
         authStatus: 'unauthenticated',
         guestMode: false,
         // NO borrar termsAccepted para que persista entre guest y logged in

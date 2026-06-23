@@ -10,13 +10,14 @@ export function useAuth() {
   const [showTermsUpdateModal, setShowTermsUpdateModal] = useState(false)
   const initRef = useRef(false)
 
-  const { setUser, setUserRole, setUserPlan, setPremiumExpiresAt, setAuthStatus, acceptTerms, checkTermsVersion } =
+  const { setUser, setUserRole, setUserPlan, setPremiumExpiresAt, setTrialStartedAt, setAuthStatus, acceptTerms, checkTermsVersion } =
     useAppStore(
       useShallow((s) => ({
         setUser: s.setUser,
         setUserRole: s.setUserRole,
         setUserPlan: s.setUserPlan,
         setPremiumExpiresAt: s.setPremiumExpiresAt,
+        setTrialStartedAt: s.setTrialStartedAt,
         setAuthStatus: s.setAuthStatus,
         acceptTerms: s.acceptTerms,
         checkTermsVersion: s.checkTermsVersion,
@@ -74,6 +75,7 @@ export function useAuth() {
                 setUserRole(profile.role)
                 setUserPlan(profile.plan)
                 setPremiumExpiresAt(profile.premiumExpiresAt)
+                setTrialStartedAt(profile.trialStartedAt)
 
                 if (profileIsPremium) {
                   import('@/services/attendanceSync')
@@ -156,6 +158,7 @@ export function useAuth() {
         } else {
           setUserRole(null)
           setUserPlan('free')
+          useAppStore.getState().setTrialStartedAt(null)
           if (event === 'SIGNED_OUT') {
             useAppStore.getState().logout()
           }

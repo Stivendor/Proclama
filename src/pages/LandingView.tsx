@@ -13,6 +13,7 @@ import { supabase } from '@/services/supabase'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
 import { t } from '@/i18n'
+import PricingCards from '@/components/pricing/PricingCards'
 
 declare global {
   interface Window {
@@ -194,14 +195,11 @@ export default function LandingView() {
               {t(language, 'landing.hero.subtitle')}
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
-              <button className="landing-btn-primary" onClick={() => {
-                if (user) {
-                  setForceLanding(false)
-                } else {
-                  setLandingShowAuth(true)
-                }
-              }}>
-                {user ? t(language, 'landing.hero.ctaAuthenticated') : t(language, 'landing.hero.ctaGuest')} <ChevronRight size={18} />
+              <button
+                className="landing-btn-primary"
+                onClick={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                {t(language, 'landing.hero.viewPlans')} <ChevronRight size={18} />
               </button>
               <button className="landing-btn-secondary" onClick={() => document.getElementById('reportes')?.scrollIntoView({ behavior: 'smooth' })}>
                 {t(language, 'landing.hero.viewReports')}
@@ -347,6 +345,15 @@ export default function LandingView() {
           </figure>
         </section>
 
+        <section id="precios" className="section pricing-section">
+          <div className="section-head animate-on-scroll">
+            <h2>{t(language, 'landing.pricing.title')}</h2>
+          </div>
+          <PricingCards
+            variant="marketing"
+            onFreeCta={() => setLandingShowAuth(true)}
+          />
+        </section>
 
       </main>
 
@@ -1075,7 +1082,16 @@ export default function LandingView() {
         @keyframes fadeDown { to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { to { opacity: 1; transform: scale(1); } }
         /* ── Pricing Section ─────────────────────────────────────── */
-        .pricing-section { 
+        .pricing-toggle { display: flex; justify-content: center; gap: 6px; margin: 0 auto 28px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 4px; width: fit-content; }
+        .pricing-toggle button { display: flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 999px; color: #9aa6bb; font-weight: 600; font-size: 14px; }
+        .pricing-toggle button.active { background: #c9a658; color: #1a1206; }
+        .pricing-badge { font-size: 11px; background: rgba(201,166,88,0.18); color: #c9a658; padding: 2px 8px; border-radius: 999px; }
+        .pricing-toggle button.active .pricing-badge { background: rgba(0,0,0,0.15); color: #1a1206; }
+        .plan-tagline { color: #9aa6bb; font-size: 14px; margin: 4px 0 16px; }
+        .plan-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+        .plan-btn-primary { background: #c9a658; color: #1a1206; font-weight: 700; padding: 12px; border-radius: 12px; text-align: center; }
+        .plan-btn-primary:disabled { opacity: 0.6; }
+        .pricing-section {
           padding-top: 82px;
           padding-bottom: 48px;
         }

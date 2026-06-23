@@ -293,7 +293,7 @@ export async function deleteSong(id: number): Promise<boolean> {
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at')
+    .select('role, terms_version, terms_accepted_at, full_name, plan, premium_expires_at, trial_started_at')
     .eq('id', userId)
     .single()
 
@@ -309,12 +309,25 @@ export async function fetchProfile(userId: string) {
   const rawPlan = (['free', 'trial', 'paid', 'founding'].includes(data.plan)
     ? data.plan
     : 'free') as 'free' | 'trial' | 'paid' | 'founding'
+  const trialStartedAt: string | null = data.trial_started_at ?? null
 
   return {
     role: mappedRole as 'admin' | 'user',
     plan: rawPlan,
     premiumExpiresAt,
+    trialStartedAt,
   }
+}
+
+export async function startTrial(): Promise<{ ok: true; expiresAt: string } | { ok: false; error: string }> {
+  const { data, error } = await supabase.rpc('start_trial')
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+  if (!data || typeof data !== 'string') {
+    return { ok: false, error: 'Respuesta inesperada al iniciar la prueba.' }
+  }
+  return { ok: true, expiresAt: data }
 }
 
 export async function createFeedback(message: string, userId: string | null): Promise<boolean> {
