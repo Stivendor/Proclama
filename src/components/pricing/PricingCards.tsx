@@ -115,6 +115,73 @@ export default function PricingCards(props: PricingCardsProps) {
           </div>
         </div>
       </div>
+
+      <style>{`
+        .pricing { width: 100%; max-width: 920px; margin: 0 auto; }
+        .pricing .pricing-toggle {
+          display: flex; justify-content: center; gap: 6px; width: fit-content;
+          margin: 0 auto 28px; padding: 4px; border-radius: 999px;
+          background: var(--bg-surface, rgba(255,255,255,0.04));
+          border: 1px solid var(--border, rgba(255,255,255,0.08));
+        }
+        .pricing .pricing-toggle button {
+          display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+          border: none; background: transparent; cursor: pointer;
+          border-radius: 999px; font-weight: 600; font-size: 14px;
+          color: var(--text-secondary, #9aa6bb); transition: all .15s;
+        }
+        .pricing .pricing-toggle button.active { background: var(--gold, #c9a658); color: #1a1206; }
+        .pricing .pricing-badge {
+          font-size: 11px; padding: 2px 8px; border-radius: 999px;
+          background: rgba(201,166,88,0.18); color: var(--gold, #c9a658);
+        }
+        .pricing .pricing-toggle button.active .pricing-badge { background: rgba(0,0,0,0.15); color: #1a1206; }
+
+        .pricing .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 720px) { .pricing .plans-grid { grid-template-columns: 1fr; } }
+
+        .pricing .plan-card {
+          position: relative; display: flex; flex-direction: column;
+          padding: 28px 24px; border-radius: 18px;
+          background: var(--bg-elevated, #11151c);
+          border: 1px solid var(--border, rgba(255,255,255,0.08));
+        }
+        .pricing .plan-pro {
+          border-color: var(--gold-dim, rgba(201,166,88,0.4));
+          box-shadow: 0 8px 30px rgba(201,166,88,0.08);
+        }
+        .pricing .plan-badge-pro {
+          position: absolute; top: -12px; left: 24px;
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 12px; border-radius: 999px;
+          background: var(--gold, #c9a658); color: #1a1206;
+          font-size: 12px; font-weight: 700;
+        }
+        .pricing .plan-card h3 { margin: 6px 0 4px; font-size: 22px; color: var(--text-primary, #e7edf8); }
+        .pricing .plan-price { font-size: 30px; font-weight: 800; color: var(--text-primary, #fff); }
+        .pricing .plan-price span { font-size: 15px; font-weight: 400; color: var(--text-secondary, #9aa6bb); }
+        .pricing .plan-tagline { margin: 6px 0 18px; font-size: 14px; color: var(--text-secondary, #9aa6bb); }
+        .pricing .plan-card ul { flex: 1; list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+        .pricing .plan-card li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.4; color: var(--text-primary, #d8deea); }
+        .pricing .plan-card li svg { flex-shrink: 0; margin-top: 2px; color: var(--gold, #c9a658); }
+
+        .pricing .plan-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .pricing .plan-btn-primary {
+          padding: 13px; border: none; border-radius: 12px; cursor: pointer;
+          font-size: 15px; font-weight: 700; text-align: center;
+          background: var(--gold, #c9a658); color: #1a1206; transition: opacity .15s;
+        }
+        .pricing .plan-btn-primary:hover { opacity: .92; }
+        .pricing .plan-btn-primary:disabled { opacity: .6; cursor: default; }
+        .pricing .plan-btn-outline {
+          display: block; padding: 13px; border-radius: 12px; cursor: pointer;
+          font-weight: 600; text-align: center; text-decoration: none;
+          color: var(--text-primary, #e7edf8);
+          border: 1px solid var(--border, rgba(255,255,255,0.16)); transition: all .15s;
+        }
+        .pricing .plan-btn-outline:hover { border-color: var(--gold-dim, rgba(201,166,88,0.5)); }
+        .pricing .plan-current { margin-top: 16px; font-size: 13px; color: var(--text-secondary, #9aa6bb); }
+      `}</style>
     </div>
   )
 }

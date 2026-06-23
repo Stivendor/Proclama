@@ -812,12 +812,6 @@ export default function SettingsView() {
         }
         .settings-plan-status { color: var(--gold, #c9a658); font-weight: 600; margin: 0 0 16px; }
         .settings-plan-msg { margin-top: 12px; color: var(--green, #34d399); font-size: 14px; }
-        .settings-section .pricing-toggle { background: var(--bg-surface); border: 1px solid var(--border); }
-        .settings-section .plan-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-        .settings-section .plan-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-        .settings-section .plan-btn-primary { background: var(--gold, #c9a658); color: #1a1206; font-weight: 700; padding: 11px; border-radius: 10px; text-align: center; }
-        .settings-section .plan-btn-outline { border: 1px solid var(--border); padding: 11px; border-radius: 10px; text-align: center; color: var(--text-primary); }
-        .settings-section .plan-current { color: var(--text-secondary); font-size: 13px; margin-top: 14px; }
       `}</style>
     </div>
   );
