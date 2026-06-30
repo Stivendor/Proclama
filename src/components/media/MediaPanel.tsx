@@ -1,5 +1,5 @@
 import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
-import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX, Youtube } from "lucide-react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX, Youtube, Star } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
@@ -30,6 +30,9 @@ export default function MediaPanel() {
     selectedMediaFolderId,
     setSelectedMediaFolderId,
     toggleMediaObjectFit,
+    updateTheme,
+    defaultBackgroundMediaId,
+    setDefaultBackgroundMediaId,
   } =
     useProjectionStore(
       useShallow((s) => ({
@@ -45,6 +48,9 @@ export default function MediaPanel() {
         selectedMediaFolderId: s.selectedMediaFolderId,
         setSelectedMediaFolderId: s.setSelectedMediaFolderId,
         toggleMediaObjectFit: s.toggleMediaObjectFit,
+        updateTheme: s.updateTheme,
+        defaultBackgroundMediaId: s.defaultBackgroundMediaId,
+        setDefaultBackgroundMediaId: s.setDefaultBackgroundMediaId,
       })),
     );
   const state = { media, songId, isBible };
@@ -112,6 +118,38 @@ export default function MediaPanel() {
       setSelectedMediaFolderId(null);
     }
   }, [localMediaFolders, selectedMediaFolderId, setSelectedMediaFolderId]);
+
+  // Fondo predeterminado: el blob URL caduca al recargar, así que cuando la lista
+  // local se (re)carga, refrescamos theme.backgroundImageUrl con la URL nueva.
+  // ponytail: solo corrige la URL caducada cuando el fondo YA es esa imagen; no
+  // fuerza la imagen si el usuario cambió a color. Si MediaPanel no está montado,
+  // la URL persistida queda obsoleta hasta que se monte.
+  useEffect(() => {
+    if (!defaultBackgroundMediaId) return;
+    const item = localMediaList.find((m) => m.id === defaultBackgroundMediaId);
+    if (!item) {
+      // La imagen default fue eliminada → limpiar la marca.
+      setDefaultBackgroundMediaId(null);
+      return;
+    }
+    if (item.type !== "image") return;
+    const t = useProjectionStore.getState().state.theme;
+    if (t.backgroundType === "image" && t.backgroundImageUrl !== item.url) {
+      updateTheme({ backgroundType: "image", backgroundImageUrl: item.url });
+    }
+  }, [localMediaList, defaultBackgroundMediaId, setDefaultBackgroundMediaId, updateTheme]);
+
+  const toggleDefaultBackground = (item: LocalMedia, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (item.type !== "image") return;
+    if (defaultBackgroundMediaId === item.id) {
+      setDefaultBackgroundMediaId(null);
+      updateTheme({ backgroundType: "color" });
+    } else {
+      setDefaultBackgroundMediaId(item.id);
+      updateTheme({ backgroundType: "image", backgroundImageUrl: item.url, backgroundThumbnail: undefined });
+    }
+  };
 
   const currentTotalBytes = useMemo(
     () => localMediaList.reduce((acc, item) => acc + (item.size || 0), 0),
@@ -433,6 +471,11 @@ export default function MediaPanel() {
       setMedia(null);
     }
 
+    if (defaultBackgroundMediaId === id) {
+      setDefaultBackgroundMediaId(null);
+      updateTheme({ backgroundType: "color" });
+    }
+
     try {
       await db.local_media.delete(id);
     } catch (err) {
@@ -455,6 +498,10 @@ export default function MediaPanel() {
       objectUrlsRef.current = {};
       setMedia(null);
       setLocalMediaList([]);
+      if (defaultBackgroundMediaId) {
+        setDefaultBackgroundMediaId(null);
+        updateTheme({ backgroundType: "color" });
+      }
     } catch (err) {
       console.error("Error clearing media:", err);
       setError("No se pudo limpiar la media local.");
@@ -707,6 +754,15 @@ export default function MediaPanel() {
                     <div className="projecting-badge">
                       <Zap size={10} fill="currentColor" /> EN VIVO
                     </div>
+                  )}
+                  {item.type === "image" && (
+                    <button
+                      className={`media-item-default ${defaultBackgroundMediaId === item.id ? "active" : ""}`}
+                      onClick={(e) => toggleDefaultBackground(item, e)}
+                      title={defaultBackgroundMediaId === item.id ? "Fondo predeterminado — clic para quitar" : "Usar como fondo predeterminado (se aplica a toda letra/versículo)"}
+                    >
+                      <Star size={12} fill={defaultBackgroundMediaId === item.id ? "currentColor" : "none"} />
+                    </button>
                   )}
                   <button className="media-item-delete" onClick={(e) => void removeMedia(item.id, e)} title="Eliminar">
                     <X size={12} />
@@ -1087,6 +1143,23 @@ export default function MediaPanel() {
         }
         .media-item-card:hover .media-item-delete { opacity: 1; }
         .media-item-delete:hover { background: var(--red); border-color: var(--red); }
+
+        .media-item-default {
+          position: absolute; top: 4px; right: 26px;
+          width: 18px; height: 18px; border-radius: 4px;
+          background: rgba(0,0,0,0.6); color: white;
+          border: 1px solid rgba(255,255,255,0.2);
+          display: flex; align-items: center; justify-content: center;
+          opacity: 0; transition: opacity 0.2s; cursor: pointer;
+        }
+        .media-item-card:hover .media-item-default { opacity: 1; }
+        .media-item-default:hover { color: var(--gold); border-color: var(--gold); }
+        .media-item-default.active {
+          opacity: 1;
+          color: var(--gold);
+          border-color: var(--gold);
+          background: rgba(212, 175, 55, 0.2);
+        }
         .media-item-meta {
           position: absolute;
           bottom: 0;

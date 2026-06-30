@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance } from '@/types'
+import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance, LocalMedia } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendMediaCommand, ensureProjectionReady } from '@/services/projection'
 import { supabase } from '@/services/supabase'
@@ -41,6 +41,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
   preacherTemplates: []
 }
 
+// Al mostrar texto, si hay un fondo favorito marcado, devuelve los overrides para
+// activarlo y quitar cualquier media/anuncio que estuviera encima. Null si no aplica
+// o si ya está aplicado. ponytail: el favorito tiene prioridad sobre el "fondo
+// dinámico" de media — si quieres video de fondo bajo la letra, quita el favorito.
+function favoriteBgOverride(
+  defaultId: string | null,
+  list: LocalMedia[],
+  state: ProjectionState
+): { theme: ProjectionTheme; media: null } | null {
+  if (!defaultId) return null
+  const fav = list.find(m => m.id === defaultId && m.type === 'image')
+  if (!fav) return null
+  const t = state.theme
+  if (!state.media && t.backgroundType === 'image' && t.backgroundImageUrl === fav.url) return null
+  return { theme: { ...t, backgroundType: 'image', backgroundImageUrl: fav.url }, media: null }
+}
+
 // ─── Projection Store ──────────────────────────────────────────────────────────
 interface ProjectionStore {
   state: ProjectionState
@@ -65,6 +82,9 @@ interface ProjectionStore {
   setSelectedMediaFolderId: (folderId: string | null) => void
   toggleMediaObjectFit: () => void
   currentSong: import('@/types').Song | null
+  // Id de la media local marcada como fondo predeterminado (se aplica vía theme).
+  defaultBackgroundMediaId: string | null
+  setDefaultBackgroundMediaId: (id: string | null) => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -86,6 +106,8 @@ export const useProjectionStore = create<ProjectionStore>()(
       localMediaFolders: [],
       selectedMediaFolderId: null,
       currentSong: null,
+      defaultBackgroundMediaId: null,
+      setDefaultBackgroundMediaId: (id) => set({ defaultBackgroundMediaId: id }),
 
       setLocalMediaList: (updater) => set((s) => ({
         localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
@@ -100,14 +122,19 @@ export const useProjectionStore = create<ProjectionStore>()(
       setProjectionWindow: (w) => set({ projectionWindow: w }),
 
       loadSong: (song, isBible = false, initialSlide = -1) => {
+        const s = get()
+        const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
+        const theme = fav?.theme ?? s.state.theme
         const newState: ProjectionState = {
-          ...get().state,
+          ...s.state,
+          theme,
+          media: fav ? null : s.state.media,
           songId: isBible ? null : song.id || null,
           songTitle: song.title,
           songArtist: song.artist,
           isBible,
           lyricsRaw: song.lyrics,
-          slides: parseLyrics(song.lyrics, get().state.theme.linesPerSlide ?? 2),
+          slides: parseLyrics(song.lyrics, theme.linesPerSlide ?? 2),
           currentSlide: initialSlide,
           hideText: false,
         }
@@ -128,7 +155,8 @@ export const useProjectionStore = create<ProjectionStore>()(
           const { currentSlide, slides } = s.state
           if (currentSlide < slides.length - 1) {
             const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
-            const newState = { ...s.state, currentSlide: nextIndex, hideText: false }
+            const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
+            const newState = { ...s.state, ...(fav ?? {}), currentSlide: nextIndex, hideText: false }
             sendProjectionUpdate(newState)
             
             // Add to history only when presenting
@@ -145,7 +173,8 @@ export const useProjectionStore = create<ProjectionStore>()(
       prevSlide: () => {
         set(s => {
           if (s.state.currentSlide > 0) {
-            const newState = { ...s.state, currentSlide: s.state.currentSlide - 1, hideText: false }
+            const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
+            const newState = { ...s.state, ...(fav ?? {}), currentSlide: s.state.currentSlide - 1, hideText: false }
             sendProjectionUpdate(newState)
             
             if (s.currentSong) {
@@ -161,7 +190,8 @@ export const useProjectionStore = create<ProjectionStore>()(
       goToSlide: (index) => {
         const s = get()
         if (index >= 0 && index < s.state.slides.length) {
-          const newState = { ...s.state, currentSlide: index, hideText: false }
+          const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
+          const newState = { ...s.state, ...(fav ?? {}), currentSlide: index, hideText: false }
           const doUpdate = (newWindow: Window | null) => {
             if (newWindow) set({ projectionWindow: newWindow })
             set({ state: newState })
@@ -256,7 +286,8 @@ export const useProjectionStore = create<ProjectionStore>()(
         state: {
           ...initialProjectionState,
           theme: s.state.theme
-        }
+        },
+        defaultBackgroundMediaId: s.defaultBackgroundMediaId
       })
     }
   )
