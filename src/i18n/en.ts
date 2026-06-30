@@ -66,6 +66,7 @@ const en: Translations = {
       ctaGuest: 'Start free',
       viewReports: 'See the reports',
       viewPlans: 'View plans',
+      enterApp: 'Enter Proclama',
       downloadApp: 'Download App',
     },
     benefits: {

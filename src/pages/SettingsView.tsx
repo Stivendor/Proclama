@@ -19,7 +19,7 @@ import {
 import { supabase, startTrial } from "@/services/supabase";
 import TermsModal from "@/components/terms/TermsModal";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
-import { usePlan } from "@/hooks/usePlan";
+import { usePlan, FOUNDING_PHASE } from "@/hooks/usePlan";
 import DeviceList from "@/components/auth/DeviceList";
 import { Monitor } from "lucide-react";
 import { MAX_DEVICES_PREMIUM } from "@/constants/plans";
@@ -316,14 +316,16 @@ export default function SettingsView() {
                     : t(language, 'settings.plan.lifetime')}
                 </p>
               )}
-              <PricingCards
-                variant="app"
-                isPremium={isPremium}
-                trialEligible={isTrialEligible({ isPremium, trialStartedAt })}
-                onStartTrial={handleStartTrial}
-                startingTrial={startingTrial}
-                userEmail={user.email ?? undefined}
-              />
+              {!FOUNDING_PHASE && (
+                <PricingCards
+                  variant="app"
+                  isPremium={isPremium}
+                  trialEligible={isTrialEligible({ isPremium, trialStartedAt })}
+                  onStartTrial={handleStartTrial}
+                  startingTrial={startingTrial}
+                  userEmail={user.email ?? undefined}
+                />
+              )}
               {planMsg && <p className="settings-plan-msg">{planMsg}</p>}
             </section>
           )}

@@ -64,6 +64,7 @@ const es = {
       ctaGuest: 'Empieza gratis',
       viewReports: 'Ver los reportes',
       viewPlans: 'Ver los planes',
+      enterApp: 'Entrar a Proclama',
       downloadApp: 'Descargar App',
     },
     benefits: {
