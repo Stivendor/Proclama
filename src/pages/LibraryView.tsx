@@ -12,6 +12,24 @@ import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
 
+type LibraryTab = 'locals' | 'community'
+
+// Predicados de filtro reutilizados por la pestaña activa y por el conteo cruzado.
+function matchesTab(s: Song, tab: LibraryTab, userId?: string, isAdmin = false): boolean {
+  if (tab === 'locals') return !s.remoteId || (!!userId && s.userId === userId)
+  if (isAdmin) return s.remoteId !== undefined
+  return !!s.isPublic && s.remoteId !== undefined && (userId ? s.userId !== userId : true)
+}
+
+function matchesSearch(s: Song, query: string): boolean {
+  return (
+    containsIgnoreAccents(s.title, query) ||
+    containsIgnoreAccents(s.artist || '', query) ||
+    containsIgnoreAccents(s.lyrics, query) ||
+    s.tags.some(t => containsIgnoreAccents(t, query))
+  )
+}
+
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
     searchQuery: s.searchQuery, setSearchQuery: s.setSearchQuery,
@@ -254,13 +272,7 @@ export default function LibraryView() {
     })
 
     // Filter by active tab
-    if (libraryTab === 'locals') {
-      results = results.filter(s => !s.remoteId || (user?.id && s.userId === user.id))
-    } else if (userRole === 'admin') {
-      results = results.filter(s => s.remoteId !== undefined)
-    } else {
-      results = results.filter(s => s.isPublic && s.remoteId !== undefined && (user?.id ? s.userId !== user.id : true))
-    }
+    results = results.filter(s => matchesTab(s, libraryTab, user?.id, userRole === 'admin'))
 
     // 1. Filter by Search Query
     if (searchQuery) {
@@ -289,6 +301,17 @@ export default function LibraryView() {
     // This ensures we always find matches in the full local database
     return results.slice(0, 50)
   }, [searchQuery, selectedTag, selectedLang, libraryTab, user?.id, userRole]) ?? []
+
+  // Coincidencias en la OTRA pestaña, para no perder canciones que existen en la
+  // biblioteca opuesta a la que el usuario está mirando.
+  const otherTab: LibraryTab = libraryTab === 'locals' ? 'community' : 'locals'
+  const otherTabCount = useLiveQuery(async () => {
+    if (!searchQuery.trim()) return 0
+    const all = await db.songs.toArray()
+    return all.filter(s =>
+      matchesTab(s, otherTab, user?.id, userRole === 'admin') && matchesSearch(s, searchQuery)
+    ).length
+  }, [searchQuery, otherTab, user?.id, userRole]) ?? 0
 
   const allTags = useLiveQuery(async () => {
     const all = await db.songs.toArray()
@@ -550,6 +573,25 @@ export default function LibraryView() {
           )}
 
           <div className="song-list-scroll">
+            {searchQuery && otherTabCount > 0 && (
+              <button
+                className="cross-tab-hint"
+                onClick={() => setLibraryTab(otherTab)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 12px)',
+                  margin: '6px', padding: '8px 12px', fontSize: 12, textAlign: 'left',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius)', color: 'var(--text)', cursor: 'pointer'
+                }}
+              >
+                {otherTab === 'locals' ? <Music2 size={14} /> : <Globe size={14} />}
+                <span>
+                  {otherTabCount} {otherTabCount === 1 ? 'resultado' : 'resultados'} en{' '}
+                  <strong>{otherTab === 'locals' ? 'Mi Cancionero' : 'Comunidad'}</strong>
+                </span>
+                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>→</span>
+              </button>
+            )}
             {songs.length === 0 && onlineResults.length === 0 ? (
               <div className="library-empty">
                 <Music2 size={48} opacity={0.2} style={{ marginBottom: 12 }} />

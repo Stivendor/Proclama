@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { AttendanceRecord } from '@/types'
@@ -16,6 +16,20 @@ export function useAttendance(userId: string) {
 
   // Sincronización en tiempo real desde Supabase -> Dexie
   useAttendanceRealtime(userId, isPremium)
+
+  // Reintento de pendientes: empuja registros que quedaron sin sincronizar
+  // (ej. un guardado falló sin conexión) al montar y al recuperar internet.
+  useEffect(() => {
+    if (!isPremium || !userId) return
+    const retry = () => {
+      import('@/services/attendanceSync').then(({ syncAttendanceRecords }) => {
+        syncAttendanceRecords(userId).catch(console.warn)
+      })
+    }
+    retry()
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [userId, isPremium])
 
   const attendanceRecord = useLiveQuery(
     async () => {
