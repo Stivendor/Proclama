@@ -14,6 +14,7 @@ import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import { registerPremiumInterest } from '@/services/supabase'
 import { t } from '@/i18n'
 import PricingCards from '@/components/pricing/PricingCards'
+import { FOUNDING_PHASE } from '@/hooks/usePlan'
 
 declare global {
   interface Window {
@@ -195,12 +196,21 @@ export default function LandingView() {
               {t(language, 'landing.hero.subtitle')}
             </p>
             <div className="hero-actions animate-fade-up" style={{ animationDelay: '0.24s' }}>
-              <button
-                className="landing-btn-primary"
-                onClick={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                {t(language, 'landing.hero.viewPlans')} <ChevronRight size={18} />
-              </button>
+              {FOUNDING_PHASE ? (
+                <button
+                  className="landing-btn-primary"
+                  onClick={() => setLandingShowAuth(true)}
+                >
+                  {t(language, 'landing.hero.enterApp')} <ChevronRight size={18} />
+                </button>
+              ) : (
+                <button
+                  className="landing-btn-primary"
+                  onClick={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  {t(language, 'landing.hero.viewPlans')} <ChevronRight size={18} />
+                </button>
+              )}
               <button className="landing-btn-secondary" onClick={() => document.getElementById('reportes')?.scrollIntoView({ behavior: 'smooth' })}>
                 {t(language, 'landing.hero.viewReports')}
               </button>
@@ -345,15 +355,18 @@ export default function LandingView() {
           </figure>
         </section>
 
-        <section id="precios" className="section pricing-section">
-          <div className="section-head animate-on-scroll">
-            <h2>{t(language, 'landing.pricing.title')}</h2>
-          </div>
-          <PricingCards
-            variant="marketing"
-            onFreeCta={() => setLandingShowAuth(true)}
-          />
-        </section>
+        {/* En fase fundadores el acceso es gratuito: no se muestran precios */}
+        {!FOUNDING_PHASE && (
+          <section id="precios" className="section pricing-section">
+            <div className="section-head animate-on-scroll">
+              <h2>{t(language, 'landing.pricing.title')}</h2>
+            </div>
+            <PricingCards
+              variant="marketing"
+              onFreeCta={() => setLandingShowAuth(true)}
+            />
+          </section>
+        )}
 
       </main>
 

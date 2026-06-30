@@ -5,7 +5,7 @@ import { useAppStore } from '@/stores'
  * Al activar el modelo de pago, ponlo en false (solo tras correr el
  * grandfathering de la Fase 6 y tener el enforcement server-side listo).
  */
-export const FOUNDING_PHASE = false
+export const FOUNDING_PHASE = true
 
 /** Canciones propias que un usuario free puede crear */
 export const FREE_SONG_LIMIT = 30
