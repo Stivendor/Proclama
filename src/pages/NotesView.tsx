@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  Users, Tv2, BarChart2, Download, Lock, X, FileText, Trash2
+  Users, Tv2, BarChart2, Download, Lock, X, FileText, Trash2, CalendarDays
 } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
@@ -11,6 +11,7 @@ import { usePlan } from '@/hooks/usePlan'
 
 import { useAttendance } from '@/features/attendance/hooks/useAttendance'
 import AttendanceHistory from '@/features/attendance/components/AttendanceHistory'
+import AttendanceStats from '@/features/attendance/components/AttendanceStats'
 import ServiceNameSelector from '@/features/attendance/components/ServiceNameSelector'
 import TemplateCombobox from '@/features/attendance/components/TemplateCombobox'
 import AttendanceForm from '@/features/attendance/components/AttendanceForm'
@@ -33,11 +34,12 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
 
 export default function NotesView() {
   const { canExportReports } = usePlan()
-  const { user, settings, updateSettings, fetchCloudSettings } = useAppStore(useShallow(s => ({
+  const { user, settings, updateSettings, fetchCloudSettings, setToast } = useAppStore(useShallow(s => ({
     user: s.user,
     settings: s.settings,
     updateSettings: s.updateSettings,
-    fetchCloudSettings: s.fetchCloudSettings
+    fetchCloudSettings: s.fetchCloudSettings,
+    setToast: s.setToast
   })))
 
   useEffect(() => {
@@ -67,10 +69,10 @@ export default function NotesView() {
     hasServiceNameError
   } = useAttendance(userId)
 
-  const [showDashboard, setShowDashboard] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -137,6 +139,11 @@ export default function NotesView() {
   const isAttendanceProjected = projectionSongTitle === 'Asistencia'
   const savedTotal = attendanceRecord ? resolveValues(attendanceRecord).reduce((a, b) => a + b, 0) : 0
 
+  async function handleSave() {
+    const ok = await saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)
+    if (ok) setToast('Asistencia guardada')
+  }
+
   // ─── Delete History ─────────────────────────────────────────────────────────────────
   const [showDeleteHistoryConfirm, setShowDeleteHistoryConfirm] = useState(false)
 
@@ -148,36 +155,13 @@ export default function NotesView() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Users size={20} color="var(--gold)" />
           <h1>Asistencia</h1>
-          {isToday && <span className="date-today-badge">Hoy</span>}
-        </div>
-        <div className="header-actions">
-          <button
-            className={`btn-ghost${showDashboard ? ' active' : ''}`}
-            onClick={() => setShowDashboard(v => !v)}
-            title="Ver historial"
-          >
-            <BarChart2 size={15} />
-            Historial
-          </button>
-
-          <input
-            type="datetime-local"
-            className={`input${attError === 'Debes seleccionar una fecha válida' ? ' input--error' : ''}`}
-            style={{ width: 'auto' }}
-            value={selectedDate ? `${selectedDate}T${serviceTime || '00:00'}` : ''}
-            onChange={e => {
-              const [date, time] = e.target.value.split('T')
-              if (date) { setSelectedDate(date); setServiceTime(time || '') }
-            }}
-            aria-label="Seleccionar fecha y hora"
-          />
         </div>
       </div>
 
       <div className="notes-body">
-        {/* ── Dashboard ── */}
-        {showDashboard && (
-          <section className="notes-section">
+        {/* ── Historial: siempre visible, debajo de la captura vía order (notes-body es flex column) ── */}
+        {/* ponytail: reorden por CSS order; el DOM deja el historial antes del form, aceptable para esta vista */}
+          <section className="notes-section" style={{ order: 1 }}>
             <div className="notes-section-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <BarChart2 size={15} />
@@ -275,13 +259,14 @@ export default function NotesView() {
               </button>
             </div>
 
+            <AttendanceStats records={historyRecords} />
+
             <AttendanceHistory
               records={historyRecords}
               categories={attendanceCategories}
               onEdit={(date, serviceName) => {
                 setSelectedDate(date)
                 setSelectedServiceName(serviceName)
-                setShowDashboard(false)
               }}
               onDelete={async (r) => {
                 if (window.confirm(`¿Estás seguro de que deseas eliminar el registro del ${formatDate(r.date)}?`)) {
@@ -290,7 +275,6 @@ export default function NotesView() {
               }}
             />
           </section>
-        )}
 
         {/* ── Asistencia ── */}
         <section className="notes-section" aria-labelledby="attendance-label">
@@ -299,20 +283,46 @@ export default function NotesView() {
               <Users size={15} />
               <span id="attendance-label">Asistencia al culto</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {savedTotal > 0 && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Total: {savedTotal}</span>}
-              <button
-                className={`btn-icon${isAttendanceProjected ? ' notice-project-active' : ''}`}
-                onClick={projectAttendance}
-                title="Proyectar asistencia"
-                aria-label="Proyectar asistencia"
-                disabled={savedTotal === 0}
-              >
-                <Tv2 size={15} />
-              </button>
-            </div>
+            <button
+              className={`btn-icon${isAttendanceProjected ? ' notice-project-active' : ''}`}
+              onClick={projectAttendance}
+              title="Proyectar asistencia"
+              aria-label="Proyectar asistencia"
+              disabled={savedTotal === 0}
+            >
+              <Tv2 size={15} />
+            </button>
           </div>
 
+          <div
+            className="attendance-when"
+            role="button"
+            tabIndex={0}
+            aria-label="Abrir selector de fecha y hora"
+            onClick={() => { try { dateInputRef.current?.showPicker() } catch { /* no soportado */ } }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                try { dateInputRef.current?.showPicker() } catch { /* no soportado */ }
+              }
+            }}
+          >
+            <CalendarDays size={16} color="var(--text-secondary)" />
+            <input
+              ref={dateInputRef}
+              type="datetime-local"
+              className={`input${attError === 'Debes seleccionar una fecha válida' ? ' input--error' : ''}`}
+              value={selectedDate ? `${selectedDate}T${serviceTime || '00:00'}` : ''}
+              onChange={e => {
+                const [date, time] = e.target.value.split('T')
+                if (date) { setSelectedDate(date); setServiceTime(time || '') }
+              }}
+              aria-label="Seleccionar fecha y hora"
+            />
+            {isToday && <span className="date-today-badge">Hoy</span>}
+          </div>
+
+          <div className="attendance-fields">
           <div className="attendance-service-row">
             <label htmlFor="service-name-manual" className="attendance-field-label">Nombre del culto</label>
             <ServiceNameSelector
@@ -321,7 +331,7 @@ export default function NotesView() {
               serviceNameTemplates={serviceNameTemplates}
               onAddTemplate={(name) => updateSettings({ serviceNameTemplates: [...serviceNameTemplates, name] })}
               onDeleteTemplate={(name) => updateSettings({ serviceNameTemplates: serviceNameTemplates.filter(t => t !== name) })}
-              onEnter={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
+              onEnter={handleSave}
               error={hasServiceNameError ? attError : undefined}
               onClearError={() => attError && setAttError('')}
             />
@@ -349,8 +359,9 @@ export default function NotesView() {
               placeholder="Tema de la predicación..."
               value={topic}
               onChange={e => setTopic(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
+              onKeyDown={e => e.key === 'Enter' && handleSave()}
             />
+          </div>
           </div>
 
           <AttendanceForm
@@ -358,14 +369,11 @@ export default function NotesView() {
             onUpdateCategories={(newCats) => updateSettings({ attendanceCategories: newCats })}
             values={att}
             onChangeValues={setAtt}
-            onSave={() => saveAttendance(att, serviceName, serviceTime, attendanceCategories, preacher, topic)}
+            onSave={handleSave}
             isLoading={isLoadingAttendance}
             error={attError}
             onClearError={() => setAttError('')}
           />
-          <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginTop: 8, paddingLeft: 4 }}>
-            Refresca la app para sincronizar tu asistencia
-          </small>
         </section>
       </div>
 
