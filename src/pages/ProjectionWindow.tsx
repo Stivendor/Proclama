@@ -485,7 +485,18 @@ export default function ProjectionWindow() {
                 </div>
               )}
               <div style={{ textShadow: strongShadow }}>
-                {slide.lines.map((line, i) => <div key={i}>{line}</div>)}
+                {slide.lines.map((line, i) => (
+                  <div key={i}>
+                    {/* Biblia paralela: separa los dos idiomas con una línea divisoria */}
+                    {isBible && i > 0 && (
+                      <div style={{
+                        width: '35%', height: '2px', margin: '0.3em auto',
+                        background: theme.textColor, opacity: 0.35,
+                      }} />
+                    )}
+                    {line}
+                  </div>
+                ))}
               </div>
               {titleAtBottom && (
                 <div style={{
