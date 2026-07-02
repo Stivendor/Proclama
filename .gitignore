@@ -65,3 +65,4 @@ bulk_cleanup_log.txt
 dry_run_output*.txt
 results.txt
 
+package-lock.json
