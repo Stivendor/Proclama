@@ -442,7 +442,7 @@ export default function BibleView() {
       const parts: string[] = []
       for (const v of versesToProject) {
         let secText = ''
-        if (v.bookId && v.chapter) {
+        if (v.bookId && v.chapter && v.translation !== secondaryTranslation) {
           const key = `${v.bookId}:${v.chapter}`
           let secChapter = secByChapter.get(key)
           if (!secChapter) {
@@ -450,7 +450,7 @@ export default function BibleView() {
             secByChapter.set(key, secChapter)
           }
           const num = extractVerseNumber(v.reference)
-          const sec = secChapter.find(s => extractVerseNumber(s.reference) === num)
+          const sec = num != null ? secChapter.find(s => extractVerseNumber(s.reference) === num) : undefined
           if (sec) secText = sec.text
         }
         // ponytail: primario+secundario en el mismo bloque (2 líneas). Con
