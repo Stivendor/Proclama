@@ -433,11 +433,36 @@ export default function BibleView() {
   }
 
 
-  const projectVerses = (versesToProject: BibleVerseResult[]) => {
+  const projectVerses = async (versesToProject: BibleVerseResult[]) => {
     if (versesToProject.length === 0) return
-    const lyrics = versesToProject
-      .map(v => `${v.text}\n\n`)
-      .join('')
+
+    let lyrics: string
+    if (parallelMode) {
+      const secByChapter = new Map<string, BibleVerseResult[]>()
+      const parts: string[] = []
+      for (const v of versesToProject) {
+        let secText = ''
+        if (v.bookId && v.chapter) {
+          const key = `${v.bookId}:${v.chapter}`
+          let secChapter = secByChapter.get(key)
+          if (!secChapter) {
+            secChapter = await fetchChapter(v.bookId, v.chapter, secondaryTranslation)
+            secByChapter.set(key, secChapter)
+          }
+          const num = extractVerseNumber(v.reference)
+          const sec = secChapter.find(s => extractVerseNumber(s.reference) === num)
+          if (sec) secText = sec.text
+        }
+        // ponytail: primario+secundario en el mismo bloque (2 líneas). Con
+        // theme.linesPerSlide=1 se separarían en slides distintos; blindar
+        // sólo si en pruebas resulta molesto.
+        parts.push(secText ? `${v.text}\n${secText}\n\n` : `${v.text}\n\n`)
+      }
+      lyrics = parts.join('')
+    } else {
+      lyrics = versesToProject.map(v => `${v.text}\n\n`).join('')
+    }
+
     loadSong({
       title: versesToProject.map(v => v.reference).join(', '),
       artist: versesToProject[0].translation,
