@@ -23,6 +23,13 @@ export default function BibleView() {
   const [selectedBook, setSelectedBook] = useState('jhn')
   const [selectedChapter, setSelectedChapter] = useState(3)
   const [selectedTranslation, setSelectedTranslation] = useState('RVR1960')
+  const [parallelMode, setParallelMode] = useState<boolean>(
+    () => localStorage.getItem('proclama-bible-parallel') === '1'
+  )
+  const [secondaryTranslation, setSecondaryTranslation] = useState<string>(
+    () => localStorage.getItem('proclama-bible-secondary-translation') || 'KJV'
+  )
+  const [secondaryVerses, setSecondaryVerses] = useState<BibleVerseResult[]>([])
   const [verses, setVerses] = useState<BibleVerseResult[]>([])
   const [loading, setLoading] = useState(true)
   const [chapterError, setChapterError] = useState<string | null>(null)
@@ -73,6 +80,27 @@ export default function BibleView() {
     ...SUPPORTED_TRANSLATIONS.filter(t => (t as any).lang === selectedLanguage),
     ...importedBibles.map(b => ({ id: b.id, name: b.name, lang: b.languageName }))
   ]
+
+  const allTranslations = [
+    ...SUPPORTED_TRANSLATIONS,
+    ...importedBibles.map(b => ({ id: b.id, name: b.name, lang: b.languageName }))
+  ]
+
+  const defaultOtherLangTranslation = () => {
+    const primaryLang = SUPPORTED_TRANSLATIONS.find(t => t.id === selectedTranslation)?.lang ?? selectedLanguage
+    const otherLang = primaryLang === 'Español' ? 'Inglés' : 'Español'
+    return SUPPORTED_TRANSLATIONS.find(t => t.lang === otherLang)?.id ?? 'KJV'
+  }
+
+  const toggleParallel = () => {
+    setParallelMode(prev => {
+      const next = !prev
+      if (next && (!secondaryTranslation || secondaryTranslation === selectedTranslation)) {
+        setSecondaryTranslation(defaultOtherLangTranslation())
+      }
+      return next
+    })
+  }
 
   // Actualizar nombres de libros si es una biblia importada de HelloAO
   useEffect(() => {
@@ -318,6 +346,14 @@ export default function BibleView() {
   }, [recentVerses])
 
   useEffect(() => {
+    localStorage.setItem('proclama-bible-parallel', parallelMode ? '1' : '0')
+  }, [parallelMode])
+
+  useEffect(() => {
+    localStorage.setItem('proclama-bible-secondary-translation', secondaryTranslation)
+  }, [secondaryTranslation])
+
+  useEffect(() => {
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
 
@@ -544,6 +580,47 @@ export default function BibleView() {
               <Plus size={16} /> <span style={{ fontSize: '0.9rem' }}>Importar</span>
             </button>
           </div>
+
+          <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 4px' }}></div>
+
+          <button
+            onClick={toggleParallel}
+            title="Mostrar dos idiomas en paralelo"
+            style={{
+              padding: '6px 14px',
+              background: parallelMode ? 'var(--gold)' : 'var(--bg-elevated)',
+              color: parallelMode ? '#000' : 'var(--text-primary)',
+              border: `1px solid ${parallelMode ? 'var(--gold)' : 'var(--border)'}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: '0.9rem',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Paralelo
+          </button>
+
+          {parallelMode && (
+            <select
+              className="filter-select"
+              value={secondaryTranslation}
+              onChange={e => setSecondaryTranslation(e.target.value)}
+              style={{
+                maxWidth: '250px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-elevated)',
+                color: 'var(--text-primary)',
+                fontSize: '0.95rem'
+              }}
+            >
+              {allTranslations.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
