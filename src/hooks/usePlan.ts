@@ -90,6 +90,9 @@ export function usePlan() {
   /** Exportar reporte PDF con gráficas (diferenciador, solo Pro) */
   const canExportReports = isPremium
 
+  /** Panel de estadísticas de asistencia (analítica, solo Pro) */
+  const canViewStats = isPremium
+
   /** Importar versiones del catálogo HelloAO (+1.000). Solo Pro. */
   const canImportBibles = isPremium
 
@@ -105,6 +108,7 @@ export function usePlan() {
     mediaLimits,
     canViewAttendance,
     canExportReports,
+    canViewStats,
     canImportBibles,
   }
 }

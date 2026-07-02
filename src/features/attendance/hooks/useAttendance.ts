@@ -2,13 +2,13 @@ import { useState, useMemo, useEffect } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import type { AttendanceRecord } from '@/types'
-import { validateAttendance, validateServiceName, parseField } from '../utils/validation'
+import { validateAttendance, validateServiceName, parseField, todayISO } from '../utils/validation'
 import { dedupeAttendanceRecords } from '../utils/dedup'
 import { usePlan } from '@/hooks/usePlan'
 import { useAttendanceRealtime } from './useAttendanceRealtime'
 
 export function useAttendance(userId: string) {
-  const [selectedDate, setSelectedDate] = useState<string>('')
+  const [selectedDate, setSelectedDate] = useState<string>(todayISO())
   const [selectedServiceName, setSelectedServiceName] = useState<string | undefined>(undefined)
   const [error, setError] = useState('')
   const [hasServiceNameError, setHasServiceNameError] = useState(false)
