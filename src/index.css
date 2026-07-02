@@ -1147,6 +1147,7 @@ a:hover { text-decoration: underline; }
   min-width: 20px; padding-top: 2px; flex-shrink: 0;
 }
 .verse-text-body { flex: 1; font-size: 13px; line-height: 1.6; color: var(--text-primary); }
+.verse-parallel-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
 .search-results-bible {
   border-bottom: 1px solid var(--border);

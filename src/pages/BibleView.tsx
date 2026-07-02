@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { BookOpen, Search, ChevronLeft, ChevronRight, X, Menu, Clock, Plus, Trash2 } from 'lucide-react'
-import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS } from '@/services/bible'
+import { BIBLE_BOOKS, fetchChapter, searchGlobal, getBookSuggestion, SUPPORTED_TRANSLATIONS, pairVersesByNumber } from '@/services/bible'
 import type { BibleVerseResult } from '@/services/bible'
 import { useShallow } from 'zustand/react/shallow'
 import { useProjectionStore, useAppStore } from '@/stores'
@@ -356,6 +356,18 @@ export default function BibleView() {
   useEffect(() => {
     loadChapter()
   }, [selectedBook, selectedChapter, selectedTranslation])
+
+  useEffect(() => {
+    if (!parallelMode) {
+      setSecondaryVerses([])
+      return
+    }
+    let cancelled = false
+    fetchChapter(selectedBook, selectedChapter, secondaryTranslation)
+      .then(r => { if (!cancelled) setSecondaryVerses(r) })
+      .catch(() => { if (!cancelled) setSecondaryVerses([]) })
+    return () => { cancelled = true }
+  }, [parallelMode, selectedBook, selectedChapter, secondaryTranslation])
 
   // Autocompletado de libros
   useEffect(() => {
@@ -893,17 +905,36 @@ export default function BibleView() {
             <div className="bible-loading">No hay versículos disponibles para este capítulo</div>
           ) : (
             <div className="verses-list" ref={versesListRef}>
-              {verses.map((verse, i) => (
-                <div
-                  key={i}
-                  data-verse={i + 1}
-                  className={`verse-item ${state.songTitle === verse.reference ? 'projected' : ''}`}
-                  onClick={() => projectVerse(verse)}
-                >
-                  <span className="verse-number">{i + 1}</span>
-                  <span className="verse-text-body">{verse.text}</span>
-                </div>
-              ))}
+              {parallelMode
+                ? pairVersesByNumber(verses, secondaryVerses).map((row) => {
+                    const projectTarget = row.primary ?? row.secondary
+                    const isProjected = projectTarget ? state.songTitle === projectTarget.reference : false
+                    return (
+                      <div
+                        key={row.num}
+                        data-verse={row.num}
+                        className={`verse-item verse-item--parallel ${isProjected ? 'projected' : ''}`}
+                        onClick={() => projectTarget && projectVerse(projectTarget)}
+                      >
+                        <span className="verse-number">{row.num}</span>
+                        <div className="verse-parallel-cols">
+                          <span className="verse-text-body">{row.primary?.text ?? ''}</span>
+                          <span className="verse-text-body">{row.secondary?.text ?? ''}</span>
+                        </div>
+                      </div>
+                    )
+                  })
+                : verses.map((verse, i) => (
+                    <div
+                      key={i}
+                      data-verse={i + 1}
+                      className={`verse-item ${state.songTitle === verse.reference ? 'projected' : ''}`}
+                      onClick={() => projectVerse(verse)}
+                    >
+                      <span className="verse-number">{i + 1}</span>
+                      <span className="verse-text-body">{verse.text}</span>
+                    </div>
+                  ))}
             </div>
           )}
         </div>
