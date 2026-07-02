@@ -629,6 +629,40 @@ export function getBookSuggestion(query: string): { id: string; name: string; na
   if (wordMatches.length === 1 && matches.length > 1) {
     return { id: wordMatches[0].id, name: wordMatches[0].name, nameEn: wordMatches[0].nameEn }
   }
-  
+
   return null
+}
+
+export interface ParallelVerseRow {
+  num: number
+  primary?: BibleVerseResult
+  secondary?: BibleVerseResult
+}
+
+function verseNumberOf(v: BibleVerseResult, fallback: number): number {
+  const m = v.reference.match(/:(\d+)\s*$/)
+  return m ? parseInt(m[1], 10) : fallback
+}
+
+// Alinea dos traducciones por número de versículo. Tolera conteos distintos
+// (versificación diferente): cada fila trae primary y/o secondary según exista.
+export function pairVersesByNumber(
+  primary: BibleVerseResult[],
+  secondary: BibleVerseResult[]
+): ParallelVerseRow[] {
+  const map = new Map<number, ParallelVerseRow>()
+
+  primary.forEach((v, i) => {
+    const num = verseNumberOf(v, i + 1)
+    map.set(num, { num, primary: v })
+  })
+
+  secondary.forEach((v, i) => {
+    const num = verseNumberOf(v, i + 1)
+    const row = map.get(num) ?? { num }
+    row.secondary = v
+    map.set(num, row)
+  })
+
+  return Array.from(map.values()).sort((a, b) => a.num - b.num)
 }
