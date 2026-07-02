@@ -33,7 +33,7 @@ function buildAttendanceLyrics(values: number[], categories: string[], date: str
 }
 
 export default function NotesView() {
-  const { canExportReports } = usePlan()
+  const { canExportReports, canViewStats } = usePlan()
   const { user, settings, updateSettings, fetchCloudSettings, setToast } = useAppStore(useShallow(s => ({
     user: s.user,
     settings: s.settings,
@@ -259,7 +259,14 @@ export default function NotesView() {
               </button>
             </div>
 
-            <AttendanceStats records={historyRecords} />
+            {canViewStats ? (
+              <AttendanceStats records={historyRecords} />
+            ) : historyRecords.length > 0 && (
+              <button className="stats-locked" onClick={() => setShowExportModal(true)}>
+                <Lock size={14} />
+                <span>Estadísticas de asistencia — función Premium</span>
+              </button>
+            )}
 
             <AttendanceHistory
               records={historyRecords}

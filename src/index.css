@@ -1835,6 +1835,28 @@ a:hover { text-decoration: underline; }
   margin-bottom: 16px;
 }
 
+.stats-locked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.stats-locked:hover {
+  border-color: var(--gold);
+  color: var(--text-primary);
+}
+
 .stat-card {
   display: flex;
   flex-direction: column;
