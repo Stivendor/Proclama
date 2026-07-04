@@ -1759,7 +1759,7 @@ a:hover { text-decoration: underline; }
 }
 
 /* ─── Vista pública de colaborador ─── */
-.collab-page { max-width: 640px; margin: 0 auto; padding: 16px; min-height: 100vh; }
+.collab-page { max-width: 640px; margin: 0 auto; padding: 16px; height: 100%; overflow-y: auto; }
 .collab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .collab-header h1 { font-size: 1.2rem; margin: 0; }
 .collab-header p { margin: 0; opacity: .7; font-size: .85rem; }
