@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useEffect, useRef } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid, Lock } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid, Lock, Users } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
 import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
+import CollaboratorsModal from '@/components/setlists/CollaboratorsModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
@@ -86,6 +87,7 @@ export default function SetlistsView() {
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
+  const [showCollabs, setShowCollabs] = useState(false)
 
   const schedulePush = () => {
     if (!user?.id) return
@@ -238,6 +240,11 @@ export default function SetlistsView() {
           <h1>Setlists</h1>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          {user?.id && (
+            <button className="btn-ghost" onClick={() => setShowCollabs(true)} title="Colaboradores">
+              <Users size={16} /> Colaboradores
+            </button>
+          )}
           <button className="btn-primary" onClick={() => setShowNew(true)}>
             <Plus size={15} /> Nuevo Setlist
           </button>
@@ -502,6 +509,9 @@ export default function SetlistsView() {
       `}</style>
 
       {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
+      {showCollabs && user?.id && (
+        <CollaboratorsModal ownerId={user.id} onClose={() => setShowCollabs(false)} />
+      )}
       {confirmDeleteSl && (
         <ConfirmDialog
           message={`¿Eliminar "${confirmDeleteSl.name}"?`}
