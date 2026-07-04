@@ -1737,6 +1737,48 @@ a:hover { text-decoration: underline; }
   border-color: var(--red-dim);
 }
 
+.btn-danger-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent;
+  color: var(--red);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--red-dim);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-danger-ghost:hover { background: var(--red-dim); }
+
+.modal-content {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); width: 600px; max-width: 95vw; max-height: 85vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  padding: 16px 20px;
+}
+
+/* ─── Vista pública de colaborador ─── */
+.collab-page { max-width: 640px; margin: 0 auto; padding: 16px; min-height: 100vh; }
+.collab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.collab-header h1 { font-size: 1.2rem; margin: 0; }
+.collab-header p { margin: 0; opacity: .7; font-size: .85rem; }
+.collab-invalid { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
+.collab-new { display: flex; gap: 8px; margin-bottom: 12px; }
+.collab-new input { flex: 1; }
+.collab-list { display: flex; flex-direction: column; gap: 8px; }
+.collab-setlist-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color, #333); background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.collab-empty { opacity: .6; text-align: center; padding: 24px 0; }
+.collab-editor { display: flex; flex-direction: column; gap: 10px; }
+.collab-name-input { font-size: 1.1rem; font-weight: 600; }
+.collab-search { display: flex; align-items: center; gap: 6px; }
+.collab-search input { flex: 1; }
+.collab-results { display: flex; flex-direction: column; gap: 4px; max-height: 40vh; overflow-y: auto; }
+.collab-notes { min-height: 70px; }
+.collab-save-state.saving { opacity: .7; }
+.collab-save-state.error { color: #e5484d; }
+.collab-lyrics { white-space: pre-wrap; max-height: 60vh; overflow-y: auto; font-family: inherit; }
+
 .notifier {
   width: 6px;
   height: 6px;

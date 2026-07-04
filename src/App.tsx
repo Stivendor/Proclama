@@ -29,6 +29,7 @@ const TermsModal = lazy(() => import("@/components/terms/TermsModal"));
 const ChurchRegistrationView = lazy(() => import("@/pages/ChurchRegistrationView"));
 const Toast = lazy(() => import("@/components/ui/Toast"));
 const AdminShell = lazy(() => import("@/admin/AdminShell"));
+const CollabView = lazy(() => import("@/pages/CollabView"));
 
 // Map URL paths to store activeView values
 const VIEW_PATHS: Record<string, string> = {
@@ -76,6 +77,9 @@ export default function App() {
         } />
         <Route path="/admin/*" element={
           <Suspense fallback={null}><AdminShell /></Suspense>
+        } />
+        <Route path="/colaborar/:token" element={
+          <Suspense fallback={null}><CollabView /></Suspense>
         } />
         <Route path="/*" element={<AppContent />} />
       </Routes>
