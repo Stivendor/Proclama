@@ -11,7 +11,7 @@ export default function CollaboratorsModal({ ownerId, onClose }: { ownerId: stri
   const [busy, setBusy] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
-  const refresh = () => listCollaborators(ownerId).then(setRows)
+  const refresh = () => listCollaborators(ownerId).then(setRows).catch(e => console.warn('[Collab] refresh failed', e))
   useEffect(() => { refresh() }, [ownerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const create = async () => {
@@ -29,9 +29,14 @@ export default function CollaboratorsModal({ ownerId, onClose }: { ownerId: stri
   }
 
   const copy = (id: string, token: string) => {
-    navigator.clipboard.writeText(collabLink(token))
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
+    const link = collabLink(token)
+    navigator.clipboard.writeText(link).then(() => {
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    }).catch(() => {
+      // Fallback: mostrar el enlace para copiarlo a mano
+      window.prompt('No se pudo copiar automáticamente. Copia el enlace:', link)
+    })
   }
 
   const revoke = async (row: CollaboratorRow) => {
