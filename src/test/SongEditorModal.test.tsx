@@ -120,6 +120,37 @@ describe('SongEditorModal', () => {
     })
   })
 
+  it('editar una cancion propia rechazada la re-envia a moderacion', async () => {
+    editingSong = {
+      id: 7,
+      remoteId: 700,
+      userId: 'user-1',
+      title: 'Rechazada',
+      artist: '',
+      lyrics: 'x',
+      key: '',
+      tags: [],
+      language: 'Español',
+      usageCount: 0,
+      isPublic: false,
+      isVerified: false,
+      rejectionReason: 'letra incompleta',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    vi.mocked(updateSong).mockResolvedValue(null as any)
+
+    render(<SongEditorModal />)
+
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    await waitFor(() => expect(updateSong).toHaveBeenCalled())
+    const [, updates] = vi.mocked(updateSong).mock.calls[0]
+    expect(updates.isPublic).toBe(true)
+    expect(updates.isVerified).toBe(false)
+    expect(updates.rejectionReason).toBeNull()
+  })
+
   it('elimina canciones solo localmente', async () => {
     editingSong = {
       id: 12,

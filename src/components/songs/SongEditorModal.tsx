@@ -64,6 +64,10 @@ export default function SongEditorModal() {
     try {
       const now = new Date()
 
+      // Canción propia rechazada: al editarla se re-envía a moderación
+      const resubmit = !!editingSong && !editingSong.isPublic &&
+        !!editingSong.rejectionReason && editingSong.userId === user?.id
+
       if (editingSong?.id) {
         if (isCommunitySong) {
           // Canción de comunidad: guardar cambios solo en local.
@@ -90,8 +94,9 @@ export default function SongEditorModal() {
         await db.songs.update(editingSong.id, {
           ...form,
           remoteId: canEditCloud ? editingSong.remoteId : undefined,
-          isPublic: canEditCloud ? editingSong.isPublic : false,
-          isVerified: canEditCloud ? editingSong.isVerified : false,
+          isPublic: resubmit ? true : (canEditCloud ? editingSong.isPublic : false),
+          isVerified: resubmit ? false : (canEditCloud ? editingSong.isVerified : false),
+          ...(resubmit && { rejectionReason: null }),
           updatedAt: now,
           userId: editingSong.userId,
         })
@@ -161,8 +166,9 @@ export default function SongEditorModal() {
           key: form.key,
           tags: form.tags,
           language: form.language,
-          isPublic: editingSong.isPublic,
-          isVerified: editingSong.isVerified,
+          isPublic: resubmit ? true : editingSong.isPublic,
+          isVerified: resubmit ? false : editingSong.isVerified,
+          ...(resubmit && { rejectionReason: null }),
           updatedAt: now,
         }).catch(err => {
           console.error('[Editor] Error al actualizar en la nube:', err)
