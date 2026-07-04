@@ -11,24 +11,7 @@ import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
-
-type LibraryTab = 'locals' | 'community'
-
-// Predicados de filtro reutilizados por la pestaña activa y por el conteo cruzado.
-function matchesTab(s: Song, tab: LibraryTab, userId?: string, isAdmin = false): boolean {
-  if (tab === 'locals') return !s.remoteId || (!!userId && s.userId === userId)
-  if (isAdmin) return s.remoteId !== undefined
-  return !!s.isPublic && s.remoteId !== undefined && (userId ? s.userId !== userId : true)
-}
-
-function matchesSearch(s: Song, query: string): boolean {
-  return (
-    containsIgnoreAccents(s.title, query) ||
-    containsIgnoreAccents(s.artist || '', query) ||
-    containsIgnoreAccents(s.lyrics, query) ||
-    s.tags.some(t => containsIgnoreAccents(t, query))
-  )
-}
+import { inUnifiedLibrary, dedupImported } from '@/utils/librarySongs'
 
 export default function LibraryView() {
   const { searchQuery, setSearchQuery, openEditor, user, userRole, isSidebarOpen, toggleSidebar, authStatus, recentSongs, clearRecentSongs } = useAppStore(useShallow(s => ({
@@ -51,7 +34,6 @@ export default function LibraryView() {
       return 0
     }
   }, [user?.id]) ?? 0
-  const [libraryTab, setLibraryTab] = useState<'locals' | 'community'>('community')
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
@@ -271,8 +253,11 @@ export default function LibraryView() {
       return a.title.localeCompare(b.title, 'es') // Luego alfabético
     })
 
-    // Filter by active tab
-    results = results.filter(s => matchesTab(s, libraryTab, user?.id, userRole === 'admin'))
+    // Biblioteca unificada: mías (cualquier estado) + comunidad aprobada, sin duplicados importados
+    results = dedupImported(
+      results.filter(s => inUnifiedLibrary(s, user?.id, userRole === 'admin')),
+      user?.id
+    )
 
     // 1. Filter by Search Query
     if (searchQuery) {
@@ -300,18 +285,7 @@ export default function LibraryView() {
     // 5. Apply view limit (slice) as the final step
     // This ensures we always find matches in the full local database
     return results.slice(0, 50)
-  }, [searchQuery, selectedTag, selectedLang, libraryTab, user?.id, userRole]) ?? []
-
-  // Coincidencias en la OTRA pestaña, para no perder canciones que existen en la
-  // biblioteca opuesta a la que el usuario está mirando.
-  const otherTab: LibraryTab = libraryTab === 'locals' ? 'community' : 'locals'
-  const otherTabCount = useLiveQuery(async () => {
-    if (!searchQuery.trim()) return 0
-    const all = await db.songs.toArray()
-    return all.filter(s =>
-      matchesTab(s, otherTab, user?.id, userRole === 'admin') && matchesSearch(s, searchQuery)
-    ).length
-  }, [searchQuery, otherTab, user?.id, userRole]) ?? 0
+  }, [searchQuery, selectedTag, selectedLang, user?.id, userRole]) ?? []
 
   const allTags = useLiveQuery(async () => {
     const all = await db.songs.toArray()
@@ -492,9 +466,9 @@ export default function LibraryView() {
             </button>
           )}
           <div>
-            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />{libraryTab === 'locals' ? 'Mi Cancionero' : 'Comunidad'}</h1>
+            <h1><Library size={18} style={{ display: 'inline', marginRight: 8 }} />Biblioteca</h1>
             <span className="song-count">
-              {songs.length} {libraryTab === 'locals' ? 'canciones' : `de ${totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'}${totalRemoteSongs != null && totalRemoteSongs > songs.length ? '+' : ''} públicas`}
+              {songs.length} de {totalRemoteSongs ? totalRemoteSongs.toLocaleString('es') : '...'} canciones
             </span>
           </div>
         </div>
@@ -520,22 +494,6 @@ export default function LibraryView() {
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="library-tabs">
-        <button
-          className={`library-tab ${libraryTab === 'locals' ? 'active' : ''}`}
-          onClick={() => { setLibraryTab('locals'); setOnlineResults([]) }}
-        >
-          <Music2 size={14} /> Mi Cancionero
-        </button>
-        <button
-          className={`library-tab ${libraryTab === 'community' ? 'active' : ''}`}
-          onClick={() => setLibraryTab('community')}
-        >
-          <Globe size={14} /> Comunidad
-        </button>
-      </div>
-
       <div className="library-grid">
         {/* Lado Izquierdo: Lista y Filtros */}
         <div className="library-sidebar-list">
@@ -552,7 +510,7 @@ export default function LibraryView() {
             </div>
           </div>
 
-          {libraryTab === 'locals' && !localSearch && recentSongs && recentSongs.length > 0 && (
+          {!localSearch && recentSongs && recentSongs.length > 0 && (
             <div className="recent-songs-section">
               <div className="recent-songs-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -584,47 +542,19 @@ export default function LibraryView() {
           )}
 
           <div className="song-list-scroll">
-            {searchQuery && otherTabCount > 0 && (
-              <button
-                className="cross-tab-hint"
-                onClick={() => setLibraryTab(otherTab)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 12px)',
-                  margin: '6px', padding: '8px 12px', fontSize: 12, textAlign: 'left',
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius)', color: 'var(--text)', cursor: 'pointer'
-                }}
-              >
-                {otherTab === 'locals' ? <Music2 size={14} /> : <Globe size={14} />}
-                <span>
-                  {otherTabCount} {otherTabCount === 1 ? 'resultado' : 'resultados'} en{' '}
-                  <strong>{otherTab === 'locals' ? 'Mi Cancionero' : 'Comunidad'}</strong>
-                </span>
-                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>→</span>
-              </button>
-            )}
             {songs.length === 0 && onlineResults.length === 0 ? (
               <div className="library-empty">
                 <Music2 size={48} opacity={0.2} style={{ marginBottom: 12 }} />
-                {libraryTab === 'locals' ? (
-                  <>
-                    <h3>Tu cancionero está vacío</h3>
-                    <p>Crea una canción nueva o búscala en la comunidad.</p>
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                      <button className="btn-primary" onClick={() => { if (searchQuery.trim()) { createSongFromSearch() } else if (canCreateSong(ownSongCount)) { openEditor() } }}>
-                        <Plus size={16} /> {searchQuery.trim() ? `Crear «${searchQuery.trim()}»` : 'Crear canción'}
-                      </button>
-                      <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
-                        <Search size={16} /> Buscar online
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3>Sin resultados en comunidad</h3>
-                    <p>Usa la búsqueda para encontrar canciones públicas de otros usuarios, o espera a que se sincronicen.</p>
-                  </>
-                )}
+                <h3>No hay canciones aquí</h3>
+                <p>Crea una canción nueva o ajusta tu búsqueda.</p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button className="btn-primary" onClick={() => { if (searchQuery.trim()) { createSongFromSearch() } else if (canCreateSong(ownSongCount)) { openEditor() } }}>
+                    <Plus size={16} /> {searchQuery.trim() ? `Crear «${searchQuery.trim()}»` : 'Crear canción'}
+                  </button>
+                  <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
+                    <Search size={16} /> Buscar online
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -642,7 +572,7 @@ export default function LibraryView() {
                     />
                   )
                 })}
-                {searchQuery.trim() && libraryTab === 'locals' && canCreateSong(ownSongCount) && (
+                {searchQuery.trim() && canCreateSong(ownSongCount) && (
                   <button
                     className="cross-tab-hint"
                     onClick={createSongFromSearch}
@@ -753,7 +683,8 @@ const SongListItem = memo(function SongListItem({
   }
 
   const getStatusIcon = () => {
-    if (!song.isPublic) return <span title="Solo visible para ti"><Lock size={12} className="status-icon-private" /></span>
+    if (!song.isPublic && song.rejectionReason) return <span title={`Rechazada: ${song.rejectionReason}`}><X size={12} style={{ color: 'var(--red, #e5484d)' }} /></span>
+    if (!song.isPublic) return <span title="No publicada — solo visible para ti"><Lock size={12} className="status-icon-private" /></span>
     if (song.isPublic && !song.isVerified) return <span title="Pendiente de verificación"><Clock size={12} className="status-icon-pending" /></span>
     if (song.isPublic && song.isVerified) return <span title="Canción verificada"><ShieldCheck size={12} className="status-icon-verified" /></span>
     return null
