@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useEffect, useRef } from 'react'
-import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Globe, Pencil, LayoutGrid, Lock, Users } from 'lucide-react'
+import { Plus, List, Play, Trash2, Calendar, Edit2, GripVertical, Menu, Search, X, Pencil, LayoutGrid, Lock, Users } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -9,7 +9,6 @@ import { pushSetlists, deleteRemoteSetlist } from '@/services/setlistSync'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
-import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
 import CollaboratorsModal from '@/components/setlists/CollaboratorsModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { containsIgnoreAccents } from '@/utils/text'
@@ -84,7 +83,6 @@ export default function SetlistsView() {
   const [newName, setNewName] = useState('')
   const [showNew, setShowNew] = useState(false)
   const [songSearch, setSongSearch] = useState('')
-  const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
   const [showCollabs, setShowCollabs] = useState(false)
@@ -207,6 +205,29 @@ export default function SetlistsView() {
     }
   }
 
+  /** Abre el editor para crear una canción nueva y agregarla al setlist al guardar. */
+  const createSongFromSearch = () => {
+    const setlistId = editingSetlist?.id
+    const title = songSearch.trim()
+    if (!setlistId || !title) return
+    useAppStore.getState().setEditorOnSaved(async (localId) => {
+      // Captura el id del setlist (no el estado vivo): funciona aunque se cierre el panel
+      const sl = await db.setlists.get(setlistId)
+      if (!sl || sl.songIds.includes(localId)) return
+      await db.setlists.update(setlistId, { songIds: [...sl.songIds, localId], updatedAt: new Date() })
+      setEditingSetlist(prev => prev && prev.id === setlistId
+        ? { ...prev, songIds: [...prev.songIds, localId] }
+        : prev)
+      schedulePush()
+    })
+    setSongSearch('')
+    openEditor({
+      title, artist: '', lyrics: '', key: '', tags: [], language: 'Español',
+      usageCount: 0, isPublic: false, isVerified: false,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as Song)
+  }
+
   const activateSetlist = async (sl: Setlist) => {
     setActiveSetlist(sl)
     if (sl.songIds.length > 0) {
@@ -315,9 +336,6 @@ export default function SetlistsView() {
                  <button className="btn-icon-xs" onClick={() => setEditingSetlist(null)} style={{ marginRight: 8 }}><X size={14} /></button>
                  <h3>{editingSetlist.name}</h3>
               </div>
-              <div className="panel-actions">
-                 <button className="btn-ghost sm" onClick={() => setShowOnlineSearch(true)} title="Buscar canciones online"><Globe size={14} /></button>
-              </div>
             </div>
 
             <div className="setlist-content-scroll">
@@ -353,6 +371,13 @@ export default function SetlistsView() {
                            {s.key && <span className="k">{s.key}</span>}
                          </button>
                        ))}
+                       <button className="search-result-item create-new" onClick={createSongFromSearch}>
+                         <Plus size={12} />
+                         <div className="info">
+                           <span className="t">Crear «{songSearch}» como canción nueva</span>
+                           <span className="a">Se agregará a este setlist al guardar</span>
+                         </div>
+                       </button>
                     </div>
                   )}
 
@@ -484,6 +509,7 @@ export default function SetlistsView() {
         .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(212, 168, 67, 0.1); padding: 1px 4px; border-radius: 4px; }
 
         .order-section { padding: 12px; }
+        .search-result-item.create-new { border-top: 1px dashed var(--border); color: var(--gold); }
         .setlist-notes-input { width: 100%; min-height: 64px; resize: vertical; background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: inherit; font-family: inherit; font-size: 13px; }
         .setlist-updated-by { font-size: 11px; opacity: 0.6; margin-top: 4px; }
         .section-title { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; }
@@ -524,7 +550,6 @@ export default function SetlistsView() {
         .status-icon-blocked { color: var(--gold); flex-shrink: 0; }
       `}</style>
 
-      {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
       {showCollabs && user?.id && (
         <CollaboratorsModal ownerId={user.id} onClose={() => setShowCollabs(false)} />
       )}

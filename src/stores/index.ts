@@ -328,6 +328,9 @@ interface AppStore {
   setEditingSong: (s: Song | null) => void;
   openEditor: (song?: Song | null) => void;
   closeEditor: () => void;
+  /** Callback opcional invocado con el id local al CREAR una canción (no al editar). Se limpia en closeEditor. */
+  editorOnSaved: ((localId: number) => void) | null;
+  setEditorOnSaved: (cb: ((localId: number) => void) | null) => void;
 
   activeSetlist: Setlist | null
   setActiveSetlist: (s: Setlist | null) => void
@@ -465,7 +468,9 @@ export const useAppStore = create<AppStore>()(
       editingSong: null,
       setEditingSong: (s) => set({ editingSong: s }),
       openEditor: (song) => set({ editingSong: song ?? null, isEditorOpen: true }),
-      closeEditor: () => set({ editingSong: null, isEditorOpen: false }),
+      closeEditor: () => set({ editingSong: null, isEditorOpen: false, editorOnSaved: null }),
+      editorOnSaved: null,
+      setEditorOnSaved: (cb) => set({ editorOnSaved: cb }),
 
       activeSetlist: null,
       setActiveSetlist: (s) => set({ activeSetlist: s }),

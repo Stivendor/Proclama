@@ -16,12 +16,13 @@ const EMPTY_SONG: Omit<Song, 'id'> = {
 }
 
 export default function SongEditorModal() {
-  const { isEditorOpen, closeEditor, editingSong, user, userRole } = useAppStore(useShallow(s => ({
+  const { isEditorOpen, closeEditor, editingSong, user, userRole, editorOnSaved } = useAppStore(useShallow(s => ({
     isEditorOpen: s.isEditorOpen,
     closeEditor: s.closeEditor,
     editingSong: s.editingSong,
     user: s.user,
     userRole: s.userRole,
+    editorOnSaved: s.editorOnSaved,
   })))
 
   const [form, setForm] = useState<Omit<Song, 'id'>>({ ...EMPTY_SONG })
@@ -104,6 +105,9 @@ export default function SongEditorModal() {
           updatedAt: now,
           userId: user?.id ?? undefined,
         })
+
+        // Notificar al que abrió el editor (ej. SetlistsView agrega la canción al setlist)
+        editorOnSaved?.(localId as number)
 
         if (user?.id) {
           createSong({
