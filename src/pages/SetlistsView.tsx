@@ -5,6 +5,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { db } from '@/db'
+import { pushSetlists, deleteRemoteSetlist } from '@/services/setlistSync'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
@@ -86,6 +87,12 @@ export default function SetlistsView() {
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
 
+  const schedulePush = () => {
+    if (!user?.id) return
+    // ponytail: push directo tras cada mutación; debounce solo si se nota en red
+    pushSetlists(user.id).catch(e => console.warn('[SetlistSync] push failed', e))
+  }
+
   const localSetlists = useLiveQuery(async () => {
     try {
       return await db.setlists.orderBy('date').reverse().toArray()
@@ -141,6 +148,7 @@ export default function SetlistsView() {
       }
 
       await db.setlists.add(newSl as Setlist)
+      schedulePush()
       setNewName('')
       setShowNew(false)
     } catch (e: any) {
@@ -158,13 +166,15 @@ export default function SetlistsView() {
     const sl = confirmDeleteSl
     if (!sl || !sl.id) return
     setConfirmDeleteSl(null)
-    
+
+    if (sl.remoteId) deleteRemoteSetlist(sl.remoteId).catch(() => {})
     await db.setlists.delete(sl.id)
     if (editingSetlist?.id === sl.id) setEditingSetlist(null)
   }
 
   const updateSetlistInState = async (id: number, updates: Partial<Setlist>) => {
     await db.setlists.update(id, updates)
+    schedulePush()
     if (editingSetlist?.id === id) {
       setEditingSetlist({ ...editingSetlist, ...updates } as any)
     }

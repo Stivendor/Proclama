@@ -6,6 +6,7 @@ import { useShallow } from "zustand/react/shallow";
 import { useAppStore } from "@/stores";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSongsRealtime } from "@/hooks/useSongsRealtime";
+import { useSetlistsRealtime } from "@/hooks/useSetlistsRealtime";
 import { useAuth } from "@/hooks/useAuth";
 import Sidebar from "@/components/layout/Sidebar";
 import LandingView from "@/pages/LandingView";
@@ -101,6 +102,15 @@ function AppContent() {
     useAuth();
 
   useSongsRealtime(user?.id);
+  useSetlistsRealtime(user?.id);
+
+  // Sync inicial de setlists al tener sesión
+  useEffect(() => {
+    if (!user?.id) return;
+    import("@/services/setlistSync").then(({ syncSetlists }) =>
+      syncSetlists(user.id).catch((e) => console.warn("[SetlistSync] initial sync failed", e))
+    );
+  }, [user?.id]);
 
   useEffect(() => {
     setMounted(true);
