@@ -382,6 +382,20 @@ export default function SetlistsView() {
                   </DndContext>
                 )}
               </div>
+
+              <div className="order-section">
+                <div className="section-title">NOTAS DEL SERVICIO</div>
+                <textarea
+                  className="setlist-notes-input"
+                  placeholder="Notas (ej. falta esta canción, pedir pista...)"
+                  value={editingSetlist.notes ?? ''}
+                  onChange={e => setEditingSetlist({ ...editingSetlist, notes: e.target.value })}
+                  onBlur={() => editingSetlist.id && updateSetlistInState(editingSetlist.id, { notes: editingSetlist.notes, updatedAt: new Date() })}
+                />
+                {editingSetlist.updatedBy && editingSetlist.updatedBy !== 'owner' && (
+                  <div className="setlist-updated-by">Último cambio por: {editingSetlist.updatedBy}</div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -470,6 +484,8 @@ export default function SetlistsView() {
         .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(212, 168, 67, 0.1); padding: 1px 4px; border-radius: 4px; }
 
         .order-section { padding: 12px; }
+        .setlist-notes-input { width: 100%; min-height: 64px; resize: vertical; background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: inherit; font-family: inherit; font-size: 13px; }
+        .setlist-updated-by { font-size: 11px; opacity: 0.6; margin-top: 4px; }
         .section-title { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; }
         .sortable-list { display: flex; flex-direction: column; gap: 4px; }
         .empty-state { font-size: 12px; color: var(--text-muted); text-align: center; padding: 24px 12px; font-style: italic; }
