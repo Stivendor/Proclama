@@ -69,14 +69,20 @@ end $$;
 
 -- ─── collab_list_setlists ────────────────────────────────────────────────────
 create or replace function public.collab_list_setlists(p_token text)
-returns setof public.setlists
+returns table (
+  id uuid, name text, date date, song_ids bigint[],
+  notes text, updated_by text, created_at timestamptz, updated_at timestamptz
+)
 language plpgsql security definer set search_path = public
 as $$
 declare v_owner uuid;
 begin
   select a.owner_id into v_owner from _collab_auth(p_token) a;
   return query
-    select * from setlists where user_id = v_owner order by date desc nulls last, created_at desc;
+    select s.id, s.name, s.date, s.song_ids, s.notes, s.updated_by, s.created_at, s.updated_at
+    from setlists s
+    where s.user_id = v_owner
+    order by s.date desc nulls last, s.created_at desc;
 end $$;
 
 -- ─── collab_upsert_setlist ───────────────────────────────────────────────────
@@ -88,7 +94,10 @@ create or replace function public.collab_upsert_setlist(
   p_song_ids bigint[],
   p_notes text
 )
-returns setof public.setlists
+returns table (
+  id uuid, name text, date date, song_ids bigint[],
+  notes text, updated_by text, created_at timestamptz, updated_at timestamptz
+)
 language plpgsql security definer set search_path = public
 as $$
 declare v_owner uuid; v_name text; v_id uuid;
@@ -100,18 +109,20 @@ begin
   if p_id is null then
     insert into setlists (user_id, name, date, song_ids, notes, updated_by)
     values (v_owner, p_name, p_date, coalesce(p_song_ids, '{}'), p_notes, v_name)
-    returning id into v_id;
+    returning setlists.id into v_id;
   else
     update setlists
       set name = p_name, date = p_date, song_ids = coalesce(p_song_ids, '{}'),
           notes = p_notes, updated_by = v_name, updated_at = now()
-      where id = p_id and user_id = v_owner
-      returning id into v_id;
+      where setlists.id = p_id and setlists.user_id = v_owner
+      returning setlists.id into v_id;
     if v_id is null then
       raise exception 'setlist_not_found';
     end if;
   end if;
-  return query select * from setlists where id = v_id;
+  return query
+    select s.id, s.name, s.date, s.song_ids, s.notes, s.updated_by, s.created_at, s.updated_at
+    from setlists s where s.id = v_id;
 end $$;
 
 -- ─── collab_delete_setlist ───────────────────────────────────────────────────
