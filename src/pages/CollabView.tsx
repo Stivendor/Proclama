@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Plus, Trash2, GripVertical, Search, X, Music, Eye, ArrowLeft } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -47,6 +47,8 @@ export default function CollabView() {
   const [viewingSong, setViewingSong] = useState<CollabSongFull | null>(null)
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved')
   const [newName, setNewName] = useState('')
+  const saveSeq = useRef(0)
+  const searchSeq = useRef(0)
 
   const sensors = useSensors(useSensor(PointerSensor))
 
@@ -91,10 +93,13 @@ export default function CollabView() {
   }, [status, editing, refreshSetlists])
 
   // Búsqueda con debounce
+  const isEditing = editing != null
   useEffect(() => {
     if (!editing) return
+    const seq = ++searchSeq.current
     const t = setTimeout(async () => {
       const r = await collabSearchSongs(token, search, 0)
+      if (seq !== searchSeq.current) return // respuesta obsoleta: llegó después de una búsqueda más nueva
       setResults(r)
       setSongCache(prev => {
         const next = new Map(prev)
@@ -103,9 +108,10 @@ export default function CollabView() {
       })
     }, 300)
     return () => clearTimeout(t)
-  }, [search, editing, token])
+  }, [search, isEditing, token])
 
   const save = async (updated: CollabSetlist) => {
+    const seq = ++saveSeq.current
     setSaveState('saving')
     const saved = await collabUpsertSetlist(token, {
       id: updated.id || undefined,
@@ -114,6 +120,7 @@ export default function CollabView() {
       songIds: updated.songIds,
       notes: updated.notes,
     })
+    if (seq !== saveSeq.current) return // respuesta obsoleta: llegó después de un save más nuevo
     if (saved) {
       setSaveState('saved')
       setEditing(saved)
