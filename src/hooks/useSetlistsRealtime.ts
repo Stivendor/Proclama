@@ -28,6 +28,7 @@ export function useSetlistsRealtime(userId: string | undefined) {
 
             const local = await db.setlists.where('remoteId').equals(row.id).first()
             if (!local) {
+              if (payload.eventType !== 'INSERT') return
               const songIds = mergeRemoteSongIds(row.song_ids ?? [], localByRemote, [])
               await db.setlists.add({
                 remoteId: row.id,

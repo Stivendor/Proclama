@@ -124,6 +124,16 @@ export async function pushSetlists(userId: string): Promise<{ synced: number; fa
       }
       if (sl.id != null) {
         await db.setlists.update(sl.id, { remoteId: data.id, lastSyncedAt: data.updated_at, userId })
+
+        // Si hay duplicados del mismo remoteId (por race con Realtime), limpiarlos
+        const dups = await db.setlists.where('remoteId').equals(data.id).toArray()
+        if (dups.length > 1) {
+          for (const dup of dups) {
+            if (dup.id != null && dup.id !== sl.id) {
+              await db.setlists.delete(dup.id)
+            }
+          }
+        }
       }
       synced++
     } catch (err) {
