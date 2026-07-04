@@ -4,6 +4,12 @@ import type { Setlist } from '@/types'
 
 // ─── Funciones puras (testeables sin Dexie/Supabase) ─────────────────────────
 
+/** 'YYYY-MM-DD' usando componentes locales (evita el corrimiento de día de toISOString). */
+export function toLocalDateString(d: Date): string {
+  const dt = new Date(d)
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
 /** Separa songIds locales en remoteIds (para la nube) y solo-locales (se quedan en Dexie). */
 export function splitSongIds(
   songIds: number[],
@@ -97,7 +103,7 @@ export async function pushSetlists(userId: string): Promise<{ synced: number; fa
       const payload: any = {
         user_id: userId,
         name: sl.name,
-        date: sl.date ? new Date(sl.date).toISOString().slice(0, 10) : null,
+        date: sl.date ? toLocalDateString(sl.date) : null,
         song_ids: remote,
         notes: sl.notes ?? null,
         updated_by: 'owner',

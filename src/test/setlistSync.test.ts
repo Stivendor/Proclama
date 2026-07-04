@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitSongIds, mergeRemoteSongIds, resolveConflict } from '@/services/setlistSync'
+import { splitSongIds, mergeRemoteSongIds, resolveConflict, toLocalDateString } from '@/services/setlistSync'
 
 describe('splitSongIds', () => {
   it('separa canciones con remoteId de las solo-locales preservando orden', () => {
@@ -56,5 +56,12 @@ describe('resolveConflict', () => {
     expect(resolveConflict(
       new Date('2026-07-03T10:00:00Z'), undefined, '2026-07-03T09:00:00Z'
     )).toBe('push')
+  })
+})
+
+describe('toLocalDateString', () => {
+  it('usa la fecha local, no UTC (medianoche local no se corre de dia)', () => {
+    const d = new Date(2026, 6, 12) // 12 julio 2026, medianoche LOCAL
+    expect(toLocalDateString(d)).toBe('2026-07-12')
   })
 })
