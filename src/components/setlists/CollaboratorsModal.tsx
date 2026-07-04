@@ -47,7 +47,7 @@ export default function CollaboratorsModal({ ownerId, onClose }: { ownerId: stri
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="collab-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Colaboradores</h3>
           <button className="btn-icon-xs" onClick={onClose}><X size={14} /></button>

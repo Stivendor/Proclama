@@ -10,7 +10,7 @@ import {
   type CollabSong, type CollabSetlist, type CollabSongFull,
 } from '@/services/collab'
 
-type Status = 'loading' | 'ok' | 'invalid'
+type Status = 'loading' | 'ok' | 'invalid' | 'error'
 
 function SortableRow({ song, onRemove, onView }: {
   song: CollabSong
@@ -74,12 +74,16 @@ export default function CollabView() {
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const info = await collabInfo(token)
-      if (!alive) return
-      if (!info) { setStatus('invalid'); return }
-      setWho(info)
-      setStatus('ok')
-      await refreshSetlists()
+      try {
+        const info = await collabInfo(token)
+        if (!alive) return
+        if (!info) { setStatus('invalid'); return }
+        setWho(info)
+        setStatus('ok')
+        await refreshSetlists()
+      } catch {
+        if (alive) setStatus('error')
+      }
     })()
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,6 +154,17 @@ export default function CollabView() {
         <Music size={40} />
         <h2>Enlace no válido</h2>
         <p>Este enlace fue revocado o no existe. Pide uno nuevo al administrador de Proclama.</p>
+      </div>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="collab-page collab-invalid">
+        <Music size={40} />
+        <h2>Sin conexión</h2>
+        <p>No se pudo conectar con el servidor. Revisa tu internet e intenta de nuevo.</p>
+        <button className="btn-primary" onClick={() => window.location.reload()}>Reintentar</button>
       </div>
     )
   }
@@ -277,7 +292,7 @@ export default function CollabView() {
 
       {viewingSong && (
         <div className="modal-overlay" onClick={() => setViewingSong(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="collab-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{viewingSong.title}</h3>
               <button className="btn-icon-xs" onClick={() => setViewingSong(null)}><X size={14} /></button>

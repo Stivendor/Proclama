@@ -29,6 +29,14 @@ describe('collabInfo', () => {
     vi.spyOn(supabase, 'rpc').mockResolvedValue({ data: null, error: { message: 'invalid_token' } } as any)
     expect(await collabInfo('bad')).toBeNull()
   })
+
+  it('propaga el error si es un fallo de red (no invalid_token)', async () => {
+    vi.spyOn(supabase, 'rpc').mockResolvedValue({
+      data: null,
+      error: { message: 'TypeError: fetch failed', code: undefined },
+    } as any)
+    await expect(collabInfo('tok')).rejects.toThrow()
+  })
 })
 
 describe('collabUpsertSetlist', () => {

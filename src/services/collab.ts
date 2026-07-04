@@ -86,7 +86,12 @@ function mapSetlistRow(r: any): CollabSetlist {
 
 export async function collabInfo(token: string): Promise<{ collaboratorName: string; churchName: string } | null> {
   const { data, error } = await supabase.rpc('collab_info', { p_token: token })
-  if (error || !data || data.length === 0) return null
+  if (error) {
+    // invalid_token se lanza con SQLSTATE 28000 desde _collab_auth
+    if (error.code === '28000' || (error.message ?? '').includes('invalid_token')) return null
+    throw new Error(error.message)
+  }
+  if (!data || data.length === 0) return null
   return { collaboratorName: data[0].collaborator_name, churchName: data[0].church_name }
 }
 

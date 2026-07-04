@@ -1750,7 +1750,7 @@ a:hover { text-decoration: underline; }
 }
 .btn-danger-ghost:hover { background: var(--red-dim); }
 
-.modal-content {
+.collab-modal {
   background: var(--bg-surface); border: 1px solid var(--border);
   border-radius: var(--radius-lg); width: 600px; max-width: 95vw; max-height: 85vh;
   display: flex; flex-direction: column; overflow: hidden;
