@@ -23,11 +23,14 @@ export interface Song {
 // ─── Setlist ───────────────────────────────────────────────────────────────────
 export interface Setlist {
   id?: number
+  remoteId?: string   // UUID de Supabase (si está sincronizado)
   userId?: string     // UUID del usuario (Supabase)
   name: string
   date: Date
   songIds: number[]
   notes?: string
+  updatedBy?: string      // 'owner' o nombre del colaborador que hizo el último cambio
+  lastSyncedAt?: string   // ISO; si updatedAt > lastSyncedAt hay cambios pendientes de push
   createdAt: Date
   updatedAt: Date
 }

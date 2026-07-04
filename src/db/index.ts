@@ -42,6 +42,9 @@ export class ProclamaDB extends Dexie {
     this.version(10).stores({
       songs: '++id, remoteId, title, artist, language, usageCount, userId, createdAt'
     })
+    this.version(11).stores({
+      setlists: '++id, remoteId, name, date, userId, createdAt'
+    })
   }
 }
 
