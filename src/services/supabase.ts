@@ -41,6 +41,7 @@ export function mapRowToSong(row: SupabaseSongRow): Song {
     isPublic: row.is_public,
     isVerified: row.is_verified,
     sourceUrl: row.source_url ?? undefined,
+    rejectionReason: row.rejection_reason ?? undefined,
     usageCount: row.usage_count ?? 0,
     createdAt: row.created_at ? new Date(row.created_at) : new Date(),
     updatedAt: row.updated_at ? new Date(row.updated_at) : new Date()
@@ -233,6 +234,7 @@ export async function updateSong(id: number, updates: Partial<Omit<Song, 'id'>>)
     ...(updates.sourceUrl !== undefined && { source_url: updates.sourceUrl }),
     ...(updates.usageCount !== undefined && { usage_count: updates.usageCount }),
     ...(updates.userId !== undefined && { user_id: updates.userId }),
+    ...(updates.rejectionReason !== undefined && { rejection_reason: updates.rejectionReason }),
     updated_at: currentUpdatedAt.toISOString()
   }
 

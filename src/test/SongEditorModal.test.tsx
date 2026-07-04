@@ -69,6 +69,22 @@ describe('SongEditorModal', () => {
     })
   })
 
+  it('crea canciones como publicas pendientes de verificacion', async () => {
+    vi.mocked(createSong).mockResolvedValue(null as any)
+
+    render(<SongEditorModal />)
+
+    fireEvent.change(screen.getByPlaceholderText(/titulo|título/i), {
+      target: { value: 'Nueva Cancion' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    await waitFor(() => expect(createSong).toHaveBeenCalled())
+    const arg = vi.mocked(createSong).mock.calls[0][0]
+    expect(arg.isPublic).toBe(true)
+    expect(arg.isVerified).toBe(false)
+  })
+
   it('cierra despues de guardar localmente una edicion aunque Supabase tarde', async () => {
     editingSong = {
       id: 12,
@@ -102,6 +118,37 @@ describe('SongEditorModal', () => {
       expect(updateSong).toHaveBeenCalled()
       expect(closeEditor).toHaveBeenCalled()
     })
+  })
+
+  it('editar una cancion propia rechazada la re-envia a moderacion', async () => {
+    editingSong = {
+      id: 7,
+      remoteId: 700,
+      userId: 'user-1',
+      title: 'Rechazada',
+      artist: '',
+      lyrics: 'x',
+      key: '',
+      tags: [],
+      language: 'Español',
+      usageCount: 0,
+      isPublic: false,
+      isVerified: false,
+      rejectionReason: 'letra incompleta',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    vi.mocked(updateSong).mockResolvedValue(null as any)
+
+    render(<SongEditorModal />)
+
+    fireEvent.click(screen.getByRole('button', { name: /guardar/i }))
+
+    await waitFor(() => expect(updateSong).toHaveBeenCalled())
+    const [, updates] = vi.mocked(updateSong).mock.calls[0]
+    expect(updates.isPublic).toBe(true)
+    expect(updates.isVerified).toBe(false)
+    expect(updates.rejectionReason).toBeNull()
   })
 
   it('elimina canciones solo localmente', async () => {
