@@ -69,6 +69,22 @@ describe('SongEditorModal', () => {
     })
   })
 
+  it('crea canciones como publicas pendientes de verificacion', async () => {
+    vi.mocked(createSong).mockResolvedValue(null as any)
+
+    render(<SongEditorModal />)
+
+    fireEvent.change(screen.getByPlaceholderText(/titulo|título/i), {
+      target: { value: 'Nueva Cancion' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    await waitFor(() => expect(createSong).toHaveBeenCalled())
+    const arg = vi.mocked(createSong).mock.calls[0][0]
+    expect(arg.isPublic).toBe(true)
+    expect(arg.isVerified).toBe(false)
+  })
+
   it('cierra despues de guardar localmente una edicion aunque Supabase tarde', async () => {
     editingSong = {
       id: 12,

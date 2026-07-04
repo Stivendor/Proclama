@@ -99,7 +99,7 @@ export default function SongEditorModal() {
         const localId = await db.songs.add({
           ...form,
           remoteId: undefined,
-          isPublic: false,
+          isPublic: true,      // toda canción creada entra a moderación pública
           isVerified: false,
           createdAt: now,
           updatedAt: now,
@@ -115,6 +115,8 @@ export default function SongEditorModal() {
             createdAt: now,
             updatedAt: now,
             userId: user.id,
+            isPublic: true,
+            isVerified: false,
           }).then(created => {
             if (created?.remoteId) {
               db.songs.update(localId, {
@@ -134,7 +136,7 @@ export default function SongEditorModal() {
       closeEditor()
 
       if (!editingSong) {
-        useAppStore.getState().setToast(`✅ "${form.title}" guardada en Mi Cancionero`)
+        useAppStore.getState().setToast(`✅ "${form.title}" guardada — enviada a revisión de la comunidad`)
       }
 
       // Refrescar proyección si la canción editada es la que está activa
