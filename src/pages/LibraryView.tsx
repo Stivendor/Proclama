@@ -325,6 +325,17 @@ export default function LibraryView() {
     return [...new Set(all.map(s => s.language))].sort()
   }) ?? []
 
+  /** Abre el editor en modo crear con el título pre-llenado desde la búsqueda. */
+  const createSongFromSearch = () => {
+    const title = searchQuery.trim()
+    if (!title || !canCreateSong(ownSongCount)) return
+    openEditor({
+      title, artist: '', lyrics: '', key: '', tags: [], language: 'Español',
+      usageCount: 0, isPublic: false, isVerified: false,
+      createdAt: new Date(), updatedAt: new Date(),
+    } as Song)
+  }
+
   const handleEdit = (song: Song) => {
     openEditor(song)
   }
@@ -600,8 +611,8 @@ export default function LibraryView() {
                     <h3>Tu cancionero está vacío</h3>
                     <p>Crea una canción nueva o búscala en la comunidad.</p>
                     <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                      <button className="btn-primary" onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}>
-                        <Plus size={16} /> Crear canción
+                      <button className="btn-primary" onClick={() => { if (searchQuery.trim()) { createSongFromSearch() } else if (canCreateSong(ownSongCount)) { openEditor() } }}>
+                        <Plus size={16} /> {searchQuery.trim() ? `Crear «${searchQuery.trim()}»` : 'Crear canción'}
                       </button>
                       <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
                         <Search size={16} /> Buscar online
@@ -631,6 +642,21 @@ export default function LibraryView() {
                     />
                   )
                 })}
+                {searchQuery.trim() && libraryTab === 'locals' && canCreateSong(ownSongCount) && (
+                  <button
+                    className="cross-tab-hint"
+                    onClick={createSongFromSearch}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: 'calc(100% - 12px)',
+                      margin: '6px', padding: '8px 12px', fontSize: 12, textAlign: 'left',
+                      background: 'transparent', border: '1px dashed var(--border)',
+                      borderRadius: 'var(--radius)', color: 'var(--gold)', cursor: 'pointer'
+                    }}
+                  >
+                    <Plus size={14} />
+                    <span>Crear «{searchQuery.trim()}» como canción nueva</span>
+                  </button>
+                )}
                 {onlineResults.length > 0 && (
                   <div style={{
                     borderTop: '1px solid var(--border)',
