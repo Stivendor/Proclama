@@ -12,14 +12,15 @@ En `SetlistsView`, el buscador "Agregar canción al set..." solo encuentra canci
 Reutilizar el `SongEditorModal` existente con un callback de "canción creada":
 
 1. **Store** (`src/stores/index.ts`):
+
    - Nuevo campo `editorOnSaved: ((localId: number) => void) | null` con setter `setEditorOnSaved`.
    - `closeEditor()` lo resetea a `null` (evita callbacks huérfanos si el usuario cancela).
-
 2. **SongEditorModal** (`src/components/songs/SongEditorModal.tsx`):
+
    - En la rama de creación (tras `const localId = await db.songs.add(...)`), invocar `useAppStore.getState().editorOnSaved?.(localId)` antes de `closeEditor()`.
    - Solo aplica a canciones nuevas; la edición de existentes no dispara el callback.
-
 3. **SetlistsView** (`src/pages/SetlistsView.tsx`):
+
    - En `search-results-overlay`, como última fila fija (visible siempre que `songSearch` tenga texto): botón *"➕ Crear «{songSearch}» como canción nueva"*.
    - Al pulsarlo: registrar `setEditorOnSaved(cb)` donde `cb` agrega `localId` a `editingSetlist.songIds` vía `updateSetlistInState` (que ya persiste y hace `schedulePush`), limpiar `songSearch`, y abrir `openEditor({ title: songSearch, ... } as Song)` — objeto **sin `id`** con el título pre-llenado para que el modal entre en modo crear.
 
