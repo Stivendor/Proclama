@@ -1,5 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// El persist de zustand captura localStorage al importar el store: stub ANTES del import
+vi.hoisted(() => {
+  const mem: Record<string, string> = {}
+  ;(globalThis as any).localStorage = {
+    getItem: (k: string) => mem[k] ?? null,
+    setItem: (k: string, v: string) => { mem[k] = v },
+    removeItem: (k: string) => { delete mem[k] },
+  }
+})
+
 import { togglePinned, prunePinned } from '@/utils/backgroundShelf'
+import { useProjectionStore } from '@/stores'
 import type { LocalMedia } from '@/types'
 
 const img = (id: string): LocalMedia => ({
@@ -25,5 +37,14 @@ describe('prunePinned', () => {
   })
   it('conserva el orden original', () => {
     expect(prunePinned(['b', 'a'], [img('a'), img('b')])).toEqual(['b', 'a'])
+  })
+})
+
+describe('pinnedBackgroundIds en el store', () => {
+  it('setter acepta lista directa y updater funcional', () => {
+    useProjectionStore.getState().setPinnedBackgroundIds(['a'])
+    expect(useProjectionStore.getState().pinnedBackgroundIds).toEqual(['a'])
+    useProjectionStore.getState().setPinnedBackgroundIds(prev => [...prev, 'b'])
+    expect(useProjectionStore.getState().pinnedBackgroundIds).toEqual(['a', 'b'])
   })
 })
