@@ -1,8 +1,10 @@
 import { useRef, useState, DragEvent, useEffect, useMemo } from "react";
-import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX, Youtube, Star } from "lucide-react";
+import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, FolderPlus, Pencil, FolderX, Youtube, Pin } from "lucide-react";
+import { togglePinned, prunePinned } from "@/utils/backgroundShelf";
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
+import BackgroundShelf from "./BackgroundShelf";
 import { db } from "@/db";
 import { usePlan } from "@/hooks/usePlan";
 
@@ -33,6 +35,8 @@ export default function MediaPanel() {
     updateTheme,
     defaultBackgroundMediaId,
     setDefaultBackgroundMediaId,
+    pinnedBackgroundIds,
+    setPinnedBackgroundIds,
   } =
     useProjectionStore(
       useShallow((s) => ({
@@ -51,6 +55,8 @@ export default function MediaPanel() {
         updateTheme: s.updateTheme,
         defaultBackgroundMediaId: s.defaultBackgroundMediaId,
         setDefaultBackgroundMediaId: s.setDefaultBackgroundMediaId,
+        pinnedBackgroundIds: s.pinnedBackgroundIds,
+        setPinnedBackgroundIds: s.setPinnedBackgroundIds,
       })),
     );
   const state = { media, songId, isBible };
@@ -119,36 +125,54 @@ export default function MediaPanel() {
     }
   }, [localMediaFolders, selectedMediaFolderId, setSelectedMediaFolderId]);
 
-  // Fondo predeterminado: el blob URL caduca al recargar, así que cuando la lista
-  // local se (re)carga, refrescamos theme.backgroundImageUrl con la URL nueva.
-  // ponytail: solo corrige la URL caducada cuando el fondo YA es esa imagen; no
-  // fuerza la imagen si el usuario cambió a color. Si MediaPanel no está montado,
-  // la URL persistida queda obsoleta hasta que se monte.
+  // Fondo predeterminado y pins: al terminar de cargar la media local se refresca la
+  // blob URL caducada del fondo activo, se auto-fija el favorito heredado y se depuran
+  // ids que ya no existen. Gateado por `loading`: antes la limpieza corría con la lista
+  // aún vacía en el mount y borraba el favorito persistido.
   useEffect(() => {
+    if (loading) return;
+    setPinnedBackgroundIds((prev) => {
+      let next = prunePinned(prev, localMediaList);
+      if (
+        defaultBackgroundMediaId &&
+        localMediaList.some((m) => m.id === defaultBackgroundMediaId && m.type === "image") &&
+        !next.includes(defaultBackgroundMediaId)
+      ) {
+        next = [...next, defaultBackgroundMediaId];
+      }
+      // Devolver la misma referencia si no cambió nada evita re-renders en bucle.
+      return next.length === prev.length && next.every((v, i) => v === prev[i]) ? prev : next;
+    });
+
     if (!defaultBackgroundMediaId) return;
     const item = localMediaList.find((m) => m.id === defaultBackgroundMediaId);
-    if (!item) {
+    if (!item || item.type !== "image") {
       // La imagen default fue eliminada → limpiar la marca.
       setDefaultBackgroundMediaId(null);
       return;
     }
-    if (item.type !== "image") return;
     const t = useProjectionStore.getState().state.theme;
     if (t.backgroundType === "image" && t.backgroundImageUrl !== item.url) {
       updateTheme({ backgroundType: "image", backgroundImageUrl: item.url });
     }
-  }, [localMediaList, defaultBackgroundMediaId, setDefaultBackgroundMediaId, updateTheme]);
+  }, [loading, localMediaList, defaultBackgroundMediaId, setDefaultBackgroundMediaId, setPinnedBackgroundIds, updateTheme]);
 
-  const toggleDefaultBackground = (item: LocalMedia, e: React.MouseEvent) => {
+  const togglePin = (item: LocalMedia, e: React.MouseEvent) => {
     e.stopPropagation();
     if (item.type !== "image") return;
-    if (defaultBackgroundMediaId === item.id) {
-      setDefaultBackgroundMediaId(null);
-      updateTheme({ backgroundType: "color" });
-    } else {
+    if (pinnedBackgroundIds.includes(item.id)) {
+      // Quitar el pin del fondo activo también lo desactiva como predeterminado.
+      if (defaultBackgroundMediaId === item.id) {
+        setDefaultBackgroundMediaId(null);
+        updateTheme({ backgroundType: "color" });
+      }
+    } else if (!defaultBackgroundMediaId) {
+      // Fijar sin fondo activo lo activa de una: el usuario nuevo ve el resultado
+      // inmediato y aprende la relación pin → recuadro → fondo.
       setDefaultBackgroundMediaId(item.id);
       updateTheme({ backgroundType: "image", backgroundImageUrl: item.url, backgroundThumbnail: undefined });
     }
+    setPinnedBackgroundIds((prev) => togglePinned(prev, item.id));
   };
 
   const currentTotalBytes = useMemo(
@@ -475,6 +499,7 @@ export default function MediaPanel() {
       setDefaultBackgroundMediaId(null);
       updateTheme({ backgroundType: "color" });
     }
+    setPinnedBackgroundIds((prev) => prev.filter((p) => p !== id));
 
     try {
       await db.local_media.delete(id);
@@ -498,6 +523,7 @@ export default function MediaPanel() {
       objectUrlsRef.current = {};
       setMedia(null);
       setLocalMediaList([]);
+      setPinnedBackgroundIds([]);
       if (defaultBackgroundMediaId) {
         setDefaultBackgroundMediaId(null);
         updateTheme({ backgroundType: "color" });
@@ -515,6 +541,7 @@ export default function MediaPanel() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <BackgroundShelf />
       <div
         className="recognition-header"
         style={{ justifyContent: "space-between" }}
@@ -757,11 +784,11 @@ export default function MediaPanel() {
                   )}
                   {item.type === "image" && (
                     <button
-                      className={`media-item-default ${defaultBackgroundMediaId === item.id ? "active" : ""}`}
-                      onClick={(e) => toggleDefaultBackground(item, e)}
-                      title={defaultBackgroundMediaId === item.id ? "Fondo predeterminado — clic para quitar" : "Usar como fondo predeterminado (se aplica a toda letra/versículo)"}
+                      className={`media-item-default ${pinnedBackgroundIds.includes(item.id) ? "active" : ""}`}
+                      onClick={(e) => togglePin(item, e)}
+                      title={pinnedBackgroundIds.includes(item.id) ? "Quitar del recuadro de fondos" : "Fijar al recuadro de fondos de letra"}
                     >
-                      <Star size={12} fill={defaultBackgroundMediaId === item.id ? "currentColor" : "none"} />
+                      <Pin size={12} fill={pinnedBackgroundIds.includes(item.id) ? "currentColor" : "none"} />
                     </button>
                   )}
                   <button className="media-item-delete" onClick={(e) => void removeMedia(item.id, e)} title="Eliminar">

@@ -85,6 +85,9 @@ interface ProjectionStore {
   // Id de la media local marcada como fondo predeterminado (se aplica vía theme).
   defaultBackgroundMediaId: string | null
   setDefaultBackgroundMediaId: (id: string | null) => void
+  // Fondos fijados al recuadro (BackgroundShelf). El activo sigue siendo defaultBackgroundMediaId.
+  pinnedBackgroundIds: string[]
+  setPinnedBackgroundIds: (updater: string[] | ((prev: string[]) => string[])) => void
 }
 
 const initialProjectionState: ProjectionState = {
@@ -108,6 +111,10 @@ export const useProjectionStore = create<ProjectionStore>()(
       currentSong: null,
       defaultBackgroundMediaId: null,
       setDefaultBackgroundMediaId: (id) => set({ defaultBackgroundMediaId: id }),
+      pinnedBackgroundIds: [],
+      setPinnedBackgroundIds: (updater) => set((s) => ({
+        pinnedBackgroundIds: typeof updater === 'function' ? updater(s.pinnedBackgroundIds) : updater
+      })),
 
       setLocalMediaList: (updater) => set((s) => ({
         localMediaList: typeof updater === 'function' ? updater(s.localMediaList) : updater
@@ -234,7 +241,9 @@ export const useProjectionStore = create<ProjectionStore>()(
 
       setMedia: (media) => {
         set(s => {
-          const newState = { ...s.state, media, mediaStatus: undefined }
+          // La letra solo se presenta sobre el fondo activo del recuadro: proyectar
+          // cualquier media la oculta, quitarla la restaura (navegar slides también).
+          const newState = { ...s.state, media, mediaStatus: undefined, hideText: !!media }
           sendProjectionUpdate(newState)
           return { state: newState }
         })
@@ -287,7 +296,8 @@ export const useProjectionStore = create<ProjectionStore>()(
           ...initialProjectionState,
           theme: s.state.theme
         },
-        defaultBackgroundMediaId: s.defaultBackgroundMediaId
+        defaultBackgroundMediaId: s.defaultBackgroundMediaId,
+        pinnedBackgroundIds: s.pinnedBackgroundIds
       })
     }
   )
