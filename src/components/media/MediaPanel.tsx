@@ -3,6 +3,7 @@ import { Image, X, Upload, MonitorPlay, Zap, Plus, Trash2, AlertCircle, Folder, 
 import { useShallow } from "zustand/react/shallow";
 import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
+import BackgroundShelf from "./BackgroundShelf";
 import { db } from "@/db";
 import { usePlan } from "@/hooks/usePlan";
 
@@ -515,6 +516,7 @@ export default function MediaPanel() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
+      <BackgroundShelf />
       <div
         className="recognition-header"
         style={{ justifyContent: "space-between" }}
