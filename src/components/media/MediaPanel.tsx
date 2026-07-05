@@ -160,10 +160,17 @@ export default function MediaPanel() {
   const togglePin = (item: LocalMedia, e: React.MouseEvent) => {
     e.stopPropagation();
     if (item.type !== "image") return;
-    // Quitar el pin del fondo activo también lo desactiva como predeterminado.
-    if (pinnedBackgroundIds.includes(item.id) && defaultBackgroundMediaId === item.id) {
-      setDefaultBackgroundMediaId(null);
-      updateTheme({ backgroundType: "color" });
+    if (pinnedBackgroundIds.includes(item.id)) {
+      // Quitar el pin del fondo activo también lo desactiva como predeterminado.
+      if (defaultBackgroundMediaId === item.id) {
+        setDefaultBackgroundMediaId(null);
+        updateTheme({ backgroundType: "color" });
+      }
+    } else if (!defaultBackgroundMediaId) {
+      // Fijar sin fondo activo lo activa de una: el usuario nuevo ve el resultado
+      // inmediato y aprende la relación pin → recuadro → fondo.
+      setDefaultBackgroundMediaId(item.id);
+      updateTheme({ backgroundType: "image", backgroundImageUrl: item.url, backgroundThumbnail: undefined });
     }
     setPinnedBackgroundIds((prev) => togglePinned(prev, item.id));
   };
