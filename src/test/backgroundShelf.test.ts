@@ -48,3 +48,13 @@ describe('pinnedBackgroundIds en el store', () => {
     expect(useProjectionStore.getState().pinnedBackgroundIds).toEqual(['a', 'b'])
   })
 })
+
+describe('setMedia oculta la letra', () => {
+  it('proyectar media oculta el texto y quitarla lo restaura', () => {
+    const { setMedia } = useProjectionStore.getState()
+    setMedia({ url: 'blob:anuncio', type: 'image', isBackgroundMode: true, name: 'anuncio' })
+    expect(useProjectionStore.getState().state.hideText).toBe(true)
+    setMedia(null)
+    expect(useProjectionStore.getState().state.hideText).toBe(false)
+  })
+})

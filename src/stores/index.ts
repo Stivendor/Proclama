@@ -241,7 +241,9 @@ export const useProjectionStore = create<ProjectionStore>()(
 
       setMedia: (media) => {
         set(s => {
-          const newState = { ...s.state, media, mediaStatus: undefined }
+          // La letra solo se presenta sobre el fondo activo del recuadro: proyectar
+          // cualquier media la oculta, quitarla la restaura (navegar slides también).
+          const newState = { ...s.state, media, mediaStatus: undefined, hideText: !!media }
           sendProjectionUpdate(newState)
           return { state: newState }
         })
