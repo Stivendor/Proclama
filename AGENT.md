@@ -55,7 +55,8 @@ src/
 ├── components/
 │   ├── Sidebar.tsx          # Nav: Biblioteca, Setlists, Biblia, Contador, Notas, Ajustes
 │   ├── ControlPanel.tsx     # Panel derecho: slides, ocultar texto, slider de escala de fuente
-│   ├── MediaPanel.tsx       # Panel de media: carga imagen/video para anuncios en proyección
+│   ├── MediaPanel.tsx       # Panel de media: anuncios en proyección + pin (📌) de fondos de letra
+│   ├── BackgroundShelf.tsx  # Recuadro fijo de fondos de letra (media/BackgroundShelf.tsx)
 │   ├── ProjectionPreview.tsx # Preview del operador con canvas fijo escalado
 │   ├── VideoControls.tsx    # Controles de video proyectado (play/pause/seek)
 │   ├── OnlineSearchModal.tsx # Modal de búsqueda online de letras (lrclib.net)
@@ -184,8 +185,10 @@ z:30 → pantalla negra
 - `loadSong(song, isBible?)` — parsea lyrics → slides, envía PROJECTION_UPDATE
 - `nextSlide / prevSlide / goToSlide(i)` — navegación
 - `updateTheme(partial)` — merge de tema, envía update
-- `setMedia(media)` — carga imagen/video de anuncios
-- NO persiste en localStorage (estado efímero de sesión)
+- `setMedia(media)` — carga imagen/video de anuncios; oculta la letra automáticamente (hideText) y la restaura al quitar la media
+- `defaultBackgroundMediaId` / `setDefaultBackgroundMediaId(id)` — fondo activo de letra (se aplica vía theme; `favoriteBgOverride` expulsa anuncios al navegar slides)
+- `pinnedBackgroundIds` / `setPinnedBackgroundIds(updater)` — fondos fijados al recuadro (BackgroundShelf); helpers puros en `utils/backgroundShelf.ts`
+- Persiste parcialmente en localStorage (`proclama-projection`): theme, `defaultBackgroundMediaId`, `pinnedBackgroundIds`; el resto es efímero
 
 ### `useAppStore` (persiste `settings`, `isSidebarOpen`, `onboardingDone`, `guestMode`, `aspectRatio`, `fontScale`)
 - `settings: AppSettings` — churchName, churchLogoUrl, defaultTheme

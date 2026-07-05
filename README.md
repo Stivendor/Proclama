@@ -32,6 +32,7 @@ Proclama reúne en una sola aplicación web:
 - Contador regresivo personalizable con proyección en tiempo real.
 - Sección de Notas: asistencia con categorías configurables, avisos proyectables e historial.
 - Fondos dinámicos personalizables (Color, Imagen, Video) con controles de Blur y Filtro de Oscuridad.
+- Recuadro fijo de fondos de letra: fija imágenes de tu media local y elige cuál recibe toda letra proyectada.
 - Panel de control responsivo con controles de media, ajustes de proyección y vista previa en tiempo real.
 - Panel de control en vivo optimizado con navegación rápida de estrofas y versículos.
 - PWA instalable con soporte offline.
@@ -75,6 +76,8 @@ Proclama reúne en una sola aplicación web:
 - Navegación inteligente entre estrofas con teclado (`→` `←` `Espacio`).
 - Pantalla negra (`B`), modo ocultar texto y logo flotante.
 - Fondos personalizables: color sólido, imagen o video con blur y overlay de oscuridad.
+- Recuadro fijo de fondos de letra (`BackgroundShelf`): imágenes fijadas con 📌 desde la media local; la activa recibe toda letra/versículo y persiste entre sesiones.
+- Proyectar un anuncio (imagen/video/YouTube) oculta la letra automáticamente; quitarlo o navegar estrofas la restaura.
 - Ajuste de escala de fuente manual (0.4x - 1.5x).
 - Panel de controles responsivo que se adapta a diferentes resoluciones y zoom.
 
@@ -211,7 +214,8 @@ src/
 ├── components/
 │   ├── Sidebar.tsx           # Navegación lateral principal
 │   ├── ControlPanel.tsx      # Panel de control en vivo
-│   ├── MediaPanel.tsx        # Gestión de fondos multimedia
+│   ├── MediaPanel.tsx        # Media local (anuncios) + pin de fondos
+│   ├── BackgroundShelf.tsx   # Recuadro fijo de fondos de letra
 │   ├── ProjectionPreview.tsx # Vista previa del operador
 │   ├── OnlineSearchModal.tsx # Búsqueda online de letras
 │   ├── SongEditorModal.tsx   # Editor de canciones

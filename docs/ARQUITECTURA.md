@@ -76,10 +76,10 @@ La ventana principal y la ventana de proyección se comunican mediante **Broadca
 - **Estado**: auth (user, role, plan), vista activa, settings, sidebar, device control, terms, toast
 - **Persiste**: settings, sidebar, onboarding, guestMode, terms
 
-### useProjectionStore (Zustand)
-- **Persistencia**: solo el tema se persiste en localStorage
-- **Estado**: slides, currentSlide, theme, media, hideText
-- **Uso**: estado efímero de la proyección en tiempo real
+### useProjectionStore (Zustand + persist parcial)
+- **Persistencia**: theme, `defaultBackgroundMediaId` y `pinnedBackgroundIds` en localStorage (`proclama-projection`)
+- **Estado**: slides, currentSlide, theme, media, hideText, fondo activo y fondos fijados al recuadro
+- **Uso**: estado de la proyección en tiempo real; proyectar media oculta la letra automáticamente (la letra solo se presenta sobre el fondo activo del recuadro)
 
 ### useCountdownStore (Zustand + persist)
 - **Estado**: duración, título, colores del contador
@@ -157,7 +157,8 @@ src/
 ├── components/
 │   ├── Sidebar.tsx            # Navegación lateral
 │   ├── ControlPanel.tsx       # Panel de control en vivo
-│   ├── MediaPanel.tsx         # Gestión de fondos multimedia
+│   ├── MediaPanel.tsx         # Media local (anuncios) + pin de fondos
+│   ├── BackgroundShelf.tsx    # Recuadro fijo de fondos de letra
 │   ├── ProjectionPreview.tsx  # Vista previa de proyección
 │   ├── OnlineSearchModal.tsx  # Búsqueda e importación online
 │   ├── SongEditorModal.tsx    # Editor de canciones
@@ -198,6 +199,7 @@ src/
 │   └── index.ts               # Tipos globales
 └── utils/
     ├── deviceFingerprint.ts   # Fingerprint para control de dispositivos
+    ├── backgroundShelf.ts     # Helpers puros del recuadro de fondos
     └── fileUpload.ts          # Utilidades de carga de archivos
 ```
 
@@ -216,6 +218,8 @@ src/
 - Ventana independiente en monitor extendido
 - Canvas 1920×1080 con auto-ajuste de fuente
 - Fondos: color sólido, imagen o video con blur y overlay
+- Recuadro fijo de fondos de letra: imágenes fijadas con 📌 desde la media local; la activa recibe toda letra/versículo
+- Proyectar un anuncio (imagen/video/YouTube) oculta la letra automáticamente; quitarlo o navegar estrofas la restaura
 - Navegación entre estrofas y pantalla negra
 
 ### Setlists
