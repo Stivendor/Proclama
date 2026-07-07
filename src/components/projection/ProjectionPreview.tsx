@@ -5,6 +5,7 @@ import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/s
 import { useCountdownStore } from '@/features/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
+import { getYoutubeId } from '@/utils/youtube'
 
 const STORAGE_KEY = 'proclama-preview-collapsed'
 const MEDIA_KEY = 'proclama-preview-media'
@@ -53,12 +54,6 @@ const saveMediaState = (show: boolean): void => {
   } catch (error) {
     console.warn('Failed to persist media state')
   }
-}
-
-function getYoutubeId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
 }
 
 // Helper: Validate projection state

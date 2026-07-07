@@ -3,12 +3,7 @@ import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme, TickerState } from '@/types'
 import { DEFAULT_THEME, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
-
-function getYoutubeId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-}
+import { getYoutubeId } from '@/utils/youtube'
 
 function loadYoutubeAPI(callback: () => void) {
   if ((window as any).YT && (window as any).YT.Player) {
