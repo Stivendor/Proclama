@@ -245,7 +245,7 @@ src/
 ├── db/
 │   └── index.ts              # Dexie v4: songs, setlists, church_notes
 ├── data/
-│   └── bible-content.ts      # RVR1960 completa (~31K versículos)
+│   └── bible-rvr1960.json    # RVR1960 completa (~31K versículos, chunk lazy)
 ├── types/
 │   └── index.ts              # Tipos TypeScript globales
 ├── utils/

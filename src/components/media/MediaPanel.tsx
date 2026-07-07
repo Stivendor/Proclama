@@ -7,16 +7,11 @@ import VideoControls from "./VideoControls";
 import BackgroundShelf from "./BackgroundShelf";
 import { db } from "@/db";
 import { usePlan } from "@/hooks/usePlan";
+import { getYoutubeId } from "@/utils/youtube";
 
 import { LocalMedia } from "@/types";
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-
-function getYoutubeId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
-}
 
 export default function MediaPanel() {
   const {

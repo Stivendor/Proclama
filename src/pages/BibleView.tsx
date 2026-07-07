@@ -7,6 +7,7 @@ import { useProjectionStore, useAppStore } from '@/stores'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import ImportBibleModal from '@/components/songs/ImportBibleModal'
+import { normalizeText } from '@/utils/text'
 
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
@@ -191,9 +192,8 @@ export default function BibleView() {
     if (/\d/.test(value) && parsedBook) {
       // PREVENCIÓN: No bloquear si el valor sigue siendo un prefijo válido del libro sugerido
       // Esto evita que el "1" en "1 Pedro" dispare el bloqueo del capítulo prematuramente.
-      const removeAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      const nameClean = removeAccents(parsedBook.name.toLowerCase()).replace(/\s/g, '')
-      const valClean = removeAccents(value.toLowerCase()).replace(/\s/g, '')
+      const nameClean = normalizeText(parsedBook.name).replace(/\s/g, '')
+      const valClean = normalizeText(value).replace(/\s/g, '')
       
       if (nameClean.startsWith(valClean)) {
         setQuickSearchBook(value)
