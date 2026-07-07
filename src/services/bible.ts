@@ -1,7 +1,7 @@
 // API gratuita sin CORS: bible-api.com (dominio público / RVR1960)
 import type { BibleBook } from '@/types'
-import { BIBLE_CONTENT, BIBLE_BOOKS as IMPORTED_BIBLE_BOOKS } from '@/data/bible-content'
 import { supabase } from '@/services/supabase'
+import { normalizeText } from '@/utils/text'
 import { db } from '@/db'
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -153,8 +153,19 @@ async function getBookName(bookId: string, translation: string): Promise<string>
   return isEn ? (book.nameEn || book.name) : book.name
 }
 
-// Datos locales - Combina BIBLE_CONTENT expandida con datos locales adicionales
-const BIBLE_DATA = BIBLE_CONTENT
+// Datos locales RVR1960: JSON en chunk propio cargado bajo demanda para no
+// inflar el bundle inicial (~4.6MB). El service worker lo precachea igual,
+// así que sigue disponible offline.
+type BibleData = Record<string, Record<number, Array<{ verse: number; text: string }>>>
+
+let bibleDataPromise: Promise<BibleData> | null = null
+
+function getBibleData(): Promise<BibleData> {
+  if (!bibleDataPromise) {
+    bibleDataPromise = import('@/data/bible-rvr1960.json').then(m => m.default as BibleData)
+  }
+  return bibleDataPromise
+}
 
 // Request deduplication and caching for searchGlobal
 const pendingRequests = new Map<string, Promise<BibleVerseResult[]>>()
@@ -260,8 +271,9 @@ export async function fetchChapter(
     const bookName = await getBookName(bookId, translation)
     
     // Primero intentar datos locales si es RVR1960
-    if (translation === 'RVR1960' && BIBLE_DATA[bookId]?.[chapter]) {
-      const verses = BIBLE_DATA[bookId][chapter].map(v => ({
+    const localChapter = translation === 'RVR1960' ? (await getBibleData())[bookId]?.[chapter] : undefined
+    if (localChapter) {
+      const verses = localChapter.map(v => ({
         reference: `${bookName} ${chapter}:${v.verse}`,
         text: v.text,
         translation: 'RVR1960',
@@ -388,7 +400,7 @@ export async function searchVerses(query: string, translation = 'RVR1960'): Prom
     const results: BibleVerseResult[] = []
     
     // Buscar en datos locales
-    for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
+    for (const [bookId, chapters] of Object.entries(await getBibleData())) {
       const bookName = await getBookName(bookId, translation)
       for (const [chapterStr, verses] of Object.entries(chapters)) {
         const chapter = Number(chapterStr)
@@ -463,6 +475,7 @@ export async function searchGlobal(query: string, translation = 'RVR1960'): Prom
 
 async function performSearch(queryLower: string, translation: string, cacheKey: string): Promise<BibleVerseResult[]> {
   const results: BibleVerseResult[] = []
+  const BIBLE_DATA = await getBibleData()
   
   // 1. Intentar parsear como referencia (ej: "Juan 3:16" o "Génesis 1")
   // Regex simple para: [Nombre Libro] [Capítulo](:[Versículo])?
@@ -600,17 +613,13 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
 export function getBookSuggestion(query: string): { id: string; name: string; nameEn: string } | null {
   if (!query.trim()) return null
   
-  const removeAccents = (str: string) => {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  }
-  
   // Normalizar búsqueda: sin acentos, sin espacios, minúsculas
-  const queryClean = removeAccents(query.toLowerCase()).replace(/\s/g, '')
+  const queryClean = normalizeText(query).replace(/\s/g, '')
   
   // Buscar libros que comiencen con la query (ignorando tildes y espacios)
   const matches = BIBLE_BOOKS.filter(b => {
-    const nameClean = removeAccents(b.name.toLowerCase()).replace(/\s/g, '')
-    const nameEnClean = removeAccents(b.nameEn.toLowerCase()).replace(/\s/g, '')
+    const nameClean = normalizeText(b.name).replace(/\s/g, '')
+    const nameEnClean = normalizeText(b.nameEn).replace(/\s/g, '')
     return nameClean.startsWith(queryClean) || nameEnClean.startsWith(queryClean)
   })
   
@@ -620,10 +629,10 @@ export function getBookSuggestion(query: string): { id: string; name: string; na
   
   // Si hay múltiples coincidencias, verificar si alguna es una coincidencia exacta de palabra
   const wordMatches = BIBLE_BOOKS.filter(b => {
-    const partsEs = removeAccents(b.name.toLowerCase()).split(' ')
-    const partsEn = removeAccents(b.nameEn.toLowerCase()).split(' ')
-    return partsEs.some(part => removeAccents(part.toLowerCase()).startsWith(queryClean)) || 
-           partsEn.some(part => removeAccents(part.toLowerCase()).startsWith(queryClean))
+    const partsEs = normalizeText(b.name).split(' ')
+    const partsEn = normalizeText(b.nameEn).split(' ')
+    return partsEs.some(part => part.startsWith(queryClean)) || 
+           partsEn.some(part => part.startsWith(queryClean))
   })
   
   if (wordMatches.length === 1 && matches.length > 1) {

@@ -76,8 +76,7 @@ src/
 │   └── ProjectionWindow.tsx # Ventana de proyección con canvas fijo + transform:scale
 │
 └── data/
-    ├── bible-content.ts     # Biblia RVR1960 completa en JSON local
-    └── bible-raw.json       # Datos crudos de la Biblia
+    └── bible-rvr1960.json   # Biblia RVR1960 completa (JSON, import dinámico / chunk lazy)
 ```
 
 ---
