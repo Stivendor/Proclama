@@ -487,6 +487,32 @@ export async function registerDevice(
   return fetchUserDevices(deviceId)
 }
 
+const ACTIVITY_PING_KEY = 'proclama_activity_ping'
+
+/**
+ * Heartbeat diario de actividad: una fila por usuario/día en user_activity.
+ * Guard con localStorage para escribir como máximo una vez al día por usuario.
+ */
+export async function recordDailyActivity(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
+  if (!user) return
+
+  const day = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD en hora local
+  const stamp = `${user.id}:${day}`
+  if (localStorage.getItem(ACTIVITY_PING_KEY) === stamp) return
+
+  const { error } = await supabase
+    .from('user_activity')
+    .upsert({ user_id: user.id, day }, { onConflict: 'user_id,day', ignoreDuplicates: true })
+
+  if (error) {
+    console.warn('[Activity] heartbeat failed:', error.message)
+    return
+  }
+  localStorage.setItem(ACTIVITY_PING_KEY, stamp)
+}
+
 /**
  * Obtiene todos los dispositivos registrados del usuario autenticado.
  * Marca con isCurrent = true el dispositivo que coincide con currentDeviceId.
