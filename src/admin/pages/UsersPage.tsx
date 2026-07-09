@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Users, Search, ArrowUpDown, Download, RefreshCcw } from "lucide-react";
 import DataTable from "../components/DataTable";
-import { fetchUsersPaginated } from "../services/adminQueries";
+import { fetchUsersPaginated, fetchUserActivity, type UserActivityRow } from "../services/adminQueries";
 import type { PlanTier } from "@/hooks/usePlan";
 
 interface UserProfile {
@@ -29,6 +29,7 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [activityMap, setActivityMap] = useState<Record<string, UserActivityRow>>({});
   const pageSize = 50;
 
   const load = useCallback(async (silent = false) => {
@@ -53,9 +54,18 @@ export default function UsersPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  useEffect(() => {
+    fetchUserActivity()
+      .then(rows => setActivityMap(Object.fromEntries(rows.map(r => [r.userId, r]))))
+      .catch(() => {});
+  }, []);
+
   const exportCSV = () => {
-    const rows = [["Nombre", "Email", "Registro", "Rol", "Iglesia", "Ciudad", "País"], ...users.map(u => [
-      u.full_name || "—", u.email, new Date(u.created_at).toLocaleDateString(), u.role, u.settings?.churchName || "—", u.settings?.city || "—", u.settings?.country || "—"
+    const rows = [["Nombre", "Email", "Registro", "Días activos (30d)", "Última actividad", "Rol", "Iglesia", "Ciudad", "País"], ...users.map(u => [
+      u.full_name || "—", u.email, new Date(u.created_at).toLocaleDateString(),
+      String(activityMap[u.id]?.activeDays ?? 0),
+      activityMap[u.id]?.lastActive ? new Date(activityMap[u.id].lastActive as string).toLocaleDateString() : "—",
+      u.role, u.settings?.churchName || "—", u.settings?.city || "—", u.settings?.country || "—"
     ])];
     const blob = new Blob([rows.map(r => r.join(",")).join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
@@ -107,6 +117,14 @@ export default function UsersPage() {
           { key: "name", header: "Nombre", render: (u: UserProfile) => <span style={{ fontWeight: 600 }}>{u.full_name || "—"}</span> },
           { key: "email", header: "Email", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)" }}>{u.email}</span> },
           { key: "date", header: "Registro", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{new Date(u.created_at).toLocaleDateString()}</span> },
+          { key: "activeDays", header: "Días activos (30d)", render: (u: UserProfile) => {
+            const a = activityMap[u.id];
+            return <span style={{ color: a?.activeDays ? "var(--gold)" : "var(--text-muted)", fontWeight: a?.activeDays ? 600 : 400, fontSize: 13 }}>{a?.activeDays ?? 0}</span>;
+          } },
+          { key: "lastActive", header: "Última actividad", render: (u: UserProfile) => {
+            const last = activityMap[u.id]?.lastActive;
+            return <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{last ? new Date(last).toLocaleDateString() : "—"}</span>;
+          } },
           { key: "church", header: "Iglesia", render: (u: UserProfile) => <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{u.settings?.churchName || "—"}</span> },
           { 
             key: "location", 

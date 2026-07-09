@@ -103,6 +103,7 @@ Auditoría de acciones del panel de administración.
 - `feedback` — Comentarios de usuarios
 - `premium_interest` — Interés en plan premium
 - `user_devices` — Dispositivos registrados por usuario
+- `user_activity` — Heartbeat diario por usuario (quién usa la app y cuánto); lectura solo admin vía RPCs `admin_user_activity` / `admin_daily_active_users`
 
 ---
 

@@ -60,7 +60,8 @@ export function useAuth() {
           // Background sync — non-blocking
           ;(async () => {
             try {
-              const { fetchProfile } = await import('@/services/supabase')
+              const { fetchProfile, recordDailyActivity } = await import('@/services/supabase')
+              recordDailyActivity().catch(() => {})
               const profile = await fetchProfile(user.id)
 
               const profileIsPremium = profile
