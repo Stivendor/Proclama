@@ -188,3 +188,30 @@ export async function fetchUserLocations() {
 
   return Object.values(counts);
 }
+
+// --- User activity (heartbeat diario) ---
+export interface UserActivityRow {
+  userId: string;
+  email: string;
+  fullName: string | null;
+  activeDays: number;
+  lastActive: string | null;
+}
+
+export async function fetchUserActivity(days = 30): Promise<UserActivityRow[]> {
+  const { data, error } = await supabase.rpc("admin_user_activity", { days_back: days });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    userId: r.user_id,
+    email: r.email,
+    fullName: r.full_name,
+    activeDays: Number(r.active_days),
+    lastActive: r.last_active,
+  }));
+}
+
+export async function fetchDauChart(days = 30): Promise<{ date: string; count: number }[]> {
+  const { data, error } = await supabase.rpc("admin_daily_active_users", { days_back: days });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({ date: String(r.day), count: Number(r.count) }));
+}
