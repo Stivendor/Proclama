@@ -5,7 +5,7 @@ import {
   ChevronRight 
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { fetchAdminStats, fetchRegistrationChart, fetchUserLocations } from "../services/adminQueries";
+import { fetchAdminStats, fetchRegistrationChart, fetchUserLocations, fetchUserActivity, fetchDauChart, type UserActivityRow } from "../services/adminQueries";
 import { supabase } from "@/services/supabase";
 import type { AdminView } from "../AdminSidebar";
 
@@ -29,6 +29,8 @@ interface DashboardPageProps {
 export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [chartData, setChartData] = useState<{ date: string; count: number }[]>([]);
+  const [dauData, setDauData] = useState<{ date: string; count: number }[]>([]);
+  const [topUsers, setTopUsers] = useState<UserActivityRow[]>([]);
   const [userLocations, setUserLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pingStatus, setPingStatus] = useState<"connecting" | "success" | "error">("connecting");
@@ -44,14 +46,18 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [s, c, l] = await Promise.all([
-        fetchAdminStats(), 
+      const [s, c, l, dau, activity] = await Promise.all([
+        fetchAdminStats(),
         fetchRegistrationChart(),
-        fetchUserLocations()
+        fetchUserLocations(),
+        fetchDauChart().catch(() => []),
+        fetchUserActivity().catch(() => []),
       ]);
-      setStats(s as any); 
+      setStats(s as any);
       setChartData(c);
       setUserLocations(l);
+      setDauData(dau);
+      setTopUsers(activity.filter(u => u.activeDays > 0).slice(0, 10));
     } catch (e) { 
       console.error("Error loading dashboard stats:", e); 
     } finally { 
@@ -136,6 +142,10 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
               <CalendarCheck size={14} />
               <span><strong>{stats.totalAttendance}</strong> Asistencias</span>
             </div>
+            <div className="hero-stat-pill">
+              <Activity size={14} />
+              <span><strong>{dauData.find(d => d.date === new Date().toLocaleDateString("en-CA"))?.count ?? 0}</strong> Activos hoy</span>
+            </div>
           </div>
         </div>
 
@@ -172,6 +182,59 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
             ) : (
               <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40, margin: 0, fontSize: 12 }}>
                 Sin registros de usuarios este mes.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Bento: Usuarios activos diarios */}
+        <div className="bento-item bento-chart">
+          <span className="bento-label">Usuarios Activos Diarios (Últimos 30 días)</span>
+          <div style={{ marginTop: 20, width: "100%", height: 180 }}>
+            {dauData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dauData}>
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickFormatter={(v) => v.slice(5)} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--text-muted)" }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 8,
+                      fontSize: 12
+                    }}
+                  />
+                  <Line type="monotone" dataKey="count" stroke="var(--blue)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40, margin: 0, fontSize: 12 }}>
+                Aún no hay datos de actividad. Se acumulan desde el despliegue del heartbeat.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Bento: Top usuarios más activos */}
+        <div className="bento-item bento-chart">
+          <span className="bento-label">Top Usuarios Más Activos (30 días)</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
+            {topUsers.length > 0 ? topUsers.map((u, i) => (
+              <div key={u.userId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(255,255,255,0.015)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", width: 22 }}>#{i + 1}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {u.fullName || u.email}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                    Última actividad: {u.lastActive ? new Date(u.lastActive).toLocaleDateString() : "—"}
+                  </div>
+                </div>
+                <span className="mod-count-badge">{u.activeDays} {u.activeDays === 1 ? "día" : "días"}</span>
+              </div>
+            )) : (
+              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 30, margin: 0, fontSize: 12 }}>
+                Aún no hay actividad registrada.
               </p>
             )}
           </div>
