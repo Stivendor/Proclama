@@ -34,7 +34,7 @@ create table public.user_activity (
 ## UI (integrado en páginas actuales)
 
 - **DashboardPage**: StatCard "Activos hoy", gráfico DAU 30 días (patrón del chart de registros existente) y lista "Top 10 usuarios más activos (30d)".
-- **UsersPage**: columnas "Días activos (30d)" y "Última actividad" en la tabla, ordenables por actividad. Los datos de actividad se mergean con los perfiles paginados.
+- **UsersPage**: columnas "Días activos (30d)" y "Última actividad" en la tabla (informativas, sin sort server-side por actividad — el ranking lo da el Top 10 del Dashboard). Los datos de actividad se mergean con los perfiles paginados.
 
 ## Componentes nuevos/tocados
 
