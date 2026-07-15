@@ -135,7 +135,7 @@ export const useProjectionStore = create<ProjectionStore>()(
         const newState: ProjectionState = {
           ...s.state,
           theme,
-          media: fav ? null : s.state.media,
+          media: null,
           songId: isBible ? null : song.id || null,
           songTitle: song.title,
           songArtist: song.artist,
@@ -163,7 +163,7 @@ export const useProjectionStore = create<ProjectionStore>()(
           if (currentSlide < slides.length - 1) {
             const nextIndex = currentSlide === -1 ? 0 : currentSlide + 1
             const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
-            const newState = { ...s.state, ...(fav ?? {}), currentSlide: nextIndex, hideText: false }
+            const newState = { ...s.state, ...(fav ?? {}), media: null, currentSlide: nextIndex, hideText: false }
             sendProjectionUpdate(newState)
             
             // Add to history only when presenting
@@ -181,7 +181,7 @@ export const useProjectionStore = create<ProjectionStore>()(
         set(s => {
           if (s.state.currentSlide > 0) {
             const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
-            const newState = { ...s.state, ...(fav ?? {}), currentSlide: s.state.currentSlide - 1, hideText: false }
+            const newState = { ...s.state, ...(fav ?? {}), media: null, currentSlide: s.state.currentSlide - 1, hideText: false }
             sendProjectionUpdate(newState)
             
             if (s.currentSong) {
@@ -198,7 +198,7 @@ export const useProjectionStore = create<ProjectionStore>()(
         const s = get()
         if (index >= 0 && index < s.state.slides.length) {
           const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
-          const newState = { ...s.state, ...(fav ?? {}), currentSlide: index, hideText: false }
+          const newState = { ...s.state, ...(fav ?? {}), media: null, currentSlide: index, hideText: false }
           const doUpdate = (newWindow: Window | null) => {
             if (newWindow) set({ projectionWindow: newWindow })
             set({ state: newState })
@@ -227,6 +227,14 @@ export const useProjectionStore = create<ProjectionStore>()(
         // para asegurar que el nuevo fondo sea visible.
         if (theme.backgroundType !== undefined) {
           newState.media = null
+          // Elegir un fondo distinto del favorito activo lo desactiva. Si no, favoriteBgOverride
+          // reimpondría la imagen favorita sobre el fondo elegido (p.ej. un video) al navegar slides.
+          const favId = get().defaultBackgroundMediaId
+          if (favId) {
+            const fav = get().localMediaList.find(m => m.id === favId)
+            const picksFavorite = theme.backgroundType === 'image' && theme.backgroundImageUrl === fav?.url
+            if (!picksFavorite) set({ defaultBackgroundMediaId: null })
+          }
         }
 
         set({ state: newState })

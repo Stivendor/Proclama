@@ -1,16 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { ChevronDown, ChevronUp, Lock } from "lucide-react";
+import { ChevronUp, Lock } from "lucide-react";
 import {
   Sliders,
   Image as ImageIcon,
   Film,
   CheckCircle,
   Type,
-  AlignCenter,
   ArrowDown,
   ArrowUp,
   Palette,
-  Save,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -67,67 +65,15 @@ const FONDOS_STYLES = `
     flex: 1;
     overflow-y: auto;
     padding: 24px 32px;
-    display: grid;
-    grid-template-columns: 1fr 450px;
-    gap: 40px;
-    align-items: start;
   }
 
-  @media (max-width: 1024px) {
-    .fondos-body {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .fondos-content { 
+  .fondos-content {
+    max-width: 900px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 24px;
   }
-
-  .fondos-preview-col {
-    position: sticky;
-    top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .preview-section {
-    padding: 0;
-    background: var(--bg-default);
-    border: none;
-    position: sticky;
-    top: -24px;
-    z-index: 50;
-    padding-top: 24px;
-    margin-top: -24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .theme-preview-header { 
-    font-size: 12px; 
-    font-weight: 600; 
-    color: var(--gold); 
-    text-transform: uppercase; 
-    letter-spacing: 1px; 
-    margin-bottom: 12px;
-  }
-
-  .theme-preview {
-    aspect-ratio: 16/9;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
-    border: 4px solid var(--bg-elevated);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .preview-content { width: 100%; transition: all 0.3s; }
 
   .fondos-section { margin-bottom: 32px; }
   .section-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -153,14 +99,10 @@ const FONDOS_STYLES = `
   .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
   .toggle-item input { width: 18px; height: 18px; accent-color: var(--gold); }
   .background-options { margin-top: 20px; }
-  .backgrounds-gallery.restricted .gallery-item { filter: blur(8px); pointer-events: none; }
-  .backgrounds-gallery.restricted .gallery-item:first-child { filter: none; pointer-events: auto; }
-  .gallery-blur { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #fff; font-size: 10px; font-weight: 600; }
-  .gallery-premium-promo { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; background: rgba(201, 166, 88, 0.1); border-radius: 12px; border: 1px dashed var(--gold); }
-  .gallery-premium-promo span { color: var(--text-secondary); font-size: 14px; }
-  .gallery-premium-promo button { margin-top: 8px; padding: 8px 16px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-  .segmented-control button.disabled-pro { opacity: 0.5; cursor: not-allowed; border-style: dashed; }
-  .segmented-control button.disabled-pro:hover { border-color: var(--border-color); color: var(--text-secondary); }
+  .premium-hint { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); color: var(--text-secondary); font-size: 13px; }
+  .premium-hint .lock-i { color: var(--gold); flex-shrink: 0; }
+  .premium-hint button { margin-left: auto; padding: 4px 12px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .segmented-control .lock-badge { color: var(--text-muted); margin-left: 2px; }
 `;
 
 export default function FondosView() {
@@ -190,16 +132,9 @@ export default function FondosView() {
 
   const [displayCount, setDisplayCount] = useState(12);
   const [galleryExpanded, setGalleryExpanded] = useState(false);
-  const [textoExpanded, setTextoExpanded] = useState(false);
   const [imageCategory, setImageCategory] = useState<string | null>(null);
   const [videoCategory, setVideoCategory] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
 
   const state = { theme, media };
 
@@ -266,24 +201,18 @@ export default function FondosView() {
                 <Sliders size={14} /> Color
               </button>
               <button
-                className={`${state.theme.backgroundType === "image" ? "active" : ""} ${!isPremium ? "disabled-pro" : ""}`}
-                onClick={() => {
-                  if (!isPremium) return
-                  updateTheme({ backgroundType: "image" })
-                }}
-                title={!isPremium ? "Función Proclama Pro" : ""}
+                className={state.theme.backgroundType === "image" ? "active" : ""}
+                onClick={() => updateTheme({ backgroundType: "image" })}
               >
-                {isPremium ? <ImageIcon size={14} /> : <Lock size={14} />} Imagen
+                <ImageIcon size={14} /> Imagen
+                {!isPremium && <Lock className="lock-badge" size={11} />}
               </button>
               <button
-                className={`${state.theme.backgroundType === "video" ? "active" : ""} ${!isPremium ? "disabled-pro" : ""}`}
-                onClick={() => {
-                  if (!isPremium) return
-                  updateTheme({ backgroundType: "video" })
-                }}
-                title={!isPremium ? "Función Proclama Pro" : ""}
+                className={state.theme.backgroundType === "video" ? "active" : ""}
+                onClick={() => updateTheme({ backgroundType: "video" })}
               >
-                {isPremium ? <Film size={14} /> : <Lock size={14} />} Video
+                <Film size={14} /> Video
+                {!isPremium && <Lock className="lock-badge" size={11} />}
               </button>
             </div>
           </div>
@@ -315,13 +244,20 @@ export default function FondosView() {
                     })}
                   </div>
                 </div>
-                <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
+                {!isPremium && (
+                  <div className="premium-hint">
+                    <Lock className="lock-i" size={13} />
+                    <span>Fondos premium</span>
+                    <button onClick={handleUpgrade}>Mejorar</button>
+                  </div>
+                )}
+                <div className="backgrounds-gallery">
                   {displayedBackgrounds.map((bg) => (
                     <div
                       key={bg.id}
                       className={`gallery-item ${state.theme.backgroundImageUrl === bg.url ? "active" : ""}`}
                       onClick={() => {
-                        if (!isPremium) return
+                        if (!isPremium) { handleUpgrade(); return }
                         const isVideo = bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)
                         if (isVideo) {
                           updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
@@ -347,18 +283,10 @@ export default function FondosView() {
                         }} 
                       />
                       {state.theme.backgroundImageUrl === bg.url && <div className="active-overlay"><CheckCircle size={14} /></div>}
-                      {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
                     </div>
                   ))}
-                  {!isPremium && (
-                    <div className="gallery-premium-promo">
-                      <Lock size={20} />
-                      <span>+50 fondos exclusivos para Premium</span>
-                      <button onClick={handleUpgrade}>Mejorar a Premium</button>
-                    </div>
-                  )}
                 </div>
-                {hasMore && isPremium && (
+                {hasMore && (
                   <button className="load-more-btn" onClick={() => setDisplayCount((c) => c + 12)}>
                     Cargar más ({filteredBackgrounds.length - displayCount} restantes)
                   </button>
@@ -400,7 +328,14 @@ export default function FondosView() {
                     </div>
                   </div>
                 )}
-                <div className={`backgrounds-gallery ${!isPremium ? "restricted" : ""}`}>
+                {!isPremium && (
+                  <div className="premium-hint">
+                    <Lock className="lock-i" size={13} />
+                    <span>Videos premium</span>
+                    <button onClick={handleUpgrade}>Mejorar</button>
+                  </div>
+                )}
+                <div className="backgrounds-gallery">
                   {filteredVideos.map((bg) => {
                     const isActive = state.theme.backgroundVideoUrl === bg.url
                     return (
@@ -408,13 +343,12 @@ export default function FondosView() {
                         key={bg.id}
                         className={`gallery-item ${isActive ? "active" : ""}`}
                         onClick={() => {
-                          if (!isPremium) return
+                          if (!isPremium) { handleUpgrade(); return }
                           updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
                         }}
                       >
                         <video src={bg.url} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         {isActive && <div className="active-overlay"><CheckCircle size={14} /></div>}
-                        {!isPremium && <div className="gallery-blur"><Lock size={16} /><span>Premium</span></div>}
                       </div>
                     )
                   })}
@@ -422,13 +356,6 @@ export default function FondosView() {
                     <p style={{ color: "var(--text-muted)", fontSize: 13, gridColumn: "1/-1" }}>
                       {videoCategory ? `No hay videos con la etiqueta "${videoCategory}".` : "Aún no hay videos disponibles."}
                     </p>
-                  )}
-                  {!isPremium && (
-                    <div className="gallery-premium-promo">
-                      <Lock size={20} />
-                      <span>Videos exclusivos para Premium</span>
-                      <button onClick={handleUpgrade}>Mejorar a Premium</button>
-                    </div>
                   )}
                 </div>
               </div>
@@ -466,13 +393,8 @@ export default function FondosView() {
         </section>
 
         <section className="fondos-section">
-          <div className="section-header-row">
-            <h2 onClick={() => setTextoExpanded(!textoExpanded)} style={{ cursor: "pointer", flex: 1 }}>
-              <Type size={15} /> Texto {textoExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </h2>
-          </div>
-          {textoExpanded && (
-            <div className="options-grid">
+          <h2><Type size={15} /> Texto</h2>
+          <div className="options-grid">
               <div className="form-group">
                 <label>Color de Texto</label>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -513,8 +435,6 @@ export default function FondosView() {
                 </div>
               </div>
             </div>
-          )}
-          {textoExpanded && (
             <div className="toggle-options">
               <label className="toggle-item">
                 <input type="checkbox" checked={state.theme.textShadow !== false} onChange={(e) => updateTheme({ textShadow: e.target.checked })} />
@@ -529,190 +449,9 @@ export default function FondosView() {
                 <span>Mostrar versión (Biblia)</span>
               </label>
             </div>
-          )}
         </section>
+        </div>
       </div>
-
-      <div className="fondos-preview-col">
-        <section className="fondos-section preview-section">
-          <div className="theme-preview-header">
-            Vista Previa de Proyección
-          </div>
-          <div className="theme-preview">
-            {(() => {
-              const bgFilter = `blur(${state.theme.backgroundBlur || 0}px)`;
-              const bgTransform = state.theme.backgroundBlur
-                ? "scale(1.1)"
-                : "none";
-
-              return (
-                <>
-                  <div
-                    className="preview-background-layer"
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      filter: bgFilter,
-                      transform: bgTransform,
-                      background:
-                        state.theme.backgroundType === "image" &&
-                        state.theme.backgroundImageUrl
-                          ? `url(${state.theme.backgroundImageUrl}) center/cover no-repeat`
-                          : state.theme.backgroundType === "color" ||
-                              !state.theme.backgroundType
-                            ? state.theme.background
-                            : "#000",
-                    }}
-                  >
-                    {state.theme.backgroundType === "video" &&
-                      state.theme.backgroundVideoUrl && (
-                        <video
-                          key={state.theme.backgroundVideoUrl}
-                          src={state.theme.backgroundVideoUrl}
-                          autoPlay
-                          muted
-                          loop
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      )}
-                  </div>
-
-                  {state.media && (
-                    <div
-                      className="preview-media-layer"
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        zIndex: state.media.isBackgroundMode ? 2 : 20,
-                        background: state.media.isBackgroundMode
-                          ? "transparent"
-                          : "#000",
-                        filter: state.media.isBackgroundMode
-                          ? bgFilter
-                          : "none",
-                        transform: state.media.isBackgroundMode
-                          ? bgTransform
-                          : "none",
-                      }}
-                    >
-                      {state.media.type === "video" ? (
-                        <video
-                          autoPlay
-                          loop
-                          muted
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit:
-                              state.media.objectFit ||
-                              (state.media.isBackgroundMode ? "fill" : "contain"),
-                          }}
-                          src={state.media.url}
-                        />
-                      ) : (
-                        <img
-                          src={state.media.url}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit:
-                              state.media.objectFit ||
-                              (state.media.isBackgroundMode ? "fill" : "contain"),
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: `rgba(0,0,0,${state.theme.backgroundOverlayOpacity ?? 0.3})`,
-                zIndex: 5,
-              }}
-            />
-
-            <div
-              className="preview-content"
-              style={{
-                fontFamily: state.theme.fontFamily,
-                fontSize: `${26 * (state.theme.fontScale || 1)}px`,
-                color: state.theme.textColor,
-                textShadow: state.theme.textShadow
-                  ? "0 2px 10px rgba(0,0,0,0.8)"
-                  : "none",
-                textTransform: state.theme.textUppercase
-                  ? "uppercase"
-                  : "none",
-                textAlign: "center",
-                lineHeight: 1.15,
-                padding: "12px",
-                position: "relative",
-                zIndex: 10,
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-                width: "100%",
-                fontWeight: 900,
-                maxWidth: "100%",
-                maxHeight: "100%",
-                wordBreak: "break-word",
-                overflow: "hidden",
-                justifyContent: "center",
-              }}
-            >
-              {state.theme.verseReferencePosition !== "bottom" && (
-                <div
-                  style={{
-                    opacity: 0.7,
-                    fontSize: "0.7em",
-                    marginBottom: 2,
-                  }}
-                >
-                  Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
-                </div>
-              )}
-
-              <div style={{ width: "100%" }}>
-                <div>Señor mi Dios</div>
-                <div>al contemplar los cielos</div>
-                <div>El firmamento</div>
-                <div>y las estrellas mil</div>
-              </div>
-
-              {state.theme.verseReferencePosition === "bottom" && (
-                <div
-                  style={{ opacity: 0.7, fontSize: "0.7em", marginTop: 2 }}
-                >
-                  Salmos 19:1 {state.theme.showBibleVersion && '(RVR1960)'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div style={{ marginTop: "24px" }}>
-            <button
-              className="btn-primary large"
-              style={{ width: "100%", justifyContent: "center" }}
-              onClick={handleSave}
-            >
-              <Save size={16} />{" "}
-              {saved ? "¡Estilos guardados!" : "Guardar todos los estilos"}
-            </button>
-          </div>
-        </section>
-      </div>
-    </div>
       <style>{FONDOS_STYLES}</style>
     </div>
   );
