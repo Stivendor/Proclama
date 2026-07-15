@@ -697,16 +697,16 @@ export default function MediaPanel() {
           </button>
           
           <button
-            className={`btn-media-toggle ${(state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover' ? "active" : ""}`}
+            className={`btn-media-toggle ${(state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain')) === 'fill' ? "active" : ""}`}
             onClick={toggleMediaObjectFit}
             title={
-              (state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover'
-                ? "Ajustar imagen (sin recortar)"
-                : "Estirar imagen (llenar pantalla)"
+              (state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain')) === 'fill'
+                ? "Ajustar imagen (sin deformar)"
+                : "Estirar imagen a toda la pantalla"
             }
           >
             <Image size={14} />
-            {(state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')) === 'cover'
+            {(state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain')) === 'fill'
               ? "Estirado"
               : "Ajustado"}
           </button>

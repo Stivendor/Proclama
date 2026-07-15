@@ -57,7 +57,7 @@ export interface ProjectionState {
     url: string
     type: 'image' | 'video' | 'youtube'
     isBackgroundMode?: boolean
-    objectFit?: 'cover' | 'contain'
+    objectFit?: 'cover' | 'contain' | 'fill'
     name?: string
   } | null
   hideText?: boolean

@@ -270,11 +270,12 @@ export const useProjectionStore = create<ProjectionStore>()(
       toggleMediaObjectFit: () => {
         set(s => {
           if (!s.state.media) return s
-          const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'cover' : 'contain')
-          const newFit = currentFit === 'cover' ? 'contain' : 'cover'
-          const newState = { 
-            ...s.state, 
-            media: { ...s.state.media, objectFit: newFit as 'cover' | 'contain' } 
+          const currentFit = s.state.media.objectFit || (s.state.media.isBackgroundMode ? 'fill' : 'contain')
+          // "Estirado" = fill (deforma para llenar el TV); "Ajustado" = contain (sin deformar).
+          const newFit = currentFit === 'contain' ? 'fill' : 'contain'
+          const newState = {
+            ...s.state,
+            media: { ...s.state.media, objectFit: newFit as 'cover' | 'contain' | 'fill' }
           }
           sendProjectionUpdate(newState)
           return { state: newState }

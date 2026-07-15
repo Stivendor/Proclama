@@ -34,7 +34,7 @@ function loadYoutubeAPI(callback: () => void) {
   firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 }
 
-function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; ytPlayerRef: React.MutableRefObject<any>; objectFit: 'cover' | 'contain' }) {
+function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; ytPlayerRef: React.MutableRefObject<any>; objectFit: 'cover' | 'contain' | 'fill' }) {
   const containerId = 'youtube-player-element';
   const videoId = getYoutubeId(url);
   const playerRef = useRef<any>(null);
@@ -411,17 +411,17 @@ export default function ProjectionWindow() {
                 ref={videoRef}
                 src={state.media.url}
                 autoPlay loop
-                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }}
+                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain') }}
               />
             ) : state.media.type === 'youtube' ? (
               <YoutubePlayerContainer
                 url={state.media.url}
                 ytPlayerRef={ytPlayerRef}
-                objectFit={state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain')}
+                objectFit={state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain')}
               />
             ) : (
               <img src={state.media.url}
-                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'cover' : 'contain') }} />
+                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain') }} />
             )}
           </div>
         )}

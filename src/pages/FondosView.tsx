@@ -609,9 +609,9 @@ export default function FondosView() {
                           style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: state.media.isBackgroundMode
-                              ? "cover"
-                              : "contain",
+                            objectFit:
+                              state.media.objectFit ||
+                              (state.media.isBackgroundMode ? "fill" : "contain"),
                           }}
                           src={state.media.url}
                         />
@@ -621,9 +621,9 @@ export default function FondosView() {
                           style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: state.media.isBackgroundMode
-                              ? "cover"
-                              : "contain",
+                            objectFit:
+                              state.media.objectFit ||
+                              (state.media.isBackgroundMode ? "fill" : "contain"),
                           }}
                         />
                       )}

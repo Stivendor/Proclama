@@ -256,16 +256,16 @@ function ProjectionPreview() {
                     key={projectionState.media.url}
                     src={projectionState.media.url}
                     autoPlay muted loop playsInline 
-                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }}
+                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }}
                   />
                 ) : projectionState.media.type === 'youtube' ? (
                   <img 
                     src={`https://img.youtube.com/vi/${getYoutubeId(projectionState.media.url)}/hqdefault.jpg`} 
                     alt="" 
-                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }} 
+                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }} 
                   />
                 ) : (
-                  <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'cover' : 'contain') }} />
+                  <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }} />
                 )}
               </div>
             )}
