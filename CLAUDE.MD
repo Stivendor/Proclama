@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test your code before declaring done.
 - No sycophantic openers or closing fluff.
 - Keep solutions simple and direct.
+- Keep the codebase-memory graph fresh: consult it first when exploring, and after landing code changes update it (codebase-memory `detect_changes` / re-index) so the graph reflects the current code.
 - User instructions always override this file.
 
 ## Commands
