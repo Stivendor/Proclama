@@ -24,8 +24,8 @@ const TOUR_STEPS = [
   },
   {
     selector: '.right-panel',
-    title: 'Panel de control en vivo',
-    desc: 'Desde aquí controlas la proyección: cambia estrofas, oculta el texto para ver solo el fondo o proyecta la Biblia.',
+    title: 'Fondos y anuncios',
+    desc: 'Tu galería de medios: sube imágenes y videos, organízalos en carpetas y fija fondos de letra para proyectarlos detrás de las canciones y versículos.',
     position: 'left' as const,
   },
 ] as const

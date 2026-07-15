@@ -351,14 +351,11 @@ a:hover { text-decoration: underline; }
 .btn-icon.danger:hover { background: var(--red-dim); color: var(--red); }
 .btn-icon:focus-visible,
 .btn-icon-xs:focus-visible,
-.btn-nav:focus-visible,
-.btn-special:focus-visible,
 .nav-item:focus-visible,
 .btn-ghost:focus-visible,
 .btn-primary:focus-visible,
 .btn-projection:focus-visible,
 .btn-new-song:focus-visible,
-.slide-item:focus-visible,
 .song-card-compact:focus-visible,
 .verse-item:focus-visible,
 .book-item:focus-visible,
@@ -482,87 +479,9 @@ a:hover { text-decoration: underline; }
 .song-card-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
 /* ─── Control Panel ───────────────────────────────────────────────────────────── */
-.control-panel {
-  border-bottom: 1px solid var(--border);
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-.control-panel.empty {
-  flex: 1; align-items: center; justify-content: center; min-height: 300px;
-}
-.control-empty-msg {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  color: var(--text-muted); text-align: center;
-}
-.control-empty-msg p { font-size: 14px; }
-.control-empty-msg span { font-size: 12px; }
-.control-song-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.control-song-title { font-weight: 600; font-size: 15px; line-height: 1.3; }
-.control-song-progress { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-.progress-bar { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--gold); transition: width 0.3s; }
-.slides-list { 
-  display: flex; flex-direction: column; gap: 4px; 
-}
-.slide-item {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.12s;
-  text-align: left;
-}
-.slide-preview {
-  font-size: var(--slide-preview-size, 13px);
-  color: var(--text-primary);
-  line-height: 1.5;
-}
-.slides-size-control {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; color: var(--text-muted);
-}
-.slides-size-control input[type="range"] {
-  flex: 1; padding: 0; border: none; background: none; height: 4px;
-}
-.slide-preview.dim { color: var(--text-muted); }
-.slide-item:hover { background: var(--bg-hover); }
-.slide-item.active { background: var(--bg-hover); border-color: var(--gold); }
-.slide-label { font-size: 10px; color: var(--gold); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-.slide-preview { font-size: 12px; color: var(--text-primary); line-height: 1.4; }
-.slide-preview.dim { color: var(--text-muted); }
-.control-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.btn-nav {
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 9px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  font-size: 13px; font-weight: 500;
-  transition: all 0.12s;
-}
-.btn-nav:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-light); }
-.btn-nav.primary { background: var(--blue); border-color: var(--blue); color: white; }
-.btn-nav.primary:hover:not(:disabled) { opacity: 0.88; }
-.btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
-.control-special { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.btn-special {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  font-size: 12px; font-weight: 500;
-  color: var(--text-secondary);
-  transition: background-color 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
-}
-.btn-special:hover { background: var(--bg-hover); color: var(--text-primary); }
-.btn-special.active-black { background: #000; border-color: #555; color: white; }
-.btn-special.active-logo { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+/* El panel derecho es solo la galería de fondos y anuncios — ver .media-panel
+   en MediaPanel.tsx. El antiguo control de canción (slides, nav, ocultar texto)
+   se retiró; sus estilos vivían aquí. */
 
 /* ─── Recognition Panel ───────────────────────────────────────────────────────── */
 .recognition-panel { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
@@ -1558,21 +1477,6 @@ a:hover { text-decoration: underline; }
   background: var(--bg-base);
   border-top: 1px solid var(--border);
   display: flex; gap: 8px;
-}
-
-/* Compact Sidebar Adjustments */
-.control-panel.compact-sidebar {
-  padding: 12px;
-  gap: 12px;
-}
-
-.control-panel.compact-sidebar .control-nav {
-  grid-template-columns: 1fr;
-}
-
-.control-panel.compact-sidebar .btn-nav {
-  padding: 12px;
-  font-size: 14px;
 }
 
 .btn-icon-xs {

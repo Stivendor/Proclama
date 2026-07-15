@@ -536,17 +536,103 @@ export default function MediaPanel() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <BackgroundShelf />
-      <div
-        className="recognition-header"
-        style={{ justifyContent: "space-between" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <MonitorPlay size={14} /> Anuncios / Media Local
+      {/* Banda fija: identidad + fondos de letra */}
+      <div className="media-panel-head">
+        <div className="media-panel-title">
+          <MonitorPlay size={15} /> Fondos y anuncios
         </div>
-        {localMediaList.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {isPremium && (
+        <BackgroundShelf />
+      </div>
+
+      {/* Banda fija: barra de herramientas (carpeta, límites, subir) */}
+      <div className="media-toolbar">
+        <div className="media-folder-row">
+          <span className="media-folder-label"><Folder size={13} /> Carpeta</span>
+          <select
+            className="media-folder-select"
+            value={selectedMediaFolderId ?? "__root__"}
+            onChange={(e) =>
+              setSelectedMediaFolderId(e.target.value === "__root__" ? null : e.target.value)
+            }
+            title="Elegir carpeta"
+          >
+            <option value="__root__">Raíz</option>
+            {localMediaFolders.map((folder) => (
+              <option key={folder.id} value={folder.id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+          {canManageMediaFolders ? (
+            <div className="media-folder-actions">
+              <button className="media-folder-btn" title="Nueva carpeta" onClick={createFolder}>
+                <FolderPlus size={14} />
+              </button>
+              {selectedMediaFolderId && (
+                <>
+                  <button
+                    className="media-folder-btn"
+                    title="Renombrar carpeta"
+                    onClick={() => void renameFolder(selectedMediaFolderId)}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    className="media-folder-btn danger"
+                    title="Eliminar carpeta"
+                    onClick={() => void deleteFolder(selectedMediaFolderId)}
+                  >
+                    <FolderX size={13} />
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              className="media-folder-premium-info-trigger"
+              title="Ver ventajas premium para carpetas"
+              onClick={() => setShowFolderPremiumInfo((prev) => !prev)}
+            >
+              <FolderPlus size={12} /> Premium
+            </button>
+          )}
+        </div>
+
+        {!canManageMediaFolders && showFolderPremiumInfo && (
+          <div className="media-premium-popup" role="status">
+            <div className="media-premium-popup-header">
+              <strong>Gestion de carpetas Premium</strong>
+              <button
+                className="media-premium-popup-close"
+                onClick={() => setShowFolderPremiumInfo(false)}
+                title="Cerrar"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <ul className="media-premium-popup-list">
+              <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
+              <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
+              <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
+              <li>El plan free sube hasta 5 archivos; con Premium es ilimitado.</li>
+            </ul>
+          </div>
+        )}
+
+        <div className="media-toolbar-actions">
+          <div className="media-limits">
+            <span>
+              {localMediaList.length}
+              {Number.isFinite(mediaLimits.maxFiles) ? `/${mediaLimits.maxFiles}` : ""} archivos
+            </span>
+            <span>
+              {formatBytes(currentTotalBytes)}
+              {Number.isFinite(mediaLimits.maxTotalBytes) ? ` / ${formatBytes(mediaLimits.maxTotalBytes)}` : ""}
+            </span>
+            {isPremium && <span className="media-premium-badge">Premium</span>}
+          </div>
+          <div className="media-actions-btns">
+            {isPremium && localMediaList.length > 0 && (
               <>
                 <select
                   className="media-sort-select"
@@ -566,90 +652,12 @@ export default function MediaPanel() {
             <button
               className="btn-add-mini"
               onClick={() => fileInputRef.current?.click()}
-              title="Añadir más"
+              title="Añadir archivos"
             >
               <Plus size={14} />
             </button>
           </div>
-        )}
-      </div>
-
-      <div className="media-folders-row">
-        <button
-          className={`media-folder-chip ${selectedMediaFolderId === null ? "active" : ""}`}
-          onClick={() => setSelectedMediaFolderId(null)}
-          title="Ver archivos en raíz"
-        >
-          <Folder size={12} /> Raíz
-        </button>
-        {localMediaFolders.map((folder) => (
-          <div key={folder.id} className={`media-folder-chip-wrap ${selectedMediaFolderId === folder.id ? "active" : ""}`}>
-            <button
-              className={`media-folder-chip ${selectedMediaFolderId === folder.id ? "active" : ""}`}
-              onClick={() => setSelectedMediaFolderId(folder.id)}
-              title={`Abrir carpeta ${folder.name}`}
-            >
-              <Folder size={12} /> {folder.name}
-            </button>
-            {canManageMediaFolders && (
-              <>
-                <button className="media-folder-action" title="Renombrar carpeta" onClick={() => void renameFolder(folder.id)}>
-                  <Pencil size={10} />
-                </button>
-                <button className="media-folder-action danger" title="Eliminar carpeta" onClick={() => void deleteFolder(folder.id)}>
-                  <FolderX size={10} />
-                </button>
-              </>
-            )}
-          </div>
-        ))}
-        {canManageMediaFolders && (
-          <button className="media-folder-add" title="Nueva carpeta" onClick={createFolder}>
-            <FolderPlus size={12} /> Nueva
-          </button>
-        )}
-        {!canManageMediaFolders && (
-          <button
-            className="media-folder-premium-info-trigger"
-            title="Ver ventajas premium para carpetas"
-            onClick={() => setShowFolderPremiumInfo((prev) => !prev)}
-          >
-            <FolderPlus size={12} /> Ventajas Premium
-          </button>
-        )}
-      </div>
-      {!canManageMediaFolders && showFolderPremiumInfo && (
-        <div className="media-premium-popup" role="status">
-          <div className="media-premium-popup-header">
-            <strong>Gestion de carpetas Premium</strong>
-            <button
-              className="media-premium-popup-close"
-              onClick={() => setShowFolderPremiumInfo(false)}
-              title="Cerrar"
-            >
-              <X size={12} />
-            </button>
-          </div>
-          <ul className="media-premium-popup-list">
-            <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
-            <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
-            <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
-            <li>El plan free sube hasta 5 archivos; con Premium es ilimitado.</li>
-          </ul>
         </div>
-      )}
-
-      <div className="media-limits">
-        <span>
-          {localMediaList.length}
-          {Number.isFinite(mediaLimits.maxFiles) ? `/${mediaLimits.maxFiles}` : ""} archivos
-        </span>
-        <span>
-          {formatBytes(currentTotalBytes)}
-          {Number.isFinite(mediaLimits.maxTotalBytes) ? ` / ${formatBytes(mediaLimits.maxTotalBytes)}` : ""}
-        </span>
-        {isPremium && <span className="media-premium-badge">Premium</span>}
-      </div>
 
       <input
         type="file"
@@ -722,7 +730,10 @@ export default function MediaPanel() {
           <Plus size={14} /> <Youtube size={14} />
         </button>
       </div>
+      </div>
 
+      {/* Banda con scroll: solo la galería crece; la barra de arriba queda fija */}
+      <div className="media-gallery-scroll">
       {loading ? (
         <div className="media-upload-zone">
           <p>Cargando media local...</p>
@@ -740,12 +751,14 @@ export default function MediaPanel() {
           <p>
             {isDragging
               ? "¡Suelta para cargar!"
-              : "Cargar Anuncios (PNG, JPG, MP4)"}
+              : selectedMediaFolderId
+                ? "Esta carpeta está vacía"
+                : "Aún no hay fondos ni anuncios"}
           </p>
           <span>
             {isDragging
               ? "Formatos soportados"
-              : "Hasta 500MB · Arrastra aquí o haz clic"}
+              : "Arrastra aquí o haz clic · PNG, JPG, MP4 · hasta 500MB"}
           </span>
         </div>
       ) : (
@@ -825,6 +838,7 @@ export default function MediaPanel() {
         </div>
       </div>
       )}
+      </div>
 
       {isDragging && localMediaList.length > 0 && (
         <div className="drag-overlay">
@@ -882,18 +896,111 @@ export default function MediaPanel() {
           filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.6));
         }
 
-        .media-panel { 
-          padding: 16px; 
-          border-top: 1px solid var(--border); 
-          display: flex; 
-          flex-direction: column; 
-          gap: 12px; 
+        .media-panel {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
           position: relative;
           transition: background 0.2s;
-          flex-shrink: 0;
         }
         .media-panel.is-dragging {
           background: rgba(59, 130, 246, 0.03);
+        }
+
+        /* Banda 1 (fija): identidad + estante de fondos */
+        .media-panel-head {
+          flex-shrink: 0;
+          padding: 14px 16px 0;
+        }
+        .media-panel-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-primary);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          margin-bottom: 10px;
+        }
+        .media-panel-title svg { color: var(--gold); }
+
+        /* Banda 2 (fija): barra de herramientas */
+        .media-toolbar {
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding: 0 16px 12px;
+          border-bottom: 1px solid var(--border);
+        }
+        .media-folder-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .media-folder-label {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+        }
+        .media-folder-select {
+          flex: 1;
+          min-width: 0;
+          padding: 6px 10px;
+          font-size: 12px;
+        }
+        .media-folder-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          flex-shrink: 0;
+        }
+        .media-folder-btn {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--radius-sm);
+          border: 1px solid var(--border);
+          background: var(--bg-elevated);
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: color 0.15s, border-color 0.15s;
+        }
+        .media-folder-btn:hover { color: var(--blue); border-color: var(--blue); }
+        .media-folder-btn.danger:hover { color: var(--red); border-color: var(--red); }
+        .media-toolbar-actions {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .media-actions-btns {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+
+        /* Banda 3 (scroll): la galería es lo único que crece */
+        .media-gallery-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
+          padding: 12px 16px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          scrollbar-width: thin;
         }
 
         .media-controls-row {
@@ -973,66 +1080,6 @@ export default function MediaPanel() {
           font-size: 11px;
           color: var(--text-muted);
           flex-wrap: wrap;
-        }
-        .media-folders-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-        .media-folder-chip-wrap {
-          display: inline-flex;
-          align-items: center;
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          overflow: hidden;
-          background: var(--bg-elevated);
-        }
-        .media-folder-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          padding: 4px 10px;
-          font-size: 11px;
-          cursor: pointer;
-        }
-        .media-folder-chip.active,
-        .media-folder-chip-wrap.active .media-folder-chip {
-          color: var(--blue);
-          font-weight: 700;
-        }
-        .media-folder-action {
-          border: none;
-          border-left: 1px solid var(--border);
-          background: transparent;
-          color: var(--text-muted);
-          width: 22px;
-          height: 22px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-        .media-folder-action:hover { color: var(--blue); }
-        .media-folder-action.danger:hover { color: var(--red); }
-        .media-folder-add {
-          border: 1px dashed var(--border);
-          background: transparent;
-          color: var(--text-muted);
-          border-radius: 999px;
-          padding: 4px 10px;
-          font-size: 11px;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          cursor: pointer;
-        }
-        .media-folder-add:hover {
-          border-color: var(--blue);
-          color: var(--blue);
         }
         .media-folder-premium-info-trigger {
           border: 1px solid rgba(212, 175, 55, 0.35);
