@@ -207,10 +207,7 @@ function ProjectionPreview() {
 
     const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = projectionState
     const slide = slides[currentSlide]
-    
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
-    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
-    
+
     const showTitle = !!(isBible && songTitle)
     const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
     const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
@@ -268,8 +265,7 @@ function ProjectionPreview() {
     const mainTheme = projectionState?.theme || DEFAULT_THEME
     const textShadow = countdownTheme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
     const bgFilter = `blur(${mainTheme.backgroundBlur || 0}px) brightness(${1 - ((mainTheme.backgroundOverlayOpacity ?? 0.3))})`
-    const bgTransform = mainTheme.backgroundBlur ? 'scale(1.05)' : 'none'
-    
+
     return (
       <>
         <ProjectionBackground variant="preview" theme={mainTheme} media={null} filter={bgFilter} />

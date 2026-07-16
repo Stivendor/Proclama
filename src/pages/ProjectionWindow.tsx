@@ -147,16 +147,6 @@ export default function ProjectionWindow() {
   const isCountdownActive = showTimer && countdown && countdown.status !== 'idle'
   const activeTheme = isCountdownActive ? countdown.config.theme : theme
 
-  const bgStyle: React.CSSProperties = {
-    background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-      ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-      : theme.backgroundType === 'color' || !theme.backgroundType
-        ? theme.background : '#000',
-  }
-
-  const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
-  const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
-
   const formatTime = (s: number) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`
 
