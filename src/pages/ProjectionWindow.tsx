@@ -3,129 +3,7 @@ import { onMessage, getChannel, sendMediaStatus } from '@/services/projection'
 import type { ProjectionState, BroadcastMessage, CountdownState, CountdownTheme, TickerState } from '@/types'
 import { DEFAULT_THEME, useAppStore } from '@/stores'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
-import { getYoutubeId } from '@/utils/youtube'
-
-function loadYoutubeAPI(callback: () => void) {
-  if ((window as any).YT && (window as any).YT.Player) {
-    callback();
-    return;
-  }
-  
-  const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
-  if (existingScript) {
-    const interval = setInterval(() => {
-      if ((window as any).YT && (window as any).YT.Player) {
-        clearInterval(interval);
-        callback();
-      }
-    }, 100);
-    return;
-  }
-
-  const previousCallback = (window as any).onYouTubeIframeAPIReady;
-  (window as any).onYouTubeIframeAPIReady = () => {
-    if (previousCallback) previousCallback();
-    callback();
-  };
-
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  const firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-}
-
-function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; ytPlayerRef: React.MutableRefObject<any>; objectFit: 'cover' | 'contain' | 'fill' }) {
-  const containerId = 'youtube-player-element';
-  const videoId = getYoutubeId(url);
-  const playerRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!videoId) return;
-
-    let destroyed = false;
-    let player: any = null;
-
-    loadYoutubeAPI(() => {
-      if (destroyed) return;
-      
-      player = new (window as any).YT.Player(containerId, {
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          modestbranding: 1,
-          rel: 0,
-          showinfo: 0,
-          iv_load_policy: 3,
-          mute: 0,
-        },
-        events: {
-          onReady: (event: any) => {
-            if (destroyed) return;
-            playerRef.current = event.target;
-            ytPlayerRef.current = event.target;
-            event.target.playVideo();
-          },
-          onStateChange: (event: any) => {
-            if (event.data === (window as any).YT.PlayerState.ENDED) {
-              event.target.playVideo();
-            }
-          }
-        }
-      });
-    });
-
-    return () => {
-      destroyed = true;
-      if (player && typeof player.destroy === 'function') {
-        player.destroy();
-      }
-      ytPlayerRef.current = null;
-    };
-  }, [videoId, ytPlayerRef]);
-
-  if (!videoId) {
-    return (
-      <div style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-        Enlace de YouTube no válido
-      </div>
-    );
-  }
-
-  const isCover = objectFit === 'cover';
-  
-  return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      height: '100%',
-      overflow: 'hidden',
-      background: '#000'
-    }}>
-      <div 
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          ...(isCover ? {
-            width: '177.77777778vh',
-            height: '56.25vw',
-            minWidth: '100%',
-            minHeight: '100%',
-          } : {
-            width: '100%',
-            height: '100%',
-          })
-        }}
-      >
-        <div id={containerId} style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
-      </div>
-    </div>
-  );
-}
+import ProjectionBackground from '@/components/projection/ProjectionBackground'
 
 
 const INITIAL_STATE: ProjectionState = {
@@ -374,57 +252,13 @@ export default function ProjectionWindow() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000', overflow: 'hidden', position: 'relative' }}>
       <div style={canvasStyle}>
-        {/* Fondo */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 0,
-          filter: bgFilter,
-          transform: bgTransform,
-          ...bgStyle
-        }} />
-
-        {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-          <video key={theme.backgroundVideoUrl} autoPlay muted loop playsInline style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1,
-            filter: bgFilter,
-            transform: bgTransform,
-          }}>
-            <source src={theme.backgroundVideoUrl} type="video/mp4" />
-          </video>
-        )}
-
-
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 5,
-          backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})`
-        }} />
-
-        {state.media && (
-          <div style={{
-            position: 'absolute', inset: 0, zIndex: state.media.isBackgroundMode ? 2 : 20,
-            background: state.media.isBackgroundMode ? 'transparent' : '#000',
-            filter: state.media.isBackgroundMode ? bgFilter : 'none',
-            transform: state.media.isBackgroundMode ? bgTransform : 'none',
-          }}>
-            {state.media.type === 'video' ? (
-              <video
-                key={state.media.url}
-                ref={videoRef}
-                src={state.media.url}
-                autoPlay loop
-                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain') }}
-              />
-            ) : state.media.type === 'youtube' ? (
-              <YoutubePlayerContainer
-                url={state.media.url}
-                ytPlayerRef={ytPlayerRef}
-                objectFit={state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain')}
-              />
-            ) : (
-              <img src={state.media.url}
-                style={{ width: '100%', height: '100%', objectFit: state.media.objectFit || (state.media.isBackgroundMode ? 'fill' : 'contain') }} />
-            )}
-          </div>
-        )}
+        <ProjectionBackground
+          variant="live"
+          theme={theme}
+          media={state.media}
+          mediaVideoRef={videoRef}
+          ytPlayerRef={ytPlayerRef}
+        />
 
         {/* Countdown / Reloj */}
         {isCountdownActive && (() => {
