@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import type { ProjectionState, ProjectionTheme } from '@/types'
 import { getYoutubeId } from '@/utils/youtube'
 
@@ -35,7 +35,6 @@ function loadYoutubeAPI(callback: () => void) {
 function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; ytPlayerRef: React.MutableRefObject<any>; objectFit: 'cover' | 'contain' | 'fill' }) {
   const containerId = 'youtube-player-element';
   const videoId = getYoutubeId(url);
-  const playerRef = useRef<any>(null);
 
   useEffect(() => {
     if (!videoId) return;
@@ -62,7 +61,6 @@ function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; 
         events: {
           onReady: (event: any) => {
             if (destroyed) return;
-            playerRef.current = event.target;
             ytPlayerRef.current = event.target;
             event.target.playVideo();
           },
@@ -128,13 +126,14 @@ function YoutubePlayerContainer({ url, ytPlayerRef, objectFit }: { url: string; 
 type Props = {
   theme: ProjectionTheme
   media?: ProjectionState['media'] | null
-  variant: 'live' | 'preview'
   filter?: string
-  mediaVideoRef?: React.Ref<HTMLVideoElement>
-  ytPlayerRef?: React.MutableRefObject<any>
-}
+} & (
+  | { variant: 'preview'; mediaVideoRef?: never; ytPlayerRef?: never }
+  | { variant: 'live'; mediaVideoRef?: React.Ref<HTMLVideoElement>; ytPlayerRef: React.MutableRefObject<any> }
+)
 
-export default function ProjectionBackground({ theme, media, variant, filter, mediaVideoRef, ytPlayerRef }: Props) {
+export default function ProjectionBackground(props: Props) {
+  const { theme, media, variant, filter } = props
   const bgFilter = filter ?? `blur(${theme.backgroundBlur || 0}px)`
   const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
   const bg =
@@ -176,15 +175,15 @@ export default function ProjectionBackground({ theme, media, variant, filter, me
           {media.type === 'video' ? (
             <video
               key={media.url}
-              ref={variant === 'live' ? mediaVideoRef : undefined}
+              ref={props.variant === 'live' ? props.mediaVideoRef : undefined}
               src={media.url}
               autoPlay loop playsInline
               muted={variant === 'preview'}
               style={{ width: '100%', height: '100%', objectFit: fit }}
             />
           ) : media.type === 'youtube' ? (
-            variant === 'live' ? (
-              <YoutubePlayerContainer url={media.url} ytPlayerRef={ytPlayerRef!} objectFit={fit} />
+            props.variant === 'live' ? (
+              <YoutubePlayerContainer url={media.url} ytPlayerRef={props.ytPlayerRef} objectFit={fit} />
             ) : (
               <img src={`https://img.youtube.com/vi/${getYoutubeId(media.url)}/hqdefault.jpg`} alt="" style={{ width: '100%', height: '100%', objectFit: fit }} />
             )

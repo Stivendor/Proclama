@@ -29,7 +29,7 @@ describe('ProjectionBackground', () => {
     const media = { url: 'blob:v', type: 'video', isBackgroundMode: false, name: 'v' } as any
     const prev = render(<ProjectionBackground theme={theme} media={media} variant="preview" />)
     expect(prev.container.querySelector('video')?.muted).toBe(true)
-    const live = render(<ProjectionBackground theme={theme} media={media} variant="live" />)
+    const live = render(<ProjectionBackground theme={theme} media={media} variant="live" ytPlayerRef={{ current: null }} />)
     expect(live.container.querySelector('video')?.muted).toBe(false)
   })
 })
