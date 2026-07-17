@@ -12,7 +12,7 @@ Proclama es un sistema de proyección de alabanzas y Biblia para iglesias, dise�
 |---|---|
 | Framework | React 18 + TypeScript + Vite 8 |
 | Estado global | Zustand (con `persist` para settings) |
-| DB local (offline) | Dexie (IndexedDB) v4 + `dexie-react-hooks` |
+| DB local (offline) | Dexie (IndexedDB) + `dexie-react-hooks` |
 | DB cloud | Supabase (PostgreSQL) |
 | Auth | Supabase Auth (email/password) |
 | Comunicación entre ventanas | BroadcastChannel API |
@@ -38,7 +38,7 @@ src/
 ├── stores/index.ts          # Zustand stores: useProjectionStore + useAppStore (aspectRatio, fontScale, CANVAS_SIZES)
 ├── stores/countdown.ts      # Zustand store: useCountdownStore (persiste config)
 │
-├── db/index.ts              # Dexie DB v4: songs, setlists, settings, church_notes
+├── db/index.ts              # Dexie DB (esquema en v11): songs, setlists, settings, church_notes
 │
 ├── services/
 │   ├── supabase.ts          # Cliente Supabase + CRUD songs/setlists/settings/backgrounds/attendance/premium_interest
@@ -57,7 +57,8 @@ src/
 │   ├── ControlPanel.tsx     # Panel derecho: slides, ocultar texto, slider de escala de fuente
 │   ├── MediaPanel.tsx       # Panel de media: anuncios en proyección + pin (📌) de fondos de letra
 │   ├── BackgroundShelf.tsx  # Recuadro fijo de fondos de letra (media/BackgroundShelf.tsx)
-│   ├── ProjectionPreview.tsx # Preview del operador con canvas fijo escalado
+│   ├── projection/ProjectionPreview.tsx    # Preview del operador con canvas fijo escalado
+│   ├── projection/ProjectionBackground.tsx # Capas de fondo + media, compartidas live/preview
 │   ├── VideoControls.tsx    # Controles de video proyectado (play/pause/seek)
 │   ├── OnlineSearchModal.tsx # Modal de búsqueda online de letras (lrclib.net)
 │   ├── OnboardingFlow.tsx   # Tour guiado de 4 pasos para nuevos usuarios
@@ -113,14 +114,19 @@ PING / PONG        → heartbeat para detectar si la ventana está viva
 - `aspectRatio` y `fontScale` persisten en localStorage via `useAppStore`
 - Cap configurable via `theme.maxFontSize` (usado por NotesView para avisos y asistencia)
 
-### Capas Z-index en ProjectionWindow
+### Capas Z-index en la proyección
+Las capas de fondo (z:0–z:5) y la de media (z:2/z:20) las renderiza `<ProjectionBackground>`
+(`src/components/projection/ProjectionBackground.tsx`), compartido por `ProjectionWindow`
+(`variant="live"`: refs de video/YouTube player) y `ProjectionPreview` (`variant="preview"`:
+video en mute, YouTube como thumbnail). El resto lo pone `ProjectionWindow`.
 ```
 z:0  → fondo (color/imagen con blur)
 z:1  → video de fondo (motion background)
+z:2  → media de anuncios en modo fondo (isBackgroundMode)
 z:5  → overlay oscuro (backgroundOverlayOpacity)
 z:10 → texto (slides)
 z:15 → logo
-z:20 → media de anuncios (imagen/video)
+z:20 → media de anuncios a pantalla completa (imagen/video/YouTube)
 z:30 → pantalla negra
 ```
 
@@ -172,7 +178,7 @@ z:30 → pantalla negra
   notices: Notice[], createdAt, updatedAt }
 ```
 - Entidad por fecha: agrupa nombre del culto, asistencia y avisos
-- Dexie v4: tabla `church_notes` indexada por `[date+userId]`
+- Dexie: tabla `church_notes` indexada por `[date+userId]`
 - La asistencia se sincroniza con Supabase tabla `attendance_records`
 
 ---
@@ -259,7 +265,7 @@ Vista en el sidebar entre Contador y Ajustes.
   - `syncTermsAcceptance`: Sincroniza la aceptación de términos en el perfil.
   - `createSong / updateSong`: CRUD con soporte para visibilidad pública.
 - **`projection.ts`**: Orquestador de la comunicación entre ventanas.
-- **`usePlan.ts`**: Lógica de negocio para límites freemium (V1: `PREMIUM_FOR_EVERYONE = true`).
+- **`usePlan.ts`**: Lógica de negocio para límites freemium (hoy: `FOUNDING_PHASE = true`).
 
 ### DDL `attendance_records`
 ```sql

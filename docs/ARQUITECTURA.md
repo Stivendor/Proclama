@@ -194,7 +194,7 @@ src/
 ├── stores/
 │   └── index.ts               # AppStore + ProjectionStore
 ├── db/
-│   └── index.ts               # Esquema Dexie v4
+│   └── index.ts               # Esquema Dexie (v11)
 ├── types/
 │   └── index.ts               # Tipos globales
 └── utils/
@@ -250,7 +250,7 @@ src/
 
 ## Modelo Freemium
 
-El sistema tiene un flag `PREMIUM_FOR_EVERYONE = true` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium.
+El sistema tiene un flag `FOUNDING_PHASE = true` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium.
 
 **Características premium**:
 - Búsqueda online de letras (Genius)

@@ -159,7 +159,7 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 
 ### Persistencia
 
-- `Dexie v4` (IndexedDB): canciones, setlists, notas del culto (local/offline).
+- `Dexie` (IndexedDB): canciones, setlists, notas del culto (local/offline).
 - `Zustand persist` (localStorage): configuración, tema, modo invitado, onboarding.
 - `Supabase`: canciones y setlists sincronizados en la nube.
 
@@ -171,7 +171,7 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 |-----------|-----------|
 | Frontend | React 18, TypeScript, Vite 8 |
 | Estado global | Zustand 4 |
-| Persistencia local | Dexie 3 v4 (IndexedDB) |
+| Persistencia local | Dexie 3 (IndexedDB) |
 | Autenticación y nube | Supabase |
 | UI e iconografía | CSS personalizado, Lucide React |
 | Drag and drop | @dnd-kit/core, @dnd-kit/sortable |
@@ -243,7 +243,7 @@ src/
 │   ├── usePlan.ts            # Lógica freemium
 │   └── useProjectionFontSize.ts
 ├── db/
-│   └── index.ts              # Dexie v4: songs, setlists, church_notes
+│   └── index.ts              # Dexie: songs, setlists, church_notes
 ├── data/
 │   └── bible-rvr1960.json    # RVR1960 completa (~31K versículos, chunk lazy)
 ├── types/
@@ -318,7 +318,7 @@ Notas de seguridad:
 - Las funciones premium del cliente son controles de interfaz; cualquier permiso real debe validarse con RLS, Supabase Auth o Edge Functions.
 - Las tablas con datos por usuario deben tener RLS activo y policies versionadas en migraciones.
 - IndexedDB y localStorage no estan cifrados: evita guardar secretos o datos que no deban quedar en el dispositivo.
-- **Modelo de lanzamiento**: durante el período de lanzamiento, `PREMIUM_FOR_EVERYONE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
+- **Modelo de lanzamiento**: durante el período de lanzamiento, `FOUNDING_PHASE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
 
 ---
 
