@@ -8,7 +8,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase config missing. Check .env.local file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// createClient lanza si la URL está vacía. El prerender SSG importa este módulo
+// en Node durante `pnpm build`, donde las VITE_* pueden no existir: sin estos
+// fallbacks el build entero falla en vez de degradarse al aviso de arriba.
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key'
+)
 
 type SupabaseSongRow = {
   id: number
