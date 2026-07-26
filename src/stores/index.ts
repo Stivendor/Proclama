@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance, LocalMedia } from '@/types'
+import type { ProjectionState, ProjectionTheme, AppSettings, Song, Setlist, TermsAcceptance, LocalMedia, Slide } from '@/types'
 import { parseLyrics } from '@/services/lyricsParser'
 import { sendProjectionUpdate, sendMediaCommand, ensureProjectionReady } from '@/services/projection'
 import { supabase } from '@/services/supabase'
@@ -64,6 +64,10 @@ interface ProjectionStore {
   projectionWindow: Window | null
   setProjectionWindow: (w: Window | null) => void
   loadSong: (song: Song, isBible?: boolean, initialSlide?: number) => void
+  // Proyecta slides ya parseados (asistencia u otro contenido) con la misma
+  // normalización que loadSong: limpia media/anuncio, muestra el texto y aplica
+  // el fondo favorito. Evita el path divergente que armaba el estado a mano.
+  projectSlides: (title: string, slides: Slide[]) => void
   nextSlide: () => void
   prevSlide: () => void
   goToSlide: (index: number) => void
@@ -155,6 +159,28 @@ export const useProjectionStore = create<ProjectionStore>()(
         } else {
           doUpdate(null)
         }
+      },
+
+      projectSlides: (title, slides) => {
+        const s = get()
+        const fav = favoriteBgOverride(s.defaultBackgroundMediaId, s.localMediaList, s.state)
+        const theme = fav?.theme ?? s.state.theme
+        const newState: ProjectionState = {
+          ...s.state,
+          theme,
+          media: null,
+          mediaStatus: undefined,
+          songId: null,
+          songTitle: title,
+          songArtist: undefined,
+          isBible: false,
+          lyricsRaw: undefined,
+          slides,
+          currentSlide: 0,
+          hideText: false,
+        }
+        set({ state: newState, currentSong: null })
+        sendProjectionUpdate(newState)
       },
 
       nextSlide: () => {
