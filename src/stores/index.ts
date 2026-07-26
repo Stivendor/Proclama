@@ -509,7 +509,10 @@ export const useAppStore = create<AppStore>()(
       backgroundsLastFetch: null,
       fetchBackgrounds: async () => {
         const { data } = await supabase.from('backgrounds').select('*').order('created_at', { ascending: false })
-        if (data) set({ backgrounds: data, backgroundsLastFetch: Date.now() })
+        if (data) set({
+          backgrounds: data.map((b) => ({ ...b, thumbnailUrl: b.thumbnail_url ?? undefined })),
+          backgroundsLastFetch: Date.now(),
+        })
       },
 
       onboardingDone: false,
