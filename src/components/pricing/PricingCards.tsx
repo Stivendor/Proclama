@@ -22,7 +22,7 @@ export default function PricingCards(props: PricingCardsProps) {
   const freeFeatures = ['f1', 'f2', 'f3', 'f4', 'f5'].map((k) =>
     t(language, `landing.pricing.free.${k}`),
   )
-  const premiumFeatures = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((k) =>
+  const premiumFeatures = ['f1', 'f3', 'f4', 'f5', 'f6'].map((k) =>
     t(language, `landing.pricing.premium.${k}`),
   )
 
