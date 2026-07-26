@@ -5,7 +5,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
-import OnlineSearchModal from '@/components/songs/OnlineSearchModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
@@ -23,7 +22,7 @@ export default function LibraryView() {
     clearRecentSongs: s.clearRecentSongs
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { canCreateSong, canUseGenius } = usePlan()
+  const { canCreateSong } = usePlan()
 
   // Conteo de canciones propias del usuario (para el límite free)
   const ownSongCount = useLiveQuery(async () => {
@@ -35,7 +34,6 @@ export default function LibraryView() {
     }
   }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
-  const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
@@ -474,14 +472,6 @@ export default function LibraryView() {
         </div>
         <div className="header-actions">
           <button
-            className="btn-ghost"
-            onClick={() => setShowOnlineSearch(true)}
-            title={!canUseGenius ? 'Función premium — actualiza tu plan' : undefined}
-          >
-            <Search size={15} /> Buscar online
-            {!canUseGenius && <Lock size={12} style={{ marginLeft: 4, opacity: 0.7 }} />}
-          </button>
-          <button
             className="btn-primary"
             onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
             disabled={!canCreateSong(ownSongCount)}
@@ -550,9 +540,6 @@ export default function LibraryView() {
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                   <button className="btn-primary" onClick={() => { if (searchQuery.trim()) { createSongFromSearch() } else if (canCreateSong(ownSongCount)) { openEditor() } }}>
                     <Plus size={16} /> {searchQuery.trim() ? `Crear «${searchQuery.trim()}»` : 'Crear canción'}
-                  </button>
-                  <button className="btn-ghost" onClick={() => setShowOnlineSearch(true)}>
-                    <Search size={16} /> Buscar online
                   </button>
                 </div>
               </div>
@@ -625,7 +612,6 @@ export default function LibraryView() {
         </div>
       </div>
 
-      {showOnlineSearch && <OnlineSearchModal onClose={() => setShowOnlineSearch(false)} />}
       {confirmDelete && (
         <ConfirmDialog
           message={`¿Eliminar "${confirmDelete.title}"?`}
