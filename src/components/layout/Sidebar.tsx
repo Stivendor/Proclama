@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
+import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, Megaphone, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
@@ -30,7 +30,8 @@ export default function Sidebar() {
     { id: 'library', icon: Library, label: t(language, 'sidebar.songs') },
     { id: 'setlists', icon: List, label: t(language, 'sidebar.setlists') },
     { id: 'bible', icon: BookIcon, label: t(language, 'sidebar.bible') },
-    { id: 'countdown', icon: Timer, label: t(language, 'sidebar.countdown') },
+    { id: 'timer', icon: Timer, label: t(language, 'sidebar.timer') },
+    { id: 'notices', icon: Megaphone, label: t(language, 'sidebar.notices') },
     { id: 'notes', icon: Users, label: t(language, 'sidebar.notes') },
     { id: 'fondos', icon: Image, label: t(language, 'sidebar.fondos') },
     { id: 'settings', icon: Settings, label: t(language, 'sidebar.settings') }

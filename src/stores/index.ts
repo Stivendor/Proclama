@@ -335,7 +335,7 @@ interface AppStore {
   guestMode: boolean
   setGuestMode: (v: boolean) => void
   
-  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'
+  activeView: 'library' | 'setlists' | 'settings' | 'bible' | 'timer' | 'notices' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'
   setActiveView: (v: AppStore['activeView']) => void
   // Internal: registered by RouterSync so setActiveView can push history
   _navigate: ((path: string) => void) | null
