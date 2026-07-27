@@ -68,9 +68,6 @@ export function usePlan() {
   /** Proyectar SIEMPRE disponible para todos. El core nunca se bloquea. */
   const canProjectSong = () => true
 
-  /** Búsqueda online (Genius / import) */
-  const canUseGenius = isPremium
-
   /** Sincronización en la nube / multi-dispositivo */
   const canSync = isPremium
 
@@ -101,7 +98,6 @@ export function usePlan() {
     plan: isPremium ? ('premium' as const) : ('free' as const),
     canCreateSong,
     canProjectSong,
-    canUseGenius,
     canSync,
     canUseMediaBackgrounds,
     canManageMediaFolders,

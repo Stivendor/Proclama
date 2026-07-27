@@ -160,7 +160,6 @@ src/
 │   ├── MediaPanel.tsx         # Media local (anuncios) + pin de fondos
 │   ├── BackgroundShelf.tsx    # Recuadro fijo de fondos de letra
 │   ├── ProjectionPreview.tsx  # Vista previa de proyección
-│   ├── OnlineSearchModal.tsx  # Búsqueda e importación online
 │   ├── SongEditorModal.tsx    # Editor de canciones
 │   ├── PremiumFeatureModal.tsx # Modal de upsell premium
 │   ├── ReportSongModal.tsx    # Reportar canción
@@ -173,28 +172,27 @@ src/
 │   ├── LibraryView.tsx        # Biblioteca de canciones
 │   ├── SetlistsView.tsx       # Gestión de setlists
 │   ├── BibleView.tsx          # Biblia RVR1960
-│   ├── CountdownView.tsx      # Contador regresivo
-│   ├── NotesView.tsx          # Notas del culto + asistencia
+│   ├── TimerView.tsx          # Temporizador + reloj en pantalla
+│   ├── NoticesView.tsx        # Avisos + banda deslizante
+│   ├── NotesView.tsx          # Asistencia al culto
 │   ├── SettingsView.tsx       # Configuración
 │   ├── FondosView.tsx         # Gestión de fondos
 │   └── ProjectionWindow.tsx   # Ventana de proyección
 ├── hooks/
 │   ├── useSongsRealtime.ts    # Sincronización Supabase → Dexie
-│   ├── useOnlineSearch.ts     # Búsqueda externa de letras
 │   ├── usePlan.ts             # Lógica freemium
 │   ├── useKeyboardShortcuts.ts # Atajos de teclado
 │   └── useProjectionFontSize.ts # Cálculo de tamaño de fuente
 ├── services/
 │   ├── supabase.ts            # Cliente Supabase + CRUD
 │   ├── projection.ts          # Comunicación BroadcastChannel
-│   ├── genius.ts              # Búsqueda en Genius/lrclib
 │   ├── bible.ts               # Lógica de búsqueda bíblica
 │   ├── lyricsParser.ts        # Parseo de letras a estrofas
 │   └── attendanceSync.ts      # Sincronización de asistencia
 ├── stores/
 │   └── index.ts               # AppStore + ProjectionStore
 ├── db/
-│   └── index.ts               # Esquema Dexie v4
+│   └── index.ts               # Esquema Dexie (v11)
 ├── types/
 │   └── index.ts               # Tipos globales
 └── utils/
@@ -209,7 +207,7 @@ src/
 
 ### Biblioteca de Canciones
 - CRUD completo con persistencia local Dexie + Supabase
-- Búsqueda online (Genius API / lrclib) para importar letras
+- Catálogo comunitario (+3.000 canciones): búsqueda pública e importación
 - Visibilidad: pública (requiere moderación) o privada
 - Publicar canciones locales a la comunidad
 - Sincronización en tiempo real entre dispositivos
@@ -232,9 +230,16 @@ src/
 - Búsqueda por texto o referencia (ej. "Juan 3:16")
 - Proyección inmediata de versículos
 
-### Notas del Culto
-- Registro de asistencia con categorías configurables
-- Avisos proyectables
+### Temporizador
+- Cuenta atrás configurable o reloj en pantalla (12 h)
+- Tema visual independiente sincronizado con la proyección
+
+### Avisos
+- CRUD de avisos, solo local (sin sync a Supabase)
+- Dos modos: pantalla completa (interrumpe) o banda deslizante (no interrumpe)
+
+### Asistencia al Culto
+- Registro con categorías configurables
 - Historial con gráficos (Recharts)
 - Exportación a CSV/PDF
 
@@ -250,10 +255,9 @@ src/
 
 ## Modelo Freemium
 
-El sistema tiene un flag `PREMIUM_FOR_EVERYONE = true` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium.
+El sistema tiene un flag `FOUNDING_PHASE = true` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium.
 
 **Características premium**:
-- Búsqueda online de letras (Genius)
 - Sincronización en la nube (Supabase)
 - Fondos multimedia (video/imagen)
 - Exportación de reportes

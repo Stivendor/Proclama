@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useShallow } from "zustand/react/shallow";
@@ -19,7 +19,8 @@ const ControlPanel = lazy(() => import("@/components/layout/ControlPanel"));
 const ProjectionWindow = lazy(() => import("@/pages/ProjectionWindow"));
 const ProjectionPreview = lazy(() => import("@/components/projection/ProjectionPreview"));
 const BibleView = lazy(() => import("@/pages/BibleView"));
-const CountdownView = lazy(() => import("@/pages/CountdownView"));
+const TimerView = lazy(() => import("@/pages/TimerView"));
+const NoticesView = lazy(() => import("@/pages/NoticesView"));
 const NotesView = lazy(() => import("@/pages/NotesView"));
 const TermsView = lazy(() => import("@/pages/TermsView"));
 const FondosView = lazy(() => import("@/pages/FondosView"));
@@ -37,7 +38,8 @@ const VIEW_PATHS: Record<string, string> = {
   '/setlists': 'setlists',
   '/settings': 'settings',
   '/bible': 'bible',
-  '/countdown': 'countdown',
+  '/timer': 'timer',
+  '/notices': 'notices',
   '/notes': 'notes',
   '/terms': 'terms',
   '/fondos': 'fondos',
@@ -198,7 +200,9 @@ function MainApp() {
             <Route path="/setlists" element={<SetlistsView />} />
             <Route path="/settings" element={<SettingsView />} />
             <Route path="/bible" element={<BibleView />} />
-            <Route path="/countdown" element={<CountdownView />} />
+            <Route path="/timer" element={<TimerView />} />
+            <Route path="/notices" element={<NoticesView />} />
+            <Route path="/countdown" element={<Navigate to="/timer" replace />} />
             <Route path="/notes" element={<NotesView />} />
             <Route path="/terms" element={<TermsView />} />
             <Route path="/fondos" element={<FondosView />} />

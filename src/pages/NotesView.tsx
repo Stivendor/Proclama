@@ -5,7 +5,7 @@ import {
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { parseLyrics } from '@/services/lyricsParser'
-import { sendProjectionUpdate, openProjectionWindow } from '@/services/projection'
+import { openProjectionWindow } from '@/services/projection'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
 
@@ -107,10 +107,11 @@ export default function NotesView() {
     setAttError('')
   }, [attendanceRecord, selectedDate, setAttError])
 
-  const { projectionSongTitle, projectionWindow, setProjectionWindow } = useProjectionStore(useShallow(s => ({
+  const { projectionSongTitle, projectionWindow, setProjectionWindow, projectSlides } = useProjectionStore(useShallow(s => ({
     projectionSongTitle: s.state.songTitle,
     projectionWindow: s.projectionWindow,
     setProjectionWindow: s.setProjectionWindow,
+    projectSlides: s.projectSlides,
   })))
 
   // ─── Project Attendance ──────────────────────────────────────────────────────
@@ -119,17 +120,7 @@ export default function NotesView() {
     const lyrics = buildAttendanceLyrics(values, attendanceCategories, selectedDate, attendanceRecord?.serviceName)
     const linesPerSlide = 1 + attendanceCategories.length + 1
     const slides = parseLyrics(lyrics, linesPerSlide)
-    const currentState = useProjectionStore.getState().state
-    const newState = {
-      ...currentState,
-      songId: null,
-      songTitle: 'Asistencia',
-      isBible: false,
-      slides,
-      currentSlide: 0,
-    }
-    useProjectionStore.setState({ state: newState })
-    sendProjectionUpdate(newState)
+    projectSlides('Asistencia', slides)
     if (!projectionWindow || projectionWindow.closed) {
       const w = openProjectionWindow()
       setProjectionWindow(w)

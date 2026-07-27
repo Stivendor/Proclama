@@ -48,7 +48,6 @@ function buildPlanLogic(plan: PlanTier, role: 'admin' | 'user' | null, expiresAt
     plan: isPremium ? 'premium' : ('free' as const),
     canCreateSong: (ownSongCount: number) => isPremium || ownSongCount < FREE_SONG_LIMIT,
     canProjectSong: () => true,
-    canUseGenius: isPremium,
     canSync: isPremium,
     canUseMediaBackgrounds: isPremium,
     canViewAttendance: true,
@@ -67,8 +66,7 @@ describe('Plan free (post-lanzamiento)', () => {
     expect(plan.canCreateSong(FREE_SONG_LIMIT - 1)).toBe(true)
     expect(plan.canCreateSong(FREE_SONG_LIMIT)).toBe(false)
   })
-  it('NO usa Genius, sync, media, reportes ni importar biblias', () => {
-    expect(plan.canUseGenius).toBe(false)
+  it('NO usa sync, media, reportes ni importar biblias', () => {
     expect(plan.canSync).toBe(false)
     expect(plan.canUseMediaBackgrounds).toBe(false)
     expect(plan.canExportReports).toBe(false)

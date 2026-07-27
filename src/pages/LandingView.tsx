@@ -302,7 +302,6 @@ export default function LandingView() {
                 <ul className="feature-list">
                   <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem1')}</li>
                   <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem2')}</li>
-                  <li><Check size={16} /> {t(language, 'landing.showcase.libraryItem3')}</li>
                 </ul>
               </div>
               <div className="showcase-visual">

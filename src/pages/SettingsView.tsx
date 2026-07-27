@@ -197,12 +197,6 @@ export default function SettingsView() {
                   <div className="sync-benefit-item">
                     <Cloud size={16} />
                     <span>
-                      <strong>{t(language, 'settings.proAccess')}</strong> {t(language, 'settings.proDesc')}
-                    </span>
-                  </div>
-                  <div className="sync-benefit-item">
-                    <Cloud size={16} />
-                    <span>
                       <strong>{t(language, 'settings.reports')}</strong> {t(language, 'settings.reportsDesc')}
                     </span>
                   </div>

@@ -5,7 +5,7 @@ import { useProjectionStore, DEFAULT_THEME, CANVAS_SIZE, useAppStore } from '@/s
 import { useCountdownStore } from '@/features/countdown'
 import type { ProjectionState, BroadcastMessage, CountdownState } from '@/types'
 import { calcCanvasFontSize } from '@/hooks/useProjectionFontSize'
-import { getYoutubeId } from '@/utils/youtube'
+import ProjectionBackground from '@/components/projection/ProjectionBackground'
 
 const STORAGE_KEY = 'proclama-preview-collapsed'
 const MEDIA_KEY = 'proclama-preview-media'
@@ -207,10 +207,7 @@ function ProjectionPreview() {
 
     const { slides, currentSlide, theme, songTitle, songArtist, isBible, hideText } = projectionState
     const slide = slides[currentSlide]
-    
-    const bgFilter = `blur(${theme.backgroundBlur || 0}px)`
-    const bgTransform = theme.backgroundBlur ? 'scale(1.05)' : 'none'
-    
+
     const showTitle = !!(isBible && songTitle)
     const titleAtTop = showTitle && theme.verseReferencePosition !== 'bottom'
     const titleAtBottom = showTitle && theme.verseReferencePosition === 'bottom'
@@ -223,53 +220,7 @@ function ProjectionPreview() {
     return (
       <>
         {showMedia && (
-          <>
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: theme.backgroundType === 'image' && theme.backgroundImageUrl
-                ? `url(${theme.backgroundImageUrl}) center/cover no-repeat`
-                : theme.backgroundType === 'color' || !theme.backgroundType ? theme.background : '#000',
-              filter: bgFilter, transform: bgTransform,
-            }} />
-            {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-              <video 
-                key={theme.backgroundVideoUrl}
-                src={theme.backgroundVideoUrl}
-                autoPlay muted loop playsInline 
-                style={{ 
-                  position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-                  filter: bgFilter, transform: bgTransform,
-                }}
-              />
-            )}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 5, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />
-            
-            {projectionState.media && (
-              <div style={{ 
-                position: 'absolute', inset: 0, zIndex: projectionState.media.isBackgroundMode ? 2 : 20,
-                background: projectionState.media.isBackgroundMode ? 'transparent' : '#000',
-                filter: projectionState.media.isBackgroundMode ? bgFilter : 'none',
-                transform: projectionState.media.isBackgroundMode ? bgTransform : 'none',
-              }}>
-                {projectionState.media.type === 'video' ? (
-                  <video 
-                    key={projectionState.media.url}
-                    src={projectionState.media.url}
-                    autoPlay muted loop playsInline 
-                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }}
-                  />
-                ) : projectionState.media.type === 'youtube' ? (
-                  <img 
-                    src={`https://img.youtube.com/vi/${getYoutubeId(projectionState.media.url)}/hqdefault.jpg`} 
-                    alt="" 
-                    style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }} 
-                  />
-                ) : (
-                  <img src={projectionState.media.url} alt="" style={{ width: '100%', height: '100%', objectFit: projectionState.media.objectFit || (projectionState.media.isBackgroundMode ? 'fill' : 'contain') }} />
-                )}
-              </div>
-            )}
-          </>
+          <ProjectionBackground variant="preview" theme={theme} media={projectionState.media} />
         )}
 
         {slide ? (
@@ -314,29 +265,10 @@ function ProjectionPreview() {
     const mainTheme = projectionState?.theme || DEFAULT_THEME
     const textShadow = countdownTheme.textShadow ? '1px 1px 2px rgba(0,0,0,0.8)' : 'none'
     const bgFilter = `blur(${mainTheme.backgroundBlur || 0}px) brightness(${1 - ((mainTheme.backgroundOverlayOpacity ?? 0.3))})`
-    const bgTransform = mainTheme.backgroundBlur ? 'scale(1.05)' : 'none'
-    
+
     return (
       <>
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: mainTheme.backgroundType === 'image' && mainTheme.backgroundImageUrl
-            ? `url(${mainTheme.backgroundImageUrl}) center/cover no-repeat`
-            : mainTheme.backgroundType === 'color' || !mainTheme.backgroundType ? mainTheme.background : '#000',
-          filter: bgFilter, transform: bgTransform,
-        }} />
-        {mainTheme.backgroundType === 'video' && mainTheme.backgroundVideoUrl && (
-          <video 
-            key={mainTheme.backgroundVideoUrl}
-            src={mainTheme.backgroundVideoUrl}
-            autoPlay muted loop playsInline 
-            style={{ 
-              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-              filter: bgFilter, transform: bgTransform,
-            }}
-          />
-        )}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 5, backgroundColor: `rgba(0,0,0,${mainTheme.backgroundOverlayOpacity ?? 0.3})` }} />
+        <ProjectionBackground variant="preview" theme={mainTheme} media={null} filter={bgFilter} />
         <div style={{
           position: 'absolute', inset: 0, zIndex: 10,
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

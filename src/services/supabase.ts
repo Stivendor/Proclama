@@ -8,7 +8,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase config missing. Check .env.local file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// ponytail: during SSG prerender in Node (import.meta.env.SSR), createClient()
+// runs at import time and throws with empty URL, breaking `pnpm build`. Supabase
+// is client-only, never called during prerender, so a placeholder is safe there.
+// In the browser we keep the real (empty) values so a misconfigured prod deploy
+// fails loudly instead of silently pointing at a fake host.
+const ssrFallback = import.meta.env.SSR && (!supabaseUrl || !supabaseAnonKey)
+
+export const supabase = createClient(
+  ssrFallback ? 'https://placeholder.supabase.co' : supabaseUrl,
+  ssrFallback ? 'placeholder-anon-key' : supabaseAnonKey,
+)
 
 type SupabaseSongRow = {
   id: number

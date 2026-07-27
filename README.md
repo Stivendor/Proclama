@@ -29,8 +29,9 @@ Proclama reúne en una sola aplicación web:
 - Creación y administración de setlists para servicios.
 - Proyección en ventana separada para TV o proyector con auto-ajuste de fuente.
 - Biblia integrada (RVR1960) con búsqueda por texto, libro o referencia.
-- Contador regresivo personalizable con proyección en tiempo real.
-- Sección de Notas: asistencia con categorías configurables, avisos proyectables e historial.
+- Temporizador (cuenta atrás) y reloj en pantalla, con proyección en tiempo real.
+- Avisos proyectables: a pantalla completa o en banda deslizante.
+- Asistencia con categorías configurables, historial y exportación.
 - Fondos dinámicos personalizables (Color, Imagen, Video) con controles de Blur y Filtro de Oscuridad.
 - Recuadro fijo de fondos de letra: fija imágenes de tu media local y elige cuál recibe toda letra proyectada.
 - Panel de control responsivo con controles de media, ajustes de proyección y vista previa en tiempo real.
@@ -45,7 +46,6 @@ Proclama reúne en una sola aplicación web:
 
 - Crear, editar y eliminar canciones con confirmación.
 - Buscar por título, artista, letra y etiquetas.
-- Buscar e importar letras online (Genius/lrclib) con vista previa.
 - Elegir visibilidad: pública (requiere moderación) o privada.
 - Publicar canciones locales a la comunidad para compartirlas.
 - Persistencia local con Dexie para trabajar sin sesión.
@@ -81,18 +81,23 @@ Proclama reúne en una sola aplicación web:
 - Ajuste de escala de fuente manual (0.4x - 1.5x).
 - Panel de controles responsivo que se adapta a diferentes resoluciones y zoom.
 
-### Contador regresivo
+### Temporizador (vista "Temporizador")
 
-- Configuración de título y duración exacta.
+- Cuenta atrás con título y duración exacta, o reloj en pantalla (12 h).
 - Tema visual independiente sincronizado con la proyección.
 - Vista previa interna y proyección a pantalla completa.
 
-### Notas del culto
+### Avisos (vista "Avisos")
 
-- **Asistencia**: Registro desglosado por categorías personalizables (ej: Caballeros, Damas, Niños, Amigos). Cada categoría es editable directamente en la UI.
+- Crear/editar/eliminar avisos proyectables.
+- Dos modos: **pantalla completa** (interrumpe lo proyectado) o **banda deslizante** (cinta continua con todos los avisos, sin interrumpir).
+- Posición de la banda arriba/abajo.
+
+### Asistencia (vista "Asistencia")
+
+- Registro desglosado por categorías personalizables (ej: Caballeros, Damas, Niños, Amigos), editables en la UI.
 - **Categorías configurables**: Agregar/eliminar/editar nombres desde la misma sección.
 - **Proyección**: Muestra todas las categorías con totales automáticos durante el culto.
-- **Avisos**: Notas proyectables en vivo.
 - **Historial**: Gráfico de barras segmentado por categoría (Recharts) + tabla completa.
 - **Exportación**: Reporte CSV con estadísticas, promedios y PDF.
 
@@ -159,7 +164,7 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 
 ### Persistencia
 
-- `Dexie v4` (IndexedDB): canciones, setlists, notas del culto (local/offline).
+- `Dexie` (IndexedDB): canciones, setlists, notas del culto (local/offline).
 - `Zustand persist` (localStorage): configuración, tema, modo invitado, onboarding.
 - `Supabase`: canciones y setlists sincronizados en la nube.
 
@@ -171,7 +176,7 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 |-----------|-----------|
 | Frontend | React 18, TypeScript, Vite 8 |
 | Estado global | Zustand 4 |
-| Persistencia local | Dexie 3 v4 (IndexedDB) |
+| Persistencia local | Dexie 3 (IndexedDB) |
 | Autenticación y nube | Supabase |
 | UI e iconografía | CSS personalizado, Lucide React |
 | Drag and drop | @dnd-kit/core, @dnd-kit/sortable |
@@ -206,8 +211,9 @@ src/
 │   ├── LibraryView.tsx       # Biblioteca de canciones
 │   ├── SetlistsView.tsx      # Gestión de setlists
 │   ├── BibleView.tsx         # Biblia RVR1960
-│   ├── CountdownView.tsx     # Contador regresivo
-│   ├── NotesView.tsx         # Notas + asistencia + avisos
+│   ├── TimerView.tsx         # Temporizador + reloj en pantalla
+│   ├── NoticesView.tsx       # Avisos + banda deslizante
+│   ├── NotesView.tsx         # Asistencia al culto
 │   ├── FondosView.tsx        # Gestión de fondos
 │   ├── SettingsView.tsx      # Configuración
 │   └── ProjectionWindow.tsx  # Ventana de proyección
@@ -217,7 +223,6 @@ src/
 │   ├── MediaPanel.tsx        # Media local (anuncios) + pin de fondos
 │   ├── BackgroundShelf.tsx   # Recuadro fijo de fondos de letra
 │   ├── ProjectionPreview.tsx # Vista previa del operador
-│   ├── OnlineSearchModal.tsx # Búsqueda online de letras
 │   ├── SongEditorModal.tsx   # Editor de canciones
 │   ├── PremiumFeatureModal.tsx # Upsell premium
 │   ├── ReportSongModal.tsx   # Reportar canción
@@ -233,17 +238,15 @@ src/
 │   ├── supabase.ts           # Cliente Supabase + CRUD
 │   ├── projection.ts         # BroadcastChannel
 │   ├── bible.ts              # Lógica bíblica
-│   ├── genius.ts             # Búsqueda de letras online
 │   ├── lyricsParser.ts       # Parser de estrofas
 │   └── attendanceSync.ts     # Sincronización de asistencia
 ├── hooks/
 │   ├── useKeyboardShortcuts.ts
 │   ├── useSongsRealtime.ts   # Sincronización Supabase → Dexie
-│   ├── useOnlineSearch.ts    # Búsqueda externa
 │   ├── usePlan.ts            # Lógica freemium
 │   └── useProjectionFontSize.ts
 ├── db/
-│   └── index.ts              # Dexie v4: songs, setlists, church_notes
+│   └── index.ts              # Dexie: songs, setlists, church_notes
 ├── data/
 │   └── bible-rvr1960.json    # RVR1960 completa (~31K versículos, chunk lazy)
 ├── types/
@@ -318,13 +321,12 @@ Notas de seguridad:
 - Las funciones premium del cliente son controles de interfaz; cualquier permiso real debe validarse con RLS, Supabase Auth o Edge Functions.
 - Las tablas con datos por usuario deben tener RLS activo y policies versionadas en migraciones.
 - IndexedDB y localStorage no estan cifrados: evita guardar secretos o datos que no deban quedar en el dispositivo.
-- **Modelo de lanzamiento**: durante el período de lanzamiento, `PREMIUM_FOR_EVERYONE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
+- **Modelo de lanzamiento**: durante el período de lanzamiento, `FOUNDING_PHASE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
 
 ---
 
 ## Configuración de Búsqueda Optimizada (FTS)
 
-Para habilitar la búsqueda por letra ignorando acentos y tildes (necesario para la función "Buscar online"):
 Para habilitar la búsqueda por letra ignorando acentos y tildes:
 ```sql
 CREATE EXTENSION IF NOT EXISTS unaccent;
