@@ -115,7 +115,7 @@ export interface ProjectionTheme {
 export interface BackgroundAsset {
   id: string
   url: string
-  thumbnailUrl: string
+  thumbnailUrl?: string
   type: 'image' | 'video'
   category?: string
 }

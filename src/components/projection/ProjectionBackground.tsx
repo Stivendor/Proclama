@@ -147,17 +147,29 @@ export default function ProjectionBackground(props: Props) {
     ? media.objectFit || (media.isBackgroundMode ? 'fill' : 'contain')
     : 'contain'
 
+  const videoLayerStyle: React.CSSProperties = {
+    position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+    zIndex: 1, filter: bgFilter, transform: bgTransform,
+  }
+
   return (
     <>
       <div style={{ position: 'absolute', inset: 0, zIndex: 0, filter: bgFilter, transform: bgTransform, background: bg }} />
 
       {theme.backgroundType === 'video' && theme.backgroundVideoUrl && (
-        <video
-          key={theme.backgroundVideoUrl}
-          src={theme.backgroundVideoUrl}
-          autoPlay muted loop playsInline
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 1, filter: bgFilter, transform: bgTransform }}
-        />
+        // El preview del operador se conforma con la miniatura: montar el video aquí abriría
+        // una segunda descarga del mismo MP4 en paralelo con la ventana de proyección, y las
+        // dos se reparten el ancho de banda. Sin miniatura (videos propios) cae al video.
+        variant === 'preview' && theme.backgroundThumbnail ? (
+          <img src={theme.backgroundThumbnail} alt="" style={videoLayerStyle} />
+        ) : (
+          <video
+            key={theme.backgroundVideoUrl}
+            src={theme.backgroundVideoUrl}
+            autoPlay muted loop playsInline
+            style={videoLayerStyle}
+          />
+        )
       )}
 
       <div style={{ position: 'absolute', inset: 0, zIndex: 5, backgroundColor: `rgba(0,0,0,${theme.backgroundOverlayOpacity ?? 0.3})` }} />

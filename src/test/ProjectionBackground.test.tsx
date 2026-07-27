@@ -25,6 +25,22 @@ describe('ProjectionBackground', () => {
     expect(container.querySelector('img')?.style.objectFit).toBe('contain')
   })
 
+  it('fondo de video: el preview usa la miniatura y no descarga el MP4', () => {
+    const videoTheme = { ...theme, backgroundType: 'video', backgroundVideoUrl: 'https://cdn/v.mp4', backgroundThumbnail: 'https://cdn/v.jpg' } as any
+    const prev = render(<ProjectionBackground theme={videoTheme} media={null} variant="preview" />)
+    expect(prev.container.querySelector('video')).toBeNull()
+    expect(prev.container.querySelector('img')?.getAttribute('src')).toBe('https://cdn/v.jpg')
+
+    const live = render(<ProjectionBackground theme={videoTheme} media={null} variant="live" ytPlayerRef={{ current: null }} />)
+    expect(live.container.querySelector('video')?.getAttribute('src')).toBe('https://cdn/v.mp4')
+  })
+
+  it('fondo de video sin miniatura: el preview cae al video', () => {
+    const videoTheme = { ...theme, backgroundType: 'video', backgroundVideoUrl: 'https://cdn/v.mp4' } as any
+    const { container } = render(<ProjectionBackground theme={videoTheme} media={null} variant="preview" />)
+    expect(container.querySelector('video')?.getAttribute('src')).toBe('https://cdn/v.mp4')
+  })
+
   it('video de anuncio: muted en preview, con audio en live', () => {
     const media = { url: 'blob:v', type: 'video', isBackgroundMode: false, name: 'v' } as any
     const prev = render(<ProjectionBackground theme={theme} media={media} variant="preview" />)

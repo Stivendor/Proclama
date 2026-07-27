@@ -5,6 +5,7 @@ import { supabase } from "@/services/supabase";
 interface BgVideo {
   id: string;
   url: string;
+  thumbnail_url: string | null;
   category: string | null;
   created_at: string;
 }
@@ -37,6 +38,7 @@ export default function BackgroundsPage() {
   const [items, setItems] = useState<BgVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [url, setUrl] = useState("");
+  const [thumbnail, setThumbnail] = useState("");
   const [category, setCategory] = useState("");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function BackgroundsPage() {
     setLoading(true);
     const { data } = await supabase
       .from("backgrounds")
-      .select("id, url, category, created_at")
+      .select("id, url, thumbnail_url, category, created_at")
       .eq("type", "video")
       .order("created_at", { ascending: false });
     const rows = data ?? [];
@@ -70,13 +72,13 @@ export default function BackgroundsPage() {
   const handleAdd = async () => {
     setError("");
     const trimmed = url.trim();
-    if (!trimmed) { setError("Ingresa la URL del video en R2."); return; }
+    if (!trimmed) { setError("Ingresa la URL pública del video."); return; }
     if (!valid) { setError("La URL no es válida."); return; }
 
     setAdding(true);
     const { error: err } = await supabase.from("backgrounds").insert({
       url: trimmed,
-      thumbnail_url: null,
+      thumbnail_url: thumbnail.trim() || null,
       type: "video",
       category: category.trim() || null,
     });
@@ -84,6 +86,7 @@ export default function BackgroundsPage() {
 
     if (err) { setError("Error al guardar: " + err.message); return; }
     setUrl("");
+    setThumbnail("");
     setCategory("");
     load();
   };
@@ -111,7 +114,9 @@ export default function BackgroundsPage() {
         <Film size={24} color="var(--gold)" /> Fondos — Videos
       </h1>
       <p style={{ color: "var(--text-secondary)", marginBottom: 24 }}>
-        Agrega videos desde Cloudflare R2. Sube el archivo MP4 a tu bucket y pega la URL pública aquí.
+        Pega la URL pública de un video MP4: puede venir de un banco externo (Pexels) o de tu propio
+        bucket R2. La miniatura es opcional pero recomendada — sin ella la galería tiene que descargar
+        el video para mostrar la vista previa.
       </p>
 
       {/* ── Etiquetas disponibles ── */}
@@ -135,7 +140,7 @@ export default function BackgroundsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 200px", gap: 12, marginBottom: 12 }}>
           <input
             className="admin-input"
-            placeholder="https://tu-bucket.r2.dev/video.mp4"
+            placeholder="https://videos.pexels.com/video-files/.../video.mp4"
             value={url}
             onChange={e => { setUrl(e.target.value); setError(""); }}
             onKeyDown={e => e.key === "Enter" && handleAdd()}
@@ -154,6 +159,15 @@ export default function BackgroundsPage() {
             </datalist>
           </div>
         </div>
+
+        <input
+          className="admin-input"
+          placeholder="URL de la miniatura (opcional, ej: poster JPG del clip)"
+          value={thumbnail}
+          onChange={e => setThumbnail(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && handleAdd()}
+          style={{ width: "100%", boxSizing: "border-box", marginBottom: 12 }}
+        />
 
         {/* Preview en tiempo real */}
         {url && valid && (
@@ -205,13 +219,22 @@ export default function BackgroundsPage() {
               key={item.id}
               style={{ display: "flex", alignItems: "center", gap: 16, background: "var(--bg-elevated)", borderRadius: 10, padding: 12, border: "1px solid var(--border)" }}
             >
-              <video
-                src={item.url}
-                muted
-                playsInline
-                preload="metadata"
-                style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8, flexShrink: 0, background: "#111" }}
-              />
+              {item.thumbnail_url ? (
+                <img
+                  src={item.thumbnail_url}
+                  alt=""
+                  loading="lazy"
+                  style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8, flexShrink: 0, background: "#111" }}
+                />
+              ) : (
+                <video
+                  src={item.url}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  style={{ width: 160, height: 90, objectFit: "cover", borderRadius: 8, flexShrink: 0, background: "#111" }}
+                />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 12, color: "var(--text-muted)", wordBreak: "break-all", marginBottom: 6 }}>{item.url}</p>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
