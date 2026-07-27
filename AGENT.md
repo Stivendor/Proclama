@@ -44,23 +44,21 @@ src/
 │   ├── supabase.ts          # Cliente Supabase + CRUD songs/setlists/settings/backgrounds/attendance/premium_interest
 │   ├── projection.ts        # BroadcastChannel + openProjectionWindow() con Window Management API
 │   ├── lyricsParser.ts      # parseLyrics() → Slide[], cleanLyricsText(), slidesToText()
-│   ├── bible.ts             # fetchChapter(), searchGlobal(), getBookSuggestion(), BIBLE_BOOKS
-│   └── genius.ts            # searchSongs() + fetchLyrics() via lrclib.net (sin API key)
+│   └── bible.ts             # fetchChapter(), searchGlobal(), getBookSuggestion(), BIBLE_BOOKS
 │
 ├── hooks/
 │   ├── useKeyboardShortcuts.ts  # →/←/Space/B/Esc para control de proyección
-│   ├── usePlan.ts               # isPremium, canUseGenius, canSync, canCreateSong, FREE_SONG_LIMIT
+│   ├── usePlan.ts               # isPremium, canSync, canCreateSong, FREE_SONG_LIMIT
 │   └── useProjectionFontSize.ts # calcCanvasFontSize() — cálculo matemático puro sin DOM
 │
 ├── components/
-│   ├── Sidebar.tsx          # Nav: Biblioteca, Setlists, Biblia, Contador, Notas, Ajustes
+│   ├── Sidebar.tsx          # Nav: Biblioteca, Setlists, Biblia, Temporizador, Avisos, Asistencia, Fondos, Ajustes
 │   ├── ControlPanel.tsx     # Panel derecho: slides, ocultar texto, slider de escala de fuente
 │   ├── MediaPanel.tsx       # Panel de media: anuncios en proyección + pin (📌) de fondos de letra
 │   ├── BackgroundShelf.tsx  # Recuadro fijo de fondos de letra (media/BackgroundShelf.tsx)
 │   ├── projection/ProjectionPreview.tsx    # Preview del operador con canvas fijo escalado
 │   ├── projection/ProjectionBackground.tsx # Capas de fondo + media, compartidas live/preview
 │   ├── VideoControls.tsx    # Controles de video proyectado (play/pause/seek)
-│   ├── OnlineSearchModal.tsx # Modal de búsqueda online de letras (lrclib.net)
 │   ├── OnboardingFlow.tsx   # Tour guiado de 4 pasos para nuevos usuarios
 │   └── ConfirmDialog.tsx    # Diálogo de confirmación reutilizable
 │
@@ -71,8 +69,9 @@ src/
 │   ├── SongEditor.tsx       # Editor de canción (crear/editar, con preview de slides)
 │   ├── SetlistsView.tsx     # Gestión de setlists con drag & drop
 │   ├── BibleView.tsx        # Navegador de Biblia con bento de capítulos y búsqueda global
-│   ├── CountdownView.tsx    # Contador regresivo configurable con proyección
-│   ├── NotesView.tsx        # Notas del culto: asistencia desglosada + avisos + historial
+│   ├── TimerView.tsx        # Temporizador (cuenta atrás) + reloj en pantalla, con proyección
+│   ├── NoticesView.tsx      # Avisos: pantalla completa + banda deslizante (ticker)
+│   ├── NotesView.tsx        # Asistencia al culto: desglose por categorías + historial
 │   ├── SettingsView.tsx     # Ajustes: auth, tema, aspect ratio, API keys
 │   └── ProjectionWindow.tsx # Ventana de proyección con canvas fijo + transform:scale
 │
@@ -188,6 +187,7 @@ z:30 → pantalla negra
 ### `useProjectionStore`
 - `state: ProjectionState` — estado completo de la proyección
 - `loadSong(song, isBible?)` — parsea lyrics → slides, envía PROJECTION_UPDATE
+- `projectSlides(title, slides)` — proyecta slides ya parseados (asistencia u otro contenido) con la misma normalización que loadSong (media:null, hideText:false, favoriteBgOverride). Evita el path divergente que armaba el estado a mano
 - `nextSlide / prevSlide / goToSlide(i)` — navegación
 - `updateTheme(partial)` — merge de tema, envía update
 - `setMedia(media)` — carga imagen/video de anuncios; oculta la letra automáticamente (hideText) y la restaura al quitar la media
@@ -199,7 +199,7 @@ z:30 → pantalla negra
 - `settings: AppSettings` — churchName, churchLogoUrl, defaultTheme
 - `user / authStatus / userRole` — estado de autenticación Supabase sincronizado
 - `logout()` — acción atómica que limpia la sesión en Supabase y resetea el store local
-- `activeView` — `'library' | 'editor' | 'setlists' | 'settings' | 'bible' | 'countdown' | 'notes'`
+- `activeView` — `'library' | 'setlists' | 'settings' | 'bible' | 'timer' | 'notices' | 'notes' | 'terms' | 'fondos' | 'reports' | 'admin-users'`
 - `guestMode` — acceso sin autenticación manejado con IndexedDB
 - `editingSong / activeSetlist` — estado de edición efímero
 - `isSidebarOpen / onboardingDone` — estado de persistencia de UI
@@ -212,22 +212,31 @@ z:30 → pantalla negra
 
 ---
 
-## Sección Notas (`NotesView`)
+## Temporizador (`TimerView`)
 
-Vista en el sidebar entre Contador y Ajustes.
+Vista en el sidebar (usa `useCountdownStore`). Segmented Temporizador/Reloj:
+cuenta atrás configurable o reloj en pantalla (12 h). Al iniciar/mostrar abre
+la ventana de proyección. Píldora de estado "En pantalla · mm:ss".
+
+## Avisos (`NoticesView`)
+
+Vista en el sidebar. CRUD de avisos (solo local, localStorage/Dexie; sin sync
+a Supabase). Dos modos de salida, con microcopy que los distingue:
+- **Pantalla completa** por aviso (proyecta vía `loadSong`, título 'Aviso') — interrumpe lo proyectado.
+- **Banda deslizante** (ticker) con todos los avisos, arriba/abajo — no interrumpe.
+
+Tira "Ahora en pantalla" que refleja qué está proyectándose.
+
+## Asistencia (`NotesView`)
+
+Vista en el sidebar.
 
 ### Asistencia al culto
-- 4 campos: Caballeros, Damas, Amigos, Niños + total automático
-- Campo libre "Nombre del culto"
-- Botón proyectar → slide con plantilla (cap `maxFontSize: 64`)
+- Categorías personalizables (default: Caballeros, Damas, Amigos, Niños) + total automático
+- Campo libre "Nombre del culto", predicador, tema
+- Botón proyectar → `useProjectionStore.projectSlides('Asistencia', slides)`, que normaliza el estado (limpia media, muestra texto, aplica fondo favorito)
 - Sync con Supabase `attendance_records` al guardar
 - Toast verde de confirmación / toast rojo de error
-
-### Avisos
-- CRUD completo con confirmación de eliminación
-- Botón proyectar por aviso (cap `maxFontSize: 80`)
-- Indicador visual del aviso proyectado actualmente
-- Solo local (Dexie), sin sync a Supabase
 
 ### Historial
 - Gráfico de barras apiladas (últimos 12 cultos)
@@ -296,7 +305,6 @@ CREATE POLICY "Users manage own attendance"
 |---|---|---|
 | Supabase | DB cloud + Auth + Storage | `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` en `.env.local` |
 | Cloudflare Turnstile | Protección anti-bot en login y registro | `VITE_TURNSTILE_SITE_KEY` en `.env.local` |
-| lrclib.net | Búsqueda de letras (sin API key) | Ninguna |
 | bible-api.com | Fallback bíblico | Ninguna |
 
 ---

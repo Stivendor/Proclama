@@ -17,7 +17,7 @@ Catálogo de canciones con soporte para moderación y visibilidad pública/priva
 | `language` | `text` | Idioma (Español, Inglés, Portugués, Otro) |
 | `is_public` | `boolean` | Visible para todos los usuarios |
 | `is_verified` | `boolean` | Aprobada por admin (visible públicamente) |
-| `source_url` | `text` | URL de origen (Genius, lrclib) |
+| `source_url` | `text` | URL de origen (legado; el import online fue retirado) |
 | `rejection_reason` | `text` | Motivo de rechazo (moderación) |
 | `usage_count` | `integer` | Contador de usos en proyección |
 | `created_at` | `timestamptz` | Fecha de creación |

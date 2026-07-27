@@ -57,7 +57,7 @@ Main app is view-switched via `activeView` in `useAppStore` (not URL routes). re
 ### Layout conventions
 - `src/pages/` — main views (LibraryView, BibleView, NotesView, ProjectionWindow…)
 - `src/features/` — domain modules (attendance, bible, countdown, notices, setlists); high fan-in, don't import from pages/components
-- `src/services/` — stateless exported functions (supabase, projection, lyricsParser, bible, genius/lrclib)
+- `src/services/` — stateless exported functions (supabase, projection, lyricsParser, bible)
 - `src/admin/` — admin panel, self-contained with its own pages/services; all admin actions audited via `logAdminAction`
 - `src/types/index.ts` — single source of truth for domain types
 - Import alias `@/` → `src/`
