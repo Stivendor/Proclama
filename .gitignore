@@ -61,6 +61,7 @@ tests/.auth/
 supabase/.temp/
 
 # Generated operational outputs
+scripts/pexels-videos.generated.sql
 bulk_cleanup_log.txt
 dry_run_output*.txt
 results.txt
