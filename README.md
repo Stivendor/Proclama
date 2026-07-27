@@ -305,7 +305,9 @@ Notas de seguridad:
 - `songs`: Catálogo de canciones.
 - `setlists`: Listas de canciones planificadas.
 - `profiles`: Datos de usuario y preferencias.
-- `backgrounds`: Fondos (imágenes/videos) compartidos para la proyección.
+- `backgrounds`: Fondos (imágenes/videos) compartidos para la proyección. El catálogo guarda solo URLs
+  públicas (hotlink), no archivos: las imágenes y los videos vienen de Pexels — ver
+  `scripts/seed-pexels-videos.mjs` — y opcionalmente de un bucket R2 propio para clips personalizados.
 
 > [!NOTE]
 > **Notas del Culto**: Los avisos e historial de notas son estrictamente locales (IndexedDB/Dexie). No se sincronizan.

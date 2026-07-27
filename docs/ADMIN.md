@@ -110,7 +110,7 @@ src/admin/
 │   ├── PlansPage.tsx           # Gestión manual de planes premium
 │   ├── ReportsPage.tsx
 │   ├── FeedbackPage.tsx
-│   ├── BackgroundsPage.tsx     # Gestión de fondos globales
+│   ├── BackgroundsPage.tsx     # Fondos globales: alta manual de videos por URL pública (Pexels o R2)
 │   ├── SuggestionsPage.tsx     # Sugerencias de usuarios
 │   └── ActivityLogsPage.tsx    # Historial de audit logs
 └── services/

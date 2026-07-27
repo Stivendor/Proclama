@@ -169,6 +169,8 @@ export default function FondosView() {
   const filteredVideos = backgrounds.filter(bg =>
     bg.type === "video" && (!videoCategory || bg.category === videoCategory)
   );
+  const displayedVideos = filteredVideos.slice(0, displayCount);
+  const hasMoreVideos = displayCount < filteredVideos.length;
 
   return (
     <div className="fondos-view">
@@ -260,7 +262,7 @@ export default function FondosView() {
                         if (!isPremium) { handleUpgrade(); return }
                         const isVideo = bg.type === "video" || bg.url?.toLowerCase().match(/\.(mp4|webm|mov|m4v)$/)
                         if (isVideo) {
-                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
+                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url, backgroundThumbnail: bg.thumbnailUrl })
                         } else {
                           updateTheme({ backgroundType: "image", backgroundImageUrl: bg.url, backgroundThumbnail: bg.thumbnailUrl })
                         }
@@ -336,7 +338,7 @@ export default function FondosView() {
                   </div>
                 )}
                 <div className="backgrounds-gallery">
-                  {filteredVideos.map((bg) => {
+                  {displayedVideos.map((bg) => {
                     const isActive = state.theme.backgroundVideoUrl === bg.url
                     return (
                       <div
@@ -344,10 +346,15 @@ export default function FondosView() {
                         className={`gallery-item ${isActive ? "active" : ""}`}
                         onClick={() => {
                           if (!isPremium) { handleUpgrade(); return }
-                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url })
+                          updateTheme({ backgroundType: "video", backgroundVideoUrl: bg.url, backgroundThumbnail: bg.thumbnailUrl })
                         }}
                       >
-                        <video src={bg.url} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        {/* Con miniatura no descargamos el MP4 hasta que el usuario lo elija */}
+                        {bg.thumbnailUrl ? (
+                          <img src={bg.thumbnailUrl} alt="" loading="lazy" />
+                        ) : (
+                          <video src={bg.url} muted playsInline preload="metadata" />
+                        )}
                         {isActive && <div className="active-overlay"><CheckCircle size={14} /></div>}
                       </div>
                     )
@@ -358,6 +365,11 @@ export default function FondosView() {
                     </p>
                   )}
                 </div>
+                {hasMoreVideos && (
+                  <button className="load-more-btn" onClick={() => setDisplayCount((c) => c + 12)}>
+                    Cargar más ({filteredVideos.length - displayCount} restantes)
+                  </button>
+                )}
               </div>
             )}
 
