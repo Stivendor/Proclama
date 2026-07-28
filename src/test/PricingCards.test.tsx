@@ -70,7 +70,8 @@ describe('PricingCards — precio fundador', () => {
   it('muestra el precio con descuento y el de lista tachado', () => {
     render(<PricingCards variant="marketing" onFreeCta={vi.fn()} />)
 
-    expect(screen.getByText('$99.000')).toBeInTheDocument()
+    // El precio que se cobra lleva la moneda; el tachado no, para no repetirla.
+    expect(screen.getByText(/\$99\.000 COP/)).toBeInTheDocument()
     expect(screen.getByText('$199.000')).toBeInTheDocument()
     expect(screen.getByText(/precio fundador/i)).toBeInTheDocument()
   })
@@ -88,7 +89,7 @@ describe('PricingCards — precio fundador', () => {
 
     const link = screen.getByText(SUBSCRIBE_CTA).closest('a')
     const texto = decodeURIComponent(link?.getAttribute('href') ?? '')
-    expect(texto).toContain('$99.000 al año')
+    expect(texto).toContain('$99.000 COP al año')
     expect(texto).toContain('iglesia@ejemplo.com')
   })
 })

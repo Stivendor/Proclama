@@ -16,6 +16,10 @@ describe('formatCOP', () => {
     expect(formatCOP(19900)).toBe('$19.900')
     expect(formatCOP(199000)).toBe('$199.000')
   })
+
+  it('marca la moneda cuando se pide, para que no se lea como dólares', () => {
+    expect(formatCOP(99000, true)).toBe('$99.000 COP')
+  })
 })
 
 describe('subscribeWhatsappUrl', () => {
@@ -69,7 +73,7 @@ describe('precio fundador', () => {
     const texto = decodeURIComponent(
       subscribeWhatsappUrl('iglesia@ejemplo.com', DURANTE).split('text=')[1],
     )
-    expect(texto).toContain('$99.000 al año')
+    expect(texto).toContain('$99.000 COP al año')
     expect(texto).toContain('precio fundador')
     expect(texto).toContain('$199.000')
   })
@@ -78,7 +82,7 @@ describe('precio fundador', () => {
     const texto = decodeURIComponent(
       subscribeWhatsappUrl(undefined, DESPUES).split('text=')[1],
     )
-    expect(texto).toContain('$199.000 al año')
+    expect(texto).toContain('$199.000 COP al año')
     expect(texto).not.toContain('fundador')
   })
 })

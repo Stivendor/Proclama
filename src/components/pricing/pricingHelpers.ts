@@ -1,7 +1,15 @@
 import { WHATSAPP_NUMBER, PRICING, FOUNDER_PRICE_UNTIL } from '@/constants/plans'
 
-export function formatCOP(n: number): string {
-  return '$' + new Intl.NumberFormat('es-CO').format(n)
+/**
+ * Formatea en pesos colombianos.
+ *
+ * `withCurrency` agrega el sufijo "COP". Va sólo en el precio que se cobra, no
+ * en el tachado ni en repeticiones: sin él, "$99.000" a secas se puede leer como
+ * dólares, y más en la versión en inglés de la landing.
+ */
+export function formatCOP(n: number, withCurrency = false): string {
+  const amount = '$' + new Intl.NumberFormat('es-CO').format(n)
+  return withCurrency ? `${amount} COP` : amount
 }
 
 /** ¿Sigue vigente el precio fundador? Inclusive el último día. */
@@ -23,8 +31,8 @@ export function currentPrice(now: Date = new Date()): {
 export function subscribeWhatsappUrl(email?: string, now: Date = new Date()): string {
   const { amount, strikethrough } = currentPrice(now)
   const priceLabel = strikethrough
-    ? `${formatCOP(amount)} al año (precio fundador, en vez de ${formatCOP(strikethrough)})`
-    : `${formatCOP(amount)} al año`
+    ? `${formatCOP(amount, true)} al año (precio fundador, en vez de ${formatCOP(strikethrough)})`
+    : `${formatCOP(amount, true)} al año`
   const emailPart = email ? ` Mi correo de la cuenta es ${email}.` : ''
   const msg = `¡Hola! 👋 Quiero suscribirme a Proclama Pro — ${priceLabel}.${emailPart} ¿Cómo hago el pago?`
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`

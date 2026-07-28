@@ -75,7 +75,7 @@ export default function PricingCards(props: PricingCardsProps) {
           <h3>{t(language, 'landing.pricing.premium.name')}</h3>
           <div className="plan-price">
             {strikethrough && <s className="plan-price-was">{formatCOP(strikethrough)}</s>}
-            {formatCOP(price)}<span> {per}</span>
+            {formatCOP(price, true)}<span> {per}</span>
           </div>
           {strikethrough && (
             <p className="plan-founder-note">{t(language, 'landing.pricing.premium.founderNote')}</p>
