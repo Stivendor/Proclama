@@ -19,12 +19,14 @@ begin;
 
 alter table public.profiles disable trigger enforce_profile_field_protection;
 
--- Opción A (recomendada): grandfather a TODO usuario existente a esta fecha.
--- Define el corte con la fecha real del lanzamiento del paywall antes de correr.
+-- Opción A (recomendada): grandfather a TODO usuario existente al momento de correr.
+-- El corte es now(): todo el que ya tenía cuenta mientras FOUNDING_PHASE estuvo
+-- en true conserva el acceso. No hardcodear la fecha — una fecha vieja deja sin
+-- premium a los que se registraron entre esa fecha y el lanzamiento real.
 update public.profiles
 set plan = 'founding'
 where plan = 'free'
-  and created_at < '2026-06-20T00:00:00Z';  -- <-- AJUSTAR a la fecha de corte real
+  and created_at < now();
 
 -- Opción B (más conservadora): solo usuarios con actividad real.
 -- Comenta la Opción A y descomenta esto si prefieres no grandfatherear cuentas vacías.

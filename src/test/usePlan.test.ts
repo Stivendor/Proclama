@@ -1,11 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { FREE_SONG_LIMIT, FOUNDING_PHASE, isPremiumFromProfile, type PlanTier } from '@/hooks/usePlan'
+import {
+  FREE_SONG_LIMIT,
+  FOUNDING_PHASE,
+  isPremiumFromProfile,
+  isPremiumByPlan,
+  type PlanTier,
+} from '@/hooks/usePlan'
 
 /**
  * Tests de la lógica de planes freemium.
  * usePlan() es un hook de React (Zustand), así que testeamos la lógica pura:
- *  - isPremiumFromProfile: la fuente de verdad de "es premium" (espeja public.is_premium).
- *  - buildPlanLogic: la matriz de capacidades post-lanzamiento (con FOUNDING_PHASE simulado en false).
+ *  - isPremiumFromProfile: la fuente de verdad de "es premium" con la fase actual.
+ *  - isPremiumByPlan: la misma regla sin FOUNDING_PHASE, o sea la que va a regir
+ *    cuando se active el paywall. Es la función REAL, no una copia: si alguien
+ *    la cambia, estos tests se caen (que es justamente el punto).
  */
 
 const FUTURE = new Date(Date.now() + 86_400_000).toISOString() // +1 día
@@ -29,20 +37,8 @@ describe('isPremiumFromProfile (función real)', () => {
  * Lógica de capacidades para CUANDO FOUNDING_PHASE pase a false.
  * Mantiene la matriz Free vs Pro documentada y probada antes de activar pagos.
  */
-function premiumFromPlan(plan: PlanTier, role: 'admin' | 'user' | null, expiresAt: string | null): boolean {
-  if (role === 'admin') return true
-  const ms = expiresAt ? new Date(expiresAt).getTime() : null
-  const notExpired = ms == null || ms > Date.now()
-  switch (plan) {
-    case 'founding': return true
-    case 'paid': return notExpired
-    case 'trial': return ms != null && ms > Date.now()
-    default: return false
-  }
-}
-
 function buildPlanLogic(plan: PlanTier, role: 'admin' | 'user' | null, expiresAt: string | null = null) {
-  const isPremium = premiumFromPlan(plan, role, expiresAt)
+  const isPremium = isPremiumByPlan({ plan, role, premiumExpiresAt: expiresAt })
   return {
     isPremium,
     plan: isPremium ? 'premium' : ('free' as const),

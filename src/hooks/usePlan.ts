@@ -24,17 +24,19 @@ export const FREE_MEDIA_MAX_TOTAL_BYTES = 250 * 1024 * 1024 // 250MB
 
 export type PlanTier = 'free' | 'trial' | 'paid' | 'founding'
 
-/**
- * Fuente de verdad del "es premium" a partir de los campos crudos del perfil.
- * Se usa tanto en el hook (render) como en useAuth (fuera de React), para que
- * el criterio no se duplique. Espeja a public.is_premium() en Supabase.
- */
-export function isPremiumFromProfile(args: {
+export type PremiumProfileFields = {
   plan: PlanTier | string | null | undefined
   role: 'admin' | 'user' | null | undefined
   premiumExpiresAt: string | number | null | undefined
-}): boolean {
-  if (FOUNDING_PHASE) return true
+}
+
+/**
+ * La regla de premium por plan, sin la fase de lanzamiento.
+ * Espeja EXACTAMENTE a public.is_premium() en Supabase: si cambias una,
+ * cambia la otra. Vive aparte de FOUNDING_PHASE para que los tests puedan
+ * probar la matriz post-lanzamiento contra el código real en vez de una copia.
+ */
+export function isPremiumByPlan(args: PremiumProfileFields): boolean {
   if (args.role === 'admin') return true
 
   const expiresAtMs = args.premiumExpiresAt ? new Date(args.premiumExpiresAt).getTime() : null
@@ -50,6 +52,16 @@ export function isPremiumFromProfile(args: {
     default:
       return false
   }
+}
+
+/**
+ * Fuente de verdad del "es premium" a partir de los campos crudos del perfil.
+ * Se usa tanto en el hook (render) como en useAuth (fuera de React), para que
+ * el criterio no se duplique.
+ */
+export function isPremiumFromProfile(args: PremiumProfileFields): boolean {
+  if (FOUNDING_PHASE) return true
+  return isPremiumByPlan(args)
 }
 
 export function usePlan() {
