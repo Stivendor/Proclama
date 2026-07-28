@@ -76,6 +76,25 @@ describe('PricingCards — precio fundador', () => {
     expect(screen.getByText(/precio fundador/i)).toBeInTheDocument()
   })
 
+  it('la tarjeta Pro nombra cada función que el plan bloquea', () => {
+    render(<PricingCards variant="marketing" onFreeCta={vi.fn()} />)
+
+    // Un gate en usePlan() sin renglón acá es algo que se cobra sin anunciarlo.
+    const pro = document.querySelector('.plan-pro')?.textContent ?? ''
+    for (const gate of [
+      /colaboradores/i,      // canInviteCollaborators
+      /ilimitadas/i,         // canCreateSong
+      /sincronizaci/i,       // canSync
+      /fondos/i,             // canUseMediaBackgrounds
+      /carpetas/i,           // canManageMediaFolders
+      /reportes pdf/i,       // canExportReports
+      /estad/i,              // canViewStats
+      /biblia/i,             // canImportBibles
+    ]) {
+      expect(pro).toMatch(gate)
+    }
+  })
+
   it('no ofrece plan mensual: sólo hay un precio', () => {
     render(<PricingCards variant="marketing" onFreeCta={vi.fn()} />)
 
