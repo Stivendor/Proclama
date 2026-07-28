@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from '@/services/supabase'
-import { generateToken, collabInfo, collabUpsertSetlist, createCollaborator } from '@/services/collab'
+import { generateToken, collabInfo, collabUpsertSetlist, createCollaborator, CollabOwnerNotPremiumError } from '@/services/collab'
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -67,5 +67,34 @@ describe('createCollaborator', () => {
     expect(inserted.name).toBe('Juan')
     expect(inserted.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
     expect(r).toEqual({ id: 'c1', token: 'tokX' })
+  })
+})
+
+describe('collabInfo — dueño sin plan Pro', () => {
+  it('distingue owner_not_premium de un token inválido', async () => {
+    vi.spyOn(supabase, 'rpc').mockResolvedValue({
+      data: null,
+      error: { code: '28001', message: 'owner_not_premium' },
+    } as any)
+
+    await expect(collabInfo('tok123')).rejects.toBeInstanceOf(CollabOwnerNotPremiumError)
+  })
+
+  it('lo reconoce también por el mensaje si el código no viaja', async () => {
+    vi.spyOn(supabase, 'rpc').mockResolvedValue({
+      data: null,
+      error: { code: 'P0001', message: 'owner_not_premium' },
+    } as any)
+
+    await expect(collabInfo('tok123')).rejects.toBeInstanceOf(CollabOwnerNotPremiumError)
+  })
+
+  it('un token revocado sigue devolviendo null, no el error de plan', async () => {
+    vi.spyOn(supabase, 'rpc').mockResolvedValue({
+      data: null,
+      error: { code: '28000', message: 'invalid_token' },
+    } as any)
+
+    await expect(collabInfo('tok123')).resolves.toBeNull()
   })
 })

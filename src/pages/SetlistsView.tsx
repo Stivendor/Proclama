@@ -11,6 +11,8 @@ import { useAppStore, useProjectionStore } from '@/stores'
 import type { Setlist, Song } from '@/types'
 import CollaboratorsModal from '@/components/setlists/CollaboratorsModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import PremiumFeatureModal from '@/components/ui/PremiumFeatureModal'
+import { usePlan } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
 
@@ -86,6 +88,8 @@ export default function SetlistsView() {
   const [confirmDeleteSl, setConfirmDeleteSl] = useState<Setlist | null>(null)
   const [creating, setCreating] = useState(false)
   const [showCollabs, setShowCollabs] = useState(false)
+  const [showCollabsUpsell, setShowCollabsUpsell] = useState(false)
+  const { canInviteCollaborators } = usePlan()
 
   const schedulePush = () => {
     if (!user?.id) return
@@ -262,8 +266,12 @@ export default function SetlistsView() {
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {user?.id && (
-            <button className="btn-ghost" onClick={() => setShowCollabs(true)} title="Colaboradores">
-              <Users size={16} /> Colaboradores
+            <button
+              className="btn-ghost"
+              onClick={() => canInviteCollaborators ? setShowCollabs(true) : setShowCollabsUpsell(true)}
+              title={canInviteCollaborators ? 'Colaboradores' : 'Colaboradores — función Pro'}
+            >
+              {canInviteCollaborators ? <Users size={16} /> : <Lock size={16} />} Colaboradores
             </button>
           )}
           <button className="btn-primary" onClick={() => setShowNew(true)}>
@@ -552,6 +560,19 @@ export default function SetlistsView() {
 
       {showCollabs && user?.id && (
         <CollaboratorsModal ownerId={user.id} onClose={() => setShowCollabs(false)} />
+      )}
+      {showCollabsUpsell && (
+        <PremiumFeatureModal
+          icon={Users}
+          title="Colaboradores es una función Pro"
+          description="Comparte un enlace con tu líder de alabanza para que arme el repertorio del domingo desde su celular, sin cuenta y sin instalar nada."
+          benefits={[
+            'Enlace privado por persona, revocable cuando quieras',
+            'El colaborador arma y edita el setlist desde cualquier dispositivo',
+            'Los cambios llegan a tu equipo al instante',
+          ]}
+          onClose={() => setShowCollabsUpsell(false)}
+        />
       )}
       {confirmDeleteSl && (
         <ConfirmDialog
