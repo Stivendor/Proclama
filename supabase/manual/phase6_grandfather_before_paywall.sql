@@ -1,69 +1,92 @@
 -- ============================================================================
--- FASE 6 — PERIODO DE GRACIA ANTES DEL PAYWALL (NO EJECUTAR EN ESTA SESIÓN)
+-- FASE 6 — PERIODO DE GRACIA ANTES DEL PAYWALL
 -- ============================================================================
 -- Cuándo correrlo: UNA sola vez, JUSTO ANTES de poner FOUNDING_PHASE = false
--- en src/hooks/usePlan.ts (es decir, al activar el modelo de pago).
+-- en src/hooks/usePlan.ts. Previsto para 2026-07-28.
 --
--- Qué hace: le da 90 días de premium a toda cuenta existente, en vez de premium
--- permanente. Nadie pierde acceso de un día para otro, y durante esos 90 días
--- se les ofrece el precio fundador (PRICING.founderAnnualCOP, la mitad del
--- precio de lista, congelado de por vida).
+-- Qué hace: le da 90 días de Pro gratis a toda cuenta existente, salvo la lista
+-- de excepciones vitalicias. Nadie pierde acceso el día del cambio; a los 90
+-- días caen a Gratis solos, sin intervención. Durante esos 90 días se les
+-- ofrece el precio fundador (la mitad del de lista, congelado de por vida).
 --
--- Por qué NO 'founding': ese plan es premium gratis para siempre. Regalarlo a
--- todas las cuentas existentes elimina la posibilidad de que alguna pague, que
--- es justo lo que se quiere probar. El banner de lanzamiento siempre dijo
--- "oferta de lanzamiento por tiempo limitado", así que cobrar después es
--- coherente con lo prometido.
+-- Caer a Gratis NO los deja sin nada: proyectar canciones y Biblia sigue
+-- disponible siempre. Pierden sync, fondos de video, reportes PDF y
+-- colaboradores.
 --
--- 'founding' queda reservado para las cuentas que decidas a mano que van gratis
--- de por vida (la tuya, tu iglesia, algún aliado). Ver el bloque del final.
+-- ─── POR QUÉ TOCA 'founding' Y NO SÓLO 'free' ────────────────────────────────
+-- plan = 'founding' es premium GRATIS PARA SIEMPRE. Durante la fase fundadores
+-- se repartió a mano desde el panel admin, sin intención de regalo vitalicio
+-- (el banner siempre dijo "oferta de lanzamiento por tiempo limitado").
 --
--- Cómo correrlo: con service_role (SQL editor de Supabase o psql como owner).
--- Deshabilita el trigger porque protect_profile_fields revierte cambios de plan
--- cuando auth.uid() es nulo (contexto administrativo).
+-- A 2026-07-27 había 15 cuentas en 'founding', incluidas LAS TRES IGLESIAS
+-- EXTERNAS REALES — las únicas que podrían pagar. Una versión de este script
+-- que sólo tocara 'free' dejaría el paywall sin alcanzar a nadie que importe.
 --
--- Idempotente: re-ejecutarlo sólo toca filas que sigan en 'free'. Las que ya
--- están en 'paid' con fecha no se pisan, así no se le reinicia la gracia a
--- nadie ni se le acorta a quien ya pagó.
+-- ─── CÓMO CORRERLO ───────────────────────────────────────────────────────────
+-- Con service_role (SQL editor de Supabase o psql como owner). Deshabilita el
+-- trigger porque protect_profile_fields revierte cambios de plan cuando
+-- auth.uid() es nulo (contexto administrativo).
+--
+-- Idempotente: sólo toca filas que sigan en 'free' o 'founding'. A quien ya
+-- quedó en 'paid' con fecha no se le reinicia ni se le acorta la gracia.
 -- ============================================================================
 
 begin;
 
 alter table public.profiles disable trigger enforce_profile_field_protection;
 
--- Opción A (recomendada): 90 días de gracia para TODA cuenta existente.
--- El corte es now(): todo el que ya tenía cuenta mientras FOUNDING_PHASE estuvo
--- en true entra. No hardcodear la fecha — una fecha vieja deja afuera a los que
--- se registraron entre esa fecha y el lanzamiento real.
+-- ─── 1. Excepciones vitalicias ───────────────────────────────────────────────
+-- Cuentas del dueño del producto y su propia iglesia: no son clientes.
+-- REVISAR ESTA LISTA ANTES DE CORRER. Lo que esté aquí nunca paga.
+create temporary table _lifetime(email text) on commit drop;
+insert into _lifetime(email) values
+  ('stivendor101@gmail.com'),   -- admin / dueño
+  ('stivendor14yt@gmail.com'),  -- segunda cuenta del dueño
+  ('decomgranizal@gmail.com');  -- DECOM Granizal, la iglesia del dueño
+
+update public.profiles
+set plan = 'founding', premium_expires_at = null
+where email in (select email from _lifetime);
+
+-- ─── 2. Gracia de 90 días para todos los demás ───────────────────────────────
+-- Incluye 'founding' a propósito (ver cabecera). El corte es now(): entra todo
+-- el que ya tenía cuenta mientras FOUNDING_PHASE estuvo en true. No hardcodear
+-- la fecha — una fecha vieja deja afuera a los registrados entre esa fecha y el
+-- lanzamiento real.
 update public.profiles
 set plan = 'paid',
     premium_expires_at = now() + interval '90 days'
-where plan = 'free'
-  and created_at < now();
+where plan in ('free', 'founding')
+  and created_at < now()
+  and email not in (select email from _lifetime);
 
--- Opción B (más conservadora): sólo cuentas con actividad real.
--- Con los datos de julio 2026, ~14 de 23 cuentas no tienen ni una canción ni un
--- registro de asistencia. Si prefieres no regalar gracia a cuentas vacías,
--- comenta la Opción A y descomenta esto.
--- update public.profiles p
--- set plan = 'paid',
---     premium_expires_at = now() + interval '90 days'
--- where p.plan = 'free'
---   and (
---     exists (select 1 from public.songs s where s.user_id = p.id)
---     or exists (select 1 from public.attendance_records a where a.user_id = p.id)
---     or exists (select 1 from public.user_activity ua where ua.user_id = p.id)
---   );
-
--- Gratis de por vida, a dedo. Descomenta y pon los correos que correspondan.
--- update public.profiles
--- set plan = 'founding', premium_expires_at = null
--- where email in ('stivendor101@gmail.com');
+-- Nota: las cuentas en 'trial' se dejan como están. Su prueba ya corrió con su
+-- propia fecha y no corresponde regalarles 90 días encima.
+--
+-- OJO con las que ya están en 'paid' con premium_expires_at = null: eso es
+-- premium vitalicio y este script NO las toca. A 2026-07-27 la única así es
+-- proclamapro@gmail.com, que quedó vitalicia por un cambio de plan de prueba
+-- del 2026-06-23. Si no debe ser vitalicia, corregirla a mano:
+--   update public.profiles set premium_expires_at = now() + interval '90 days'
+--   where email = 'proclamapro@gmail.com';
+-- Para listar cualquier otra antes de correr:
+--   select email from public.profiles
+--   where plan = 'paid' and premium_expires_at is null;
 
 alter table public.profiles enable trigger enforce_profile_field_protection;
 
--- Verificación antes de commit:
+-- ─── Verificación ANTES de hacer commit ──────────────────────────────────────
+-- Esperado: 3 en 'founding' (las excepciones), el resto en 'paid' venciendo
+-- dentro de 90 días, y las de 'trial' intactas.
+--
 --   select plan, count(*), min(premium_expires_at)::date as vence_primero
---   from public.profiles group by plan;
+--   from public.profiles group by plan order by count(*) desc;
+--
+-- Y confirmar que las 3 iglesias externas quedaron con gracia, no vitalicias:
+--
+--   select email, plan, premium_expires_at::date
+--   from public.profiles
+--   where email in ('ipucsantana@gmail.com', 'erit111k@gmail.com',
+--                   'mangaarriba2girardota@gmail.com');
 
 commit;
