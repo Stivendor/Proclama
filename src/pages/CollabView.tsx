@@ -6,11 +6,11 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities'
 import {
   collabInfo, collabSearchSongs, collabGetSong, collabListSetlists,
-  collabUpsertSetlist, collabDeleteSetlist,
+  collabUpsertSetlist, collabDeleteSetlist, CollabOwnerNotPremiumError,
   type CollabSong, type CollabSetlist, type CollabSongFull,
 } from '@/services/collab'
 
-type Status = 'loading' | 'ok' | 'invalid' | 'error'
+type Status = 'loading' | 'ok' | 'invalid' | 'inactive' | 'error'
 
 function SortableRow({ song, onRemove, onView }: {
   song: CollabSong
@@ -81,8 +81,9 @@ export default function CollabView() {
         setWho(info)
         setStatus('ok')
         await refreshSetlists()
-      } catch {
-        if (alive) setStatus('error')
+      } catch (e) {
+        if (!alive) return
+        setStatus(e instanceof CollabOwnerNotPremiumError ? 'inactive' : 'error')
       }
     })()
     return () => { alive = false }
@@ -154,6 +155,16 @@ export default function CollabView() {
         <Music size={40} />
         <h2>Enlace no válido</h2>
         <p>Este enlace fue revocado o no existe. Pide uno nuevo al administrador de Proclama.</p>
+      </div>
+    )
+  }
+
+  if (status === 'inactive') {
+    return (
+      <div className="collab-page collab-invalid">
+        <Music size={40} />
+        <h2>Enlace en pausa</h2>
+        <p>La iglesia que te compartió este enlace no tiene el plan Pro activo. Guarda el enlace: vuelve a funcionar apenas lo renueven.</p>
       </div>
     )
   }

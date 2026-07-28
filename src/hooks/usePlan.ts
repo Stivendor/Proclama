@@ -89,6 +89,13 @@ export function usePlan() {
   /** Gestión de carpetas de media local */
   const canManageMediaFolders = isPremium
 
+  /**
+   * Invitar colaboradores a los setlists. Sólo cubre CREAR enlaces: ver y
+   * revocar los existentes queda abierto (espeja las políticas RLS de
+   * public.collaborators, donde el gate premium está sólo en el insert).
+   */
+  const canInviteCollaborators = isPremium
+
   const mediaLimits = isPremium
     ? { maxFiles: PREMIUM_MEDIA_MAX_FILES, maxTotalBytes: PREMIUM_MEDIA_MAX_TOTAL_BYTES }
     : { maxFiles: FREE_MEDIA_MAX_FILES, maxTotalBytes: FREE_MEDIA_MAX_TOTAL_BYTES }
@@ -113,6 +120,7 @@ export function usePlan() {
     canSync,
     canUseMediaBackgrounds,
     canManageMediaFolders,
+    canInviteCollaborators,
     mediaLimits,
     canViewAttendance,
     canExportReports,

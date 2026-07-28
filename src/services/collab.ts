@@ -84,11 +84,27 @@ function mapSetlistRow(r: any): CollabSetlist {
   }
 }
 
+/**
+ * El enlace existe, pero la iglesia dueña ya no tiene plan Pro.
+ * Se distingue del token inválido a propósito: al colaborador no le sirve pedir
+ * un enlace nuevo, el que tiene se reactiva solo cuando el dueño renueva.
+ */
+export class CollabOwnerNotPremiumError extends Error {
+  constructor() {
+    super('owner_not_premium')
+    this.name = 'CollabOwnerNotPremiumError'
+  }
+}
+
 export async function collabInfo(token: string): Promise<{ collaboratorName: string; churchName: string } | null> {
   const { data, error } = await supabase.rpc('collab_info', { p_token: token })
   if (error) {
     // invalid_token se lanza con SQLSTATE 28000 desde _collab_auth
     if (error.code === '28000' || (error.message ?? '').includes('invalid_token')) return null
+    // owner_not_premium viaja con 28001 desde el mismo helper
+    if (error.code === '28001' || (error.message ?? '').includes('owner_not_premium')) {
+      throw new CollabOwnerNotPremiumError()
+    }
     throw new Error(error.message)
   }
   if (!data || data.length === 0) return null

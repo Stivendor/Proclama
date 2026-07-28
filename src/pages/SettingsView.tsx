@@ -11,6 +11,7 @@ import {
   Globe,
   Church,
   MapPin,
+  Sparkles,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/stores";
 import { supabase, startTrial } from "@/services/supabase";
 import TermsModal from "@/components/terms/TermsModal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { CURRENT_TERMS_VERSION } from "@/constants/terms";
 import { usePlan, FOUNDING_PHASE } from "@/hooks/usePlan";
 import DeviceList from "@/components/auth/DeviceList";
@@ -88,9 +90,13 @@ export default function SettingsView() {
   const { isPremium } = usePlan();
   const [startingTrial, setStartingTrial] = useState(false);
   const [planMsg, setPlanMsg] = useState<string | null>(null);
+  const [confirmTrial, setConfirmTrial] = useState(false);
 
-  const handleStartTrial = async () => {
-    if (!window.confirm(t(language, 'settings.plan.trialConfirm'))) return;
+  // La prueba se quema una sola vez por cuenta, así que sigue pidiendo
+  // confirmación — pero con el diálogo de la app, no con el nativo del
+  // navegador, que rompe el clima justo cuando alguien quiere probar.
+  const runStartTrial = async () => {
+    setConfirmTrial(false);
     setStartingTrial(true);
     setPlanMsg(null);
     const res = await startTrial();
@@ -315,7 +321,7 @@ export default function SettingsView() {
                   variant="app"
                   isPremium={isPremium}
                   trialEligible={isTrialEligible({ isPremium, trialStartedAt })}
-                  onStartTrial={handleStartTrial}
+                  onStartTrial={() => setConfirmTrial(true)}
                   startingTrial={startingTrial}
                   userEmail={user.email ?? undefined}
                 />
@@ -809,6 +815,17 @@ export default function SettingsView() {
         .settings-plan-status { color: var(--gold, #c9a658); font-weight: 600; margin: 0 0 16px; }
         .settings-plan-msg { margin-top: 12px; color: var(--green, #34d399); font-size: 14px; }
       `}</style>
+
+      {confirmTrial && (
+        <ConfirmDialog
+          message={t(language, 'settings.plan.trialConfirm')}
+          onConfirm={runStartTrial}
+          onCancel={() => setConfirmTrial(false)}
+          confirmLabel={t(language, 'settings.plan.trialConfirmCta')}
+          cancelLabel={t(language, 'settings.plan.trialCancel')}
+          icon={<Sparkles size={20} color="var(--gold, #c9a658)" />}
+        />
+      )}
     </div>
   );
 }

@@ -26,10 +26,19 @@ describe('FREE_SONG_LIMIT', () => {
 })
 
 describe('isPremiumFromProfile (función real)', () => {
-  it('durante FOUNDING_PHASE, todos son premium', () => {
-    // En esta fase el flag está en true: cualquier perfil es premium.
-    expect(FOUNDING_PHASE).toBe(true)
-    expect(isPremiumFromProfile({ plan: 'free', role: 'user', premiumExpiresAt: null })).toBe(true)
+  // No se fija el valor de FOUNDING_PHASE: es una decisión de lanzamiento, no
+  // una regla. Fijarlo hacía que el test se cayera justo al activar el paywall.
+  const free = { plan: 'free' as const, role: 'user' as const, premiumExpiresAt: null }
+
+  it('con FOUNDING_PHASE en true, cualquier perfil es premium', () => {
+    if (!FOUNDING_PHASE) return
+    expect(isPremiumFromProfile(free)).toBe(true)
+  })
+
+  it('con FOUNDING_PHASE en false, manda la regla por plan', () => {
+    if (FOUNDING_PHASE) return
+    expect(isPremiumFromProfile(free)).toBe(isPremiumByPlan(free))
+    expect(isPremiumFromProfile(free)).toBe(false)
   })
 })
 
