@@ -100,8 +100,7 @@ src/admin/
 ├── AdminErrorBoundary.tsx      # Manejo de errores
 ├── components/
 │   ├── DataTable.tsx           # Tabla paginable reutilizable
-│   ├── StatCard.tsx            # Tarjeta de estadística
-│   └── Map.tsx                 # Mapa (leaflet) de actividad
+│   └── StatCard.tsx            # Tarjeta de estadística
 ├── pages/
 │   ├── DashboardPage.tsx
 │   ├── PendingSongsPage.tsx

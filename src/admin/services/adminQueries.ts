@@ -5,6 +5,17 @@ export interface PaginatedResult<T> {
   count: number;
 }
 
+// Cuentas propias del dueño: se excluyen de las métricas del dashboard para que
+// las estadísticas reflejen usuarios reales. La lista de la página Usuarios sí las muestra.
+// Ojo: admin_daily_active_users (RPC) las excluye por su cuenta en SQL.
+export const EXCLUDED_EMAILS = ["stivendor14yt@gmail.com", "stivendor101@gmail.com"];
+const pgList = (values: string[]) => `(${values.map(v => `"${v}"`).join(",")})`;
+
+async function excludedUserIds(): Promise<string[]> {
+  const { data } = await supabase.from("profiles").select("id").in("email", EXCLUDED_EMAILS);
+  return (data ?? []).map(u => u.id);
+}
+
 // --- Users ---
 export async function fetchUsersPaginated(
   page: number,
@@ -36,14 +47,17 @@ export async function fetchUsersPaginated(
 
 // --- Dashboard stats ---
 export async function fetchAdminStats() {
+  const mineIds = await excludedUserIds();
+  const notMine = (q: any) => (mineIds.length ? q.not("user_id", "in", pgList(mineIds)) : q);
+
   const [users, songs, reports, pending, feedback, devices, attendance] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).not("email", "in", pgList(EXCLUDED_EMAILS)),
     supabase.from("songs").select("id", { count: "exact", head: true }).eq("is_verified", true),
     supabase.from("song_reports").select("id", { count: "exact", head: true }),
     supabase.from("songs").select("id", { count: "exact", head: true }).eq("is_public", true).eq("is_verified", false),
     supabase.from("feedback").select("id", { count: "exact", head: true }).eq("status", "unread"),
-    supabase.from("user_devices").select("id", { count: "exact", head: true }),
-    supabase.from("attendance_records").select("id", { count: "exact", head: true }),
+    notMine(supabase.from("user_devices").select("id", { count: "exact", head: true })),
+    notMine(supabase.from("attendance_records").select("id", { count: "exact", head: true })),
   ]);
   return {
     totalUsers: users.count ?? 0,
@@ -153,6 +167,7 @@ export async function fetchRegistrationChart() {
   const { data, error } = await supabase
     .from("profiles")
     .select("created_at")
+    .not("email", "in", pgList(EXCLUDED_EMAILS))
     .gte("created_at", since.toISOString())
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -164,29 +179,6 @@ export async function fetchRegistrationChart() {
   });
 
   return Object.entries(byDay).map(([date, count]) => ({ date, count }));
-}
-
-// --- User locations for geographic map ---
-export async function fetchUserLocations() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("settings");
-  if (error) throw error;
-
-  const counts: Record<string, { city: string; country: string; count: number }> = {};
-  (data ?? []).forEach(profile => {
-    const s = profile.settings as any;
-    if (s?.country && s?.city) {
-      const key = `${s.city}, ${s.country}`;
-      if (counts[key]) {
-        counts[key].count += 1;
-      } else {
-        counts[key] = { city: s.city, country: s.country, count: 1 };
-      }
-    }
-  });
-
-  return Object.values(counts);
 }
 
 // --- User activity (heartbeat diario) ---
@@ -201,7 +193,7 @@ export interface UserActivityRow {
 export async function fetchUserActivity(days = 30): Promise<UserActivityRow[]> {
   const { data, error } = await supabase.rpc("admin_user_activity", { days_back: days });
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+  return (data ?? []).filter((r: any) => !EXCLUDED_EMAILS.includes(r.email)).map((r: any) => ({
     userId: r.user_id,
     email: r.email,
     fullName: r.full_name,
