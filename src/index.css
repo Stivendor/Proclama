@@ -1654,34 +1654,267 @@ a:hover { text-decoration: underline; }
 }
 .btn-danger-ghost:hover { background: var(--red-dim); }
 
-.collab-modal {
+/* ─── Vista pública de colaborador ───────────────────────────────────────────── */
+.collab-page {
+  height: 100%; overflow-y: auto;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(212, 168, 67, 0.07), transparent 60%),
+    var(--bg-base);
+}
+.collab-page-center { display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+/* Barra superior: quién eres y dónde colaboras, siempre visible al hacer scroll */
+.collab-topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(13, 17, 23, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.collab-topbar-inner {
+  max-width: 1080px; margin: 0 auto; padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.collab-identity { min-width: 0; }
+.collab-eyebrow {
+  display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--gold);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.collab-topbar h1 {
+  font-family: var(--font-display); font-size: 19px; font-weight: 600; line-height: 1.25;
+  margin: 2px 0 0; color: var(--text-primary);
+}
+.collab-save-state {
+  flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  padding: 5px 11px; border-radius: 99px;
+  border: 1px solid transparent; background: transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.collab-save-state:not(:empty) { background: var(--bg-elevated); border-color: var(--border); }
+.collab-save-state.saved:not(:empty) { color: var(--green); }
+.collab-save-state.saving { color: var(--text-secondary); }
+.collab-save-state.error:not(:empty) { color: var(--red); border-color: var(--red-dim); background: rgba(224, 85, 85, 0.08); }
+
+.collab-main { max-width: 1080px; margin: 0 auto; padding: 20px; }
+
+/* Superficie base compartida por tarjetas y paneles */
+.collab-panel {
   background: var(--bg-surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); width: 600px; max-width: 95vw; max-height: 85vh;
-  display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
-  padding: 16px 20px;
+  border-radius: var(--radius-lg); padding: 16px;
+}
+.collab-panel-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px;
+}
+.collab-panel-head h2 { font-family: var(--font-display); font-size: 14px; font-weight: 600; margin: 0; }
+.collab-count { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+.collab-field-label {
+  display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+  text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;
+}
+.collab-field { display: block; }
+
+/* Inicio: crear + lista de repertorios */
+.collab-home { display: flex; flex-direction: column; gap: 20px; }
+.collab-create-row { display: flex; gap: 8px; }
+.collab-create-row input { flex: 1; min-width: 0; }
+.collab-create-row .btn-primary { flex-shrink: 0; white-space: nowrap; }
+.collab-create-row .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.collab-section-head { display: flex; align-items: baseline; gap: 8px; }
+.collab-section-head h2 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin: 0; }
+.collab-list {
+  list-style: none; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.collab-setlist-card {
+  width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 16px; text-align: left;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); color: inherit;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.collab-setlist-card:hover { background: var(--bg-elevated); border-color: var(--gold-dim); transform: translateY(-1px); }
+.collab-card-date { font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gold); }
+.collab-card-name { font-family: var(--font-display); font-size: 15px; font-weight: 600; line-height: 1.3; }
+.collab-card-meta { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+
+/* Editor */
+.collab-editor { display: flex; flex-direction: column; gap: 14px; }
+.collab-editor-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.collab-back, .collab-delete {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 38px; padding: 0 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.collab-back { color: var(--text-secondary); }
+.collab-back:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.collab-delete { color: var(--text-muted); }
+.collab-delete:hover { color: var(--red); border-color: var(--red-dim); background: rgba(224, 85, 85, 0.08); }
+
+/* En móvil el buscador va antes de las notas: se agregan canciones muchas veces,
+   las notas se escriben una vez al final */
+.collab-editor-grid {
+  display: grid; gap: 14px; min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "fields" "order" "add" "notes";
+}
+.collab-fields { grid-area: fields; display: flex; gap: 12px; flex-wrap: wrap; }
+.collab-order-panel { grid-area: order; }
+.collab-aside { grid-area: add; }
+.collab-notes-panel { grid-area: notes; }
+.collab-fields .collab-field { flex: 1 1 220px; }
+.collab-field-date { flex: 0 1 190px; }
+.collab-name-input { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.collab-notes { min-height: 88px; }
+
+/* Orden del servicio: la numeración es el orden real de canto, no adorno */
+.collab-order { list-style: none; display: flex; flex-direction: column; }
+.collab-song-row {
+  position: relative;
+  display: flex; align-items: center; gap: 8px;
+  min-height: 52px; padding: 8px 4px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.collab-order li:last-child .collab-song-row, .collab-song-row:last-child { border-bottom: none; }
+.collab-song-row.dragging { z-index: 5; border-radius: var(--radius-sm); box-shadow: 0 10px 28px rgba(0,0,0,0.45); }
+.collab-song-index {
+  flex-shrink: 0; width: 26px; text-align: center;
+  font-family: var(--font-display); font-size: 13px; font-weight: 700;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.collab-drag {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 38px; border-radius: var(--radius-sm);
+  color: var(--text-muted); cursor: grab; touch-action: none;
+}
+.collab-drag:hover { color: var(--text-primary); background: var(--bg-hover); }
+.collab-drag:active { cursor: grabbing; }
+.collab-song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.collab-song-title {
+  font-size: 14px; font-weight: 500; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.collab-song-artist {
+  font-size: 12px; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.collab-row-action {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.collab-row-action:hover { background: var(--bg-hover); color: var(--text-primary); }
+.collab-row-action.danger:hover { background: rgba(224, 85, 85, 0.1); color: var(--red); }
+
+/* Buscador: fijo a la vista mientras se recorre el resultado */
+.collab-aside { min-width: 0; }
+.collab-add { display: flex; flex-direction: column; }
+.collab-search { position: relative; display: flex; align-items: center; }
+.collab-search-icon { position: absolute; left: 11px; color: var(--text-muted); pointer-events: none; }
+.collab-search input { padding-left: 34px; padding-right: 34px; height: 40px; }
+.collab-search-clear {
+  position: absolute; right: 6px;
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  color: var(--text-muted);
+}
+.collab-search-clear:hover { background: var(--bg-hover); color: var(--text-primary); }
+.collab-results {
+  list-style: none; margin-top: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 48vh; overflow-y: auto;
+}
+.collab-result-row {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  min-height: 48px; padding: 8px 10px; text-align: left;
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.collab-result-row:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.collab-result-add { flex-shrink: 0; display: flex; color: var(--text-muted); }
+.collab-result-row:hover .collab-result-add { color: var(--gold); }
+
+/* Vacíos y avisos */
+.collab-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 40px 20px; text-align: center;
+  background: var(--bg-surface); border: 1px dashed var(--border); border-radius: var(--radius-lg);
+}
+.collab-empty p { margin: 0; color: var(--text-secondary); }
+.collab-empty-hint { font-size: 13px; color: var(--text-muted); margin: 0; }
+.collab-order-empty { padding: 20px 4px; }
+.collab-results-empty { padding: 20px 4px; text-align: center; }
+.collab-notice {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  max-width: 400px; text-align: center; padding: 32px 24px;
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+}
+.collab-notice h2 { font-family: var(--font-display); font-size: 18px; margin: 0; }
+.collab-notice p { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.collab-notice-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(212, 168, 67, 0.1); border: 1px solid var(--gold-dim); color: var(--gold);
 }
 
-/* ─── Vista pública de colaborador ─── */
-.collab-page { max-width: 640px; margin: 0 auto; padding: 16px; height: 100%; overflow-y: auto; }
-.collab-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.collab-header h1 { font-size: 1.2rem; margin: 0; }
-.collab-header p { margin: 0; opacity: .7; font-size: .85rem; }
-.collab-invalid { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
-.collab-new { display: flex; gap: 8px; margin-bottom: 12px; }
-.collab-new input { flex: 1; }
-.collab-list { display: flex; flex-direction: column; gap: 8px; }
-.collab-setlist-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color, #333); background: transparent; color: inherit; cursor: pointer; text-align: left; }
-.collab-empty { opacity: .6; text-align: center; padding: 24px 0; }
-.collab-editor { display: flex; flex-direction: column; gap: 10px; }
-.collab-name-input { font-size: 1.1rem; font-weight: 600; }
-.collab-search { display: flex; align-items: center; gap: 6px; }
-.collab-search input { flex: 1; }
-.collab-results { display: flex; flex-direction: column; gap: 4px; max-height: 40vh; overflow-y: auto; }
-.collab-notes { min-height: 70px; }
-.collab-save-state.saving { opacity: .7; }
-.collab-save-state.error { color: #e5484d; }
-.collab-lyrics { white-space: pre-wrap; max-height: 60vh; overflow-y: auto; font-family: inherit; }
+/* Letra */
+.collab-overlay { padding: 0; }
+.collab-modal {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); width: 640px; max-width: 95vw; max-height: 85vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.collab-modal-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.collab-modal-head h3 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.collab-modal-head p { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
+.collab-lyrics {
+  white-space: pre-wrap; overflow-y: auto; flex: 1;
+  padding: 18px 20px 24px; margin: 0;
+  font-family: inherit; font-size: 15px; line-height: 1.75; color: var(--text-primary);
+}
+
+@media (min-width: 900px) {
+  .collab-editor-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    grid-template-areas: "fields add" "order add" "notes add";
+    /* La última fila absorbe el alto extra del panel de búsqueda: sin esto las
+       filas de arriba se estiran y los paneles quedan con aire muerto adentro */
+    grid-template-rows: auto auto 1fr;
+  }
+  .collab-notes-panel { align-self: start; }
+  /* El panel se queda a la vista mientras se recorre el orden de la izquierda */
+  .collab-add { position: sticky; top: 88px; }
+  .collab-results { max-height: calc(100vh - 340px); }
+}
+
+@media (max-width: 620px) {
+  .collab-topbar-inner, .collab-main { padding-left: 14px; padding-right: 14px; }
+  .collab-topbar h1 { font-size: 17px; }
+  .collab-main { padding-top: 16px; padding-bottom: 32px; }
+  .collab-panel { padding: 14px; }
+  .collab-list { grid-template-columns: 1fr; }
+  .collab-create-row { flex-direction: column; align-items: stretch; }
+  .collab-create-row .btn-primary { justify-content: center; min-height: 42px; }
+  .collab-field-date { flex-basis: 100%; }
+  .collab-song-row { min-height: 56px; }
+  .collab-song-title { white-space: normal; overflow-wrap: anywhere; }
+  .collab-results { max-height: 55vh; }
+  /* La letra ocupa la pantalla: se lee tocando, no dentro de una ventana pequeña */
+  .collab-overlay { align-items: flex-end; }
+  .collab-modal {
+    width: 100%; max-width: 100%; max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0; border-bottom: none;
+  }
+  .collab-lyrics { font-size: 16px; }
+}
 
 .notifier {
   width: 6px;

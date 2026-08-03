@@ -1,16 +1,13 @@
-import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { 
   Users, Music, AlertCircle, Clock, MessageSquare, 
   Smartphone, CalendarCheck, RefreshCcw, Activity, 
   ChevronRight 
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { fetchAdminStats, fetchRegistrationChart, fetchUserLocations, fetchUserActivity, fetchDauChart, type UserActivityRow } from "../services/adminQueries";
+import { fetchAdminStats, fetchRegistrationChart, fetchUserActivity, fetchDauChart, type UserActivityRow } from "../services/adminQueries";
 import { supabase } from "@/services/supabase";
 import type { AdminView } from "../AdminSidebar";
-
-// Lazy loading del componente del mapa protegido para evitar ejecuciones en SSR
-const LazyMap = lazy(() => import("../components/Map"));
 
 interface Stats {
   totalUsers: number;
@@ -31,31 +28,22 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   const [chartData, setChartData] = useState<{ date: string; count: number }[]>([]);
   const [dauData, setDauData] = useState<{ date: string; count: number }[]>([]);
   const [topUsers, setTopUsers] = useState<UserActivityRow[]>([]);
-  const [userLocations, setUserLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [pingStatus, setPingStatus] = useState<"connecting" | "success" | "error">("connecting");
   const [refreshing, setRefreshing] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // Asegura la hidratación únicamente en el navegador para Leaflet
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Carga de datos
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [s, c, l, dau, activity] = await Promise.all([
+      const [s, c, dau, activity] = await Promise.all([
         fetchAdminStats(),
         fetchRegistrationChart(),
-        fetchUserLocations(),
         fetchDauChart().catch(() => []),
         fetchUserActivity().catch(() => []),
       ]);
       setStats(s as any);
       setChartData(c);
-      setUserLocations(l);
       setDauData(dau);
       setTopUsers(activity.filter(u => u.activeDays > 0).slice(0, 10));
     } catch (e) { 
@@ -280,23 +268,6 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
               <span className="mod-count-badge blue">{stats.unreadFeedback}</span>
               <ChevronRight size={14} className="mod-chevron" />
             </div>
-          </div>
-        </div>
-
-        {/* Bento Item 5: Mapa Geográfico de Distribución (Ancho Completo) */}
-        <div className="bento-item bento-map-card" style={{ gridColumn: "span 2", minHeight: "420px", display: "flex", flexDirection: "column" }}>
-          <div className="bento-glow" />
-          <span className="bento-label" style={{ marginBottom: "16px", display: "block" }}>Distribución Geográfica de Comunidad</span>
-          <div style={{ flex: 1, width: "100%", height: "100%", minHeight: "350px", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)" }}>
-            {isClient && userLocations.length > 0 ? (
-              <Suspense fallback={<div className="admin-page-loading" style={{ height: "350px" }}><div className="admin-spinner" /></div>}>
-                <LazyMap locations={userLocations} />
-              </Suspense>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "350px", color: "var(--text-muted)", fontSize: 13 }}>
-                {isClient ? "Cargando mapa de distribución..." : "Cargando servidor de mapas..."}
-              </div>
-            )}
           </div>
         </div>
       </div>

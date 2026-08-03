@@ -23,6 +23,20 @@ describe('admin activity queries', () => {
     ])
   })
 
+  it('fetchUserActivity excluye las cuentas propias del dueño', async () => {
+    vi.spyOn(supabase, 'rpc').mockResolvedValue({
+      data: [
+        { user_id: 'u1', email: 'stivendor101@gmail.com', full_name: 'Yo', active_days: 30, last_active: '2026-08-03' },
+        { user_id: 'u2', email: 'real@iglesia.com', full_name: 'Real', active_days: 3, last_active: '2026-08-03' },
+      ],
+      error: null,
+    } as any)
+
+    const rows = await fetchUserActivity(30)
+
+    expect(rows.map(r => r.email)).toEqual(['real@iglesia.com'])
+  })
+
   it('fetchDauChart llama a la RPC y mapea a {date, count}', async () => {
     const rpcMock = vi.spyOn(supabase, 'rpc').mockResolvedValue({
       data: [{ day: '2026-07-08', count: 5 }],
