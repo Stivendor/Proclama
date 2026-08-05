@@ -6,7 +6,6 @@ import { useProjectionStore } from "@/stores";
 import VideoControls from "./VideoControls";
 import BackgroundShelf from "./BackgroundShelf";
 import { db } from "@/db";
-import { usePlan } from "@/hooks/usePlan";
 import { getYoutubeId } from "@/utils/youtube";
 
 import { LocalMedia } from "@/types";
@@ -55,14 +54,12 @@ export default function MediaPanel() {
       })),
     );
   const state = { media, songId, isBible };
-  const { isPremium, mediaLimits, canManageMediaFolders } = usePlan();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const objectUrlsRef = useRef<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"newest" | "name" | "size">("newest");
-  const [showFolderPremiumInfo, setShowFolderPremiumInfo] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState("");
 
   useEffect(() => {
@@ -224,30 +221,11 @@ export default function MediaPanel() {
     const idsToReplace: string[] = [];
 
     validFiles.forEach((file) => {
+      // Re-subir un archivo con el mismo nombre lo sobrescribe.
       const existing = existingByName.get(file.name.toLowerCase());
-      if (existing && isPremium) {
-        idsToReplace.push(existing.id);
-      }
-      if (!existing || isPremium) {
-        filesToPersist.push(file);
-      }
+      if (existing) idsToReplace.push(existing.id);
+      filesToPersist.push(file);
     });
-
-    const bytesToRemove = idsToReplace.reduce((acc, id) => {
-      const item = localMediaList.find((m) => m.id === id);
-      return acc + (item?.size || 0);
-    }, 0);
-    const finalBytes = currentTotalBytes - bytesToRemove + filesToPersist.reduce((acc, file) => acc + file.size, 0);
-    const finalFilesCount = localMediaList.length - idsToReplace.length + filesToPersist.length;
-
-    if (finalFilesCount > mediaLimits.maxFiles) {
-      setError(`Límite alcanzado: máximo ${mediaLimits.maxFiles} archivos en tu plan.`);
-      return;
-    }
-    if (finalBytes > mediaLimits.maxTotalBytes) {
-      setError(`Límite de espacio alcanzado (${formatBytes(mediaLimits.maxTotalBytes)}).`);
-      return;
-    }
 
     try {
       for (const id of idsToReplace) {
@@ -311,10 +289,6 @@ export default function MediaPanel() {
   };
 
   const createFolder = async () => {
-    if (!canManageMediaFolders) {
-      setError("La gestión de carpetas es una función premium.");
-      return;
-    }
     const name = promptFolderName("Nombre de la nueva carpeta");
     if (!name) return;
     const now = Date.now();
@@ -331,10 +305,6 @@ export default function MediaPanel() {
   };
 
   const renameFolder = async (folderId: string) => {
-    if (!canManageMediaFolders) {
-      setError("La gestión de carpetas es una función premium.");
-      return;
-    }
     const current = localMediaFolders.find((folder) => folder.id === folderId);
     if (!current) return;
     const name = promptFolderName("Nuevo nombre de carpeta", current.name, current.id);
@@ -354,10 +324,6 @@ export default function MediaPanel() {
   };
 
   const deleteFolder = async (folderId: string) => {
-    if (!canManageMediaFolders) {
-      setError("La gestión de carpetas es una función premium.");
-      return;
-    }
     const current = localMediaFolders.find((folder) => folder.id === folderId);
     if (!current) return;
     if (!window.confirm(`¿Eliminar carpeta "${current.name}"? Los archivos volverán a Raíz.`)) return;
@@ -378,10 +344,6 @@ export default function MediaPanel() {
   };
 
   const moveMediaToFolder = async (id: string, folderId: string | null) => {
-    if (!canManageMediaFolders) {
-      setError("La gestión de carpetas es una función premium.");
-      return;
-    }
     try {
       await db.local_media.update(id, { folderId });
       setLocalMediaList((prev) => prev.map((item) => (item.id === id ? { ...item, folderId } : item)));
@@ -444,12 +406,6 @@ export default function MediaPanel() {
     if (name === null) return; // cancelado
     const finalName = name || `YouTube: ${videoId}`;
 
-    // Validar límites
-    if (localMediaList.length >= mediaLimits.maxFiles) {
-      setError(`Límite alcanzado: máximo ${mediaLimits.maxFiles} archivos en tu plan.`);
-      return;
-    }
-
     const now = Date.now();
     const id = crypto.randomUUID();
     try {
@@ -510,7 +466,6 @@ export default function MediaPanel() {
   };
 
   const clearAllMedia = async () => {
-    if (!isPremium) return;
     if (!window.confirm("¿Eliminar todos los anuncios guardados?")) return;
     try {
       await db.local_media.clear();
@@ -563,76 +518,38 @@ export default function MediaPanel() {
               </option>
             ))}
           </select>
-          {canManageMediaFolders ? (
-            <div className="media-folder-actions">
-              <button className="media-folder-btn" title="Nueva carpeta" onClick={createFolder}>
-                <FolderPlus size={14} />
-              </button>
-              {selectedMediaFolderId && (
-                <>
-                  <button
-                    className="media-folder-btn"
-                    title="Renombrar carpeta"
-                    onClick={() => void renameFolder(selectedMediaFolderId)}
-                  >
-                    <Pencil size={13} />
-                  </button>
-                  <button
-                    className="media-folder-btn danger"
-                    title="Eliminar carpeta"
-                    onClick={() => void deleteFolder(selectedMediaFolderId)}
-                  >
-                    <FolderX size={13} />
-                  </button>
-                </>
-              )}
-            </div>
-          ) : (
-            <button
-              className="media-folder-premium-info-trigger"
-              title="Ver ventajas premium para carpetas"
-              onClick={() => setShowFolderPremiumInfo((prev) => !prev)}
-            >
-              <FolderPlus size={12} /> Premium
+          <div className="media-folder-actions">
+            <button className="media-folder-btn" title="Nueva carpeta" onClick={createFolder}>
+              <FolderPlus size={14} />
             </button>
-          )}
-        </div>
-
-        {!canManageMediaFolders && showFolderPremiumInfo && (
-          <div className="media-premium-popup" role="status">
-            <div className="media-premium-popup-header">
-              <strong>Gestion de carpetas Premium</strong>
-              <button
-                className="media-premium-popup-close"
-                onClick={() => setShowFolderPremiumInfo(false)}
-                title="Cerrar"
-              >
-                <X size={12} />
-              </button>
-            </div>
-            <ul className="media-premium-popup-list">
-              <li>Crea carpetas para organizar anuncios por evento o temporada.</li>
-              <li>Renombra y elimina carpetas sin perder archivos (vuelven a Raiz).</li>
-              <li>Mueve archivos entre carpetas y manten la libreria ordenada.</li>
-              <li>El plan free sube hasta 5 archivos; con Premium es ilimitado.</li>
-            </ul>
+            {selectedMediaFolderId && (
+              <>
+                <button
+                  className="media-folder-btn"
+                  title="Renombrar carpeta"
+                  onClick={() => void renameFolder(selectedMediaFolderId)}
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  className="media-folder-btn danger"
+                  title="Eliminar carpeta"
+                  onClick={() => void deleteFolder(selectedMediaFolderId)}
+                >
+                  <FolderX size={13} />
+                </button>
+              </>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="media-toolbar-actions">
           <div className="media-limits">
-            <span>
-              {localMediaList.length}
-              {Number.isFinite(mediaLimits.maxFiles) ? `/${mediaLimits.maxFiles}` : ""} archivos
-            </span>
-            <span>
-              {formatBytes(currentTotalBytes)}
-              {Number.isFinite(mediaLimits.maxTotalBytes) ? ` / ${formatBytes(mediaLimits.maxTotalBytes)}` : ""}
-            </span>
-            {isPremium && <span className="media-premium-badge">Premium</span>}
+            <span>{localMediaList.length} archivos</span>
+            <span>{formatBytes(currentTotalBytes)}</span>
           </div>
           <div className="media-actions-btns">
-            {isPremium && localMediaList.length > 0 && (
+            {localMediaList.length > 0 && (
               <>
                 <select
                   className="media-sort-select"
@@ -805,24 +722,22 @@ export default function MediaPanel() {
                 </div>
                 <div className="media-item-meta" title={`${item.name} · ${formatBytes(item.size)}`}>
                   <span>{item.name}</span>
-                  {canManageMediaFolders && (
-                    <select
-                      className="media-move-select"
-                      value={item.folderId ?? "__root__"}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        const nextFolderId = e.target.value === "__root__" ? null : e.target.value;
-                        void moveMediaToFolder(item.id, nextFolderId);
-                      }}
-                    >
-                      <option value="__root__">Raíz</option>
-                      {localMediaFolders.map((folder) => (
-                        <option key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <select
+                    className="media-move-select"
+                    value={item.folderId ?? "__root__"}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const nextFolderId = e.target.value === "__root__" ? null : e.target.value;
+                      void moveMediaToFolder(item.id, nextFolderId);
+                    }}
+                  >
+                    <option value="__root__">Raíz</option>
+                    {localMediaFolders.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             );
@@ -1080,71 +995,6 @@ export default function MediaPanel() {
           font-size: 11px;
           color: var(--text-muted);
           flex-wrap: wrap;
-        }
-        .media-folder-premium-info-trigger {
-          border: 1px solid rgba(212, 175, 55, 0.35);
-          background: rgba(212, 175, 55, 0.12);
-          color: var(--gold);
-          border-radius: 999px;
-          padding: 4px 10px;
-          font-size: 11px;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          cursor: pointer;
-        }
-        .media-folder-premium-info-trigger:hover {
-          border-color: var(--gold);
-          background: rgba(212, 175, 55, 0.2);
-        }
-        .media-premium-popup {
-          border: 1px solid rgba(212, 175, 55, 0.45);
-          background: rgba(212, 175, 55, 0.1);
-          border-radius: 8px;
-          padding: 10px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          animation: slideIn 0.2s ease;
-        }
-        .media-premium-popup-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          color: var(--gold);
-          font-size: 12px;
-        }
-        .media-premium-popup-close {
-          width: 20px;
-          height: 20px;
-          border-radius: 4px;
-          border: 1px solid rgba(212, 175, 55, 0.45);
-          background: transparent;
-          color: var(--gold);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-        }
-        .media-premium-popup-close:hover {
-          background: rgba(212, 175, 55, 0.2);
-        }
-        .media-premium-popup-list {
-          margin: 0;
-          padding-left: 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-          font-size: 11px;
-          color: #f5e8b2;
-        }
-        .media-premium-badge {
-          background: rgba(212, 175, 55, 0.2);
-          color: var(--gold);
-          border: 1px solid rgba(212, 175, 55, 0.4);
-          border-radius: 999px;
-          padding: 1px 8px;
-          font-weight: 700;
         }
 
         .media-upload-zone {

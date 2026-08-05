@@ -86,7 +86,6 @@ describe('PricingCards — precio fundador', () => {
       /ilimitadas/i,         // canCreateSong
       /sincronizaci/i,       // canSync
       /fondos/i,             // canUseMediaBackgrounds
-      /carpetas/i,           // canManageMediaFolders
       /reportes pdf/i,       // canExportReports
       /estad/i,              // canViewStats
       /biblia/i,             // canImportBibles

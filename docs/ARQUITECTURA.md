@@ -266,4 +266,3 @@ El sistema tiene un flag `FOUNDING_PHASE = true` en `usePlan.ts`. Mientras esté
 **Límites free** (cuando se active):
 - 10 canciones propias
 - 50 canciones proyectables
-- 5 archivos multimedia (200MB total)

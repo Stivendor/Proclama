@@ -10,18 +10,6 @@ export const FOUNDING_PHASE = true
 /** Canciones propias que un usuario free puede crear */
 export const FREE_SONG_LIMIT = 30
 
-/**
- * Límites de media local. La media vive en el disco del usuario (IndexedDB),
- * no en nuestra infra, así que el premium no tiene tope: el cap solo existe
- * para el free como muestra/funnel.
- */
-export const PREMIUM_MEDIA_MAX_FILES = Infinity
-export const PREMIUM_MEDIA_MAX_TOTAL_BYTES = Infinity
-
-/** El free también sube media local, pero acotada */
-export const FREE_MEDIA_MAX_FILES = 5
-export const FREE_MEDIA_MAX_TOTAL_BYTES = 250 * 1024 * 1024 // 250MB
-
 export type PlanTier = 'free' | 'trial' | 'paid' | 'founding'
 
 export type PremiumProfileFields = {
@@ -86,19 +74,12 @@ export function usePlan() {
   /** Librería de fondos motion/video + imágenes propias */
   const canUseMediaBackgrounds = isPremium
 
-  /** Gestión de carpetas de media local */
-  const canManageMediaFolders = isPremium
-
   /**
    * Invitar colaboradores a los setlists. Sólo cubre CREAR enlaces: ver y
    * revocar los existentes queda abierto (espeja las políticas RLS de
    * public.collaborators, donde el gate premium está sólo en el insert).
    */
   const canInviteCollaborators = isPremium
-
-  const mediaLimits = isPremium
-    ? { maxFiles: PREMIUM_MEDIA_MAX_FILES, maxTotalBytes: PREMIUM_MEDIA_MAX_TOTAL_BYTES }
-    : { maxFiles: FREE_MEDIA_MAX_FILES, maxTotalBytes: FREE_MEDIA_MAX_TOTAL_BYTES }
 
   /** Ver asistencia básica en la app (todos) */
   const canViewAttendance = true
@@ -119,9 +100,7 @@ export function usePlan() {
     canProjectSong,
     canSync,
     canUseMediaBackgrounds,
-    canManageMediaFolders,
     canInviteCollaborators,
-    mediaLimits,
     canViewAttendance,
     canExportReports,
     canViewStats,
