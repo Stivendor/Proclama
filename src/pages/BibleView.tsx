@@ -515,7 +515,9 @@ export default function BibleView() {
   const steppingRef = useRef(false)
 
   const stepVerse = async (dir: 1 | -1) => {
-    if (steppingRef.current || !book) return
+    // `loading` evita leer un `verses` obsoleto mientras loadChapter ya cambió
+    // selectedChapter/selectedBook pero el fetch todavía no resolvió.
+    if (steppingRef.current || loading || !book) return
 
     // songTitle guarda la referencia proyectada; con selección múltiple, la última.
     const projectedRef = songTitle?.split(',').pop()?.trim()
@@ -531,15 +533,19 @@ export default function BibleView() {
 
     if (step.kind === 'none') return
 
-    if (step.kind === 'same-chapter') {
-      const target = verses[step.index]
-      projectVerse(target)
-      setScrollToVerse(extractVerseNumber(target.reference))
-      return
-    }
-
+    // Todo el trabajo (same-chapter incluido) va bajo el mismo guard: en modo
+    // paralelo projectVerse espera el fetch de la traducción secundaria antes
+    // de escribir songTitle, así que una segunda pulsación rápida podría releer
+    // el songTitle viejo y repetir el mismo destino en vez de avanzar.
     steppingRef.current = true
     try {
+      if (step.kind === 'same-chapter') {
+        const target = verses[step.index]
+        projectVerse(target)
+        setScrollToVerse(extractVerseNumber(target.reference))
+        return
+      }
+
       const chapterVerses = await fetchChapter(selectedBook, step.chapter, selectedTranslation)
       const target = step.edge === 'first' ? chapterVerses[0] : chapterVerses[chapterVerses.length - 1]
       if (!target) return
