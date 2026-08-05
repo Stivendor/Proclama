@@ -8,6 +8,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '@/db'
 import ImportBibleModal from '@/components/songs/ImportBibleModal'
 import { normalizeText } from '@/utils/text'
+import { planVerseStep } from '@/utils/verseStep'
 
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
@@ -66,12 +67,13 @@ export default function BibleView() {
   const versesListRef = useRef<HTMLDivElement>(null)
   const [scrollToVerse, setScrollToVerse] = useState<number | null>(null)
 
-  const { loadSong, songTitle, theme, slides, currentSlide } = useProjectionStore(useShallow(s => ({
+  const { loadSong, songTitle, theme, slides, currentSlide, isBible } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
     songTitle: s.state.songTitle,
     theme: s.state.theme,
     slides: s.state.slides,
-    currentSlide: s.state.currentSlide
+    currentSlide: s.state.currentSlide,
+    isBible: s.state.isBible
   })))
   const state = { songTitle, theme, slides, currentSlide }
 
@@ -507,6 +509,69 @@ export default function BibleView() {
   const projectVerse = (verse: BibleVerseResult) => {
     projectVerses([verse])
   }
+
+  // Flechas = versículo siguiente/anterior. El hook global (useKeyboardShortcuts)
+  // se aparta mientras haya un versículo proyectado en esta vista.
+  const steppingRef = useRef(false)
+
+  const stepVerse = async (dir: 1 | -1) => {
+    if (steppingRef.current || !book) return
+
+    // songTitle guarda la referencia proyectada; con selección múltiple, la última.
+    const projectedRef = songTitle?.split(',').pop()?.trim()
+    const currentIndex = projectedRef ? verses.findIndex(v => v.reference === projectedRef) : -1
+
+    const step = planVerseStep({
+      currentIndex,
+      verseCount: verses.length,
+      chapter: selectedChapter,
+      chapterCount: book.chapters,
+      dir,
+    })
+
+    if (step.kind === 'none') return
+
+    if (step.kind === 'same-chapter') {
+      const target = verses[step.index]
+      projectVerse(target)
+      setScrollToVerse(extractVerseNumber(target.reference))
+      return
+    }
+
+    steppingRef.current = true
+    try {
+      const chapterVerses = await fetchChapter(selectedBook, step.chapter, selectedTranslation)
+      const target = step.edge === 'first' ? chapterVerses[0] : chapterVerses[chapterVerses.length - 1]
+      if (!target) return
+      setSelectedChapter(step.chapter)
+      projectVerse(target)
+      setScrollToVerse(extractVerseNumber(target.reference))
+    } catch (error) {
+      console.error('Error cargando el capítulo contiguo', error)
+    } finally {
+      steppingRef.current = false
+    }
+  }
+
+  // Ref para que el listener no se re-registre en cada render ni lea estado viejo.
+  const stepVerseRef = useRef(stepVerse)
+  stepVerseRef.current = stepVerse
+
+  useEffect(() => {
+    const NEXT = ['ArrowRight', 'PageDown', ' ']
+    const PREV = ['ArrowLeft', 'PageUp']
+    const onKey = (e: KeyboardEvent) => {
+      if (!isBible) return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const dir = NEXT.includes(e.key) ? 1 : PREV.includes(e.key) ? -1 : 0
+      if (!dir) return
+      e.preventDefault()
+      void stepVerseRef.current(dir as 1 | -1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isBible])
 
   if (!book) {
     return <div style={{ padding: '20px' }}>Error: Libro no encontrado</div>
