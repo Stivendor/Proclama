@@ -41,7 +41,11 @@ vi.mock('@/stores', () => ({
 }))
 
 const openProjectionWindow = vi.fn((): Window | null => null)
-vi.mock('@/services/projection', () => ({ openProjectionWindow: () => openProjectionWindow() }))
+const focusProjectionWindow = vi.fn((w: Window | null): Window | null => w)
+vi.mock('@/services/projection', () => ({
+  openProjectionWindow: () => openProjectionWindow(),
+  focusProjectionWindow: (w: Window | null) => focusProjectionWindow(w),
+}))
 
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
@@ -56,6 +60,7 @@ const press = (init: KeyboardEventInit & { target?: Element }) => {
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
     openProjectionWindow.mockReset()
+    focusProjectionWindow.mockReset()
     useProjectionStoreMock = create<ProjectionMock>()((set) => ({
       nextSlide: vi.fn(),
       prevSlide: vi.fn(),
@@ -98,12 +103,15 @@ describe('useKeyboardShortcuts', () => {
     expect(useProjectionStoreMock.getState().projectionWindow).toBe(fakeWindow)
   })
 
-  it('Alt+P con una ventana de proyección viva la enfoca en vez de reabrirla', () => {
+  // Chrome ignora w.focus() a secas sobre una ventana en segundo plano: el
+  // operador pulsaba Alt+P y no pasaba nada. Hay que pasar por
+  // focusProjectionWindow, que la trae al frente sin re-navegarla.
+  it('Alt+P con una ventana de proyección viva la trae al frente en vez de reabrirla', () => {
     const liveWindow = { closed: false, focus: vi.fn() } as unknown as Window
     useProjectionStoreMock.setState({ projectionWindow: liveWindow })
     renderHook(() => useKeyboardShortcuts())
     press({ code: 'KeyP', altKey: true })
-    expect(liveWindow.focus).toHaveBeenCalledOnce()
+    expect(focusProjectionWindow).toHaveBeenCalledWith(liveWindow)
     expect(openProjectionWindow).not.toHaveBeenCalled()
   })
 

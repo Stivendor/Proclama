@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { openProjectionWindow } from '@/services/projection'
+import { focusProjectionWindow, openProjectionWindow } from '@/services/projection'
 import { NAV_ORDER } from '@/constants/nav'
 
 /** Teclas que avanzan (incluye las que mandan los controles de presentación). */
@@ -39,10 +39,10 @@ export function useKeyboardShortcuts() {
             e.preventDefault()
             const p = useProjectionStore.getState()
             if (p.projectionWindow && !p.projectionWindow.closed) {
-              // Ya hay una ventana de proyección viva: enfocarla en vez de
-              // reabrirla (window.open sobre el mismo nombre la re-navegaría
-              // y ProjectionWindow remontaría con el estado vacío en vivo).
-              p.projectionWindow.focus()
+              // Ya hay una ventana de proyección viva: traerla al frente en vez
+              // de reabrirla (window.open con la URL la re-navegaría y
+              // ProjectionWindow remontaría con el estado vacío en vivo).
+              focusProjectionWindow(p.projectionWindow)
               return
             }
             p.setProjectionWindow(openProjectionWindow())

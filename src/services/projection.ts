@@ -2,6 +2,9 @@ import type { BroadcastMessage, ProjectionState, CountdownState, TickerState } f
 
 export const CHANNEL_NAME = 'proclama-projection'
 
+/** Nombre de la ventana de proyección: window.open lo reutiliza en vez de abrir otra. */
+export const PROJECTION_WINDOW_NAME = 'proclama-projection'
+
 let channel: BroadcastChannel | null = null
 
 export function getChannel(): BroadcastChannel {
@@ -53,9 +56,23 @@ export function onMessage(handler: (msg: BroadcastMessage) => void): () => void 
 export function openProjectionWindow(): Window | null {
   const w = window.open(
     '/projection',
-    'proclama-projection',
+    PROJECTION_WINDOW_NAME,
     'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,scrollbars=no'
   )
+  return w
+}
+
+/**
+ * Trae al frente la ventana de proyección que ya está abierta.
+ *
+ * `w.focus()` a secas no basta: Chrome lo ignora sobre una ventana en segundo
+ * plano, así que el operador pulsaba el atajo y no pasaba nada. `window.open`
+ * con URL vacía reutiliza la ventana que tiene ese nombre y la levanta SIN
+ * re-navegarla, de modo que lo proyectado sigue intacto en la pantalla.
+ */
+export function focusProjectionWindow(existing: Window | null): Window | null {
+  const w = window.open('', PROJECTION_WINDOW_NAME) ?? existing
+  w?.focus()
   return w
 }
 
