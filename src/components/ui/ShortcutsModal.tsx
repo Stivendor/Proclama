@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Keyboard, X } from 'lucide-react'
 
 /** Mantener sincronizado con el switch de src/hooks/useKeyboardShortcuts.ts */
@@ -17,8 +16,8 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
       ['Alt + P', 'Abrir la ventana de proyección'],
       ['→ ↓ Espacio PageDown', 'Slide siguiente'],
       ['← ↑ PageUp', 'Slide anterior'],
-      ['Alt + B', 'Pantalla en negro'],
-      ['T', 'Ocultar el texto (fuera de la Biblia)'],
+      ['Alt + B', 'Ocultar el texto (funciona en todas las vistas)'],
+      ['T', 'Ocultar el texto (no aplica en la Biblia)'],
       ['Esc', 'Volver a mostrar el texto'],
     ],
   },
@@ -33,14 +32,6 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
 ]
 
 export default function ShortcutsModal({ onClose }: { onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal shortcuts-modal" onClick={e => e.stopPropagation()}>

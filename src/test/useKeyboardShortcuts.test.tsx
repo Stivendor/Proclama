@@ -46,7 +46,7 @@ describe('useKeyboardShortcuts', () => {
     expect(app.setActiveView).toHaveBeenCalledWith('bible')
   })
 
-  it('Alt+B alterna la pantalla en negro', () => {
+  it('Alt+B oculta el texto', () => {
     renderHook(() => useKeyboardShortcuts())
     press({ code: 'KeyB', altKey: true })
     expect(projection.setHideText).toHaveBeenCalledWith(true)
@@ -104,5 +104,20 @@ describe('useKeyboardShortcuts', () => {
     expect(result.current.shortcutsOpen).toBe(true)
     act(() => result.current.closeShortcuts())
     expect(result.current.shortcutsOpen).toBe(false)
+  })
+
+  it('con el modal de atajos abierto, Escape solo lo cierra y no revela el texto', () => {
+    const { result } = renderHook(() => useKeyboardShortcuts())
+    press({ key: '?' })
+    expect(result.current.shortcutsOpen).toBe(true)
+    press({ key: 'Escape' })
+    expect(result.current.shortcutsOpen).toBe(false)
+    expect(projection.setHideText).not.toHaveBeenCalled()
+  })
+
+  it('con el modal cerrado, Escape vuelve a mostrar el texto', () => {
+    renderHook(() => useKeyboardShortcuts())
+    press({ key: 'Escape' })
+    expect(projection.setHideText).toHaveBeenCalledWith(false)
   })
 })

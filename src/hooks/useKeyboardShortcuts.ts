@@ -79,7 +79,10 @@ export function useKeyboardShortcuts() {
           setHideText(!hideText)
           break
         case 'Escape':
-          setShortcutsOpen(false)
+          if (shortcutsOpen) {
+            setShortcutsOpen(false)
+            return
+          }
           setHideText(false)
           break
       }
@@ -87,7 +90,7 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [nextSlide, prevSlide, setHideText, hideText, isBible])
+  }, [nextSlide, prevSlide, setHideText, hideText, isBible, shortcutsOpen])
 
   return { shortcutsOpen, closeShortcuts: () => setShortcutsOpen(false) }
 }
