@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, Megaphone, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
 import { supabase } from '@/services/supabase'
@@ -7,6 +8,18 @@ import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
 import { FOUNDING_PHASE } from '@/hooks/usePlan'
+import { NAV_ORDER, type NavView } from '@/constants/nav'
+
+const NAV_META: Record<NavView, { icon: LucideIcon; labelKey: string }> = {
+  library: { icon: Library, labelKey: 'sidebar.songs' },
+  setlists: { icon: List, labelKey: 'sidebar.setlists' },
+  bible: { icon: BookIcon, labelKey: 'sidebar.bible' },
+  timer: { icon: Timer, labelKey: 'sidebar.timer' },
+  notices: { icon: Megaphone, labelKey: 'sidebar.notices' },
+  notes: { icon: Users, labelKey: 'sidebar.notes' },
+  fondos: { icon: Image, labelKey: 'sidebar.fondos' },
+  settings: { icon: Settings, labelKey: 'sidebar.settings' },
+}
 
 export default function Sidebar() {
   const { updateAvailable, updateApp } = useSWUpdate()
@@ -26,19 +39,9 @@ export default function Sidebar() {
     openEditor()
   }
 
-  const nav = [
-    { id: 'library', icon: Library, label: t(language, 'sidebar.songs') },
-    { id: 'setlists', icon: List, label: t(language, 'sidebar.setlists') },
-    { id: 'bible', icon: BookIcon, label: t(language, 'sidebar.bible') },
-    { id: 'timer', icon: Timer, label: t(language, 'sidebar.timer') },
-    { id: 'notices', icon: Megaphone, label: t(language, 'sidebar.notices') },
-    { id: 'notes', icon: Users, label: t(language, 'sidebar.notes') },
-    { id: 'fondos', icon: Image, label: t(language, 'sidebar.fondos') },
-    { id: 'settings', icon: Settings, label: t(language, 'sidebar.settings') }
-  ] as const
+  const visibleNav = NAV_ORDER.map(id => ({ id, ...NAV_META[id] }))
 
   const userRole = useAppStore(s => s.userRole)
-  const visibleNav = nav.filter(item => !('adminOnly' in item) || userRole === 'admin')
 
   const handleLogoClick = () => {
     useAppStore.getState().setForceLanding(true)
@@ -87,7 +90,7 @@ export default function Sidebar() {
       </button>
 
       <nav className="sidebar-nav">
-        {visibleNav.map(({ id, icon: Icon, label }) => (
+        {visibleNav.map(({ id, icon: Icon, labelKey }) => (
           <button
             key={id}
             className={`nav-item ${activeView === id ? 'active' : ''}`}
@@ -95,7 +98,7 @@ export default function Sidebar() {
             aria-current={activeView === id ? 'page' : undefined}
           >
             <Icon size={18} />
-            {label}
+            {t(language, labelKey)}
           </button>
         ))}
         {userRole === 'admin' && (
