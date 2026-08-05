@@ -360,11 +360,17 @@ npm run test:ui   # Tests con interfaz UI Vitest
 ## Atajos de Teclado
 
 | Tecla | Acción |
-|-------|--------|
-| `→` / `↓` / `Espacio` | Siguiente estrofa o versículo |
-| `←` / `↑` | Estrofa o versículo anterior |
-| `B` | Activar o desactivar pantalla negra |
-| `Esc` | Cerrar modales o salir del modo negro |
+|---|---|
+| `Alt` + `1`…`8` | Saltar a la vista n del menú lateral |
+| `Alt` + `N` | Nueva canción |
+| `Alt` + `B` | Ocultar el texto (funciona en todas las vistas) |
+| `→` `↓` `Espacio` `PageDown` | Slide siguiente (en Biblia, solo → Espacio PageDown proyectan versículo siguiente) |
+| `←` `↑` `PageUp` | Slide anterior (en Biblia, solo ← PageUp proyecta versículo anterior) |
+| `T` | Ocultar el texto (no aplica en la Biblia) |
+| `Esc` | Volver a mostrar el texto |
+| `?` | Ver esta lista dentro de la app |
+
+Los atajos no actúan mientras el foco está en un campo de texto. En la vista Biblia, cualquier letra o número abre la búsqueda rápida de pasaje.
 
 ---
 

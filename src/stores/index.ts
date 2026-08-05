@@ -388,6 +388,12 @@ interface AppStore {
   isSidebarOpen: boolean
   toggleSidebar: () => void
   setIsSidebarOpen: (o: boolean) => void
+
+  // Modal de atajos de teclado (?): en un store para que tanto el hook global
+  // como los listeners de vistas concretas (p. ej. BibleView) puedan cederle
+  // el paso sin prop-drilling.
+  shortcutsOpen: boolean
+  setShortcutsOpen: (v: boolean | ((prev: boolean) => boolean)) => void
   
   liveSlidesViewGrid: boolean
   setLiveSlidesViewGrid: (v: boolean) => void
@@ -526,6 +532,11 @@ export const useAppStore = create<AppStore>()(
       isSidebarOpen: true,
       toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
       setIsSidebarOpen: (o) => set({ isSidebarOpen: o }),
+
+      shortcutsOpen: false,
+      setShortcutsOpen: (v) => set(state => ({
+        shortcutsOpen: typeof v === 'function' ? (v as (prev: boolean) => boolean)(state.shortcutsOpen) : v
+      })),
 
       liveSlidesViewGrid: false,
       setLiveSlidesViewGrid: (v) => set({ liveSlidesViewGrid: v }),
