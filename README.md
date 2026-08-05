@@ -365,13 +365,13 @@ npm run test:ui   # Tests con interfaz UI Vitest
 | `Alt` + `P` | Abrir la ventana de proyección |
 | `Alt` + `N` | Nueva canción |
 | `Alt` + `B` | Ocultar el texto (funciona en todas las vistas) |
-| `→` `Espacio` `PageDown` | Slide siguiente (en Biblia, versículo siguiente) |
-| `←` `PageUp` | Slide anterior (en Biblia, versículo anterior) |
+| `→` `↓` `Espacio` `PageDown` | Slide siguiente (en Biblia, solo → Espacio PageDown proyectan versículo siguiente) |
+| `←` `↑` `PageUp` | Slide anterior (en Biblia, solo ← PageUp proyecta versículo anterior) |
 | `T` | Ocultar el texto (no aplica en la Biblia) |
 | `Esc` | Volver a mostrar el texto |
 | `?` | Ver esta lista dentro de la app |
 
-Los atajos no actúan mientras el foco está en un campo de texto. En la vista Biblia, cualquier letra abre la búsqueda rápida de pasaje.
+Los atajos no actúan mientras el foco está en un campo de texto. En la vista Biblia, cualquier letra o número abre la búsqueda rápida de pasaje.
 
 ---
 
