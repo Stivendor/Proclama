@@ -145,7 +145,11 @@ export default function BibleView() {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Only trigger if not typing in an input/textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      
+
+      // Si el modal de atajos está abierto, no abrir la búsqueda rápida detrás
+      // (evita robar el foco y dejar el modal atrapado sin poder cerrarlo con Escape)
+      if (useAppStore.getState().shortcutsOpen) return
+
       // Check if it's a letter or number key
       if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
         e.preventDefault()
