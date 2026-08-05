@@ -362,7 +362,6 @@ npm run test:ui   # Tests con interfaz UI Vitest
 | Tecla | Acción |
 |---|---|
 | `Alt` + `1`…`8` | Saltar a la vista n del menú lateral |
-| `Alt` + `P` | Abrir la ventana de proyección |
 | `Alt` + `N` | Nueva canción |
 | `Alt` + `B` | Ocultar el texto (funciona en todas las vistas) |
 | `→` `↓` `Espacio` `PageDown` | Slide siguiente (en Biblia, solo → Espacio PageDown proyectan versículo siguiente) |

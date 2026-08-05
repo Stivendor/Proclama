@@ -30,6 +30,7 @@ const TermsModal = lazy(() => import("@/components/terms/TermsModal"));
 const ChurchRegistrationView = lazy(() => import("@/pages/ChurchRegistrationView"));
 const Toast = lazy(() => import("@/components/ui/Toast"));
 const ShortcutsModal = lazy(() => import("@/components/ui/ShortcutsModal"));
+import ShortcutsFab from "@/components/ui/ShortcutsFab";
 const AdminShell = lazy(() => import("@/admin/AdminShell"));
 const CollabView = lazy(() => import("@/pages/CollabView"));
 
@@ -210,6 +211,7 @@ function MainApp() {
             <Route path="*" element={<LibraryView />} />
           </Routes>
         </Suspense>
+        <ShortcutsFab />
       </main>
       <aside className="right-panel">
         <Suspense fallback={null}>

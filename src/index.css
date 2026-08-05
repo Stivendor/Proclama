@@ -274,6 +274,7 @@ a:hover { text-decoration: underline; }
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  position: relative; /* ancla el botón flotante de atajos */
 }
 
 /* ─── Right Panel ─────────────────────────────────────────────────────────────── */

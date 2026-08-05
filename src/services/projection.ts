@@ -63,20 +63,6 @@ export function openProjectionWindow(): Window | null {
 }
 
 /**
- * Trae al frente la ventana de proyección que ya está abierta.
- *
- * `w.focus()` a secas no basta: Chrome lo ignora sobre una ventana en segundo
- * plano, así que el operador pulsaba el atajo y no pasaba nada. `window.open`
- * con URL vacía reutiliza la ventana que tiene ese nombre y la levanta SIN
- * re-navegarla, de modo que lo proyectado sigue intacto en la pantalla.
- */
-export function focusProjectionWindow(existing: Window | null): Window | null {
-  const w = window.open('', PROJECTION_WINDOW_NAME) ?? existing
-  w?.focus()
-  return w
-}
-
-/**
  * Returns a promise that resolves when the projection window is ready.
  *
  * - If the window reference is valid → resolves immediately.

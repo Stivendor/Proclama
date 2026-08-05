@@ -13,7 +13,6 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
   {
     title: 'Proyección',
     items: [
-      ['Alt + P', 'Abrir la ventana de proyección'],
       ['→ ↓ Espacio PageDown', 'Slide siguiente'],
       ['← ↑ PageUp', 'Slide anterior'],
       ['Alt + B', 'Ocultar el texto (funciona en todas las vistas)'],

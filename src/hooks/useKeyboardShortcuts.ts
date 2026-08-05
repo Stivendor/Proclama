@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
-import { focusProjectionWindow, openProjectionWindow } from '@/services/projection'
 import { NAV_ORDER } from '@/constants/nav'
 
 /** Teclas que avanzan (incluye las que mandan los controles de presentación). */
@@ -34,20 +33,10 @@ export function useKeyboardShortcuts() {
           app.setActiveView(NAV_ORDER[Number(digit[1]) - 1])
           return
         }
+        // Sin atajo para la ventana de proyección: los navegadores no dejan
+        // traer al frente de forma fiable una ventana en segundo plano, así que
+        // el atajo parecía muerto. Se usa el botón "Abrir Proyección".
         switch (e.code) {
-          case 'KeyP': {
-            e.preventDefault()
-            const p = useProjectionStore.getState()
-            if (p.projectionWindow && !p.projectionWindow.closed) {
-              // Ya hay una ventana de proyección viva: traerla al frente en vez
-              // de reabrirla (window.open con la URL la re-navegaría y
-              // ProjectionWindow remontaría con el estado vacío en vivo).
-              focusProjectionWindow(p.projectionWindow)
-              return
-            }
-            p.setProjectionWindow(openProjectionWindow())
-            return
-          }
           case 'KeyN':
             e.preventDefault()
             app.openEditor()
