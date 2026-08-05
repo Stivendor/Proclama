@@ -26,7 +26,7 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
     items: [
       ['→ Espacio PageDown', 'Proyectar el versículo siguiente'],
       ['← PageUp', 'Proyectar el versículo anterior'],
-      ['Cualquier letra', 'Abrir la búsqueda rápida de pasaje'],
+      ['Cualquier letra o número', 'Abrir la búsqueda rápida de pasaje'],
     ],
   },
 ]
