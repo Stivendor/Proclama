@@ -1,17 +1,46 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { create } from 'zustand'
+import type { StoreApi, UseBoundStore } from 'zustand'
 
 vi.mock('zustand/react/shallow', () => ({ useShallow: (s: any) => s }))
 
-let projection: any
-let app: any
+interface ProjectionMock {
+  nextSlide: () => void
+  prevSlide: () => void
+  setHideText: (v: boolean) => void
+  state: { hideText: boolean; isBible: boolean }
+  projectionWindow: Window | null
+  setProjectionWindow: (w: Window | null) => void
+}
+
+interface AppMock {
+  activeView: string
+  setActiveView: (v: string) => void
+  openEditor: () => void
+  shortcutsOpen: boolean
+  setShortcutsOpen: (v: boolean | ((prev: boolean) => boolean)) => void
+}
+
+let useProjectionStoreMock: UseBoundStore<StoreApi<ProjectionMock>>
+let useAppStoreMock: UseBoundStore<StoreApi<AppMock>>
+// Snapshots tomados justo tras crear el store: las funciones (acciones/mocks)
+// no cambian de identidad entre renders, así que sirven para las aserciones.
+let projection: ProjectionMock
+let app: AppMock
 
 vi.mock('@/stores', () => ({
-  useProjectionStore: (selector: any) => selector(projection),
-  useAppStore: Object.assign((selector: any) => selector(app), { getState: () => app }),
+  useProjectionStore: Object.assign(
+    (selector: any) => useProjectionStoreMock(selector),
+    { getState: () => useProjectionStoreMock.getState() }
+  ),
+  useAppStore: Object.assign(
+    (selector: any) => useAppStoreMock(selector),
+    { getState: () => useAppStoreMock.getState() }
+  ),
 }))
 
-const openProjectionWindow = vi.fn()
+const openProjectionWindow = vi.fn((): Window | null => null)
 vi.mock('@/services/projection', () => ({ openProjectionWindow: () => openProjectionWindow() }))
 
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -26,18 +55,26 @@ const press = (init: KeyboardEventInit & { target?: Element }) => {
 
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
-    openProjectionWindow.mockClear()
-    projection = {
+    openProjectionWindow.mockReset()
+    useProjectionStoreMock = create<ProjectionMock>()((set) => ({
       nextSlide: vi.fn(),
       prevSlide: vi.fn(),
       setHideText: vi.fn(),
       state: { hideText: false, isBible: false },
-    }
-    app = {
+      projectionWindow: null,
+      setProjectionWindow: (w) => set({ projectionWindow: w }),
+    }))
+    useAppStoreMock = create<AppMock>()((set) => ({
       activeView: 'library',
       setActiveView: vi.fn(),
       openEditor: vi.fn(),
-    }
+      shortcutsOpen: false,
+      setShortcutsOpen: (v) => set(s => ({
+        shortcutsOpen: typeof v === 'function' ? (v as (prev: boolean) => boolean)(s.shortcutsOpen) : v
+      })),
+    }))
+    projection = useProjectionStoreMock.getState()
+    app = useAppStoreMock.getState()
   })
 
   it('Alt+3 va a la vista Biblia', () => {
@@ -52,10 +89,34 @@ describe('useKeyboardShortcuts', () => {
     expect(projection.setHideText).toHaveBeenCalledWith(true)
   })
 
-  it('Alt+P abre la ventana de proyección', () => {
+  it('Alt+P sin ventana previa la abre y guarda la referencia en el store', () => {
+    const fakeWindow = { closed: false, focus: vi.fn() } as unknown as Window
+    openProjectionWindow.mockReturnValue(fakeWindow)
     renderHook(() => useKeyboardShortcuts())
     press({ code: 'KeyP', altKey: true })
     expect(openProjectionWindow).toHaveBeenCalledOnce()
+    expect(useProjectionStoreMock.getState().projectionWindow).toBe(fakeWindow)
+  })
+
+  it('Alt+P con una ventana de proyección viva la enfoca en vez de reabrirla', () => {
+    const liveWindow = { closed: false, focus: vi.fn() } as unknown as Window
+    useProjectionStoreMock.setState({ projectionWindow: liveWindow })
+    renderHook(() => useKeyboardShortcuts())
+    press({ code: 'KeyP', altKey: true })
+    expect(liveWindow.focus).toHaveBeenCalledOnce()
+    expect(openProjectionWindow).not.toHaveBeenCalled()
+  })
+
+  it('Alt+P con la referencia guardada pero la ventana ya cerrada, la reabre', () => {
+    const closedWindow = { closed: true, focus: vi.fn() } as unknown as Window
+    useProjectionStoreMock.setState({ projectionWindow: closedWindow })
+    const fakeWindow = { closed: false, focus: vi.fn() } as unknown as Window
+    openProjectionWindow.mockReturnValue(fakeWindow)
+    renderHook(() => useKeyboardShortcuts())
+    press({ code: 'KeyP', altKey: true })
+    expect(closedWindow.focus).not.toHaveBeenCalled()
+    expect(openProjectionWindow).toHaveBeenCalledOnce()
+    expect(useProjectionStoreMock.getState().projectionWindow).toBe(fakeWindow)
   })
 
   it('Alt+N abre el editor de canción nueva', () => {
@@ -82,8 +143,8 @@ describe('useKeyboardShortcuts', () => {
   })
 
   it('en Biblia con un versículo proyectado cede las flechas a BibleView', () => {
-    app.activeView = 'bible'
-    projection.state.isBible = true
+    useAppStoreMock.setState({ activeView: 'bible' })
+    useProjectionStoreMock.setState(s => ({ state: { ...s.state, isBible: true } }))
     renderHook(() => useKeyboardShortcuts())
     press({ key: 'ArrowRight' })
     press({ key: ' ' })
@@ -91,7 +152,7 @@ describe('useKeyboardShortcuts', () => {
   })
 
   it('en Biblia la T no oculta el texto (es del buscador rápido)', () => {
-    app.activeView = 'bible'
+    useAppStoreMock.setState({ activeView: 'bible' })
     renderHook(() => useKeyboardShortcuts())
     press({ key: 't' })
     expect(projection.setHideText).not.toHaveBeenCalled()
@@ -119,5 +180,22 @@ describe('useKeyboardShortcuts', () => {
     renderHook(() => useKeyboardShortcuts())
     press({ key: 'Escape' })
     expect(projection.setHideText).toHaveBeenCalledWith(false)
+  })
+
+  it('con el modal de atajos abierto, ArrowRight no cambia el slide proyectado', () => {
+    const { result } = renderHook(() => useKeyboardShortcuts())
+    press({ key: '?' })
+    expect(result.current.shortcutsOpen).toBe(true)
+    press({ key: 'ArrowRight' })
+    press({ key: 'ArrowDown' })
+    expect(projection.nextSlide).not.toHaveBeenCalled()
+  })
+
+  it('con el modal de atajos abierto, Alt+B sigue ocultando el texto', () => {
+    const { result } = renderHook(() => useKeyboardShortcuts())
+    press({ key: '?' })
+    expect(result.current.shortcutsOpen).toBe(true)
+    press({ code: 'KeyB', altKey: true })
+    expect(projection.setHideText).toHaveBeenCalledWith(true)
   })
 })

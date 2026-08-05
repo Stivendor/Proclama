@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { openProjectionWindow } from '@/services/projection'
@@ -9,7 +9,8 @@ const NEXT_KEYS = ['ArrowRight', 'ArrowDown', 'PageDown', ' ']
 const PREV_KEYS = ['ArrowLeft', 'ArrowUp', 'PageUp']
 
 export function useKeyboardShortcuts() {
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const shortcutsOpen = useAppStore(s => s.shortcutsOpen)
+  const setShortcutsOpen = useAppStore(s => s.setShortcutsOpen)
   const { nextSlide, prevSlide, setHideText, hideText, isBible } = useProjectionStore(useShallow(s => ({
     nextSlide: s.nextSlide,
     prevSlide: s.prevSlide,
@@ -34,10 +35,19 @@ export function useKeyboardShortcuts() {
           return
         }
         switch (e.code) {
-          case 'KeyP':
+          case 'KeyP': {
             e.preventDefault()
-            openProjectionWindow()
+            const p = useProjectionStore.getState()
+            if (p.projectionWindow && !p.projectionWindow.closed) {
+              // Ya hay una ventana de proyección viva: enfocarla en vez de
+              // reabrirla (window.open sobre el mismo nombre la re-navegaría
+              // y ProjectionWindow remontaría con el estado vacío en vivo).
+              p.projectionWindow.focus()
+              return
+            }
+            p.setProjectionWindow(openProjectionWindow())
             return
+          }
           case 'KeyN':
             e.preventDefault()
             app.openEditor()
@@ -52,7 +62,15 @@ export function useKeyboardShortcuts() {
 
       if (e.key === '?') {
         e.preventDefault()
-        setShortcutsOpen(v => !v)
+        app.setShortcutsOpen(v => !v)
+        return
+      }
+
+      // Con el modal de atajos abierto no debe llegar nada más a la proyección
+      // (evita que ↑/↓/Espacio mientras se lee la lista cambien el slide que
+      // ve la congregación a espaldas del operador). Escape sigue cerrando.
+      if (app.shortcutsOpen) {
+        if (e.key === 'Escape') app.setShortcutsOpen(false)
         return
       }
 
@@ -79,10 +97,6 @@ export function useKeyboardShortcuts() {
           setHideText(!hideText)
           break
         case 'Escape':
-          if (shortcutsOpen) {
-            setShortcutsOpen(false)
-            return
-          }
           setHideText(false)
           break
       }
@@ -90,7 +104,7 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [nextSlide, prevSlide, setHideText, hideText, isBible, shortcutsOpen])
+  }, [nextSlide, prevSlide, setHideText, hideText, isBible])
 
   return { shortcutsOpen, closeShortcuts: () => setShortcutsOpen(false) }
 }
