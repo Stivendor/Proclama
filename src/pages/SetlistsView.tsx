@@ -358,36 +358,36 @@ export default function SetlistsView() {
                   />
                   {songSearch && <button onClick={() => setSongSearch('')}><X size={12} /></button>}
                 </div>
-              </div>
 
-                  {songSearch && (
-                    <div className="search-results-overlay">
-                       {filteredSongs.map(s => (
-                         <button
-                           key={s.id}
-                           className="search-result-item"
-                           onClick={() => {
-                             addSongToSetlist(s);
-                             setSongSearch('');
-                           }}
-                         >
-                           <Plus size={12} />
-                           <div className="info">
-                             <span className="t">{s.title}</span>
-                             <span className="a">{s.artist}</span>
-                           </div>
-                           {s.key && <span className="k">{s.key}</span>}
-                         </button>
-                       ))}
-                       <button className="search-result-item create-new" onClick={createSongFromSearch}>
-                         <Plus size={12} />
-                         <div className="info">
-                           <span className="t">Crear «{songSearch}» como canción nueva</span>
-                           <span className="a">Se agregará a este setlist al guardar</span>
-                         </div>
-                       </button>
-                    </div>
-                  )}
+                {songSearch && (
+                  <div className="search-results-overlay">
+                    {filteredSongs.map(s => (
+                      <button
+                        key={s.id}
+                        className="search-result-item"
+                        onClick={() => {
+                          addSongToSetlist(s);
+                          setSongSearch('');
+                        }}
+                      >
+                        <Plus size={12} />
+                        <div className="info">
+                          <span className="t">{s.title}</span>
+                          <span className="a">{s.artist}</span>
+                        </div>
+                        {s.key && <span className="k">{s.key}</span>}
+                      </button>
+                    ))}
+                    <button className="search-result-item create-new" onClick={createSongFromSearch}>
+                      <Plus size={12} />
+                      <div className="info">
+                        <span className="t">Crear «{songSearch}» como canción nueva</span>
+                        <span className="a">Se agregará a este setlist al guardar</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="order-section">
                 <div className="section-title">ORDEN DEL SERVICIO</div>
@@ -504,8 +504,15 @@ export default function SetlistsView() {
         }
         .panel-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
         .setlist-content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-        .search-box-container { padding: 12px; position: sticky; top: 0; background: var(--bg-surface); z-index: 10; }
-        .search-results-overlay { background: var(--bg-elevated); border-bottom: 1px solid var(--border); max-height: 200px; overflow-y: auto; }
+        .search-box-container { padding: 12px; position: sticky; top: 0; background: var(--bg-surface); z-index: 20; }
+        /* Dropdown anclado al buscador sticky: si va en flujo, con el setlist scrolleado
+           los resultados quedan fuera de vista y empujan la lista de abajo. */
+        .search-results-overlay {
+          position: absolute; top: calc(100% - 6px); left: 12px; right: 12px;
+          background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+          max-height: min(320px, 45vh); overflow-y: auto;
+        }
         .search-result-item {
           width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px;
           border: none; background: none; color: var(--text-primary); text-align: left; cursor: pointer; font-size: 13px;
