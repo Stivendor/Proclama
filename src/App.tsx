@@ -29,6 +29,7 @@ const DeviceBlockedModal = lazy(() => import("@/components/auth/DeviceBlockedMod
 const TermsModal = lazy(() => import("@/components/terms/TermsModal"));
 const ChurchRegistrationView = lazy(() => import("@/pages/ChurchRegistrationView"));
 const Toast = lazy(() => import("@/components/ui/Toast"));
+const ShortcutsModal = lazy(() => import("@/components/ui/ShortcutsModal"));
 const AdminShell = lazy(() => import("@/admin/AdminShell"));
 const CollabView = lazy(() => import("@/pages/CollabView"));
 
@@ -176,7 +177,7 @@ function AppContent() {
 }
 
 function MainApp() {
-  useKeyboardShortcuts();
+  const { shortcutsOpen, closeShortcuts } = useKeyboardShortcuts();
   const { isSidebarOpen, onboardingDone } = useAppStore(
     useShallow((s) => ({
       isSidebarOpen: s.isSidebarOpen,
@@ -218,6 +219,11 @@ function MainApp() {
       <Suspense fallback={null}>
         <ProjectionPreview />
       </Suspense>
+      {shortcutsOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal onClose={closeShortcuts} />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <Toast />
       </Suspense>
