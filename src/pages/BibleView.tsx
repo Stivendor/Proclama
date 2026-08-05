@@ -19,8 +19,8 @@ interface RecentVerse {
 }
 
 export default function BibleView() {
-  const { isSidebarOpen, toggleSidebar } = useAppStore(useShallow(s => ({
-    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar
+  const { isSidebarOpen, toggleSidebar, activeView, shortcutsOpen } = useAppStore(useShallow(s => ({
+    isSidebarOpen: s.isSidebarOpen, toggleSidebar: s.toggleSidebar, activeView: s.activeView, shortcutsOpen: s.shortcutsOpen
   })))
   const [selectedBook, setSelectedBook] = useState('jhn')
   const [selectedChapter, setSelectedChapter] = useState(3)
@@ -507,7 +507,9 @@ export default function BibleView() {
   }
 
   const projectVerse = (verse: BibleVerseResult) => {
-    projectVerses([verse])
+    // Devuelve la promesa de projectVerses para que stepVerse pueda esperar a
+    // que la proyección termine antes de liberar su guard (steppingRef).
+    return projectVerses([verse])
   }
 
   // Flechas = versículo siguiente/anterior. El hook global (useKeyboardShortcuts)
@@ -536,12 +538,14 @@ export default function BibleView() {
     // Todo el trabajo (same-chapter incluido) va bajo el mismo guard: en modo
     // paralelo projectVerse espera el fetch de la traducción secundaria antes
     // de escribir songTitle, así que una segunda pulsación rápida podría releer
-    // el songTitle viejo y repetir el mismo destino en vez de avanzar.
+    // el songTitle viejo y repetir el mismo destino en vez de avanzar. Por eso
+    // se espera (await) a que projectVerse termine antes de soltar el guard
+    // en el finally — si no, el finally corre en síncrono y no protege nada.
     steppingRef.current = true
     try {
       if (step.kind === 'same-chapter') {
         const target = verses[step.index]
-        projectVerse(target)
+        await projectVerse(target)
         setScrollToVerse(extractVerseNumber(target.reference))
         return
       }
@@ -550,7 +554,7 @@ export default function BibleView() {
       const target = step.edge === 'first' ? chapterVerses[0] : chapterVerses[chapterVerses.length - 1]
       if (!target) return
       setSelectedChapter(step.chapter)
-      projectVerse(target)
+      await projectVerse(target)
       setScrollToVerse(extractVerseNumber(target.reference))
     } catch (error) {
       console.error('Error cargando el capítulo contiguo', error)
@@ -567,7 +571,12 @@ export default function BibleView() {
     const NEXT = ['ArrowRight', 'PageDown', ' ']
     const PREV = ['ArrowLeft', 'PageUp']
     const onKey = (e: KeyboardEvent) => {
-      if (!isBible) return
+      // Invariante: el hook global (useKeyboardShortcuts) cede las flechas con
+      // activeView === 'bible' && isBible; este listener debe exigir la misma
+      // condición para no competir con él si ambas vistas llegaran a convivir.
+      if (!isBible || activeView !== 'bible') return
+      // Con el modal de atajos abierto, las flechas son para recorrer la lista.
+      if (shortcutsOpen) return
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       const dir = NEXT.includes(e.key) ? 1 : PREV.includes(e.key) ? -1 : 0
@@ -577,7 +586,7 @@ export default function BibleView() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isBible])
+  }, [isBible, activeView, shortcutsOpen])
 
   if (!book) {
     return <div style={{ padding: '20px' }}>Error: Libro no encontrado</div>
