@@ -13,6 +13,7 @@ import CollaboratorsModal from '@/components/setlists/CollaboratorsModal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import PremiumFeatureModal from '@/components/ui/PremiumFeatureModal'
 import { usePlan } from '@/hooks/usePlan'
+import ProInterestBadge from '@/components/pricing/ProInterestBadge'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
 
@@ -274,6 +275,7 @@ export default function SetlistsView() {
               {canInviteCollaborators ? <Users size={16} /> : <Lock size={16} />} Colaboradores
             </button>
           )}
+          {user?.id && <ProInterestBadge source="collaborators" align="right" />}
           <button className="btn-primary" onClick={() => setShowNew(true)}>
             <Plus size={15} /> Nuevo Setlist
           </button>

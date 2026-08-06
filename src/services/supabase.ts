@@ -405,13 +405,29 @@ export async function fetchTermsAcceptance(
 
 // ─── Funciones para Premium Interest ──────────────────────────────────────────
 
-export async function registerPremiumInterest(email: string, userId: string | null = null): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
+/**
+ * Qué disparó el interés. Sin esto sólo sabríamos que alguien levantó la mano,
+ * no por cuál función, que es justo lo que decide qué se cobra.
+ */
+export type PremiumInterestSource =
+  | 'landing'
+  | 'collaborators'
+  | 'backgrounds'
+  | 'reports'
+  | 'stats'
+  | 'bibles'
+
+export async function registerPremiumInterest(
+  email: string,
+  userId: string | null = null,
+  source: PremiumInterestSource = 'landing',
+): Promise<{ success: boolean; alreadyRegistered?: boolean }> {
   const { error } = await supabase
     .from('premium_interest')
-    .insert({ email, user_id: userId, created_at: new Date().toISOString() })
+    .insert({ email, user_id: userId, source, created_at: new Date().toISOString() })
 
   if (error) {
-    // Código 23505 = unique violation (email ya registrado)
+    // Código 23505 = unique violation (ya registrado para esta misma función)
     if (error.code === '23505') return { success: true, alreadyRegistered: true }
     console.error('Error registering premium interest:', error.message)
     return { success: false }

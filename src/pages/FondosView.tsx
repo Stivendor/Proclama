@@ -17,6 +17,7 @@ import {
   DEFAULT_THEME,
 } from "@/stores";
 import { usePlan } from "@/hooks/usePlan";
+import ProInterestBadge from "@/components/pricing/ProInterestBadge";
 
 const FONTS = [
   { value: "Montserrat", label: "Montserrat" },
@@ -192,6 +193,7 @@ export default function FondosView() {
         <section className="fondos-section">
           <h2>
             <Palette size={15} /> Fondo
+            <ProInterestBadge source="backgrounds" />
           </h2>
           <div className="form-group">
             <label>Tipo de Fondo</label>
