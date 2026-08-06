@@ -62,7 +62,7 @@ Main app is view-switched via `activeView` in `useAppStore` (not URL routes). re
 - `src/types/index.ts` — single source of truth for domain types
 - Import alias `@/` → `src/`
 - Supabase: snake_case in DB ↔ camelCase in frontend (mapping in services)
-- Styles: vanilla CSS in `src/index.css` (CSS variables, no framework, no CSS modules)
+- Styles: vanilla CSS, no framework, no CSS modules. `src/index.css` is only a list of `@import` in cascade order; the actual rules live in `src/styles/*.css` split by domain (`base`, `library`, `bible`, `collab`, `admin`…). Import order is the cascade — don't reorder without checking what overrides what.
 - Bible RVR1960 ships as JSON loaded lazily (`src/data/`); external fallback is bible-api.com
 - `src/i18n/` is a hand-rolled `t(lang, path)` lookup (no library) used only on the landing/pricing surface — the app UI itself is Spanish-only strings
 

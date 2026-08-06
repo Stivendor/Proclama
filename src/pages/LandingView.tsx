@@ -97,7 +97,7 @@ export default function LandingView() {
     e.preventDefault()
     if (!interestEmail) return
     setInterestStatus('loading')
-    const result = await registerPremiumInterest(interestEmail.trim().toLowerCase())
+    const result = await registerPremiumInterest(interestEmail.trim().toLowerCase(), null, 'landing')
     if (!result.success) {
       setInterestStatus('error')
       return

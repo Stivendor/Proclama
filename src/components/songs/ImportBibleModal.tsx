@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, Lock, Download, Check } from 'lucide-react'
 import { usePlan } from '@/hooks/usePlan'
+import ProInterestBadge from '@/components/pricing/ProInterestBadge'
 import { useBibleAPI } from '@/features/bible'
 import { useAppStore } from '@/stores'
 import { db } from '@/db'
@@ -107,7 +108,10 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
             alignItems: 'center'
           }}
         >
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Importar Biblias (HelloAO)</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Importar Biblias (HelloAO)</h2>
+            <ProInterestBadge source="bibles" />
+          </div>
           <button className="btn-icon" onClick={onClose}><X size={20} /></button>
         </div>
 

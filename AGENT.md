@@ -32,7 +32,8 @@ Proclama es un sistema de proyección de alabanzas y Biblia para iglesias, dise�
 src/
 ├── App.tsx                  # Raíz: detecta ventana de proyección, maneja auth estable (initAuth con timeouts), migración guest→user
 ├── main.tsx                 # Entry point React
-├── index.css                # Estilos globales (variables CSS, layout, componentes)
+├── index.css                # Solo @import de src/styles/* en orden de cascada
+├── styles/                  # Estilos globales partidos por dominio (base, library, bible, admin…)
 │
 ├── types/index.ts           # Todos los tipos TypeScript del dominio
 ├── stores/index.ts          # Zustand stores: useProjectionStore + useAppStore (aspectRatio, fontScale, CANVAS_SIZES)

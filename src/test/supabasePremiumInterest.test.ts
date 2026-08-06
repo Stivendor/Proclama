@@ -52,4 +52,20 @@ describe('registerPremiumInterest', () => {
       expect.objectContaining({ email: 'test@example.com' })
     )
   })
+
+  // Sin la fuente sólo sabríamos que alguien levantó la mano, no por cuál
+  // función — que es el dato que decide qué se cobra.
+  it('guarda la función que disparó el interés', async () => {
+    const insertMock = mockChain({ error: null })
+    await registerPremiumInterest('test@example.com', 'user-1', 'collaborators')
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'collaborators', user_id: 'user-1' })
+    )
+  })
+
+  it('sin fuente explícita registra la landing', async () => {
+    const insertMock = mockChain({ error: null })
+    await registerPremiumInterest('test@example.com')
+    expect(insertMock).toHaveBeenCalledWith(expect.objectContaining({ source: 'landing' }))
+  })
 })

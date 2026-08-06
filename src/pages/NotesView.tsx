@@ -8,6 +8,7 @@ import { parseLyrics } from '@/services/lyricsParser'
 import { openProjectionWindow } from '@/services/projection'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { usePlan } from '@/hooks/usePlan'
+import ProInterestBadge from '@/components/pricing/ProInterestBadge'
 
 import { useAttendance } from '@/features/attendance/hooks/useAttendance'
 import AttendanceHistory from '@/features/attendance/components/AttendanceHistory'
@@ -168,6 +169,7 @@ export default function NotesView() {
                   Exportar
                   <X size={10} style={{ marginLeft: 4, transform: showExportMenu ? 'rotate(0deg)' : 'rotate(45deg)', transition: 'transform 0.2s' }} />
                 </button>
+                <ProInterestBadge source="reports" align="right" />
 
                 {showExportMenu && (
                   <div style={{
@@ -251,7 +253,13 @@ export default function NotesView() {
             </div>
 
             {canViewStats ? (
-              <AttendanceStats records={historyRecords} />
+              <>
+                <div className="stats-pro-row">
+                  <span>Estadísticas</span>
+                  <ProInterestBadge source="stats" />
+                </div>
+                <AttendanceStats records={historyRecords} />
+              </>
             ) : historyRecords.length > 0 && (
               <button className="stats-locked" onClick={() => setShowExportModal(true)}>
                 <Lock size={14} />
