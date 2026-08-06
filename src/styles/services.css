@@ -1,0 +1,211 @@
+/* ─── Service Name Combo Selector (NotesView) ─────────────────────────────── */
+.service-name-combo {
+  position: relative;
+  width: 100%;
+}
+
+.service-name-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: all 0.15s;
+  gap: 8px;
+}
+
+.service-name-selector:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: var(--bg-elevated);
+}
+
+.service-name-selector.open {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+}
+
+.service-name-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.service-name-placeholder {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.service-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.service-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.service-name-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5),
+              0 6px 10px -5px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: serviceDropdownIn 0.15s ease-out;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+@keyframes serviceDropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.service-dropdown-section-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.service-name-option-row {
+  display: flex;
+  align-items: center;
+  transition: background 0.12s;
+}
+
+.service-name-option-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.service-name-option-row.selected {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.service-name-option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  padding: 9px 6px 9px 14px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.service-name-option-row.selected .service-name-option-btn {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.service-name-option-delete {
+  flex-shrink: 0;
+  padding: 4px !important;
+  margin-right: 8px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  color: var(--text-muted) !important;
+}
+
+.service-name-option-row:hover .service-name-option-delete {
+  opacity: 1;
+}
+
+.service-name-option-delete:hover {
+  color: var(--red) !important;
+}
+
+.service-name-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.service-name-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.service-name-add-row .input {
+  flex: 1;
+  font-size: 13px;
+}
+
+.service-name-manual {
+  padding: 6px 10px 8px;
+}
+
+.service-name-manual .input {
+  font-size: 13px;
+}
+
+/* ─── Service Templates List (SettingsView) ───────────────────────────────── */
+.service-templates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.service-template-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  transition: all 0.15s;
+  gap: 12px;
+}
+
+.service-template-item:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--bg-elevated);
+}
+
+.service-template-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.landing-banner-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+

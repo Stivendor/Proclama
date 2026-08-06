@@ -1,0 +1,119 @@
+/* ─── Setlists ────────────────────────────────────────────────────────────────── */
+.setlists-view { display: flex; flex-direction: column; height: 100%; }
+.new-setlist-form {
+  display: flex; gap: 8px; padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.new-setlist-form input { flex: 1; }
+.setlists-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .setlists-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1.5fr;
+  }
+  .setlists-list {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+.setlists-list { overflow-y: auto; border-right: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.setlist-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; cursor: pointer; transition: all 0.12s;
+}
+.setlist-card:hover { background: var(--bg-hover); }
+.setlist-card.selected { border-color: var(--gold); }
+.setlist-card-info { flex: 1; min-width: 0; }
+.setlist-name { font-weight: 500; font-size: 13px; margin-bottom: 4px; }
+.setlist-meta { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+.setlist-editor { padding: 16px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.setlist-editor h3 { font-family: var(--font-display); font-size: 18px; }
+.setlist-editor h4 { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.setlist-songs-section, .setlist-add-section { display: flex; flex-direction: column; gap: 4px; }
+.setlist-song-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+  cursor: pointer; transition: all 0.12s;
+}
+.setlist-song-item:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.setlist-song-item.active { border-color: var(--gold); box-shadow: 0 0 10px var(--gold-glow); }
+.drag-handle { color: var(--text-muted); cursor: grab; flex-shrink: 0; padding: 4px; }
+.drag-handle:active { cursor: grabbing; }
+.setlist-song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.setlist-song-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.setlist-song-artist { font-size: 11px; color: var(--text-muted); }
+.empty-hint { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.add-songs-list { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow-y: auto; }
+.add-song-btn {
+  display: flex; align-items: center; gap: 6px; text-align: left;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--text-secondary);
+  border: 1px solid transparent; transition: all 0.12s;
+}
+.add-song-btn:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border); }
+.add-song-btn .dim { color: var(--text-muted); }
+.loading-hint { font-size: 13px; color: var(--text-muted); padding: 12px; font-style: italic; }
+.badge {
+  background: var(--gold-dim); color: var(--gold);
+  padding: 2px 8px; border-radius: 99px; font-size: 10px;
+  font-weight: 600; text-transform: uppercase; vertical-align: middle;
+  margin-left: 8px; border: 1px solid var(--gold);
+}
+.editor-header-row, .section-header-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 8px;
+}
+.setlist-editor h3 { margin: 0; }
+.setlist-editor h4 { margin: 0; }
+.setlist-add-section .search-box.sm {
+  background: var(--bg-base); border: 1px solid var(--border); 
+  border-radius: var(--radius-sm); padding: 2px 8px;
+}
+.setlist-add-section .search-box.sm input { font-size: 13px; padding: 6px 0; border: none; background: transparent; }
+.setlist-add-section .search-box.sm .search-icon { opacity: 0.5; }
+.clear-search {
+  color: var(--text-muted); font-size: 10px; padding: 2px;
+}
+.clear-search:hover { color: var(--text-primary); }
+.add-section-toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.filters-row-compact {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.filter-select-sm {
+  flex: 1; font-size: 11px; padding: 4px 8px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-secondary);
+}
+.add-songs-list.highlight {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-base); padding: 4px;
+}
+.add-song-btn-large {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; text-align: left; padding: 10px 12px;
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  transition: all 0.12s; background: transparent;
+  margin-bottom: 2px;
+}
+.add-song-btn-large:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.add-song-btn-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.add-song-btn-main .add-icon { color: var(--blue); opacity: 0.6; }
+.add-song-btn-large:hover .add-icon { opacity: 1; }
+.song-info { display: flex; flex-direction: column; min-width: 0; }
+.song-info .title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.song-info .artist { font-size: 11px; color: var(--text-muted); }
+.song-key-sm {
+  font-size: 10px; font-weight: 600; color: var(--gold);
+  background: var(--gold-dim); padding: 1px 6px; border-radius: 99px;
+}
+
