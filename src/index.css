@@ -2021,10 +2021,8 @@ a:hover { text-decoration: underline; }
   align-items: center;
   gap: 8px;
   margin: 4px 0 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -2066,6 +2064,16 @@ a:hover { text-decoration: underline; }
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.4px;
+}
+
+/* Asistencia en minúscula: las mayúsculas se quedan en el panel admin, que
+   comparte .stat-label y .notes-section-header con otras vistas. */
+.notes-view .notes-section-header,
+.notes-view .stat-label,
+.notes-view .attendance-field-label,
+.notes-view .attendance-total-label {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .stat-value {
