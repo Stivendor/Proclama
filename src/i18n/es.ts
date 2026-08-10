@@ -140,7 +140,6 @@ const es = {
     },
   },
   sidebar: {
-    newSong: 'Nueva Canción',
     songs: 'Canciones',
     setlists: 'Setlists',
     bible: 'Biblia',

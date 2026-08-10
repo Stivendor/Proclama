@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Music2, List, Settings, Plus, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, Megaphone, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
+import { Music2, List, Settings, BookOpen as BookIcon, LogOut, Cloud, CloudOff, Timer, Megaphone, Library, Image, Users, Shield, RefreshCw, Sparkles, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore } from '@/stores'
@@ -26,18 +26,14 @@ export default function Sidebar() {
   const [launchBannerDismissed, setLaunchBannerDismissed] = useState(
     () => localStorage.getItem('launch-banner-v1') === '1'
   )
-  const { activeView, setActiveView, openEditor, toggleSidebar, user, goToLanding, language } = useAppStore(useShallow(s => ({
+  const { activeView, setActiveView, toggleSidebar, user, goToLanding, language } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
-    openEditor: s.openEditor,
     toggleSidebar: s.toggleSidebar,
     user: s.user,
     goToLanding: s.goToLanding,
     language: s.language,
   })))
-  const handleNewSong = () => {
-    openEditor()
-  }
 
   const visibleNav = NAV_ORDER.map(id => ({ id, ...NAV_META[id] }))
 
@@ -83,11 +79,6 @@ export default function Sidebar() {
           <List size={18} />
         </button>
       </div>
-
-      <button className="btn-new-song" onClick={handleNewSong}>
-        <Plus size={16} />
-        {t(language, 'sidebar.newSong')}
-      </button>
 
       <nav className="sidebar-nav">
         {visibleNav.map(({ id, icon: Icon, labelKey }) => (

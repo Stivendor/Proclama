@@ -543,6 +543,7 @@ export default function LibraryView() {
           <ProInterestBadge source="online_search" align="right" />
           <button
             className="btn-primary"
+            data-tour="new-song"
             onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
             disabled={!canCreateSong(ownSongCount)}
             aria-label="Crear nueva canción"
