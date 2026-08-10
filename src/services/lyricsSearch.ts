@@ -179,6 +179,7 @@ function combinarSenales(signal: AbortSignal | undefined, timeoutMs: number): { 
   }
 
   const ctrl = new AbortController()
+  if (signal?.aborted) ctrl.abort() // ya venía abortada: el listener de abajo nunca dispararía
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   const onAbort = () => ctrl.abort()
   signal?.addEventListener('abort', onAbort)

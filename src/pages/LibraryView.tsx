@@ -68,16 +68,18 @@ export default function LibraryView() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
       const escribiendo = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+      // Se lee de forma imperativa (no como dependencia del efecto) porque el
+      // listener debe quedar montado siempre para ganarle la carrera al atajo
+      // nativo del navegador. Si el editor de canciones está abierto, este modal
+      // montaría por debajo de su overlay (z-index más alto) y le robaría el
+      // foco sin que el usuario vea nada — con cualquiera de los dos atajos.
+      const editorAbierto = useAppStore.getState().isEditorOpen
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        // Se lee de forma imperativa (no como dependencia del efecto) porque el
-        // listener debe quedar montado siempre para ganarle la carrera al atajo
-        // nativo del navegador. Si el editor de canciones está abierto, este modal
-        // montaría por debajo de su overlay (z-index más alto) y le robaría el
-        // foco al campo del editor sin que el usuario vea nada.
-        if (useAppStore.getState().isEditorOpen) return
+        e.preventDefault() // siempre: Ctrl+K es atajo nativo del navegador
+        if (editorAbierto) return
         setShowOnlineSearch(true)
       } else if (e.key === '/' && !escribiendo) {
+        if (editorAbierto) return // «/» no es atajo del navegador: no hace falta preventDefault
         e.preventDefault()
         setShowOnlineSearch(true)
       }
