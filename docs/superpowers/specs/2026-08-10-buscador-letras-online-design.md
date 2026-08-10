@@ -156,7 +156,10 @@ esta cadena de funciones puras:
    Para título y artista por separado:
    - Quedarse con el texto **anterior al primer `|`**. Corta los títulos de YouTube
      de raíz, sin necesidad de una lista de basura conocida.
-   - Minúsculas y sin tildes (`normalizeSearchText()` en `src/services/languageUtils.ts`).
+   - Minúsculas y sin tildes. **No sirve `normalizeSearchText()`** de
+     `src/services/languageUtils.ts`: quita también los espacios, y la clave los
+     necesita para cortar en `feat` / `con` por límite de palabra. Se escribe una
+     normalización propia en `lyricsSearch.ts` que conserva espacios.
    - Quitar los sufijos de versión `(En Vivo)`, `(Live)`, `(Acústico)`, `(En Directo)`.
      Para proyectar, la versión en vivo y la de estudio tienen la misma letra: son
      duplicados desde el punto de vista del usuario.
@@ -234,6 +237,24 @@ aprobación sin tocar una línea del panel admin**. `approve()` ya pone
 Semántica asumida: importar desde el buscador equivale a proponer la canción al
 catálogo. No hay checkbox de consentimiento explícito. Si en el futuro hace falta,
 se añade una columna `import_source` y un opt-in; hoy sería complejidad especulativa.
+
+### Los usuarios `free` importan solo en local
+
+La política `songs_insert_premium` exige `is_premium(auth.uid())`, y esa función de
+Postgres **no** sigue a `FOUNDING_PHASE` del cliente: mira `profiles.plan` y solo
+acepta `founding`, `paid`, `trial` o `role = 'admin'`.
+
+Reparto de perfiles el 2026-08-10: 15 `founding`, 10 `free`, 2 `paid`, 1 `trial`.
+
+Para esos 10 usuarios en `free`, el paso 1 (Dexie) funciona y el paso 2 (Supabase)
+lo rechaza RLS. Consecuencia: importan y proyectan con normalidad, pero su canción
+no llega a la cola de aprobación. Es coherente con el modelo freemium y con el
+requisito de que el usuario pueda proyectar sin aprobación, así que se acepta tal
+cual. El fallo del upload se trata como no bloqueante (ver la tabla de errores) y no
+se le muestra un error de permisos, porque desde su punto de vista nada falló.
+
+No se toca `songs_insert_premium` en este trabajo: cambiar quién puede escribir en
+`songs` es una decisión de negocio ajena al buscador.
 
 ### El usuario proyecta su canción aunque no esté aprobada
 
