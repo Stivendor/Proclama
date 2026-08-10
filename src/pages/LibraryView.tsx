@@ -60,10 +60,11 @@ export default function LibraryView() {
     return () => clearTimeout(timer)
   }, [remoteError])
 
-  // Ctrl+K y «/» abren el buscador online, salvo mientras se escribe en un campo
-  // o con el modal ya abierto (donde «/» debe escribirse tal cual en su input).
+  // Ctrl+K y «/» abren el buscador online, salvo mientras se escribe en un campo.
+  // El listener queda siempre montado: Ctrl+K es un atajo nativo del navegador
+  // (barra de búsqueda en Firefox, omnibox en Chrome) y hay que ganarle la carrera
+  // con preventDefault sin importar dónde esté el foco, incluido con el modal abierto.
   useEffect(() => {
-    if (showOnlineSearch) return
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
       const escribiendo = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
@@ -77,7 +78,7 @@ export default function LibraryView() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [showOnlineSearch])
+  }, [])
 
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
