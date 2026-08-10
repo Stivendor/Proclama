@@ -6,6 +6,8 @@ import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import LyricsSearchModal from '@/components/songs/LyricsSearchModal'
+import ProInterestBadge from '@/components/pricing/ProInterestBadge'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
@@ -34,6 +36,7 @@ export default function LibraryView() {
     }
   }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
+  const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
@@ -57,9 +60,38 @@ export default function LibraryView() {
     return () => clearTimeout(timer)
   }, [remoteError])
 
+  // Ctrl+K y «/» abren el buscador online, salvo mientras se escribe en un campo.
+  // El listener queda siempre montado: Ctrl+K es un atajo nativo del navegador
+  // (barra de búsqueda en Firefox, omnibox en Chrome) y hay que ganarle la carrera
+  // con preventDefault sin importar dónde esté el foco, incluido con el modal abierto.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const escribiendo = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+      // Se lee de forma imperativa (no como dependencia del efecto) porque el
+      // listener debe quedar montado siempre para ganarle la carrera al atajo
+      // nativo del navegador. Si el editor de canciones está abierto, este modal
+      // montaría por debajo de su overlay (z-index más alto) y le robaría el
+      // foco sin que el usuario vea nada — con cualquiera de los dos atajos.
+      const editorAbierto = useAppStore.getState().isEditorOpen
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault() // siempre: Ctrl+K es atajo nativo del navegador
+        if (editorAbierto) return
+        setShowOnlineSearch(true)
+      } else if (e.key === '/' && !escribiendo) {
+        if (editorAbierto) return // «/» no es atajo del navegador: no hace falta preventDefault
+        e.preventDefault()
+        setShowOnlineSearch(true)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
+  const [lastOnlineImport, setLastOnlineImport] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -414,6 +446,34 @@ export default function LibraryView() {
     setTimeout(() => setImportStatus(null), 4000)
   }
 
+  /** El modal de búsqueda online avisa aquí de cada import. Guardamos solo el
+   *  último título: al cerrar el modal es el que deja el filtro apuntando. */
+  const handleOnlineImported = (titulo: string) => {
+    setLastOnlineImport(titulo)
+    setImportStatus(`✅ "${titulo}" importada — enviada a revisión de la comunidad`)
+    setTimeout(() => setImportStatus(null), 4000)
+  }
+
+  /** Al cerrar el buscador online, si hubo algún import, deja el filtro local
+   *  apuntando a la última canción importada: si no, queda enterrada bajo más
+   *  de 3000 canciones (usageCount 0) y el usuario no la encuentra. */
+  const closeOnlineSearch = () => {
+    setShowOnlineSearch(false)
+    if (lastOnlineImport) {
+      setLocalSearch(lastOnlineImport)
+      setLastOnlineImport(null)
+    }
+  }
+
+  /** El estado vacío del buscador online ofrece saltar a la biblioteca local
+   *  con el mismo texto (ahí sí se busca dentro de la letra): cierra el modal
+   *  y deja ese texto en el filtro, igual que hace closeOnlineSearch con la
+   *  última canción importada. */
+  const handleBuscarEnBiblioteca = (texto: string) => {
+    setShowOnlineSearch(false)
+    setLocalSearch(texto)
+  }
+
   const handlePublish = async (song: Song) => {
     if (!user?.id) {
       setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
@@ -471,6 +531,16 @@ export default function LibraryView() {
           </div>
         </div>
         <div className="header-actions">
+          <button
+            className="online-search-trigger"
+            onClick={() => setShowOnlineSearch(true)}
+            aria-label="Buscar canciones en internet"
+          >
+            <Globe size={14} opacity={0.6} />
+            <span>Buscar online…</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <ProInterestBadge source="online_search" align="right" />
           <button
             className="btn-primary"
             onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
@@ -632,6 +702,10 @@ export default function LibraryView() {
           danger={true}
           confirmLabel="Eliminar"
         />
+      )}
+
+      {showOnlineSearch && (
+        <LyricsSearchModal onClose={closeOnlineSearch} onImported={handleOnlineImported} onSearchLocal={handleBuscarEnBiblioteca} />
       )}
 
       {importStatus && (

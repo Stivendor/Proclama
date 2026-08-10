@@ -17,7 +17,7 @@ Catálogo de canciones con soporte para moderación y visibilidad pública/priva
 | `language` | `text` | Idioma (Español, Inglés, Portugués, Otro) |
 | `is_public` | `boolean` | Visible para todos los usuarios |
 | `is_verified` | `boolean` | Aprobada por admin (visible públicamente) |
-| `source_url` | `text` | URL de origen (legado; el import online fue retirado) |
+| `source_url` | `text` | URL de origen. El buscador de letras online (lrclib) la escribe en cada import (`https://lrclib.net/api/get/<id>`), ver `src/services/lyricsImport.ts` |
 | `rejection_reason` | `text` | Motivo de rechazo (moderación) |
 | `usage_count` | `integer` | Contador de usos en proyección |
 | `created_at` | `timestamptz` | Fecha de creación |
@@ -27,6 +27,40 @@ Catálogo de canciones con soporte para moderación y visibilidad pública/priva
 - `is_public=false, is_verified=false` → Privada (solo el dueño la ve)
 - `is_public=true, is_verified=false` → Pendiente de moderación (ícono reloj ⏳)
 - `is_public=true, is_verified=true` → Pública y verificada (ícono shield ✓)
+
+**Visibilidad pública real (desde `20260810154735`)**: la política `songs_select_public`
+exige `is_public = true AND is_verified = true`. Antes de esa migración solo se
+comprobaba `is_public`, así que la cola de aprobación era cosmética: lo que
+esperaba revisión ya se veía en el catálogo público. El autor sigue leyendo sus
+propias canciones sin esa condición (`songs_select_own`), para poder proyectar
+lo que acaba de importar sin esperar aprobación.
+
+**Guard de escritura de `is_verified`** (trigger `songs_enforce_verification`,
+función `enforce_song_verification()`, migraciones `20260810155417` →
+`20260810160254` → `20260810170442`): `is_verified` es inmutable para quien no
+sea admin/service_role.
+- En `INSERT` siempre se fuerza a `false`, sin importar lo que envíe el cliente.
+- En `UPDATE`, el autor no puede tocarlo: conserva el valor que ya tenía.
+- Si el autor edita el contenido (`lyrics`, `title` o `artist`) de una canción
+  ya verificada, `is_verified` vuelve a `false` automáticamente — un cambio de
+  contenido reabre la revisión. Tocar solo tonalidad, etiquetas o idioma no la
+  reabre.
+- Los administradores (`is_admin()`/`is_superadmin()`) y `service_role` quedan
+  exentos: es exactamente lo que hace `approve()`/`saveChanges` en
+  `PendingSongsPage`.
+
+**Trampa operativa — `pg_restore` y `COPY` disparan este trigger.** El guard es
+`BEFORE INSERT ... FOR EACH ROW`, y tanto `pg_restore` como `COPY` corren fila a
+fila disparando triggers `BEFORE INSERT` igual que un `INSERT` normal. Restaurar
+un backup de `songs` sin `--disable-triggers` (o sin ejecutarlo como uno de los
+roles exentos) forzaría `is_verified=false` en las ~3100 canciones del catálogo,
+y el catálogo público desaparecería de golpe, sin ningún error visible. Por eso
+el guard comprueba `current_user IN ('postgres', 'supabase_admin',
+'service_role')` además de `auth.role() = 'service_role'`: en una conexión
+directa (`psql`, SQL editor de Studio, `supabase db push`, un restore) no hay
+sesión de Auth y `auth.role()` devuelve `NULL`, que sin ese chequeo adicional
+dejaba pasar la escritura pero con `is_verified` ya forzado a `false`, en
+silencio.
 
 ### `setlists`
 Listas de canciones planificadas para servicios.
@@ -154,22 +188,28 @@ Las migraciones están en `supabase/migrations/` y se ejecutan con `supabase mig
 | `20260615000002_protect_premium_expiry.sql` | RLS para proteger `premium_expires_at` |
 | `20260615000003_remove_is_authorized.sql` | Elimina columna `is_authorized` |
 | `20260615000004_add_attendance_time.sql` | Agrega hora al registro de asistencia |
+| `20260810154735_online_search_visibility.sql` | Visibilidad pública exige `is_verified`; elimina `search_songs_community` (agujero `SECURITY DEFINER`); añade `community_artists()` |
+| `20260810155417_songs_verification_write_guard.sql` | Trigger que congela `is_verified` para quien no sea admin: cierra el lado de escritura de la cola de aprobación |
+| `20260810160254_verification_guard_hardening.sql` | Corrige el guard anterior: cubre `current_user` (conexión directa/`pg_restore`), quita `SECURITY DEFINER` innecesario, revoca `TRUNCATE` de `anon` |
+| `20260810170442_requeue_verified_song_on_edit.sql` | Editar `lyrics`/`title`/`artist` de una canción ya verificada la devuelve a la cola de revisión |
 
 ---
 
 ## Búsqueda Full-Text (FTS)
 
-La búsqueda optimizada usa una función RPC `search_songs_community` con `unaccent`:
+**Eliminada** (migración `20260810154735`). `search_songs_community` era
+`SECURITY DEFINER` — se saltaba RLS — con `public_only=false` por defecto y
+concedida a `anon`: cualquiera con la clave anónima podía pedir la tabla
+entera, incluidas canciones privadas de otros usuarios. No tenía consumidores
+ni en el cliente ni en Edge Functions, así que se borró sin reemplazo; hoy la
+búsqueda en el catálogo local es en cliente (`LibraryView`, filtrando sobre lo
+ya sincronizado a Dexie) y la búsqueda de letras online usa lrclib
+(`src/services/lyricsSearch.ts`), no esta función.
 
-```sql
-CREATE EXTENSION IF NOT EXISTS unaccent;
-
-CREATE TEXT SEARCH CONFIGURATION public.spanish_unaccent (COPY = spanish);
-ALTER TEXT SEARCH CONFIGURATION public.spanish_unaccent
-  ALTER MAPPING FOR hword, hword_part, word WITH unaccent, spanish_stem;
-```
-
-Requiere crear la función RPC en Supabase. Si no existe, `searchSongs()` en el frontend cae a un fallback básico con `ilike`.
+Si algún día hace falta reintroducir búsqueda comunitaria en servidor, la
+función tiene que ser `SECURITY INVOKER` (para que respete RLS) y **sin ningún
+parámetro capaz de desactivar el filtro** — el `public_only=false` de la
+versión anterior era exactamente el agujero.
 
 ---
 
