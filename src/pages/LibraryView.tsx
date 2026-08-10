@@ -465,6 +465,15 @@ export default function LibraryView() {
     }
   }
 
+  /** El estado vacío del buscador online ofrece saltar a la biblioteca local
+   *  con el mismo texto (ahí sí se busca dentro de la letra): cierra el modal
+   *  y deja ese texto en el filtro, igual que hace closeOnlineSearch con la
+   *  última canción importada. */
+  const handleBuscarEnBiblioteca = (texto: string) => {
+    setShowOnlineSearch(false)
+    setLocalSearch(texto)
+  }
+
   const handlePublish = async (song: Song) => {
     if (!user?.id) {
       setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
@@ -696,7 +705,7 @@ export default function LibraryView() {
       )}
 
       {showOnlineSearch && (
-        <LyricsSearchModal onClose={closeOnlineSearch} onImported={handleOnlineImported} />
+        <LyricsSearchModal onClose={closeOnlineSearch} onImported={handleOnlineImported} onSearchLocal={handleBuscarEnBiblioteca} />
       )}
 
       {importStatus && (

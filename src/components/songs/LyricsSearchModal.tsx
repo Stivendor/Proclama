@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
-import { Search, Download, Check, Music2, X, Loader2 } from 'lucide-react'
+import { Search, Download, Check, Music2, X, Loader2, Library } from 'lucide-react'
 import { useLyricsSearch } from '@/hooks/useLyricsSearch'
+import { useLocalLyricsMatchCount } from '@/hooks/useLocalLyricsMatchCount'
 import { importLyricsResult } from '@/services/lyricsImport'
 import type { LyricsResult } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
 import { useAppStore } from '@/stores'
 
-export default function LyricsSearchModal({ onClose, onImported }: {
+export default function LyricsSearchModal({ onClose, onImported, onSearchLocal }: {
   onClose: () => void
   /** Avisa al padre del título recién importado, para que pueda mostrar aviso y hacerlo encontrable. */
   onImported?: (titulo: string) => void
+  /** El estado vacío ofrece saltar a la biblioteca local con el mismo texto. */
+  onSearchLocal?: (texto: string) => void
 }) {
   const { query, setQuery, results, loading, error, empty } = useLyricsSearch()
+  const localCount = useLocalLyricsMatchCount(query.trim(), empty)
   const user = useAppStore(s => s.user)
   const [selected, setSelected] = useState<LyricsResult | null>(null)
   const [importing, setImporting] = useState(false)
@@ -87,7 +91,34 @@ export default function LyricsSearchModal({ onClose, onImported }: {
             {loading && [0, 1, 2, 3].map(i => <div key={i} className="lyrics-search-skeleton" />)}
 
             {error && <p className="lyrics-search-msg">{error}</p>}
-            {empty && <p className="lyrics-search-msg">Sin resultados para «{query.trim()}».</p>}
+            {empty && (
+              <div className="lyrics-search-empty">
+                <p className="lyrics-search-msg">
+                  Internet no encontró nada para «{query.trim()}»: solo busca por título y artista, no dentro de la letra.
+                </p>
+                {localCount === null && (
+                  <p className="lyrics-search-msg">Revisando tu biblioteca local…</p>
+                )}
+                {localCount === 0 && (
+                  <p className="lyrics-search-msg">Tampoco hay coincidencias en tu biblioteca local.</p>
+                )}
+                {!!localCount && (
+                  <>
+                    <p className="lyrics-search-msg">
+                      Tu biblioteca local sí busca dentro de la letra: {localCount === 1
+                        ? 'hay 1 canción que la contiene'
+                        : `hay ${localCount} canciones que la contienen`}.
+                    </p>
+                    <button
+                      className="btn-ghost lyrics-search-local-btn"
+                      onClick={() => onSearchLocal?.(query.trim())}
+                    >
+                      <Library size={14} /> Ver en mi biblioteca
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {!loading && !error && !empty && results.length === 0 && (
               <p className="lyrics-search-msg">Escribe para buscar letras en internet.</p>
             )}
