@@ -53,11 +53,12 @@ export default function NoticesView() {
   const [deletingNoticeId, setDeletingNoticeId] = useState<string | null>(null)
 
   // ─── Banda deslizante (ticker) ────────────────────────────────────────────────
-  const [band, setBand] = useState<{ active: boolean; position: 'top' | 'bottom' }>(() => {
+  const [band, setBand] = useState<{ active: boolean; position: 'top' | 'bottom'; speed: number }>(() => {
+    const fallback = { active: false, position: 'bottom' as const, speed: 1 }
     try {
       const raw = localStorage.getItem('proclama-ticker')
-      return raw ? JSON.parse(raw) : { active: false, position: 'bottom' }
-    } catch { return { active: false, position: 'bottom' } }
+      return raw ? { ...fallback, ...JSON.parse(raw) } : fallback
+    } catch { return fallback }
   })
   const tickerText = notices.map(n => n.text).join('       •       ')
 
@@ -65,17 +66,17 @@ export default function NoticesView() {
 
   // Emite el ticker a la proyección cuando cambia el estado o los avisos
   useEffect(() => {
-    sendTickerUpdate({ active: band.active, position: band.position, text: band.active ? tickerText : '' })
-  }, [band.active, band.position, tickerText])
+    sendTickerUpdate({ active: band.active, position: band.position, speed: band.speed, text: band.active ? tickerText : '' })
+  }, [band.active, band.position, band.speed, tickerText])
 
   // Reemite la banda cuando una ventana de proyección recién abierta lo solicita
   useEffect(() => {
     return onMessage((msg) => {
       if (msg.type === 'PROJECTION_READY' && band.active) {
-        sendTickerUpdate({ active: true, position: band.position, text: tickerText })
+        sendTickerUpdate({ active: true, position: band.position, speed: band.speed, text: tickerText })
       }
     })
-  }, [band.active, band.position, tickerText])
+  }, [band.active, band.position, band.speed, tickerText])
 
   function ensureProjection() {
     if (!projectionWindow || projectionWindow.closed) setProjectionWindow(openProjectionWindow())
@@ -168,9 +169,10 @@ export default function NoticesView() {
 
           {/* Control de banda */}
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+            display: 'flex', flexDirection: 'column', gap: 12,
             padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
           }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <ScrollText size={16} color="var(--gold)" />
               <div>
@@ -180,19 +182,41 @@ export default function NoticesView() {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {band.active && !noNotices && (
-                <Segmented
-                  value={band.position}
-                  onChange={pos => setBand(b => ({ ...b, position: pos }))}
-                  options={[
-                    { value: 'top', label: <><PanelTop size={14} /> Arriba</> },
-                    { value: 'bottom', label: <><PanelBottom size={14} /> Abajo</> },
-                  ]}
-                />
-              )}
-              <Switch checked={band.active} disabled={noNotices} onChange={toggleBand} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {band.active && !noNotices && (
+                  <Segmented
+                    value={band.position}
+                    onChange={pos => setBand(b => ({ ...b, position: pos }))}
+                    options={[
+                      { value: 'top', label: <><PanelTop size={14} /> Arriba</> },
+                      { value: 'bottom', label: <><PanelBottom size={14} /> Abajo</> },
+                    ]}
+                  />
+                )}
+                <Switch checked={band.active} disabled={noNotices} onChange={toggleBand} />
+              </div>
             </div>
+
+            {band.active && !noNotices && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label htmlFor="ticker-speed" style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
+                  Velocidad
+                </label>
+                <input
+                  id="ticker-speed"
+                  type="range"
+                  min={0.5}
+                  max={3}
+                  step={0.25}
+                  value={band.speed}
+                  onChange={e => setBand(b => ({ ...b, speed: Number(e.target.value) }))}
+                  style={{ flex: 1, accentColor: 'var(--gold)', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 40, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {band.speed}×
+                </span>
+              </div>
+            )}
           </div>
 
           {showAddForm && (
