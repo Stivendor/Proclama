@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dedupeKey, extractLyrics, cleanTitle, buildResults } from '@/services/lyricsSearch'
+import { titleKey, artistKey, extractLyrics, cleanTitle, buildResults } from '@/services/lyricsSearch'
 import type { LrclibTrack } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
 import mielSanMarcos from './fixtures/lrclib-miel-san-marcos.json'
@@ -21,31 +21,47 @@ function track(over: Partial<LrclibTrack> = {}): LrclibTrack {
   }
 }
 
-describe('dedupeKey', () => {
+describe('titleKey', () => {
   it('corta en el primer | para matar títulos de YouTube', () => {
-    expect(dedupeKey('"BIENVENIDO ESPÍRITU SANTO"  FEAT MARCO BARRIENTOS | VIDEO OFICIAL | MIEL SAN MARCOS'))
+    expect(titleKey('"BIENVENIDO ESPÍRITU SANTO"  FEAT MARCO BARRIENTOS | VIDEO OFICIAL | MIEL SAN MARCOS'))
       .toBe('bienvenido espiritu santo')
   })
 
   it('ignora tildes y mayúsculas', () => {
-    expect(dedupeKey('Espíritu Santo')).toBe(dedupeKey('espiritu santo'))
-  })
-
-  it('conserva los espacios, a diferencia de normalizeSearchText', () => {
-    expect(dedupeKey('Miel San Marcos')).toBe('miel san marcos')
+    expect(titleKey('Espíritu Santo')).toBe(titleKey('espiritu santo'))
   })
 
   it('quita los sufijos de versión', () => {
-    expect(dedupeKey('Bienvenido Espíritu Santo (En Vivo)')).toBe('bienvenido espiritu santo')
-    expect(dedupeKey('Algo (Acústico)')).toBe('algo')
+    expect(titleKey('Bienvenido Espíritu Santo (En Vivo)')).toBe('bienvenido espiritu santo')
+    expect(titleKey('Algo (Acústico)')).toBe('algo')
+  })
+
+  it('no corta en con, coma, viñeta ni ampersand', () => {
+    expect(titleKey('Con Todo Mi Ser')).toBe('con todo mi ser')
+    expect(titleKey('Ven, Espíritu Santo')).toBe('ven espiritu santo')
+    expect(titleKey('Santo, Santo, Santo')).toBe('santo santo santo')
+  })
+
+  it('un título compuesto no colisiona con uno simple', () => {
+    expect(titleKey('Santo, Santo, Santo')).not.toBe(titleKey('Santo'))
+  })
+
+  it('sí corta en feat, que es metadato', () => {
+    expect(titleKey('Hosanna (feat. Hillsong UNITED)')).toBe(titleKey('Hosanna'))
+  })
+})
+
+describe('artistKey', () => {
+  it('conserva los espacios, a diferencia de normalizeSearchText', () => {
+    expect(artistKey('Miel San Marcos')).toBe('miel san marcos')
   })
 
   it('se queda con el artista principal en las cuatro formas de lrclib', () => {
     const esperado = 'miel san marcos'
-    expect(dedupeKey('Miel San Marcos')).toBe(esperado)
-    expect(dedupeKey('Miel San Marcos feat. Marco Barrientos')).toBe(esperado)
-    expect(dedupeKey('Miel San Marcos • Marco Barrientos')).toBe(esperado)
-    expect(dedupeKey('Miel San Marcos, Marco Barrientos')).toBe(esperado)
+    expect(artistKey('Miel San Marcos')).toBe(esperado)
+    expect(artistKey('Miel San Marcos feat. Marco Barrientos')).toBe(esperado)
+    expect(artistKey('Miel San Marcos • Marco Barrientos')).toBe(esperado)
+    expect(artistKey('Miel San Marcos, Marco Barrientos')).toBe(esperado)
   })
 })
 
