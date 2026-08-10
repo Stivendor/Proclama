@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { titleKey, artistKey, extractLyrics, cleanTitle, buildResults } from '@/services/lyricsSearch'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { titleKey, artistKey, extractLyrics, cleanTitle, buildResults, searchLrclib } from '@/services/lyricsSearch'
 import type { LrclibTrack } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
 import mielSanMarcos from './fixtures/lrclib-miel-san-marcos.json'
@@ -164,5 +164,37 @@ describe('buildResults', () => {
   it('la letra resultante se parte en más de un slide', () => {
     const out = buildResults(duro, new Set())
     expect(parseLyrics(out[0].lyrics).length).toBeGreaterThan(1)
+  })
+})
+
+describe('searchLrclib', () => {
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('pide a lrclib con la query codificada y la cabecera de cliente', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await searchLrclib('santo espíritu')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://lrclib.net/api/search?q=santo%20esp%C3%ADritu')
+    expect(init.headers['Lrclib-Client']).toContain('Proclama')
+  })
+
+  it('lanza si la respuesta no es ok', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }))
+    await expect(searchLrclib('algo')).rejects.toThrow('503')
+  })
+
+  it('propaga el abort de quien llama', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, init) =>
+      new Promise((_resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+      })
+    ))
+    const ctrl = new AbortController()
+    const promesa = searchLrclib('algo', ctrl.signal)
+    ctrl.abort()
+    await expect(promesa).rejects.toThrow(/abort/i)
   })
 })

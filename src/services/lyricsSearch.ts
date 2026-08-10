@@ -157,3 +157,24 @@ export function buildResults(tracks: LrclibTrack[], knownArtists: Set<string>): 
     ...resultados.filter(r => !r.knownArtist),
   ]
 }
+
+const LRCLIB_URL = 'https://lrclib.net/api/search'
+/** lrclib no tiene rate limit, pero una petición colgada bloquea el modal. */
+const TIMEOUT_MS = 6000
+
+/**
+ * Un único fetch por búsqueda: /api/search ya devuelve `plainLyrics` inline,
+ * así que elegir un resultado no vuelve a tocar la red. La v1 hacía un segundo
+ * viaje a /api/get y por eso se sentía lenta.
+ */
+export async function searchLrclib(query: string, signal?: AbortSignal): Promise<LrclibTrack[]> {
+  const timeout = AbortSignal.timeout(TIMEOUT_MS)
+  const combinado = signal ? AbortSignal.any([signal, timeout]) : timeout
+
+  const res = await fetch(`${LRCLIB_URL}?q=${encodeURIComponent(query)}`, {
+    headers: { 'Lrclib-Client': 'Proclama/2.0 (https://proclama.app)' },
+    signal: combinado,
+  })
+  if (!res.ok) throw new Error(`lrclib respondió ${res.status}`)
+  return (await res.json()) as LrclibTrack[]
+}
