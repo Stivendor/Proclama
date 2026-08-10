@@ -163,18 +163,49 @@ const LRCLIB_URL = 'https://lrclib.net/api/search'
 const TIMEOUT_MS = 6000
 
 /**
+ * Combina la señal de quien llama con un vencimiento propio.
+ *
+ * `AbortSignal.any` es de 2024 (Safari 17.4, Firefox 124): en un iPad viejo de
+ * iglesia, que es justo el público de esta app, no existe y `searchLrclib`
+ * lanzaría en la primera línea siempre, sin degradar. Si no está disponible,
+ * se combina a mano con un AbortController propio, sin depender tampoco de
+ * `AbortSignal.timeout` (misma familia de API, mismo riesgo de ausencia).
+ */
+function combinarSenales(signal: AbortSignal | undefined, timeoutMs: number): { signal: AbortSignal; limpiar: () => void } {
+  if (typeof AbortSignal.any === 'function') {
+    const timeout = AbortSignal.timeout(timeoutMs)
+    const combinado = signal ? AbortSignal.any([signal, timeout]) : timeout
+    return { signal: combinado, limpiar: () => {} }
+  }
+
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  const onAbort = () => ctrl.abort()
+  signal?.addEventListener('abort', onAbort)
+  return {
+    signal: ctrl.signal,
+    limpiar: () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+    },
+  }
+}
+
+/**
  * Un único fetch por búsqueda: /api/search ya devuelve `plainLyrics` inline,
  * así que elegir un resultado no vuelve a tocar la red. La v1 hacía un segundo
  * viaje a /api/get y por eso se sentía lenta.
  */
 export async function searchLrclib(query: string, signal?: AbortSignal): Promise<LrclibTrack[]> {
-  const timeout = AbortSignal.timeout(TIMEOUT_MS)
-  const combinado = signal ? AbortSignal.any([signal, timeout]) : timeout
-
-  const res = await fetch(`${LRCLIB_URL}?q=${encodeURIComponent(query)}`, {
-    headers: { 'Lrclib-Client': 'Proclama/2.0 (https://proclama.app)' },
-    signal: combinado,
-  })
-  if (!res.ok) throw new Error(`lrclib respondió ${res.status}`)
-  return (await res.json()) as LrclibTrack[]
+  const { signal: combinado, limpiar } = combinarSenales(signal, TIMEOUT_MS)
+  try {
+    const res = await fetch(`${LRCLIB_URL}?q=${encodeURIComponent(query)}`, {
+      headers: { 'Lrclib-Client': 'Proclama/2.0 (https://proclama.lat)' },
+      signal: combinado,
+    })
+    if (!res.ok) throw new Error(`lrclib respondió ${res.status}`)
+    return (await res.json()) as LrclibTrack[]
+  } finally {
+    limpiar()
+  }
 }

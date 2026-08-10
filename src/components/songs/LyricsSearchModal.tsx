@@ -6,7 +6,11 @@ import type { LyricsResult } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
 import { useAppStore } from '@/stores'
 
-export default function LyricsSearchModal({ onClose }: { onClose: () => void }) {
+export default function LyricsSearchModal({ onClose, onImported }: {
+  onClose: () => void
+  /** Avisa al padre del título recién importado, para que pueda mostrar aviso y hacerlo encontrable. */
+  onImported?: (titulo: string) => void
+}) {
   const { query, setQuery, results, loading, error, empty } = useLyricsSearch()
   const user = useAppStore(s => s.user)
   const [selected, setSelected] = useState<LyricsResult | null>(null)
@@ -40,6 +44,7 @@ export default function LyricsSearchModal({ onClose }: { onClose: () => void }) 
     try {
       await importLyricsResult(selected, user?.id ?? null)
       setImported(prev => new Set(prev).add(selected.id))
+      onImported?.(selected.title)
     } catch {
       // La subida a Supabase ya falla en silencio dentro de importLyricsResult
       // (RLS de plan free: la canción se queda en local, sin error). Si llegamos

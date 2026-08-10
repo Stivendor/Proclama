@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { titleKey, artistKey, extractLyrics, cleanTitle, buildResults, searchLrclib } from '@/services/lyricsSearch'
 import type { LrclibTrack } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
@@ -196,5 +196,34 @@ describe('searchLrclib', () => {
     const promesa = searchLrclib('algo', ctrl.signal)
     ctrl.abort()
     await expect(promesa).rejects.toThrow(/abort/i)
+  })
+
+  describe('sin AbortSignal.any (Safari < 17.4, Firefox < 124)', () => {
+    let original: typeof AbortSignal.any
+
+    beforeEach(() => {
+      original = AbortSignal.any
+      // @ts-expect-error simulamos un runtime que no lo tiene
+      AbortSignal.any = undefined
+    })
+
+    afterEach(() => { AbortSignal.any = original })
+
+    it('sigue funcionando con el respaldo manual', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }))
+      await expect(searchLrclib('algo')).resolves.toEqual([])
+    })
+
+    it('el abort de quien llama se sigue propagando', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, init) =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        })
+      ))
+      const ctrl = new AbortController()
+      const promesa = searchLrclib('algo', ctrl.signal)
+      ctrl.abort()
+      await expect(promesa).rejects.toThrow(/abort/i)
+    })
   })
 })

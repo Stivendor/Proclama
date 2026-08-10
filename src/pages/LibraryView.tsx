@@ -70,6 +70,12 @@ export default function LibraryView() {
       const escribiendo = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
+        // Se lee de forma imperativa (no como dependencia del efecto) porque el
+        // listener debe quedar montado siempre para ganarle la carrera al atajo
+        // nativo del navegador. Si el editor de canciones está abierto, este modal
+        // montaría por debajo de su overlay (z-index más alto) y le robaría el
+        // foco al campo del editor sin que el usuario vea nada.
+        if (useAppStore.getState().isEditorOpen) return
         setShowOnlineSearch(true)
       } else if (e.key === '/' && !escribiendo) {
         e.preventDefault()
@@ -83,6 +89,7 @@ export default function LibraryView() {
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [importStatus, setImportStatus] = useState<string | null>(null)
+  const [lastOnlineImport, setLastOnlineImport] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -437,6 +444,25 @@ export default function LibraryView() {
     setTimeout(() => setImportStatus(null), 4000)
   }
 
+  /** El modal de búsqueda online avisa aquí de cada import. Guardamos solo el
+   *  último título: al cerrar el modal es el que deja el filtro apuntando. */
+  const handleOnlineImported = (titulo: string) => {
+    setLastOnlineImport(titulo)
+    setImportStatus(`✅ "${titulo}" importada — enviada a revisión de la comunidad`)
+    setTimeout(() => setImportStatus(null), 4000)
+  }
+
+  /** Al cerrar el buscador online, si hubo algún import, deja el filtro local
+   *  apuntando a la última canción importada: si no, queda enterrada bajo más
+   *  de 3000 canciones (usageCount 0) y el usuario no la encuentra. */
+  const closeOnlineSearch = () => {
+    setShowOnlineSearch(false)
+    if (lastOnlineImport) {
+      setLocalSearch(lastOnlineImport)
+      setLastOnlineImport(null)
+    }
+  }
+
   const handlePublish = async (song: Song) => {
     if (!user?.id) {
       setImportStatus('Inicia sesión para poder publicar canciones en la comunidad')
@@ -667,7 +693,9 @@ export default function LibraryView() {
         />
       )}
 
-      {showOnlineSearch && <LyricsSearchModal onClose={() => setShowOnlineSearch(false)} />}
+      {showOnlineSearch && (
+        <LyricsSearchModal onClose={closeOnlineSearch} onImported={handleOnlineImported} />
+      )}
 
       {importStatus && (
         <div role="status" aria-live="polite" style={{
