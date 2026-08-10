@@ -1,7 +1,20 @@
 # Buscador de letras online (v2)
 
 Fecha: 2026-08-10
-Estado: diseño aprobado, pendiente de plan de implementación
+Estado: implementado en la rama `feat/buscador-letras-online`, pendiente del recorrido manual en navegador
+
+Lo que la implementación cambió respecto a este documento, y que manda sobre él:
+
+- La clave de deduplicación se partió en `titleKey` y `artistKey`. Aplicar el corte
+  de artista secundario también al título es un bug en español: `Con Todo Mi Ser`
+  daba clave vacía. Ver la sección «Clave de deduplicación».
+- El import vive en `src/services/lyricsImport.ts`, no en `lyricsSearch.ts`, para
+  que este último no dependa de Dexie ni de Supabase.
+- La caché del hook guarda la respuesta cruda de lrclib, no los resultados ya
+  construidos. Repetir una query no toca la red pero sí pasa por el debounce de
+  300 ms: ya no es instantánea.
+- Fueron cuatro migraciones, no una. Las tres extra cierran el lado de escritura
+  de la cola de aprobación. Ver «Seguridad» y `docs/SUPABASE.md`.
 
 ## Por qué
 
