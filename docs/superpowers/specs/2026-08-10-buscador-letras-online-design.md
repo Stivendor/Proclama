@@ -153,7 +153,8 @@ esta cadena de funciones puras:
    `src/services/lyricsParser.ts:68` y quita acordes, watermarks de Genius y
    números sueltos.
 3. **Clave de deduplicación.** Es el paso que más importa y el que la v1 no acertó.
-   Para título y artista por separado:
+
+   Base común a título y artista:
    - Quedarse con el texto **anterior al primer `|`**. Corta los títulos de YouTube
      de raíz, sin necesidad de una lista de basura conocida.
    - Minúsculas y sin tildes. **No sirve `normalizeSearchText()`** de
@@ -163,10 +164,21 @@ esta cadena de funciones puras:
    - Quitar los sufijos de versión `(En Vivo)`, `(Live)`, `(Acústico)`, `(En Directo)`.
      Para proyectar, la versión en vivo y la de estudio tienen la misma letra: son
      duplicados desde el punto de vista del usuario.
-   - Quedarse con el **artista principal**, cortando en `feat`, `ft`, `con`, `,`,
-     `•` o `&`. Esta es la clave: lrclib devuelve el mismo artista en cuatro formas
-     distintas y sin esto el dedupe no llega a nada.
-   - Quitar todo lo que no sea alfanumérico o espacio, y colapsar espacios.
+
+   Y después, **distinto para cada uno**:
+   - **Artista**: quedarse con el principal, cortando en `feat`, `ft`, `con`, `,`,
+     `•` o `&`. Esta es la clave del dedupe: lrclib devuelve el mismo artista en
+     cuatro formas distintas y sin esto no se colapsa nada.
+   - **Título**: cortar **solo** desde `feat` o `ft` en adelante. Aplicarle al
+     título los seis separadores del artista es un error: `Con Todo Mi Ser` daría
+     clave vacía y colisionaría con cualquier otro título que empiece por «Con»;
+     `Santo, Santo, Santo` colapsaría contra una canción distinta llamada `Santo`.
+     En español esos separadores son parte del título, no metadatos. Cortar en
+     `feat` sí hace falta, y basta: es lo que fusiona `Hosanna` con
+     `Hosanna (feat. Hillsong UNITED)`.
+
+   Por último, en ambos: quitar todo lo que no sea alfanumérico o espacio, y
+   colapsar espacios.
 4. **Descartar registros malformados**: si la clave del artista es idéntica a la del
    título, el campo `artistName` es basura (típicamente un título de YouTube
    completo). Se descarta **solo si otra entrada comparte la clave de título**, para
@@ -349,8 +361,13 @@ el 2026-08-10 y guardados en `src/test/fixtures/`:
 Cubre:
 
 - El fixture duro colapsa a 1 resultado; el fixture blando conserva 19.
-- La clave de deduplicación corta en el primer `|`, ignora tildes, ignora los
-  sufijos de versión y se queda con el artista principal.
+- La clave de deduplicación corta en el primer `|`, ignora tildes e ignora los
+  sufijos de versión.
+- La clave de artista se queda con el artista principal en las cuatro formas que
+  devuelve lrclib.
+- La clave de título **no** corta en `con`, `,`, `•` ni `&`: `Con Todo Mi Ser`,
+  `Ven, Espíritu Santo` y `Santo, Santo, Santo` conservan el título entero, y este
+  último no colisiona con `Santo`.
 - El registro malformado (clave de artista == clave de título) se descarta cuando
   otro comparte el título, y **sobrevive** cuando es el único resultado.
 - De un grupo duplicado gana la entrada con la letra más larga.

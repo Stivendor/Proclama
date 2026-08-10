@@ -29,6 +29,8 @@
 
 Deduplicación, limpieza y ranking. Todo funciones puras: sin red, sin React, sin Dexie. Es el corazón de la feature y el único sitio donde se corrigen los defectos de la v1.
 
+> **Corregido tras la revisión de esta task (fix round 1).** El código de más abajo usa una única `dedupeKey` para títulos y para artistas, y eso es un bug: cortar el **título** en `con`, `,`, `•` o `&` hace que `Con Todo Mi Ser` dé clave vacía y que `Santo, Santo, Santo` colisione con `Santo`. La implementación final separa `titleKey` (corta solo en `feat`/`ft`) de `artistKey` (corta en los seis separadores). Los números verificados no cambian: 8 → 1 y 20 → 19. Ver el spec, sección «Clave de deduplicación», y `src/services/lyricsSearch.ts`, que manda sobre el bloque de código de abajo.
+
 **Files:**
 - Create: `src/services/lyricsSearch.ts`
 - Test: `src/test/lyricsSearch.test.ts`
@@ -583,7 +585,7 @@ ninguna canción existente."
   - `fetchCommunityArtists(): Promise<string[]>` — nombres **en crudo**, tal cual salen de la base.
   - `PremiumInterestSource` incluye `'online_search'`.
 
-> **Ojo con el ciclo de imports.** `fetchCommunityArtists` devuelve strings sin normalizar a propósito: `lyricsSearch.ts` importa `createSong` de `supabase.ts`, así que si `supabase.ts` importase `dedupeKey` de `lyricsSearch.ts` se cerraría un ciclo. La normalización con `dedupeKey` la hace quien consume, en el hook de la Task 6.
+> **Ojo con el ciclo de imports.** `fetchCommunityArtists` devuelve strings sin normalizar a propósito: `lyricsSearch.ts` importa `createSong` de `supabase.ts`, así que si `supabase.ts` importase `artistKey` de `lyricsSearch.ts` se cerraría un ciclo. La normalización con `artistKey` la hace quien consume, en el hook de la Task 6.
 
 - [ ] **Step 1: Añadir `is_verified` solo a la rama pública de `fetchSongs`**
 
@@ -635,7 +637,7 @@ Añadir en `src/services/supabase.ts`, junto al resto de funciones de songs:
  * devuelve una lista vacía y los resultados salen en el orden de lrclib.
  *
  * Devuelve los nombres sin normalizar a propósito: normalizarlos aquí obligaría
- * a importar dedupeKey de lyricsSearch.ts, que a su vez importa createSong de
+ * a importar artistKey de lyricsSearch.ts, que a su vez importa createSong de
  * este archivo. Lo normaliza quien consume.
  */
 export async function fetchCommunityArtists(): Promise<string[]> {
@@ -648,7 +650,7 @@ export async function fetchCommunityArtists(): Promise<string[]> {
 }
 ```
 
-**No añadir ningún import nuevo a `supabase.ts`.** Si acabas escribiendo `import { dedupeKey } from '@/services/lyricsSearch'` aquí, has creado el ciclo que esta task evita.
+**No añadir ningún import nuevo a `supabase.ts`.** Si acabas escribiendo `import { artistKey } from '@/services/lyricsSearch'` aquí, has creado el ciclo que esta task evita.
 
 - [ ] **Step 4: Añadir la fuente de medición**
 
@@ -871,7 +873,7 @@ git commit -m "feat(buscador): importLyricsResult, Dexie primero para proyectar 
 - Create: `src/hooks/useLyricsSearch.ts`
 
 **Interfaces:**
-- Consumes: `searchLrclib`, `buildResults`, `dedupeKey`, `LyricsResult` (Tasks 1-2); `fetchCommunityArtists` (Task 4); `db` de `@/db`.
+- Consumes: `searchLrclib`, `buildResults`, `titleKey`, `artistKey`, `LyricsResult` (Tasks 1-2); `fetchCommunityArtists` (Task 4); `db` de `@/db`.
 - Produces:
 
 ```ts
@@ -893,7 +895,7 @@ Crear `src/hooks/useLyricsSearch.ts`:
 
 ```ts
 import { useState, useEffect, useRef } from 'react'
-import { searchLrclib, buildResults, dedupeKey } from '@/services/lyricsSearch'
+import { searchLrclib, buildResults, titleKey, artistKey } from '@/services/lyricsSearch'
 import type { LyricsResult } from '@/services/lyricsSearch'
 import { fetchCommunityArtists } from '@/services/supabase'
 import { db } from '@/db'
@@ -925,7 +927,7 @@ export function useLyricsSearch() {
   useEffect(() => {
     let vivo = true
     fetchCommunityArtists().then(nombres => {
-      if (vivo) artists.current = new Set(nombres.map(dedupeKey))
+      if (vivo) artists.current = new Set(nombres.map(artistKey))
     })
     return () => { vivo = false }
   }, [])
@@ -963,10 +965,10 @@ export function useLyricsSearch() {
 
         // Marcar lo que el usuario ya tiene, para no importarlo dos veces.
         const locales = await db.songs.toArray()
-        const claves = new Set(locales.map(s => `${dedupeKey(s.title)}|${dedupeKey(s.artist || '')}`))
+        const claves = new Set(locales.map(s => `${titleKey(s.title)}|${artistKey(s.artist || '')}`))
         const marcados = base.map(r => ({
           ...r,
-          alreadyInLibrary: claves.has(`${dedupeKey(r.title)}|${dedupeKey(r.artist)}`),
+          alreadyInLibrary: claves.has(`${titleKey(r.title)}|${artistKey(r.artist)}`),
         }))
 
         if (ctrl.signal.aborted) return
