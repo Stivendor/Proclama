@@ -177,8 +177,20 @@ describe('searchLrclib', () => {
     await searchLrclib('santo espíritu')
 
     const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('https://lrclib.net/api/search?q=santo%20esp%C3%ADritu')
+    // El índice de lrclib está plegado a ASCII: la query también viaja plegada.
+    expect(url).toBe('https://lrclib.net/api/search?q=santo%20espiritu')
     expect(init.headers['Lrclib-Client']).toContain('Proclama')
+  })
+
+  it('pliega tildes y eñes antes de mandar la query a lrclib', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await searchLrclib('renuévame')
+    expect(fetchMock.mock.calls[0][0]).toBe('https://lrclib.net/api/search?q=renuevame')
+
+    await searchLrclib('el señor')
+    expect(fetchMock.mock.calls[1][0]).toBe('https://lrclib.net/api/search?q=el%20senor')
   })
 
   it('lanza si la respuesta no es ok', async () => {

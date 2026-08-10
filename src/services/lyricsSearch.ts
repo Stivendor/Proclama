@@ -163,6 +163,26 @@ const LRCLIB_URL = 'https://lrclib.net/api/search'
 const TIMEOUT_MS = 6000
 
 /**
+ * Pliega tildes/diéresis antes de mandar la query a lrclib.
+ *
+ * El índice de búsqueda de lrclib está plegado a ASCII (a él le da igual
+ * «senor» o «señor»), pero la consulta que le mandamos no se pliega sola:
+ * si el usuario escribe «renuévame» o «el señor es mi pastor» tal cual,
+ * con tilde o ñ, lrclib devuelve cero resultados aunque la canción exista.
+ * Sin este paso una búsqueda escrita correctamente en español se queda sin
+ * nada — no lo borres pensando que es redundante con `baseKey`, esa función
+ * normaliza para deduplicar resultados, esta pliega lo que sale hacia la red.
+ * Verificado contra la API real: la versión plegada nunca da menos
+ * resultados que la acentuada.
+ */
+function plegarParaLrclib(query: string): string {
+  // Regex construida con new RegExp (no literal /.../): el rango de marcas
+  // combinantes U+0300-U+036F, tecleado como literal, degrada a caracteres
+  // combinantes reales en este editor — ya pasó varias veces en este archivo.
+  return query.normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+}
+
+/**
  * Combina la señal de quien llama con un vencimiento propio.
  *
  * `AbortSignal.any` es de 2024 (Safari 17.4, Firefox 124): en un iPad viejo de
@@ -200,7 +220,7 @@ function combinarSenales(signal: AbortSignal | undefined, timeoutMs: number): { 
 export async function searchLrclib(query: string, signal?: AbortSignal): Promise<LrclibTrack[]> {
   const { signal: combinado, limpiar } = combinarSenales(signal, TIMEOUT_MS)
   try {
-    const res = await fetch(`${LRCLIB_URL}?q=${encodeURIComponent(query)}`, {
+    const res = await fetch(`${LRCLIB_URL}?q=${encodeURIComponent(plegarParaLrclib(query))}`, {
       headers: { 'Lrclib-Client': 'Proclama/2.0 (https://proclama.lat)' },
       signal: combinado,
     })
