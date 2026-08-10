@@ -616,7 +616,7 @@ Borrar entera la función `searchSongs` (desde el comentario `/** Busca cancione
 
 Comprobar que de verdad no queda nada:
 
-Run: `pnpm grep -rn "searchSongs\|search_songs_community" src/ || grep -rn "searchSongs\|search_songs_community" src/`
+Run: `grep -rn "searchSongs\|search_songs_community" src/`
 Expected: sin resultados.
 
 Si `sanitizeSearchTerm` se queda sin usar tras el borrado, borrarla también.
@@ -683,23 +683,43 @@ git commit -m "feat(buscador): is_verified en fetchSongs, fetchCommunityArtists 
 
 ### Task 5: `importLyricsResult()` — de resultado a canción proyectable
 
+Va en **archivo propio**, no en `lyricsSearch.ts`. Dos razones: `lyricsSearch.ts` se queda puro más un fetch, así que sus tests no necesitan mockear ni Dexie ni Supabase; y ningún archivo importa a otro en las dos direcciones, con lo que el ciclo que la Task 4 evita no puede reaparecer por aquí.
+
 **Files:**
-- Modify: `src/services/lyricsSearch.ts` (añadir al final)
-- Test: `src/test/lyricsSearch.test.ts` (añadir un `describe`)
+- Create: `src/services/lyricsImport.ts`
+- Test: `src/test/lyricsImport.test.ts`
 
 **Interfaces:**
 - Consumes: `LyricsResult` (Task 1), `db` de `@/db`, `createSong` de `@/services/supabase`, `detectLanguage` de `@/services/languageUtils`.
 - Produces: `importLyricsResult(result: LyricsResult, userId: string | null): Promise<Song>`
 
+> **Mockear Dexie, no instalar nada.** jsdom no trae IndexedDB, pero el repo ya resuelve esto con `vi.mock('@/db', …)` — ver `src/test/SongEditorModal.test.tsx:10`. Seguir ese patrón. **No añadir `fake-indexeddb`** ni ninguna otra dependencia: choca con la restricción global de cero dependencias nuevas.
+
 - [ ] **Step 1: Escribir el test que falla**
 
-Añadir a `src/test/lyricsSearch.test.ts`:
+Crear `src/test/lyricsImport.test.ts`:
 
 ```ts
-import { importLyricsResult } from '@/services/lyricsSearch'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { db } from '@/db'
+import { createSong } from '@/services/supabase'
+import { importLyricsResult } from '@/services/lyricsImport'
+import type { LyricsResult } from '@/services/lyricsSearch'
 
-const resultado = {
+vi.mock('@/db', () => ({
+  db: {
+    songs: {
+      add: vi.fn().mockResolvedValue(77),
+      update: vi.fn().mockResolvedValue(1),
+    },
+  },
+}))
+
+vi.mock('@/services/supabase', () => ({
+  createSong: vi.fn().mockResolvedValue(null),
+}))
+
+const resultado: LyricsResult = {
   id: 42,
   title: 'Bienvenido Espíritu Santo',
   artist: 'Miel San Marcos',
@@ -709,14 +729,14 @@ const resultado = {
 }
 
 describe('importLyricsResult', () => {
-  afterEach(async () => { await db.songs.clear() })
+  beforeEach(() => { vi.clearAllMocks() })
 
-  it('en modo invitado guarda solo en Dexie y queda proyectable', async () => {
+  it('escribe en Dexie con el id local devuelto', async () => {
     const song = await importLyricsResult(resultado, null)
-    expect(song.id).toBeDefined()
-    const guardada = await db.songs.get(song.id!)
-    expect(guardada?.title).toBe('Bienvenido Espíritu Santo')
-    expect(guardada?.lyrics).toContain('Espíritu Santo')
+    expect(db.songs.add).toHaveBeenCalledOnce()
+    expect(song.id).toBe(77)
+    expect(song.title).toBe('Bienvenido Espíritu Santo')
+    expect(song.lyrics).toContain('Espíritu Santo')
   })
 
   it('entra invisible para terceros y encolada para aprobación', async () => {
@@ -730,29 +750,51 @@ describe('importLyricsResult', () => {
     expect(song.sourceUrl).toContain('lrclib.net')
     expect(song.sourceUrl).toContain('42')
   })
+
+  it('en modo invitado no toca Supabase', async () => {
+    await importLyricsResult(resultado, null)
+    expect(createSong).not.toHaveBeenCalled()
+  })
+
+  it('con sesión sube a Supabase y guarda el remoteId', async () => {
+    vi.mocked(createSong).mockResolvedValueOnce({ remoteId: 900 } as never)
+    await importLyricsResult(resultado, 'uuid-del-usuario')
+    expect(createSong).toHaveBeenCalledOnce()
+    expect(db.songs.update).toHaveBeenCalledWith(77, { remoteId: 900 })
+  })
+
+  it('si el upload falla la canción sigue en local y no lanza', async () => {
+    vi.mocked(createSong).mockResolvedValueOnce(null)
+    const song = await importLyricsResult(resultado, 'uuid-del-usuario')
+    expect(song.id).toBe(77)
+    expect(db.songs.update).not.toHaveBeenCalled()
+  })
 })
 ```
 
+El último test es el que cubre a los usuarios en plan `free`: `songs_insert_premium` les rechaza el `INSERT`, `createSong` devuelve `null`, y la canción tiene que quedar igualmente usable en local.
+
 - [ ] **Step 2: Ejecutar y comprobar que falla**
 
-Run: `pnpm vitest --run src/test/lyricsSearch.test.ts -t "importLyricsResult"`
-Expected: FAIL — `importLyricsResult is not a function`
+Run: `pnpm vitest --run src/test/lyricsImport.test.ts`
+Expected: FAIL — `Failed to resolve import "@/services/lyricsImport"`
 
 - [ ] **Step 3: Implementar**
 
-Añadir al final de `src/services/lyricsSearch.ts`:
+Crear `src/services/lyricsImport.ts`:
 
 ```ts
 import { db } from '@/db'
 import { createSong } from '@/services/supabase'
 import { detectLanguage } from '@/services/languageUtils'
+import type { LyricsResult } from '@/services/lyricsSearch'
 import type { Song } from '@/types'
 
 /**
- * Importa un resultado a la biblioteca del usuario.
+ * Importa un resultado del buscador online a la biblioteca del usuario.
  *
- * Dexie primero, a propósito: la canción tiene que ser proyectable al instante,
- * sin conexión y sin esperar a la aprobación del admin.
+ * Dexie primero, a propósito: la canción tiene que ser proyectable al
+ * instante, sin conexión y sin esperar la aprobación del admin.
  *
  * is_public=true + is_verified=false significa «invisible para terceros» desde
  * la migración 20260810000000, y es exactamente lo que PendingSongsPage ya
@@ -760,8 +802,12 @@ import type { Song } from '@/types'
  *
  * El upload puede fallar por RLS: songs_insert_premium exige is_premium(), que
  * mira profiles.plan y no sigue a FOUNDING_PHASE. Para un usuario en plan
- * `free` la canción se queda en local y no llega a la cola. Es el
- * comportamiento aceptado, no un error que mostrar.
+ * `free`, createSong devuelve null, la canción se queda en local y no llega a
+ * la cola. Es el comportamiento aceptado, no un error que mostrar: desde su
+ * punto de vista no ha fallado nada.
+ *
+ * Vive en su propio archivo para que lyricsSearch.ts siga sin depender de
+ * Dexie ni de Supabase.
  */
 export async function importLyricsResult(
   result: LyricsResult,
@@ -797,15 +843,23 @@ export async function importLyricsResult(
 
 - [ ] **Step 4: Ejecutar y comprobar que pasan**
 
-Run: `pnpm vitest --run src/test/lyricsSearch.test.ts`
-Expected: PASS, 25 tests.
+Run: `pnpm vitest --run src/test/lyricsImport.test.ts`
+Expected: PASS, 6 tests.
 
-Si Dexie protesta en jsdom por falta de IndexedDB, añadir `fake-indexeddb` a las dev-dependencies con `pnpm add -D fake-indexeddb` e importar `'fake-indexeddb/auto'` al principio de `src/test/setup.ts`. Es la única dependencia nueva que este plan permite, y solo de desarrollo.
+- [ ] **Step 5: Comprobar que no se añadió ninguna dependencia**
 
-- [ ] **Step 5: Commit**
+Run: `git diff --stat package.json pnpm-lock.yaml`
+Expected: sin cambios. Si aparece algo, deshacerlo: el patrón `vi.mock('@/db')` no necesita paquetes nuevos.
+
+- [ ] **Step 6: Comprobar tipos y suite completa**
+
+Run: `pnpm tsc --noEmit && pnpm test`
+Expected: sin errores; toda la suite en verde.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/services/lyricsSearch.ts src/test/lyricsSearch.test.ts package.json pnpm-lock.yaml src/test/setup.ts
+git add src/services/lyricsImport.ts src/test/lyricsImport.test.ts
 git commit -m "feat(buscador): importLyricsResult, Dexie primero para proyectar sin aprobación"
 ```
 
@@ -966,7 +1020,7 @@ git commit -m "feat(buscador): hook useLyricsSearch con debounce, abort y caché
 - Modify: `src/styles/library.css` (añadir al final)
 
 **Interfaces:**
-- Consumes: `useLyricsSearch` (Task 6), `importLyricsResult` (Task 5), `parseLyrics` de `@/services/lyricsParser`, `useAppStore` de `@/stores`.
+- Consumes: `useLyricsSearch` (Task 6), `importLyricsResult` de `@/services/lyricsImport` (Task 5), `parseLyrics` de `@/services/lyricsParser`, `useAppStore` de `@/stores`.
 - Produces: `export default function LyricsSearchModal({ onClose }: { onClose: () => void })`
 
 - [ ] **Step 1: Escribir el componente**
@@ -977,7 +1031,7 @@ Crear `src/components/songs/LyricsSearchModal.tsx`:
 import { useState, useEffect, useRef } from 'react'
 import { Search, Download, Check, Music2, X, Loader2 } from 'lucide-react'
 import { useLyricsSearch } from '@/hooks/useLyricsSearch'
-import { importLyricsResult } from '@/services/lyricsSearch'
+import { importLyricsResult } from '@/services/lyricsImport'
 import type { LyricsResult } from '@/services/lyricsSearch'
 import { parseLyrics } from '@/services/lyricsParser'
 import { useAppStore } from '@/stores'
