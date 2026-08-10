@@ -80,6 +80,19 @@ export function titleKey(raw: string): string {
   return finalize(baseKey(raw).replace(COLABORACION, ''))
 }
 
+/**
+ * Un registro malformado es aquel cuyo `artistName` es una copia del
+ * `trackName` — típicamente un título de YouTube volcado en los dos campos.
+ *
+ * Compara los dos campos con la MISMA normalización a propósito. Usar
+ * `titleKey` en uno y `artistKey` en el otro rompe la simetría: para un
+ * título con coma, `artistKey` corta donde `titleKey` no, las claves
+ * difieren y la basura se cuela.
+ */
+function esMalformado(track: LrclibTrack): boolean {
+  return finalize(baseKey(track.trackName)) === finalize(baseKey(track.artistName))
+}
+
 /** Letra utilizable, o cadena vacía si no hay ninguna. */
 export function extractLyrics(track: LrclibTrack): string {
   const crudo = track.plainLyrics || (track.syncedLyrics || '').replace(TIMESTAMP, '')
@@ -117,8 +130,7 @@ export function buildResults(tracks: LrclibTrack[], knownArtists: Set<string>): 
   }
   const limpios = conLetra.filter(x => {
     const kt = titleKey(x.track.trackName)
-    const ka = artistKey(x.track.artistName)
-    return !(kt === ka && (porTitulo.get(kt) ?? 0) > 1)
+    return !(esMalformado(x.track) && (porTitulo.get(kt) ?? 0) > 1)
   })
 
   // 3. Deduplicar. De cada grupo gana la letra más larga.

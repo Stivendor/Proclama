@@ -120,6 +120,20 @@ describe('buildResults', () => {
     expect(out).toHaveLength(1)
   })
 
+  it('detecta el registro malformado aunque el título lleve coma', () => {
+    const basura = 'Cristo, Rey y Salvador | VIDEO OFICIAL'
+    const out = buildResults([
+      track({ id: 1, trackName: basura, artistName: basura }),
+      track({ id: 2, trackName: 'Cristo, Rey y Salvador', artistName: 'Coro IPUC' }),
+    ], new Set())
+    expect(out.map(r => r.id)).toEqual([2])
+  })
+
+  it('un registro malformado con coma sobrevive si es el único', () => {
+    const basura = 'Cristo, Rey y Salvador | VIDEO OFICIAL'
+    expect(buildResults([track({ id: 1, trackName: basura, artistName: basura })], new Set())).toHaveLength(1)
+  })
+
   it('de un grupo duplicado gana la letra más larga', () => {
     const out = buildResults([
       track({ id: 1, trackName: 'Santo', artistName: 'Coro', plainLyrics: 'corta' }),
