@@ -255,7 +255,12 @@
 .preview-slide-btn span:not(.slide-label-mini) { font-size: 12px; color: var(--text-secondary); }
 
 /* ── Buscador de letras online ─────────────────────────────────────────── */
-.lyrics-search-modal { width: min(860px, 94vw); height: min(560px, 86vh); display: flex; flex-direction: column; }
+/* Doble clase para ganarle en especificidad a `.modal` de settings-modals.css
+   (misma especificidad de una sola clase, pero esa hoja se importa después de
+   library.css). También fija max-height: sin esto, el max-height:85vh de
+   `.modal` seguiría aplicando por ser una propiedad distinta y recortaría
+   un pixel antes que nuestro propio 86vh. */
+.modal.lyrics-search-modal { width: min(860px, 94vw); height: min(560px, 86vh); max-height: min(560px, 86vh); display: flex; flex-direction: column; }
 
 .lyrics-search-bar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
 .lyrics-search-bar input { flex: 1; background: none; border: none; outline: none; color: var(--text-primary); font-size: 16px; }

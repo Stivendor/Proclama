@@ -23,7 +23,15 @@ export default function LyricsSearchModal({ onClose }: { onClose: () => void }) 
   }, [onClose])
 
   // Al cambiar los resultados, la selección anterior deja de tener sentido.
-  useEffect(() => { setSelected(null) }, [results])
+  useEffect(() => { setSelected(null); setImportError('') }, [results])
+
+  // Cambiar de canción invalida el error de la anterior: si no se limpia aquí,
+  // el mensaje de "no se pudo guardar" de la canción A queda pegado bajo la
+  // preview de la canción B, dando a entender que B también falló.
+  const seleccionar = (r: LyricsResult) => {
+    setSelected(r)
+    setImportError('')
+  }
 
   const importar = async () => {
     if (!selected) return
@@ -86,7 +94,7 @@ export default function LyricsSearchModal({ onClose }: { onClose: () => void }) 
                 )}
                 <button
                   className={`lyrics-search-item ${selected?.id === r.id ? 'active' : ''}`}
-                  onClick={() => setSelected(r)}
+                  onClick={() => seleccionar(r)}
                 >
                   <Music2 size={14} opacity={0.6} />
                   <span className="lyrics-search-item-text">
