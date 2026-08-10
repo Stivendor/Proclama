@@ -448,7 +448,7 @@ git commit -m "feat(buscador): searchLrclib con timeout y abort encadenado"
 Esta task toca producción. No hay test unitario: la verificación es SQL contra la base, y va en los propios pasos.
 
 **Files:**
-- Create: `supabase/migrations/20260810000000_online_search_visibility.sql`
+- Create: `supabase/migrations/20260810154735_online_search_visibility.sql`
 
 **Interfaces:**
 - Produces: función `public.community_artists()` que devuelve una columna `artist text`, concedida a `anon` y `authenticated`.
@@ -469,7 +469,7 @@ Expected: `publicas = 3101, sin_verificar = 0`.
 
 - [ ] **Step 2: Escribir la migración**
 
-Crear `supabase/migrations/20260810000000_online_search_visibility.sql`:
+Crear `supabase/migrations/20260810154735_online_search_visibility.sql`:
 
 ```sql
 -- Buscador de letras online v2.
@@ -560,7 +560,7 @@ Abrir la Biblioteca con sesión iniciada y confirmar que el contador del header 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add supabase/migrations/20260810000000_online_search_visibility.sql
+git add supabase/migrations/20260810154735_online_search_visibility.sql
 git commit -m "fix(seguridad): is_verified como condición de visibilidad y drop de search_songs_community
 
 search_songs_community era SECURITY DEFINER con public_only=false por
@@ -799,7 +799,7 @@ import type { Song } from '@/types'
  * instante, sin conexión y sin esperar la aprobación del admin.
  *
  * is_public=true + is_verified=false significa «invisible para terceros» desde
- * la migración 20260810000000, y es exactamente lo que PendingSongsPage ya
+ * la migración 20260810154735, y es exactamente lo que PendingSongsPage ya
  * consulta, así que la canción entra sola en la cola sin tocar el panel admin.
  *
  * El upload puede fallar por RLS: songs_insert_premium exige is_premium(), que

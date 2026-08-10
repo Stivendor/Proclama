@@ -131,7 +131,7 @@ cristiana o un tema secular con el mismo título.
 | `src/pages/LibraryView.tsx` | Barra en el header, estado de apertura del modal, atajos. |
 | `src/styles/library.css` | Estilos de la barra y el modal. |
 | `src/services/supabase.ts` | Borrar `searchSongs()`. `is_verified` en `fetchSongs()`. Añadir `fetchCommunityArtists()`. |
-| `supabase/migrations/20260810000000_online_search_visibility.sql` *(nuevo)* | RLS, `drop function` ×2, `community_artists()`. |
+| `supabase/migrations/20260810154735_online_search_visibility.sql` *(nuevo)* | RLS, `drop function` ×2, `community_artists()`. |
 | `src/test/lyricsSearch.test.ts` *(nuevo)* | Tests del pipeline. |
 | `src/test/fixtures/lrclib-*.json` *(nuevos)* | Dos respuestas reales de lrclib. |
 
