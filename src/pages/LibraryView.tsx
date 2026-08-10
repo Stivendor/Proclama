@@ -6,6 +6,8 @@ import { db } from '@/db'
 import { useAppStore, useProjectionStore } from '@/stores'
 import type { Song } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import LyricsSearchModal from '@/components/songs/LyricsSearchModal'
+import ProInterestBadge from '@/components/pricing/ProInterestBadge'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
 import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
@@ -34,6 +36,7 @@ export default function LibraryView() {
     }
   }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
+  const [showOnlineSearch, setShowOnlineSearch] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
@@ -56,6 +59,25 @@ export default function LibraryView() {
     const timer = setTimeout(() => setRemoteError(null), 10000)
     return () => clearTimeout(timer)
   }, [remoteError])
+
+  // Ctrl+K y «/» abren el buscador online, salvo mientras se escribe en un campo
+  // o con el modal ya abierto (donde «/» debe escribirse tal cual en su input).
+  useEffect(() => {
+    if (showOnlineSearch) return
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const escribiendo = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setShowOnlineSearch(true)
+      } else if (e.key === '/' && !escribiendo) {
+        e.preventDefault()
+        setShowOnlineSearch(true)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [showOnlineSearch])
 
   const [confirmDelete, setConfirmDelete] = useState<Song | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
@@ -472,6 +494,16 @@ export default function LibraryView() {
         </div>
         <div className="header-actions">
           <button
+            className="online-search-trigger"
+            onClick={() => setShowOnlineSearch(true)}
+            aria-label="Buscar canciones en internet"
+          >
+            <Globe size={14} opacity={0.6} />
+            <span>Buscar online…</span>
+            <kbd>Ctrl K</kbd>
+          </button>
+          <ProInterestBadge source="online_search" align="right" />
+          <button
             className="btn-primary"
             onClick={() => { if (canCreateSong(ownSongCount)) { openEditor() } }}
             disabled={!canCreateSong(ownSongCount)}
@@ -633,6 +665,8 @@ export default function LibraryView() {
           confirmLabel="Eliminar"
         />
       )}
+
+      {showOnlineSearch && <LyricsSearchModal onClose={() => setShowOnlineSearch(false)} />}
 
       {importStatus && (
         <div role="status" aria-live="polite" style={{
