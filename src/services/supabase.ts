@@ -89,10 +89,13 @@ export async function fetchSongs(since?: string): Promise<Song[]> {
   while (true) {
     let query = supabase.from('songs').select('*')
 
+    // is_verified va SOLO en la rama pública. Meterlo también en la rama
+    // user_id escondería al autor su propia canción recién importada, que es
+    // justo lo que tiene que poder proyectar sin esperar aprobación.
     if (userId) {
-      query = query.or(`user_id.eq.${userId},is_public.eq.true`)
+      query = query.or(`user_id.eq.${userId},and(is_public.eq.true,is_verified.eq.true)`)
     } else {
-      query = query.eq('is_public', true)
+      query = query.eq('is_public', true).eq('is_verified', true)
     }
 
     if (since) {
@@ -131,68 +134,25 @@ export async function fetchSongsCount(): Promise<number> {
   return count ?? 0
 }
 
-function sanitizeSearchTerm(query: string): string {
-  return query
-    .trim()
-    .slice(0, 80)
-    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
-    .replace(/\s+/g, ' ')
-}
-
 /**
- * Busca canciones por texto en título, artista o letra.
- * Utiliza una función RPC en Supabase que ignora acentos y tildes (unaccent).
- * @param query El texto a buscar
- * @param publicOnly Si es true, solo devolverá canciones marcadas como públicas (para descubrimiento online)
+ * Artistas del catálogo comunitario, en crudo.
+ *
+ * Sustituye a la lista hardcodeada CHRISTIAN_ARTISTS de la v1: se actualiza
+ * sola cada vez que alguien aporta una canción. Solo se usa para ordenar los
+ * resultados del buscador online, así que un fallo aquí no es un error: se
+ * devuelve una lista vacía y los resultados salen en el orden de lrclib.
+ *
+ * Devuelve los nombres sin normalizar a propósito: normalizarlos aquí obligaría
+ * a importar artistKey de lyricsSearch.ts, que a su vez importa createSong de
+ * este archivo. Lo normaliza quien consume.
  */
-export async function searchSongs(query: string, publicOnly = false, targetLanguage?: string): Promise<Song[]> {
-  if (!query) return fetchSongs()
-
-  try {
-    const { data, error } = await supabase
-      .rpc('search_songs_community', {
-        search_term: query,
-        public_only: publicOnly,
-        target_language: targetLanguage
-      })
-
-    if (!error && data) {
-      return (data as SupabaseSongRow[]).map(mapRowToSong)
-    }
-
-    // Si hay error en el RPC (p. ej. no existe la función aún), caer en el fallback
-    if (error) console.warn('RPC search error, falling back to basic search:', error.message)
-  } catch (err) {
-    console.warn('Search RPC failed, using fallback:', err)
-  }
-
-  // Fallback: Búsqueda básica (sensible a acentos)
-  const safeQuery = sanitizeSearchTerm(query)
-  if (!safeQuery) return []
-
-  let request = supabase
-    .from('songs')
-    .select('*')
-    .or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,lyrics.fts.${safeQuery}`)
-    .order('usage_count', { ascending: false })
-    .limit(20)
-
-  if (publicOnly) {
-    request = request.eq('is_public', true)
-  }
-
-  if (targetLanguage) {
-    request = request.eq('language', targetLanguage)
-  }
-
-  const { data, error } = await request
-
-  if (error) {
-    console.error('Error in fallback search:', error)
+export async function fetchCommunityArtists(): Promise<string[]> {
+  const { data, error } = await supabase.rpc('community_artists')
+  if (error || !data) {
+    console.warn('[buscador] no se pudo cargar la lista de artistas:', error?.message)
     return []
   }
-
-  return (data as SupabaseSongRow[]).map(mapRowToSong)
+  return (data as { artist: string }[]).map(r => r.artist)
 }
 
 export async function createSong(song: Omit<Song, 'id'>): Promise<Song | null> {
@@ -416,6 +376,7 @@ export type PremiumInterestSource =
   | 'reports'
   | 'stats'
   | 'bibles'
+  | 'online_search'
 
 export async function registerPremiumInterest(
   email: string,
