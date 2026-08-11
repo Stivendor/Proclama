@@ -1,7 +1,7 @@
 // API gratuita sin CORS: bible-api.com (dominio público / RVR1960)
 import type { BibleBook } from '@/types'
 import { supabase } from '@/services/supabase'
-import { normalizeText } from '@/utils/text'
+import { normalizeText, normalizeForSearch } from '@/utils/text'
 import { db } from '@/db'
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -486,13 +486,14 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
     const chapter = Number(refMatch[2])
     const verseNum = refMatch[3] ? Number(refMatch[3]) : null
     
-    // Buscar el libro por nombre o id (Bilingüe)
-    const book = BIBLE_BOOKS.find(b => 
-      b.name.toLowerCase() === bookQuery || 
-      b.nameEn.toLowerCase() === bookQuery ||
-      b.id.toLowerCase() === bookQuery ||
-      b.name.toLowerCase().startsWith(bookQuery) ||
-      b.nameEn.toLowerCase().startsWith(bookQuery)
+    // Buscar el libro por nombre o id (Bilingüe), sin exigir tildes
+    const bookQueryNorm = normalizeText(bookQuery)
+    const book = BIBLE_BOOKS.find(b =>
+      normalizeText(b.name) === bookQueryNorm ||
+      normalizeText(b.nameEn) === bookQueryNorm ||
+      b.id.toLowerCase() === bookQueryNorm ||
+      normalizeText(b.name).startsWith(bookQueryNorm) ||
+      normalizeText(b.nameEn).startsWith(bookQueryNorm)
     )
     
     if (book && BIBLE_DATA[book.id]) {
@@ -527,9 +528,9 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
   }
 
   // 2. Intentar buscar si es solo el nombre de un libro
-  const bookOnly = BIBLE_BOOKS.find(b => 
-    b.name.toLowerCase() === queryLower || 
-    b.nameEn.toLowerCase() === queryLower
+  const bookOnly = BIBLE_BOOKS.find(b =>
+    normalizeText(b.name) === normalizeText(queryLower) ||
+    normalizeText(b.nameEn) === normalizeText(queryLower)
   )
   if (bookOnly && BIBLE_DATA[bookOnly.id]) {
     // Si buscó solo el libro, mostrar los primeros versículos del cap 1
@@ -547,12 +548,18 @@ async function performSearch(queryLower: string, translation: string, cacheKey: 
   let count = 0
   const MAX_RESULTS = 50 // Limitar resultados por rendimiento
 
-  for (const [bookId, chapters] of Object.entries(BIBLE_DATA)) {
+  // Sin tildes, sin puntuación y sin mayúsculas en ambos lados: "Dios mio" debe
+  // encontrar "Dios mío," igual que "señor" encuentra "SEÑOR".
+  // ponytail: se normaliza cada versículo en cada búsqueda (~31k). Si se nota
+  // lento, construir el índice normalizado una vez junto a getBibleData().
+  const queryNorm = normalizeForSearch(queryLower)
+
+  for (const [bookId, chapters] of queryNorm ? Object.entries(BIBLE_DATA) : []) {
     const bookName = await getBookName(bookId, translation)
     for (const [chapterStr, verses] of Object.entries(chapters)) {
       const chapter = Number(chapterStr)
       for (const verse of verses) {
-        if (verse.text.toLowerCase().includes(queryLower)) {
+        if (normalizeForSearch(verse.text).includes(queryNorm)) {
           results.push({
             reference: `${bookName} ${chapter}:${verse.verse}`,
             text: verse.text,

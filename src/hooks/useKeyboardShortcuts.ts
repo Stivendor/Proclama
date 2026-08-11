@@ -2,10 +2,28 @@ import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAppStore, useProjectionStore } from '@/stores'
 import { NAV_ORDER } from '@/constants/nav'
+import { db } from '@/db'
+import { canCreateSongFromProfile } from '@/hooks/usePlan'
 
 /** Teclas que avanzan (incluye las que mandan los controles de presentación). */
 const NEXT_KEYS = ['ArrowRight', 'ArrowDown', 'PageDown', ' ']
 const PREV_KEYS = ['ArrowLeft', 'ArrowUp', 'PageUp']
+
+/**
+ * Alt+N bajo el mismo límite de plan que el botón "Nueva" de la biblioteca; si
+ * no alcanza, lleva a la biblioteca, donde el botón explica por qué (candado).
+ */
+async function openEditorWithinPlan() {
+  const app = useAppStore.getState()
+  const profile = { plan: app.userPlan, role: app.userRole, premiumExpiresAt: app.premiumExpiresAt }
+  let ownSongCount = 0
+  try {
+    if (app.user?.id) ownSongCount = await db.songs.where('userId').equals(app.user.id).count()
+  } catch { /* sin conteo se asume 0, igual que la biblioteca */ }
+
+  if (canCreateSongFromProfile(profile, ownSongCount)) app.openEditor()
+  else app.setActiveView('library')
+}
 
 export function useKeyboardShortcuts() {
   const shortcutsOpen = useAppStore(s => s.shortcutsOpen)
@@ -39,7 +57,7 @@ export function useKeyboardShortcuts() {
         switch (e.code) {
           case 'KeyN':
             e.preventDefault()
-            app.openEditor()
+            openEditorWithinPlan()
             return
           case 'KeyB':
             e.preventDefault()

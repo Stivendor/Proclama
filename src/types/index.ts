@@ -154,6 +154,8 @@ export interface TickerState {
   active: boolean
   position: 'top' | 'bottom'
   text: string
+  /** Multiplicador de velocidad de la banda (1 = normal). Ausente en estados guardados antes de la función. */
+  speed?: number
 }
 
 // ─── Broadcast messages entre ventanas ────────────────────────────────────────

@@ -5,10 +5,10 @@ import { useAppStore } from '@/stores'
 // ─── Tour steps ───────────────────────────────────────────────────────────────
 const TOUR_STEPS = [
   {
-    selector: '.btn-new-song',
+    selector: '[data-tour="new-song"]',
     title: 'Crea tu primera canción',
     desc: 'Haz clic aquí para agregar una canción nueva. Escribe la letra separando estrofas con una línea en blanco.',
-    position: 'right' as const,
+    position: 'bottom' as const,
   },
   {
     selector: '.btn-projection',
@@ -297,13 +297,15 @@ export default function OnboardingFlow() {
         .ob-tooltip-footer {
           display: flex; align-items: center; justify-content: space-between; gap: 8px;
         }
-        .ob-dots { display: flex; gap: 5px; align-items: center; }
+        .ob-dots { display: flex; gap: 7px; align-items: center; }
+        /* El activo se estira con scaleX en vez de animar width (sin layout thrash);
+           el gap de 7px deja sitio para que la pastilla crezca sin tocar al vecino. */
         .ob-dot {
-          width: 6px; height: 6px; border-radius: 50%;
+          width: 6px; height: 6px; border-radius: 3px;
           background: var(--border);
-          transition: background 0.2s, width 0.2s;
+          transition: background 0.2s, transform 0.2s;
         }
-        .ob-dot.active { background: var(--gold); width: 16px; border-radius: 3px; }
+        .ob-dot.active { background: var(--gold); transform: scaleX(2.667); }
         .ob-tooltip-actions { display: flex; gap: 6px; align-items: center; }
 
         .ob-btn-nav {

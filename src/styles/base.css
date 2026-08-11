@@ -139,12 +139,13 @@ a:hover { text-decoration: underline; }
   padding: 16px 12px;
   gap: 4px;
   overflow: hidden;
-  transition: transform 0.3s ease, width 0.3s ease;
+  /* El ancho no se anima aquí: lo hace el track de .app-shell
+     (grid-template-columns), que ya recupera el espacio sin layout thrash. */
+  transition: transform 0.3s ease;
 }
 
 .app-shell.sidebar-hidden .sidebar {
   transform: translateX(-100%);
-  width: 0;
   padding: 0;
   border: none;
 }
@@ -168,18 +169,6 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;
 }
-.btn-new-song {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--gold);
-  color: #0d1117;
-  font-weight: 600;
-  font-size: 13px;
-  padding: 9px 14px;
-  border-radius: var(--radius);
-  margin-bottom: 8px;
-  transition: opacity 0.15s;
-}
-.btn-new-song:hover { opacity: 0.88; }
 .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
@@ -356,7 +345,6 @@ a:hover { text-decoration: underline; }
 .btn-ghost:focus-visible,
 .btn-primary:focus-visible,
 .btn-projection:focus-visible,
-.btn-new-song:focus-visible,
 .song-card-compact:focus-visible,
 .verse-item:focus-visible,
 .book-item:focus-visible,

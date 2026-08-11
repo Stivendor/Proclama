@@ -358,7 +358,7 @@ export default function ProjectionWindow() {
           }}>
             <div style={{
               display: 'inline-block', paddingLeft: '100%', willChange: 'transform',
-              animation: `ticker-scroll ${Math.max(12, Math.round(ticker.text.length * 0.35))}s linear infinite`,
+              animation: `ticker-scroll ${(Math.max(12, Math.round(ticker.text.length * 0.35)) / (ticker.speed || 1)).toFixed(1)}s linear infinite`,
               color: '#fff', fontFamily: theme.fontFamily, fontWeight: 700,
               fontSize: `${Math.round(canvasSize.height * 0.05)}px`,
               textShadow: '0 2px 6px rgba(0,0,0,0.8)',

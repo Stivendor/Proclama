@@ -65,7 +65,7 @@ export default function BibleView() {
   const quickSearchVerseRef = useRef<HTMLInputElement>(null)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
   const versesListRef = useRef<HTMLDivElement>(null)
-  const [scrollToVerse, setScrollToVerse] = useState<number | null>(null)
+  const [scrollTarget, setScrollTarget] = useState<{ book: string; chapter: number; verse: number } | null>(null)
 
   const { loadSong, songTitle, theme, slides, currentSlide, isBible } = useProjectionStore(useShallow(s => ({
     loadSong: s.loadSong,
@@ -315,7 +315,7 @@ export default function BibleView() {
         projectVerse(targetVerse)
         setSelectedBook(parsedBook.id)
         setSelectedChapter(chapter)
-        setScrollToVerse(verse)
+        setScrollTarget({ book: parsedBook.id, chapter, verse })
         closeQuickSearch()
       }
     } catch (error) {
@@ -328,15 +328,25 @@ export default function BibleView() {
     return match ? parseInt(match[1]) : null
   }
 
+  // Pide llevar la lista a un versículo. Guarda libro+capítulo porque el scroll
+  // se pide en el mismo batch que el cambio de capítulo: si no se espera a que
+  // ese capítulo esté cargado, el efecto corre sobre la lista vieja y se pierde.
+  const requestScrollToVerse = (book: string, chapter: number, reference: string) => {
+    const verse = extractVerseNumber(reference)
+    if (verse) setScrollTarget({ book, chapter, verse })
+  }
+
   useEffect(() => {
-    if (!loading && scrollToVerse !== null && versesListRef.current) {
-      const verseEl = versesListRef.current.querySelector(`[data-verse="${scrollToVerse}"]`)
-      if (verseEl) {
-        verseEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-      setScrollToVerse(null)
-    }
-  }, [loading, scrollToVerse, verses])
+    if (loading || !scrollTarget) return
+    // Contra `verses`, no contra selectedChapter: el capítulo seleccionado ya
+    // cambió mientras la lista sigue mostrando el anterior.
+    const loaded = verses[0]
+    if (!loaded || loaded.bookId !== scrollTarget.book || loaded.chapter !== scrollTarget.chapter) return
+    versesListRef.current
+      ?.querySelector(`[data-verse="${scrollTarget.verse}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setScrollTarget(null)
+  }, [loading, scrollTarget, verses])
 
   const closeQuickSearch = () => {
     setShowQuickSearch(false)
@@ -414,8 +424,7 @@ export default function BibleView() {
       if (v.bookId && v.chapter) {
         handleSelectBook(v.bookId)
         setSelectedChapter(v.chapter)
-        const vNum = extractVerseNumber(v.reference)
-        if (vNum) setScrollToVerse(vNum)
+        requestScrollToVerse(v.bookId, v.chapter, v.reference)
         setSearchQuery('')
         setSearchResults([])
       }
@@ -550,7 +559,7 @@ export default function BibleView() {
       if (step.kind === 'same-chapter') {
         const target = verses[step.index]
         await projectVerse(target)
-        setScrollToVerse(extractVerseNumber(target.reference))
+        requestScrollToVerse(selectedBook, selectedChapter, target.reference)
         return
       }
 
@@ -559,7 +568,7 @@ export default function BibleView() {
       if (!target) return
       setSelectedChapter(step.chapter)
       await projectVerse(target)
-      setScrollToVerse(extractVerseNumber(target.reference))
+      requestScrollToVerse(selectedBook, step.chapter, target.reference)
     } catch (error) {
       console.error('Error cargando el capítulo contiguo', error)
     } finally {
@@ -985,8 +994,7 @@ export default function BibleView() {
                       if (v.bookId && v.chapter) {
                         handleSelectBook(v.bookId)
                         setSelectedChapter(v.chapter)
-                        const vNum = extractVerseNumber(v.reference)
-                        if (vNum) setScrollToVerse(vNum)
+                        requestScrollToVerse(v.bookId, v.chapter, v.reference)
                         setSearchResults([])
                         setSearchQuery('')
                       }
@@ -1085,8 +1093,7 @@ export default function BibleView() {
                     if (item.verse.bookId && item.verse.chapter) {
                       handleSelectBook(item.verse.bookId)
                       setSelectedChapter(item.verse.chapter)
-                      const vNum = extractVerseNumber(item.verse.reference)
-                      if (vNum) setScrollToVerse(vNum)
+                      requestScrollToVerse(item.verse.bookId, item.verse.chapter, item.verse.reference)
                     }
                   }}
                 >

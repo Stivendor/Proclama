@@ -143,7 +143,6 @@ const en: Translations = {
     },
   },
   sidebar: {
-    newSong: 'New Song',
     songs: 'Songs',
     setlists: 'Setlists',
     bible: 'Bible',

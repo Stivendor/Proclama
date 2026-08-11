@@ -52,6 +52,15 @@ export function isPremiumFromProfile(args: PremiumProfileFields): boolean {
   return isPremiumByPlan(args)
 }
 
+/**
+ * Regla de "puede crear otra canción propia" a partir del perfil crudo, para
+ * callers fuera de React (atajos de teclado). El hook delega aquí para que el
+ * límite no viva en dos sitios.
+ */
+export function canCreateSongFromProfile(profile: PremiumProfileFields, ownSongCount: number): boolean {
+  return isPremiumFromProfile(profile) || ownSongCount < FREE_SONG_LIMIT
+}
+
 export function usePlan() {
   const { userPlan, userRole, premiumExpiresAt } = useAppStore()
 
@@ -63,7 +72,7 @@ export function usePlan() {
 
   /** Crear canciones propias (free: hasta FREE_SONG_LIMIT) */
   const canCreateSong = (ownSongCount: number) =>
-    isPremium || ownSongCount < FREE_SONG_LIMIT
+    canCreateSongFromProfile({ plan: userPlan, role: userRole, premiumExpiresAt }, ownSongCount)
 
   /** Proyectar SIEMPRE disponible para todos. El core nunca se bloquea. */
   const canProjectSong = () => true
