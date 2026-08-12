@@ -9,6 +9,7 @@ import { db } from '@/db'
 import ImportBibleModal from '@/components/songs/ImportBibleModal'
 import { normalizeText } from '@/utils/text'
 import { planVerseStep } from '@/utils/verseStep'
+import { isCompleteNumber, parseChapterVerse } from '@/utils/quickRef'
 
 
 const TRANSLATIONS = SUPPORTED_TRANSLATIONS
@@ -64,6 +65,10 @@ export default function BibleView() {
   const quickSearchChapterRef = useRef<HTMLInputElement>(null)
   const quickSearchVerseRef = useRef<HTMLInputElement>(null)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
+  // Versículos del capítulo fijado: permite saber cuándo el número tecleado ya no
+  // puede crecer. 0 = aún no se sabe, y entonces el versículo se confirma con Enter.
+  const [chapterVerseCount, setChapterVerseCount] = useState(0)
+  const verseCountKey = useRef('')
   const versesListRef = useRef<HTMLDivElement>(null)
   const [scrollTarget, setScrollTarget] = useState<{ book: string; chapter: number; verse: number } | null>(null)
 
@@ -210,9 +215,12 @@ export default function BibleView() {
       setIsBookLocked(true)
       
       // Extraer capítulo inteligentemente (excluyendo el prefijo del libro si es necesario)
-      const chapterPart = value.substring(parsedBook.name.length).trim() || value.match(/\d+$/)?.[0] || ''
-      setQuickSearchChapter(chapterPart)
-      quickSearchChapterRef.current?.focus()
+      const tail = value.substring(parsedBook.name.length).trim() || value.match(/\d.*$/)?.[0] || ''
+      // Una referencia pegada de corrido ("juan 3:16") trae también el versículo
+      const { chapter, verse } = parseChapterVerse(tail)
+      setQuickSearchChapter(chapter)
+      if (verse) setQuickSearchVerse(verse)
+      setTimeout(() => quickSearchChapterRef.current?.focus(), 0)
       return
     }
     
@@ -235,31 +243,61 @@ export default function BibleView() {
     }
   }
 
+  // Capítulo que se ofrece en gris: el que ya está abierto si es el mismo libro
+  const suggestedChapter = parsedBook?.id === selectedBook ? String(selectedChapter) : '1'
+
+  // Deja el capítulo fijado y pasa al versículo. El foco se aplaza porque el campo
+  // del versículo sigue deshabilitado hasta que React pinta el capítulo.
+  const focusVerse = (chapter: string) => {
+    setTimeout(() => quickSearchVerseRef.current?.focus(), 0)
+
+    const book = parsedBook && BIBLE_BOOKS.find(b => b.id === parsedBook.id)
+    const num = parseInt(chapter)
+    if (!book || isNaN(num)) return
+
+    // Precarga del capítulo: da el número de versículos para el autosalto y deja
+    // la proyección lista. fetchChapter ya cachea, así que repetir no cuesta.
+    const key = `${book.id}:${num}:${selectedTranslation}`
+    verseCountKey.current = key
+    setChapterVerseCount(0)
+    fetchChapter(book.id, num, selectedTranslation)
+      .then(vs => { if (verseCountKey.current === key) setChapterVerseCount(vs.length) })
+      .catch(() => { if (verseCountKey.current === key) setChapterVerseCount(0) })
+  }
+
   // Handle chapter input with validation
   const handleChapterChange = (value: string) => {
     if (!parsedBook) return
     const book = BIBLE_BOOKS.find(b => b.id === parsedBook.id)
     if (!book) return
-    
-    // Solo permitir números
-    const cleanValue = value.replace(/\D/g, '')
-    const num = parseInt(cleanValue)
-    
-    if (cleanValue === '' || (num >= 1 && num <= book.chapters)) {
-      setQuickSearchChapter(cleanValue)
+
+    // Referencia de corrido ("3:16", "3 16"): repartir en sus campos
+    if (/\D/.test(value)) {
+      const { chapter, verse } = parseChapterVerse(value)
+      const num = parseInt(chapter)
+      if (isNaN(num) || num < 1 || num > book.chapters) return
+      setQuickSearchChapter(chapter)
+      if (verse) setQuickSearchVerse(verse)
+      focusVerse(chapter)
+      return
+    }
+
+    const num = parseInt(value)
+
+    if (value === '' || (num >= 1 && num <= book.chapters)) {
+      setQuickSearchChapter(value)
+      // Saltar solo cuando el número ya no puede crecer (Juan: "3" no puede ser 30)
+      if (isCompleteNumber(value, book.chapters)) focusVerse(value)
     }
   }
 
   const handleChapterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Tab') {
+    if (e.key === 'Tab' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      quickSearchVerseRef.current?.focus()
-    } else if (e.key === 'Enter' && quickSearchChapter) {
-      e.preventDefault()
-      quickSearchVerseRef.current?.focus()
-    } else if (e.key === ' ' && quickSearchChapter) {
-      e.preventDefault()
-      quickSearchVerseRef.current?.focus()
+      // Campo vacío: acepta el capítulo sugerido en gris
+      const chapter = quickSearchChapter || suggestedChapter
+      setQuickSearchChapter(chapter)
+      focusVerse(chapter)
     } else if (e.key === 'Escape') {
       closeQuickSearch()
     } else if (e.key === 'Backspace' && quickSearchChapter === '') {
@@ -274,6 +312,8 @@ export default function BibleView() {
     // Solo permitir números
     const cleanValue = value.replace(/\D/g, '')
     setQuickSearchVerse(cleanValue)
+    // Proyectar solo cuando el número ya no puede crecer y se conoce el capítulo
+    if (isCompleteNumber(cleanValue, chapterVerseCount)) handleQuickSearchProject(cleanValue)
   }
 
   const handleVerseKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -295,11 +335,14 @@ export default function BibleView() {
   }
 
   // Project the verse
-  const handleQuickSearchProject = async () => {
-    if (!parsedBook || !quickSearchChapter || !quickSearchVerse) return
+  // verseOverride: el autosalto proyecta con el valor recién tecleado, que aún no
+  // está en el estado cuando corre el onChange.
+  const handleQuickSearchProject = async (verseOverride?: string) => {
+    const verseValue = verseOverride ?? quickSearchVerse
+    if (!parsedBook || !quickSearchChapter || !verseValue) return
 
     const chapter = parseInt(quickSearchChapter)
-    const verse = parseInt(quickSearchVerse)
+    const verse = parseInt(verseValue)
 
     if (isNaN(chapter) || isNaN(verse)) return
 
@@ -355,6 +398,8 @@ export default function BibleView() {
     setQuickSearchVerse('')
     setParsedBook(null)
     setIsBookLocked(false)
+    setChapterVerseCount(0)
+    verseCountKey.current = ''
   }
 
   useEffect(() => {
@@ -886,7 +931,7 @@ export default function BibleView() {
                       onChange={e => handleChapterChange(e.target.value)}
                       onKeyDown={handleChapterKeyDown}
                       className="section-input section-input-number"
-                      placeholder="_"
+                      placeholder={suggestedChapter}
                       disabled={!isBookLocked}
                     />
                   </div>
