@@ -59,6 +59,21 @@ const en: Translations = {
       starting: 'Activating…',
     },
   },
+  graceNotice: {
+    title: 'Thank you for being part of Proclama',
+    lead: "You've had every Pro feature open during the founders phase. That stays the same until {date}. There's nothing you need to do until then.",
+    bannerLabel: 'Pro until {date}',
+    bannerCta: 'See plans',
+    freeTitle: 'After that date Proclama is still yours, free and with no time limit:',
+    freeClosing: 'The core never gets locked: we will never leave you without projection on a Sunday.',
+    proTitle: 'What becomes Pro:',
+    costs: 'Keeping this alive has real server and development costs. If you want to keep the Pro features, the plan is {list} a year per church.',
+    founder: 'For being here from the start you get it at {price} a year, frozen for as long as you stay with us.',
+    thanks: 'Thanks to your support Proclama keeps getting better.',
+    dismiss: 'Got it',
+    support: 'I want to support Proclama',
+    close: 'Close notice',
+  },
   landing: {
     hero: {
       badge: 'Free · Spanish & English',

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PricingCards from '@/components/pricing/PricingCards'
+import { FOUNDER_PRICE_UNTIL } from '@/constants/plans'
 
 /**
  * El botón de prueba y el distintivo del plan Pro son inalcanzables mientras
@@ -67,6 +68,15 @@ describe('PricingCards — botón de prueba', () => {
 })
 
 describe('PricingCards — precio fundador', () => {
+  // El componente llama a currentPrice() con el reloj real y no acepta fecha por
+  // props, así que sin congelar el tiempo estos tests se caen solos el día que
+  // expire la promoción — probando el calendario en vez de la lógica.
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date(new Date(`${FOUNDER_PRICE_UNTIL}T23:59:59-05:00`).getTime() - 86_400_000))
+  })
+  afterEach(() => vi.useRealTimers())
+
   it('muestra el precio con descuento y el de lista tachado', () => {
     render(<PricingCards variant="marketing" onFreeCta={vi.fn()} />)
 

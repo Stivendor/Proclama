@@ -408,6 +408,10 @@ interface AppStore {
   onboardingDone: boolean
   setOnboardingDone: (v: boolean) => void
 
+  // Aviso de fin de fase fundadores: ya se leyó y cerró el modal
+  graceNoticeSeen: boolean
+  setGraceNoticeSeen: (v: boolean) => void
+
   // Terms & Conditions
   termsAccepted: TermsAcceptance | null
   termsSyncPending: boolean
@@ -555,6 +559,9 @@ export const useAppStore = create<AppStore>()(
       onboardingDone: false,
       setOnboardingDone: (v) => set({ onboardingDone: v }),
 
+      graceNoticeSeen: false,
+      setGraceNoticeSeen: (v) => set({ graceNoticeSeen: v }),
+
       termsAccepted: null,
       termsSyncPending: false,
       setTermsAccepted: (t) => set({ termsAccepted: t }),
@@ -596,6 +603,10 @@ export const useAppStore = create<AppStore>()(
         trialStartedAt: null,
         authStatus: 'unauthenticated',
         guestMode: false,
+        // El aviso es por cuenta, no por navegador: el portátil de proyección de
+        // una iglesia lo usan varias, y sin esto la primera que lo cierra se lo
+        // esconde a las demás.
+        graceNoticeSeen: false,
         // NO borrar termsAccepted para que persista entre guest y logged in
         activeSetlist: null,
         editingSong: null
@@ -625,6 +636,7 @@ export const useAppStore = create<AppStore>()(
         settings: state.settings, 
         isSidebarOpen: state.isSidebarOpen, 
         onboardingDone: state.onboardingDone,
+        graceNoticeSeen: state.graceNoticeSeen,
         guestMode: state.guestMode,
         termsAccepted: state.termsAccepted,
         termsSyncPending: state.termsSyncPending,

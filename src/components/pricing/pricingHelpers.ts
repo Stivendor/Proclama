@@ -1,4 +1,11 @@
-import { WHATSAPP_NUMBER, PRICING, FOUNDER_PRICE_UNTIL } from '@/constants/plans'
+import {
+  WHATSAPP_NUMBER,
+  PRICING,
+  FOUNDER_PRICE_UNTIL,
+  GRACE_NOTICE_MAX_DAYS,
+} from '@/constants/plans'
+
+const DAY_MS = 86_400_000
 
 /**
  * Formatea en pesos colombianos.
@@ -40,4 +47,57 @@ export function subscribeWhatsappUrl(email?: string, now: Date = new Date()): st
 
 export function isTrialEligible(args: { isPremium: boolean; trialStartedAt: string | null }): boolean {
   return !args.isPremium && args.trialStartedAt == null
+}
+
+/** Días completos que faltan para `iso`, redondeando hacia arriba. */
+export function daysUntil(iso: string, now: Date = new Date()): number {
+  return Math.ceil((new Date(iso).getTime() - now.getTime()) / DAY_MS)
+}
+
+export type GraceStatus = {
+  daysLeft: number
+  /** Medianoche en que la cuenta cae a Gratis. */
+  expiry: Date
+  /** Último día completo con Pro: el anterior al vencimiento. */
+  lastFullDay: Date
+}
+
+/**
+ * ¿Esta cuenta está en el periodo de gracia de fin de fase fundadores?
+ *
+ * Fuente única para el banner del sidebar y para el modal: si divergieran, uno
+ * anunciaría un vencimiento que el otro no reconoce.
+ *
+ * El grandfathering (supabase/manual/phase6_grandfather_before_paywall.sql) deja
+ * a cada cuenta existente en `plan='paid'` con fecha, y a las vitalicias sin
+ * fecha. Todo lo que no sea "premium con caducidad cercana" queda fuera.
+ */
+export function graceStatus(args: {
+  plan: string | null | undefined
+  role: string | null | undefined
+  premiumExpiresAt: string | null | undefined
+  now?: Date
+}): GraceStatus | null {
+  const now = args.now ?? new Date()
+
+  // Los admin no pierden nada: isPremiumByPlan() y public.is_premium() los eximen
+  // por rol, pero el script sí los mueve a 'paid' si no están en la lista de
+  // correos vitalicios. Sin este descarte les llegaría un aviso falso.
+  if (args.role === 'admin') return null
+
+  if (args.plan !== 'paid') return null
+
+  // Vitalicio: premium sin caducidad. No hay nada que anunciarle.
+  if (!args.premiumExpiresAt) return null
+
+  const daysLeft = daysUntil(args.premiumExpiresAt, now)
+  if (daysLeft <= 0) return null
+  if (daysLeft > GRACE_NOTICE_MAX_DAYS) return null
+
+  const expiry = new Date(args.premiumExpiresAt)
+  return {
+    daysLeft,
+    expiry,
+    lastFullDay: new Date(expiry.getTime() - DAY_MS),
+  }
 }
