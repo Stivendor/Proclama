@@ -17,7 +17,7 @@ export default function PremiumFeatureModal({
   onClose,
 }: PremiumFeatureModalProps) {
   const handleUpgrade = () => {
-    useAppStore.getState().setForceLanding(true, 'planes')
+    useAppStore.getState().setForceLanding(true, 'precios')
     onClose()
   }
 
@@ -46,7 +46,7 @@ export default function PremiumFeatureModal({
         }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 12, margin: 0, fontSize: '18px', fontWeight: 700 }}>
             <div style={{ 
-              background: 'rgba(212, 175, 55, 0.15)', 
+              background: 'rgba(201, 166, 88, 0.15)', 
               padding: '8px', 
               borderRadius: '12px',
               display: 'flex',
@@ -85,9 +85,9 @@ export default function PremiumFeatureModal({
                 alignItems: 'center',
                 gap: 18,
                 padding: '24px',
-                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.04))',
+                background: 'linear-gradient(135deg, rgba(201, 166, 88, 0.12), rgba(201, 166, 88, 0.04))',
                 borderRadius: '20px',
-                border: '1px solid rgba(212, 175, 55, 0.2)',
+                border: '1px solid rgba(201, 166, 88, 0.2)',
               }}
             >
               <div style={{
@@ -98,7 +98,7 @@ export default function PremiumFeatureModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 15px rgba(212, 175, 55, 0.3)'
+                boxShadow: '0 4px 15px rgba(201, 166, 88, 0.3)'
               }}>
                 <Icon size={32} />
               </div>
@@ -130,7 +130,7 @@ export default function PremiumFeatureModal({
                     <div style={{ 
                       width: 18, 
                       height: 18, 
-                      background: 'rgba(212, 175, 55, 0.15)', 
+                      background: 'rgba(201, 166, 88, 0.15)', 
                       borderRadius: '50%', 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -162,7 +162,7 @@ export default function PremiumFeatureModal({
                 borderRadius: '14px',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 10px 20px -5px rgba(212, 175, 55, 0.4)',
+                boxShadow: '0 10px 20px -5px rgba(201, 166, 88, 0.4)',
               }}
             >
               Mejorar a Premium ahora

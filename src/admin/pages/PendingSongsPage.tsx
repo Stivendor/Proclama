@@ -175,7 +175,7 @@ export default function PendingSongsPage() {
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "2rem" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-            <div style={{ padding: "10px", background: "rgba(var(--gold-rgb, 212, 175, 55), 0.1)", borderRadius: "12px" }}>
+            <div style={{ padding: "10px", background: "rgba(var(--gold-rgb, 201, 166, 88), 0.1)", borderRadius: "12px" }}>
               <Clock size={28} color="var(--gold)" />
             </div>
             <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, letterSpacing: "-0.5px" }}>Canciones Pendientes</h1>
@@ -412,7 +412,7 @@ export default function PendingSongsPage() {
             >
               <div style={{ padding: "24px 32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--bg-surface)" }}>
                 <h2 style={{ margin: 0, fontSize: "20px", display: "flex", alignItems: "center", gap: "12px", fontWeight: 600 }}>
-                  <div style={{ padding: "8px", background: "rgba(var(--gold-rgb, 212, 175, 55), 0.1)", borderRadius: "10px" }}>
+                  <div style={{ padding: "8px", background: "rgba(var(--gold-rgb, 201, 166, 88), 0.1)", borderRadius: "10px" }}>
                     <Edit2 size={20} color="var(--gold)" />
                   </div>
                   Moderar canción: <span style={{ color: "var(--gold)", fontWeight: 500 }}>{editingSongLocal.title}</span>

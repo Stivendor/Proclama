@@ -148,7 +148,7 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
               justifyContent: 'center',
               marginBottom: '24px'
             }}>
-              <Lock size={32} color="#d4a843" />
+              <Lock size={32} color="#c9a658" />
             </div>
             <h3 style={{ fontSize: '1.5rem', marginBottom: '16px' }}>Función Proclama Pro</h3>
             <p style={{ color: 'var(--text-muted)', marginBottom: '32px', maxWidth: '400px', lineHeight: 1.5 }}>
@@ -156,11 +156,11 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
             </p>
             <button 
               className="btn-primary" 
-              onClick={() => { useAppStore.getState().setForceLanding(true, 'planes'); onClose(); }}
+              onClick={() => { useAppStore.getState().setForceLanding(true, 'precios'); onClose(); }}
               style={{ 
                 padding: '12px 32px', 
                 fontSize: '1.1rem', 
-                background: '#d4a843', 
+                background: '#c9a658', 
                 color: '#0d1117', 
                 borderRadius: '8px', 
                 border: 'none', 

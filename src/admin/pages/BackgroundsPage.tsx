@@ -18,7 +18,7 @@ function isValidUrl(url: string): boolean {
 
 const LABEL_COLORS: Record<string, string> = {};
 const PALETTE = [
-  "rgba(212,175,55,0.15)/var(--gold)/rgba(212,175,55,0.3)",
+  "rgba(201, 166, 88,0.15)/var(--gold)/rgba(201, 166, 88,0.3)",
   "rgba(99,179,237,0.15)/#63b3ed/rgba(99,179,237,0.3)",
   "rgba(154,205,50,0.15)/#9acd32/rgba(154,205,50,0.3)",
   "rgba(237,137,54,0.15)/#ed8936/rgba(237,137,54,0.3)",

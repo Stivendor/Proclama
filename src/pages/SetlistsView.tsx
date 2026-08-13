@@ -523,7 +523,7 @@ export default function SetlistsView() {
         .search-result-item .info { flex: 1; display: flex; flex-direction: column; }
         .search-result-item .t { font-weight: 500; }
         .search-result-item .a { font-size: 11px; color: var(--text-muted); }
-        .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(212, 168, 67, 0.1); padding: 1px 4px; border-radius: 4px; }
+        .search-result-item .k { font-size: 10px; color: var(--gold); background: rgba(201, 166, 88, 0.1); padding: 1px 4px; border-radius: 4px; }
 
         .order-section { padding: 12px; }
         .search-result-item.create-new { border-top: 1px dashed var(--border); color: var(--gold); }
@@ -548,7 +548,7 @@ export default function SetlistsView() {
           background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;
         }
         .setlist-song-item:hover { border-color: var(--border-light); background: var(--bg-hover); }
-        .setlist-song-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(212, 168, 67, 0.1); }
+        .setlist-song-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(201, 166, 88, 0.1); }
         .drag-handle { color: var(--text-muted); cursor: grab; padding: 4px; display: flex; align-items: center; }
         .setlist-song-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .setlist-song-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

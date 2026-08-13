@@ -61,7 +61,7 @@ export default function Sidebar() {
           title={t(language, 'sidebar.backToHome')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Music2 size={24} color="#d4a843" />
+            <Music2 size={24} color="#c9a658" />
             <div style={{
               fontFamily: "'Montserrat', sans-serif",
               fontSize: '22px',
@@ -71,7 +71,7 @@ export default function Sidebar() {
               gap: '6px'
             }}>
               <span style={{ color: '#ffffff' }}>Proclama</span>
-              <span style={{ color: '#d4a843' }}>Pro</span>
+              <span style={{ color: '#c9a658' }}>Pro</span>
             </div>
           </div>
         </div>
@@ -105,15 +105,15 @@ export default function Sidebar() {
           margin: '0 10px 8px',
           padding: '10px 11px',
           borderRadius: 10,
-          background: 'rgba(212, 168, 67, 0.08)',
-          border: '1px solid rgba(212, 168, 67, 0.22)',
+          background: 'rgba(201, 166, 88, 0.08)',
+          border: '1px solid rgba(201, 166, 88, 0.22)',
           display: 'flex',
           alignItems: 'flex-start',
           gap: 8,
         }}>
-          <Sparkles size={13} color="#d4a843" style={{ flexShrink: 0, marginTop: 1 }} />
+          <Sparkles size={13} color="#c9a658" style={{ flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, flex: 1 }}>
-            Estás disfrutando de <strong style={{ color: '#d4a843' }}>Premium gratis</strong> — oferta de lanzamiento por tiempo limitado.
+            Estás disfrutando de <strong style={{ color: '#c9a658' }}>Premium gratis</strong> — oferta de lanzamiento por tiempo limitado.
           </span>
           <button
             onClick={() => { localStorage.setItem('launch-banner-v1', '1'); setLaunchBannerDismissed(true) }}

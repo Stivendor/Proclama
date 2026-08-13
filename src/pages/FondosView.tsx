@@ -40,7 +40,7 @@ const FONDOS_STYLES = `
   .gallery-filters-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
   .search-box { position: relative; display: flex; align-items: center; }
   .search-box input { width: 100%; padding: 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-base); color: var(--text-primary); font-size: 14px; transition: all 0.3s; }
-  .search-box input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1); }
+  .search-box input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(201, 166, 88, 0.1); }
   .search-icon { position: absolute; left: 14px; color: var(--text-muted); }
   .clear-search { position: absolute; right: 14px; color: var(--text-muted); cursor: pointer; }
   .category-pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
@@ -51,7 +51,7 @@ const FONDOS_STYLES = `
     font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; 
   }
   .pill:hover { border-color: var(--gold); color: var(--text-primary); }
-  .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2); }
+  .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 4px 12px rgba(201, 166, 88, 0.2); }
   .pill-count { font-size: 10px; opacity: 0.6; background: rgba(0,0,0,0.1); padding: 1px 6px; border-radius: 10px; }
   .pill.active .pill-count { background: rgba(255,255,255,0.2); }
   
@@ -100,7 +100,7 @@ const FONDOS_STYLES = `
   .toggle-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-secondary); cursor: pointer; }
   .toggle-item input { width: 18px; height: 18px; accent-color: var(--gold); }
   .background-options { margin-top: 20px; }
-  .premium-hint { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); color: var(--text-secondary); font-size: 13px; }
+  .premium-hint { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(201, 166, 88, 0.08); border: 1px solid rgba(201, 166, 88, 0.25); color: var(--text-secondary); font-size: 13px; }
   .premium-hint .lock-i { color: var(--gold); flex-shrink: 0; }
   .premium-hint button { margin-left: auto; padding: 4px 12px; background: var(--gold); color: #000; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .segmented-control .lock-badge { color: var(--text-muted); margin-left: 2px; }
@@ -128,7 +128,7 @@ export default function FondosView() {
   const { isPremium } = usePlan();
 
   const handleUpgrade = useCallback(() => {
-    useAppStore.getState().setForceLanding(true, 'planes')
+    useAppStore.getState().setForceLanding(true, 'precios')
   }, []);
 
   const [displayCount, setDisplayCount] = useState(12);

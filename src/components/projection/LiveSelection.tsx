@@ -245,8 +245,8 @@ export const LiveSelection = memo(function LiveSelection() {
         }
         .live-slide-card.active {
           border-color: var(--gold);
-          background: rgba(212, 168, 67, 0.08);
-          box-shadow: 0 0 20px rgba(212, 168, 67, 0.15);
+          background: rgba(201, 166, 88, 0.08);
+          box-shadow: 0 0 20px rgba(201, 166, 88, 0.15);
         }
         .live-slide-number {
           position: absolute;

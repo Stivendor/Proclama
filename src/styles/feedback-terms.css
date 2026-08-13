@@ -29,8 +29,8 @@
   gap: 6px;
   padding: 7px 12px;
   border-radius: var(--radius-sm);
-  background: rgba(212, 168, 67, 0.08);
-  border: 1px solid rgba(212, 168, 67, 0.2);
+  background: rgba(201, 166, 88, 0.08);
+  border: 1px solid rgba(201, 166, 88, 0.2);
   color: var(--gold);
   font-size: 12px;
   font-weight: 500;
@@ -40,7 +40,7 @@
 }
 
 .btn-feedback-trigger:hover {
-  background: rgba(212, 168, 67, 0.15);
+  background: rgba(201, 166, 88, 0.15);
   border-color: var(--gold);
 }
 

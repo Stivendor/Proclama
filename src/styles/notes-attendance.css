@@ -383,7 +383,7 @@
 
 .notice-item--projected {
   border-color: var(--gold);
-  background: rgba(212, 168, 67, 0.06);
+  background: rgba(201, 166, 88, 0.06);
 }
 
 .notice-project-active {
@@ -430,10 +430,10 @@
   font-size: 10px;
   font-weight: 600;
   color: var(--gold);
-  background: rgba(212, 168, 67, 0.12);
+  background: rgba(201, 166, 88, 0.12);
   padding: 2px 8px;
   border-radius: 99px;
-  border: 1px solid rgba(212, 168, 67, 0.3);
+  border: 1px solid rgba(201, 166, 88, 0.3);
 }
 
 .sync-error-toast {

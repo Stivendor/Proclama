@@ -290,8 +290,8 @@ export default function SongEditorModal() {
 
           {!user && (
             <div style={{
-              background: 'rgba(212, 168, 67, 0.1)',
-              border: '1px solid rgba(212, 168, 67, 0.2)',
+              background: 'rgba(201, 166, 88, 0.1)',
+              border: '1px solid rgba(201, 166, 88, 0.2)',
               borderRadius: '8px',
               padding: '10px 14px',
               fontSize: '0.85rem',

@@ -67,3 +67,6 @@ dry_run_output*.txt
 results.txt
 
 package-lock.json
+
+# Artefactos transitorios de las paginas de decision de impeccable
+.impeccable/questions/

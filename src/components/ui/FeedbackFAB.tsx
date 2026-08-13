@@ -62,7 +62,7 @@ export default function FeedbackFAB() {
         onClick={() => setOpen(!open)}
         style={{ 
           display: 'flex', alignItems: 'center', gap: '6px', width: '100%', 
-          padding: '6px 8px', background: open ? 'rgba(212, 175, 55, 0.1)' : 'transparent', 
+          padding: '6px 8px', background: open ? 'rgba(201, 166, 88, 0.1)' : 'transparent', 
           border: '1px dashed ' + (open ? 'var(--gold)' : 'var(--border)'), 
           borderRadius: '6px', color: open ? 'var(--gold)' : 'var(--text-muted)', 
           fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s ease-out'
