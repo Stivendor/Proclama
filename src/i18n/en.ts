@@ -68,7 +68,7 @@ const en: Translations = {
     freeClosing: 'The core never gets locked: we will never leave you without projection on a Sunday.',
     proTitle: 'What becomes Pro:',
     costs: 'Keeping this alive has real server and development costs. If you want to keep the Pro features, the plan is {list} a year per church.',
-    founder: 'For being here from the start you get it at {price} a year, frozen for as long as you stay with us.',
+    founder: 'For being here from the start you get it at {price} a year — that works out to {monthly} a month, in a single payment — and frozen for as long as you stay with us.',
     thanks: 'Thanks to your support Proclama keeps getting better.',
     dismiss: 'Got it',
     support: 'I want to support Proclama',
@@ -102,6 +102,7 @@ const en: Translations = {
     pricing: {
       title: 'Simple plans, no surprises',
       perYear: '/yr',
+      perMonthNote: 'Works out to {price} a month, billed once a year',
       free: {
         name: 'Free',
         tagline: 'Free forever',

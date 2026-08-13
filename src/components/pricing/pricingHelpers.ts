@@ -19,6 +19,19 @@ export function formatCOP(n: number, withCurrency = false): string {
   return withCurrency ? `${amount} COP` : amount
 }
 
+/**
+ * Lo que sale al mes un plan anual. Es una equivalencia para que el precio se
+ * pueda pensar, NO un plan: no hay cobro mensual, y quien lo lea como tal se
+ * va a sentir engañado el día de la transferencia. Siempre acompañado de
+ * "en un solo pago al año".
+ *
+ * Redondeo al peso: 12 × 8.250 da los 99.000 exactos, así que a quien haga la
+ * cuenta le cuadra.
+ */
+export function monthlyEquivalent(annual: number): number {
+  return Math.round(annual / 12)
+}
+
 /** ¿Sigue vigente el precio fundador? Inclusive el último día. */
 export function isFounderPriceActive(now: Date = new Date()): boolean {
   return now <= new Date(`${FOUNDER_PRICE_UNTIL}T23:59:59-05:00`)

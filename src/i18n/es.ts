@@ -66,7 +66,7 @@ const es = {
     freeClosing: 'El corazón del programa nunca se bloquea: jamás te vamos a dejar sin proyección un domingo.',
     proTitle: 'Lo que pasa a ser Pro:',
     costs: 'Mantener esto vivo tiene costos reales de servidores y desarrollo. Si quieres conservar las funciones Pro, el plan es de {list} al año por iglesia.',
-    founder: 'Por haber estado desde el principio lo tienes en {price} al año, congelado mientras sigas con nosotros.',
+    founder: 'Por haber estado desde el principio lo tienes en {price} al año — equivale a {monthly} al mes, en un solo pago — y congelado mientras sigas con nosotros.',
     thanks: 'Gracias a tu apoyo Proclama se mantiene actualizado.',
     dismiss: 'Entendido',
     support: 'Quiero apoyar Proclama',
@@ -100,6 +100,7 @@ const es = {
     pricing: {
       title: 'Planes simples, sin sorpresas',
       perYear: '/año',
+      perMonthNote: 'Equivale a {price} al mes, en un solo pago al año',
       free: {
         name: 'Gratis',
         tagline: 'Gratis para siempre',

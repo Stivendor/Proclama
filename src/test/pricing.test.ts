@@ -7,6 +7,7 @@ import {
   currentPrice,
   graceStatus,
   daysUntil,
+  monthlyEquivalent,
 } from '@/components/pricing/pricingHelpers'
 import { PRICING, FOUNDER_PRICE_UNTIL, GRACE_NOTICE_MAX_DAYS } from '@/constants/plans'
 
@@ -67,6 +68,14 @@ describe('precio fundador', () => {
 
   it('al día siguiente ya no', () => {
     expect(isFounderPriceActive(DESPUES)).toBe(false)
+  })
+
+  // Si 12 × mensual no da el anual, alguien que haga la cuenta ve un número que
+  // no cuadra justo en el momento de decidir si paga.
+  it('la equivalencia mensual multiplicada por 12 devuelve el anual', () => {
+    expect(monthlyEquivalent(PRICING.founderAnnualCOP)).toBe(8250)
+    expect(monthlyEquivalent(PRICING.founderAnnualCOP) * 12).toBe(PRICING.founderAnnualCOP)
+    expect(Math.abs(monthlyEquivalent(PRICING.annualCOP) * 12 - PRICING.annualCOP)).toBeLessThan(12)
   })
 
   it('el fundador ronda la mitad del precio de lista', () => {

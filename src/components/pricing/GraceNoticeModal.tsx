@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Check, Heart, X } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { t } from '@/i18n'
-import { currentPrice, formatCOP, subscribeWhatsappUrl } from './pricingHelpers'
+import { currentPrice, formatCOP, monthlyEquivalent, subscribeWhatsappUrl } from './pricingHelpers'
 
 interface Props {
   /** Último día completo con Pro, ya calculado por graceStatus(). */
@@ -92,7 +92,10 @@ export default function GraceNoticeModal({ lastFullDay, userEmail, onClose }: Pr
           <p>{t(language, 'graceNotice.costs', { list: listPrice })}</p>
           {strikethrough && (
             <p className="grace-notice-founder">
-              {t(language, 'graceNotice.founder', { price: formatCOP(amount, true) })}
+              {t(language, 'graceNotice.founder', {
+                price: formatCOP(amount, true),
+                monthly: formatCOP(monthlyEquivalent(amount)),
+              })}
             </p>
           )}
           <p>{t(language, 'graceNotice.thanks')}</p>
