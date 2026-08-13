@@ -20,10 +20,12 @@ export default function PricingCards(props: PricingCardsProps) {
     t(language, `landing.pricing.free.${k}`),
   )
   // Cada gate de usePlan() tiene que estar en esta lista, o se vende algo que
-  // el usuario no sabe que compra: canCreateSong (f1), canInviteCollaborators
-  // (f2), canSync (f3), canUseMediaBackgrounds (f4),
+  // el usuario no sabe que compra: canCreateSong (f1), canUseOnlineSearch (f7),
+  // canInviteCollaborators (f2), canSync (f3), canUseMediaBackgrounds (f4),
   // canExportReports + canViewStats (f5), canImportBibles (f6).
-  const premiumFeatures = ['f1', 'f2', 'f3', 'f4', 'f5', 'f6'].map((k) =>
+  // El orden del array manda, no el numero de la clave: f7 va junto a f1 porque
+  // las dos hablan de llenar la biblioteca.
+  const premiumFeatures = ['f1', 'f7', 'f2', 'f3', 'f4', 'f5', 'f6'].map((k) =>
     t(language, `landing.pricing.premium.${k}`),
   )
 

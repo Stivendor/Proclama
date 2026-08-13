@@ -108,6 +108,7 @@ const es = {
         f4: 'Fondos de video e imágenes propios',
         f5: 'Reportes PDF de asistencia, con gráficas y estadísticas',
         f6: '+1.000 versiones de la Biblia',
+        f7: 'Buscador de letras online: trae la canción sin escribirla',
         ctaTrial: 'Empezar prueba gratuita de 1 mes',
         ctaSubscribe: 'Suscribirme',
       },

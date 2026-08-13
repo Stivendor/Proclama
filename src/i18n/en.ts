@@ -110,6 +110,7 @@ const en: Translations = {
         f4: 'Your own video and image backgrounds',
         f5: 'PDF attendance reports, with charts and stats',
         f6: '1,000+ Bible versions',
+        f7: 'Online lyrics search: pull the song in without typing it',
         ctaTrial: 'Start your 1-month free trial',
         ctaSubscribe: 'Subscribe',
       },
