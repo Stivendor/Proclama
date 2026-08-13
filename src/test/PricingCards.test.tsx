@@ -89,6 +89,7 @@ describe('PricingCards — precio fundador', () => {
       /reportes pdf/i,       // canExportReports
       /estad/i,              // canViewStats
       /biblia/i,             // canImportBibles
+      /letras online/i,      // canUseOnlineSearch
     ]) {
       expect(pro).toMatch(gate)
     }

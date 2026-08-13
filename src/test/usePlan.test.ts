@@ -4,6 +4,7 @@ import {
   FOUNDING_PHASE,
   isPremiumFromProfile,
   isPremiumByPlan,
+  canUseOnlineSearchFromProfile,
   type PlanTier,
 } from '@/hooks/usePlan'
 
@@ -106,5 +107,38 @@ describe('Plan trial (prueba con fecha)', () => {
 describe('Admin siempre premium', () => {
   it('aunque el plan sea free', () => {
     expect(buildPlanLogic('free', 'admin').isPremium).toBe(true)
+  })
+})
+
+/**
+ * Buscador de letras online (lrclib).
+ *
+ * Regresión: el disparador no comprobaba el plan en ninguna de sus tres puertas
+ * (botón de la cabecera, Ctrl+K y «/»), así que una cuenta free lo abría igual.
+ * usePlan() ni siquiera tenía una capacidad para esta función.
+ */
+describe('canUseOnlineSearchFromProfile (función real)', () => {
+  const free = { plan: 'free' as const, role: 'user' as const, premiumExpiresAt: null }
+  const pro = { plan: 'paid' as const, role: 'user' as const, premiumExpiresAt: FUTURE }
+  const vencido = { plan: 'paid' as const, role: 'user' as const, premiumExpiresAt: PAST }
+
+  it('el plan Pro vigente lo puede usar', () => {
+    expect(canUseOnlineSearchFromProfile(pro)).toBe(true)
+  })
+
+  it('free no lo puede usar cuando el paywall está activo', () => {
+    if (FOUNDING_PHASE) return
+    expect(canUseOnlineSearchFromProfile(free)).toBe(false)
+  })
+
+  it('un Pro vencido tampoco', () => {
+    if (FOUNDING_PHASE) return
+    expect(canUseOnlineSearchFromProfile(vencido)).toBe(false)
+  })
+
+  it('no inventa una regla propia: es exactamente isPremiumFromProfile', () => {
+    for (const perfil of [free, pro, vencido]) {
+      expect(canUseOnlineSearchFromProfile(perfil)).toBe(isPremiumFromProfile(perfil))
+    }
   })
 })

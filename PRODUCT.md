@@ -54,7 +54,7 @@ Dos mecanismos que un vecino de categoría no puede copiar tal cual:
 ## Evidence on Hand
 
 **Real y utilizable:**
-- Capturas de la app en `/public`: `app.jpg`, `bible.jpg`, `search.jpg`, `setlist.jpg`, `backgrounds.jpg`.
+- Capturas de la app en `/public`: `app.jpg` (biblioteca completa), `library.jpg` (catálogo con el contador de canciones), `bible.jpg` (Juan 3 en RVR1960), `projection.jpg` (versículo proyectado sobre fondo de imagen). Todas del 12-ago-2026 y con el correo del operador difuminado.
 - `report.jpg`: exportación real del PDF de asistencia con gráficas y cifras reales.
 - 4 congregaciones IPUC como usuarios reales.
 
@@ -64,7 +64,7 @@ Dos mecanismos que un vecino de categoría no puede copiar tal cual:
 **No existe y no se debe inventar:**
 - Fotos de servicios reales, de congregaciones o del operador trabajando.
 - Testimonios de terceros, conteo de iglesias más allá de las 4, prensa, benchmarks, precios distintos a los registrados arriba.
-- `projection.jpg`: la landing la referencia y no existe; cae a `app.jpg`. Las capturas actuales son del 22-jun-2026 y muestran UI ya retirada.
+(Las capturas del 22-jun-2026, que mostraban UI ya retirada, se reemplazaron el 12-ago-2026. `search.jpg`, `setlist.jpg` y `backgrounds.jpg` se borraron por quedar sin uso.)
 
 ## Product Principles
 
