@@ -323,7 +323,7 @@ Notas de seguridad:
 - Las funciones premium del cliente son controles de interfaz; cualquier permiso real debe validarse con RLS, Supabase Auth o Edge Functions.
 - Las tablas con datos por usuario deben tener RLS activo y policies versionadas en migraciones.
 - IndexedDB y localStorage no estan cifrados: evita guardar secretos o datos que no deban quedar en el dispositivo.
-- **Modelo de lanzamiento**: durante el período de lanzamiento, `FOUNDING_PHASE = true` en `src/hooks/usePlan.ts` concede premium a todos los usuarios registrados sin costo.
+- **Modelo de lanzamiento**: la fase fundadores (`FOUNDING_PHASE = true` en `src/hooks/usePlan.ts`, premium gratis para todos) terminó. Hoy el flag está en `false` y los planes de pago están activos; las cuentas que venían de esa fase recibieron 90 días de gracia. Runbook en `docs/COBRO.md`.
 
 ---
 

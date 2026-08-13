@@ -5,11 +5,18 @@ import {
   isTrialEligible,
   isFounderPriceActive,
   currentPrice,
+  graceStatus,
+  daysUntil,
+  monthlyEquivalent,
 } from '@/components/pricing/pricingHelpers'
-import { PRICING, FOUNDER_PRICE_UNTIL } from '@/constants/plans'
+import { PRICING, FOUNDER_PRICE_UNTIL, GRACE_NOTICE_MAX_DAYS } from '@/constants/plans'
 
-const DURANTE = new Date('2026-08-15T12:00:00-05:00')
-const DESPUES = new Date('2026-10-15T12:00:00-05:00')
+// Derivadas de la constante, nunca escritas a mano: la fecha de la promoción se
+// mueve (ya se movió una vez) y unas fechas quemadas dejan estos tests en rojo
+// sin que nada esté realmente mal.
+const FIN_PROMO = new Date(`${FOUNDER_PRICE_UNTIL}T23:59:59-05:00`)
+const DURANTE = new Date(FIN_PROMO.getTime() - 86_400_000)
+const DESPUES = new Date(FIN_PROMO.getTime() + 86_400_000)
 
 describe('formatCOP', () => {
   it('formatea con separador de miles es-CO', () => {
@@ -60,7 +67,15 @@ describe('precio fundador', () => {
   })
 
   it('al día siguiente ya no', () => {
-    expect(isFounderPriceActive(new Date('2026-10-01T00:00:01-05:00'))).toBe(false)
+    expect(isFounderPriceActive(DESPUES)).toBe(false)
+  })
+
+  // Si 12 × mensual no da el anual, alguien que haga la cuenta ve un número que
+  // no cuadra justo en el momento de decidir si paga.
+  it('la equivalencia mensual multiplicada por 12 devuelve el anual', () => {
+    expect(monthlyEquivalent(PRICING.founderAnnualCOP)).toBe(8250)
+    expect(monthlyEquivalent(PRICING.founderAnnualCOP) * 12).toBe(PRICING.founderAnnualCOP)
+    expect(Math.abs(monthlyEquivalent(PRICING.annualCOP) * 12 - PRICING.annualCOP)).toBeLessThan(12)
   })
 
   it('el fundador ronda la mitad del precio de lista', () => {
@@ -84,6 +99,62 @@ describe('precio fundador', () => {
     )
     expect(texto).toContain('$199.000 COP al año')
     expect(texto).not.toContain('fundador')
+  })
+})
+
+describe('graceStatus', () => {
+  const AHORA = new Date('2026-08-13T12:00:00-05:00')
+  /** Fecha de vencimiento a `d` días de AHORA. */
+  const en = (d: number) => new Date(AHORA.getTime() + d * 86_400_000).toISOString()
+  const base = { plan: 'paid', role: 'user', now: AHORA }
+
+  it('reconoce a quien está en la gracia y cuenta los días', () => {
+    expect(graceStatus({ ...base, premiumExpiresAt: en(90) })?.daysLeft).toBe(90)
+  })
+
+  // La gracia vence a las 00:00 del día siguiente al último día con Pro: si no
+  // se distinguen, el aviso promete un día de más.
+  it('el último día completo es el anterior al vencimiento', () => {
+    const s = graceStatus({ ...base, premiumExpiresAt: '2026-11-12T05:00:00.000Z' })
+    expect(s?.expiry.toISOString()).toBe('2026-11-12T05:00:00.000Z')
+    expect(s?.lastFullDay.toISOString()).toBe('2026-11-11T05:00:00.000Z')
+  })
+
+  // Los vitalicios: el script los deja en 'founding' sin fecha, y la cuenta que
+  // quedó en 'paid' sin fecha por un cambio de plan de prueba también es de por
+  // vida. Ninguno pierde nada, así que anunciarles un vencimiento sería mentir.
+  it('deja fuera a los vitalicios, con y sin plan founding', () => {
+    expect(graceStatus({ ...base, plan: 'founding', premiumExpiresAt: null })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: null })).toBeNull()
+  })
+
+  // El script mueve a 'paid' a cualquier admin que no esté en la lista de correos
+  // vitalicios, pero isPremiumByPlan() y public.is_premium() lo eximen por rol.
+  it('deja fuera a los admin', () => {
+    expect(graceStatus({ ...base, role: 'admin', premiumExpiresAt: en(90) })).toBeNull()
+  })
+
+  it('deja fuera a trial y free', () => {
+    expect(graceStatus({ ...base, plan: 'trial', premiumExpiresAt: en(20) })).toBeNull()
+    expect(graceStatus({ ...base, plan: 'free', premiumExpiresAt: null })).toBeNull()
+  })
+
+  // El caso que justifica el tope: quien paga queda igual que quien está en la
+  // gracia — 'paid' con fecha — y sin él vería el banner de despedida.
+  it('deja fuera a quien ya pagó el año', () => {
+    expect(graceStatus({ ...base, premiumExpiresAt: en(365) })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: en(GRACE_NOTICE_MAX_DAYS + 1) })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: en(GRACE_NOTICE_MAX_DAYS) })).not.toBeNull()
+  })
+
+  it('calla cuando la gracia ya venció', () => {
+    expect(graceStatus({ ...base, premiumExpiresAt: en(-1) })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: AHORA.toISOString() })).toBeNull()
+  })
+
+  it('daysUntil redondea hacia arriba: media hora sigue siendo un día', () => {
+    expect(daysUntil(new Date(AHORA.getTime() + 1_800_000).toISOString(), AHORA)).toBe(1)
+    expect(daysUntil(en(90), AHORA)).toBe(90)
   })
 })
 

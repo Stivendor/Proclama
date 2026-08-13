@@ -1,7 +1,7 @@
 import { Check, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { t } from '@/i18n'
-import { formatCOP, subscribeWhatsappUrl, currentPrice } from './pricingHelpers'
+import { formatCOP, subscribeWhatsappUrl, currentPrice, monthlyEquivalent } from './pricingHelpers'
 
 interface PricingCardsProps {
   variant: 'marketing' | 'app'
@@ -83,6 +83,13 @@ export default function PricingCards(props: PricingCardsProps) {
             {strikethrough && <s className="plan-price-was">{formatCOP(strikethrough)}</s>}
             {formatCOP(price, true)}<span> {per}</span>
           </div>
+          {/* El anual manda y esto va debajo y en pequeño: es una equivalencia
+              para poder pensar el precio, no un plan mensual — no existe. */}
+          <p className="plan-monthly-note">
+            {t(language, 'landing.pricing.perMonthNote', {
+              price: formatCOP(monthlyEquivalent(price)),
+            })}
+          </p>
           {strikethrough && (
             <p className="plan-founder-note">{t(language, 'landing.pricing.premium.founderNote')}</p>
           )}
@@ -142,6 +149,10 @@ export default function PricingCards(props: PricingCardsProps) {
         .pricing .plan-price-was {
           margin-right: 10px; font-size: 19px; font-weight: 600;
           color: var(--text-secondary, #9aa6bb); opacity: .65;
+        }
+        .pricing .plan-monthly-note {
+          margin: 6px 0 0; font-size: 12.5px;
+          color: var(--text-secondary, #9aa6bb);
         }
         .pricing .plan-founder-note {
           margin: 6px 0 0; font-size: 12.5px; font-weight: 600;

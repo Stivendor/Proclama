@@ -57,6 +57,21 @@ const es = {
       starting: 'Activando…',
     },
   },
+  graceNotice: {
+    title: 'Gracias por acompañar a Proclama',
+    lead: 'Has usado Proclama con todas las funciones Pro abiertas durante la fase de fundadores. Eso sigue igual hasta el {date}. No tienes que hacer nada hasta entonces.',
+    bannerLabel: 'Pro hasta el {date}',
+    bannerCta: 'Ver planes',
+    freeTitle: 'Después de esa fecha Proclama sigue siendo tuyo, gratis y sin límite de tiempo:',
+    freeClosing: 'El corazón del programa nunca se bloquea: jamás te vamos a dejar sin proyección un domingo.',
+    proTitle: 'Lo que pasa a ser Pro:',
+    costs: 'Mantener esto vivo tiene costos reales de servidores y desarrollo. Si quieres conservar las funciones Pro, el plan es de {list} al año por iglesia.',
+    founder: 'Por haber estado desde el principio lo tienes en {price} al año — equivale a {monthly} al mes, en un solo pago — y congelado mientras sigas con nosotros.',
+    thanks: 'Gracias a tu apoyo Proclama se mantiene actualizado.',
+    dismiss: 'Entendido',
+    support: 'Quiero apoyar Proclama',
+    close: 'Cerrar aviso',
+  },
   landing: {
     hero: {
       badge: 'Gratis · Español e inglés',
@@ -85,6 +100,7 @@ const es = {
     pricing: {
       title: 'Planes simples, sin sorpresas',
       perYear: '/año',
+      perMonthNote: 'Equivale a {price} al mes, en un solo pago al año',
       free: {
         name: 'Gratis',
         tagline: 'Gratis para siempre',

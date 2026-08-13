@@ -8,6 +8,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSongsRealtime } from "@/hooks/useSongsRealtime";
 import { useSetlistsRealtime } from "@/hooks/useSetlistsRealtime";
 import { useAuth } from "@/hooks/useAuth";
+import { graceStatus } from "@/components/pricing/pricingHelpers";
 import Sidebar from "@/components/layout/Sidebar";
 import LandingView from "@/pages/LandingView";
 
@@ -27,6 +28,7 @@ const FondosView = lazy(() => import("@/pages/FondosView"));
 const OnboardingFlow = lazy(() => import("@/components/auth/OnboardingFlow"));
 const DeviceBlockedModal = lazy(() => import("@/components/auth/DeviceBlockedModal"));
 const TermsModal = lazy(() => import("@/components/terms/TermsModal"));
+const GraceNoticeModal = lazy(() => import("@/components/pricing/GraceNoticeModal"));
 const ChurchRegistrationView = lazy(() => import("@/pages/ChurchRegistrationView"));
 const Toast = lazy(() => import("@/components/ui/Toast"));
 const ShortcutsModal = lazy(() => import("@/components/ui/ShortcutsModal"));
@@ -94,12 +96,29 @@ export default function App() {
 }
 
 function AppContent() {
-  const { authStatus, forceLanding, deviceBlocked, acceptTerms } = useAppStore(
+  const {
+    authStatus,
+    forceLanding,
+    deviceBlocked,
+    acceptTerms,
+    userPlan,
+    userRole,
+    premiumExpiresAt,
+    graceNoticeSeen,
+    setGraceNoticeSeen,
+    onboardingDone,
+  } = useAppStore(
     useShallow((s) => ({
       authStatus: s.authStatus,
       forceLanding: s.forceLanding,
       deviceBlocked: s.deviceBlocked,
       acceptTerms: s.acceptTerms,
+      userPlan: s.userPlan,
+      userRole: s.userRole,
+      premiumExpiresAt: s.premiumExpiresAt,
+      graceNoticeSeen: s.graceNoticeSeen,
+      setGraceNoticeSeen: s.setGraceNoticeSeen,
+      onboardingDone: s.onboardingDone,
     }))
   );
 
@@ -125,6 +144,8 @@ function AppContent() {
     const lang = useAppStore.getState().language;
     document.documentElement.lang = lang;
   }, []);
+
+  const grace = graceStatus({ plan: userPlan, role: userRole, premiumExpiresAt });
 
   if (!mounted) return null;
 
@@ -170,6 +191,21 @@ function AppContent() {
               setShowTermsUpdateModal(false);
             }}
             onClose={() => setShowTermsUpdateModal(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* El aviso espera a que no haya nada más encima: dos modales apilados, o
+          el tour de onboarding debajo, no. `premiumExpiresAt` llega después del
+          primer render (useAuth marca la sesión y luego trae el perfil), por eso
+          esto se recalcula en cada render y no una sola vez al montar.
+          Cerrado una vez, el que puede volver a abrirlo es el banner del sidebar. */}
+      {grace && !graceNoticeSeen && !showTermsUpdateModal && onboardingDone && (
+        <Suspense fallback={null}>
+          <GraceNoticeModal
+            lastFullDay={grace.lastFullDay}
+            userEmail={user?.email ?? undefined}
+            onClose={() => setGraceNoticeSeen(true)}
           />
         </Suspense>
       )}

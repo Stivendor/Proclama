@@ -8,6 +8,7 @@ import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
 import { FOUNDING_PHASE } from '@/hooks/usePlan'
+import { graceStatus } from '@/components/pricing/pricingHelpers'
 import { NAV_ORDER, type NavView } from '@/constants/nav'
 
 const NAV_META: Record<NavView, { icon: LucideIcon; labelKey: string }> = {
@@ -26,18 +27,28 @@ export default function Sidebar() {
   const [launchBannerDismissed, setLaunchBannerDismissed] = useState(
     () => localStorage.getItem('launch-banner-v1') === '1'
   )
-  const { activeView, setActiveView, toggleSidebar, user, goToLanding, language } = useAppStore(useShallow(s => ({
+  const {
+    activeView, setActiveView, toggleSidebar, user, goToLanding, language,
+    userPlan, premiumExpiresAt, setGraceNoticeSeen,
+  } = useAppStore(useShallow(s => ({
     activeView: s.activeView,
     setActiveView: s.setActiveView,
     toggleSidebar: s.toggleSidebar,
     user: s.user,
     goToLanding: s.goToLanding,
     language: s.language,
+    userPlan: s.userPlan,
+    premiumExpiresAt: s.premiumExpiresAt,
+    setGraceNoticeSeen: s.setGraceNoticeSeen,
   })))
 
   const visibleNav = NAV_ORDER.map(id => ({ id, ...NAV_META[id] }))
 
   const userRole = useAppStore(s => s.userRole)
+
+  // Misma regla que el modal: si divergieran, el banner anunciaría un
+  // vencimiento que el aviso no reconoce.
+  const grace = graceStatus({ plan: userPlan, role: userRole, premiumExpiresAt })
 
   const handleLogoClick = () => {
     useAppStore.getState().setForceLanding(true)
@@ -123,6 +134,42 @@ export default function Sidebar() {
             <X size={13} />
           </button>
         </div>
+      )}
+
+      {/* Relevo del banner de lanzamiento: ese muere con FOUNDING_PHASE y este
+          ocupa su hueco durante la gracia. No se puede descartar a propósito —
+          es el único sitio donde vuelve a abrirse el aviso completo. */}
+      {grace && (
+        <button
+          onClick={() => setGraceNoticeSeen(false)}
+          style={{
+            margin: '0 10px 8px',
+            padding: '10px 11px',
+            borderRadius: 10,
+            background: 'rgba(201, 166, 88, 0.08)',
+            border: '1px solid rgba(201, 166, 88, 0.22)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            width: 'calc(100% - 20px)',
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
+          <Sparkles size={13} color="#c9a658" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, flex: 1 }}>
+            <strong style={{ color: '#c9a658' }}>
+              {t(language, 'graceNotice.bannerLabel', {
+                date: grace.lastFullDay.toLocaleDateString(language === 'en' ? 'en-US' : 'es-CO', {
+                  day: 'numeric',
+                  month: 'short',
+                }),
+              })}
+            </strong>
+            <br />
+            {t(language, 'graceNotice.bannerCta')} ›
+          </span>
+        </button>
       )}
 
       <div className="sidebar-sync-status">

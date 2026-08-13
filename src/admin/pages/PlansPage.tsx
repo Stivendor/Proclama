@@ -55,7 +55,10 @@ export default function PlansPage() {
   const [users, setUsers] = useState<PlanRow[]>([]);
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
-  const [duration, setDuration] = useState<Duration>("1m");
+  // Anual por defecto: es el único plan que se vende. Con "1m" por defecto, un
+  // clic de más le concede un mes a quien acaba de pagar el año, y encima cae
+  // dentro de la ventana del aviso de fin de gracia.
+  const [duration, setDuration] = useState<Duration>("12m");
   const [updating, setUpdating] = useState(false);
   const [msg, setMsg] = useState("");
 
