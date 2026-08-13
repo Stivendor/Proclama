@@ -180,6 +180,8 @@ interface ChapterCacheEntry {
 
 const chapterCache = new Map<string, ChapterCacheEntry>()
 const MAX_CHAPTER_CACHE_SIZE = 50
+/** La única traducción que viaja en el bundle y no necesita red ni persistencia. */
+export const LOCAL_TRANSLATION = 'RVR1960'
 const chapterAccessOrder: string[] = [] // Track access order for LRU
 
 function getCacheKey(bookId: string, chapter: number, translation: string): string {
@@ -219,18 +221,63 @@ function getCachedChapter(bookId: string, chapter: number, translation: string):
 
 function setCachedChapter(bookId: string, chapter: number, translation: string, verses: BibleVerseResult[]): void {
   const key = getCacheKey(bookId, chapter, translation)
-  
+
   // Evict oldest entry if cache is full
   if (chapterCache.size >= MAX_CHAPTER_CACHE_SIZE && !chapterCache.has(key)) {
     evictLRUChapter()
   }
-  
+
   chapterCache.set(key, {
     verses,
     timestamp: Date.now()
   })
-  
+
   updateChapterAccess(key)
+  void persistChapter(bookId, chapter, translation, verses)
+}
+
+/**
+ * El caché en memoria se pierde al recargar, así que cada sesión volvía a pedir
+ * NVI, KJV y compañía a la red. Estas dos funciones lo bajan a Dexie para que un
+ * capítulo ya visto se pueda proyectar sin conexión.
+ *
+ * Reutiliza bible_chapters_cache (las Biblias importadas ya viven ahí) usando el
+ * id de traducción como bibleId, que es lo que BibleView borra al eliminar una
+ * Biblia importada.
+ */
+async function getPersistedChapter(
+  bookId: string,
+  chapter: number,
+  translation: string
+): Promise<BibleVerseResult[] | null> {
+  // RVR1960 ya viene entera en el bundle: persistirla sería duplicar 4,6 MB.
+  if (translation === LOCAL_TRANSLATION) return null
+  try {
+    const row = await db.bible_chapters_cache.get([translation, bookId, String(chapter)])
+    return row?.verses?.length ? (row.verses as BibleVerseResult[]) : null
+  } catch {
+    return null
+  }
+}
+
+async function persistChapter(
+  bookId: string,
+  chapter: number,
+  translation: string,
+  verses: BibleVerseResult[]
+): Promise<void> {
+  if (translation === LOCAL_TRANSLATION || verses.length === 0) return
+  try {
+    await db.bible_chapters_cache.put({
+      bibleId: translation,
+      bookId,
+      chapterId: String(chapter),
+      verses
+    })
+  } catch (err) {
+    // Cuota llena o modo privado: el capítulo ya está en memoria, no se rompe nada.
+    console.warn('No se pudo persistir el capítulo en caché:', err)
+  }
 }
 
 export function clearChapterCache(): void {
@@ -254,6 +301,16 @@ export function clearChapterCacheForTranslation(translation: string): void {
       chapterAccessOrder.splice(index, 1)
     }
   })
+
+  // Si no se borra también lo persistido, la purga no purga nada: la siguiente
+  // lectura rehidrata desde Dexie los mismos versículos que se quisieron tirar.
+  if (translation !== LOCAL_TRANSLATION) {
+    db.bible_chapters_cache
+      .where('bibleId')
+      .equals(translation)
+      .delete()
+      .catch(err => console.warn('No se pudo purgar el capítulo persistido:', err))
+  }
 }
 
 export async function fetchChapter(
@@ -285,7 +342,14 @@ export async function fetchChapter(
       setCachedChapter(bookId, chapter, translation, verses)
       return verses
     }
-    
+
+    // Antes de salir a la red: ¿ya lo descargamos en una sesión anterior?
+    const persisted = await getPersistedChapter(bookId, chapter, translation)
+    if (persisted) {
+      setCachedChapter(bookId, chapter, translation, persisted)
+      return persisted
+    }
+
     // Identificar si es una Biblia importada (HelloAO) - no está en los predeterminados
     const isImported = !SUPPORTED_TRANSLATIONS.find(t => t.id === translation);
     if (isImported) {
