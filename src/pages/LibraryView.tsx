@@ -8,8 +8,9 @@ import type { Song } from '@/types'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import LyricsSearchModal from '@/components/songs/LyricsSearchModal'
 import ProInterestBadge from '@/components/pricing/ProInterestBadge'
+import PremiumFeatureModal from '@/components/ui/PremiumFeatureModal'
 import { fetchSongs, fetchSongsCount, deleteSong as deleteSongRemote, updateSong as updateSongRemote, createSong, fetchProfile } from '@/services/supabase'
-import { usePlan, FREE_SONG_LIMIT } from '@/hooks/usePlan'
+import { usePlan, FREE_SONG_LIMIT, canUseOnlineSearchFromProfile } from '@/hooks/usePlan'
 import { containsIgnoreAccents } from '@/utils/text'
 import { LiveSelection } from '@/components/projection/LiveSelection'
 import { inUnifiedLibrary, dedupImported } from '@/utils/librarySongs'
@@ -24,7 +25,7 @@ export default function LibraryView() {
     clearRecentSongs: s.clearRecentSongs
   })))
   const loadSong = useProjectionStore(s => s.loadSong)
-  const { canCreateSong } = usePlan()
+  const { canCreateSong, canUseOnlineSearch } = usePlan()
 
   // Conteo de canciones propias del usuario (para el límite free)
   const ownSongCount = useLiveQuery(async () => {
@@ -37,6 +38,7 @@ export default function LibraryView() {
   }, [user?.id]) ?? 0
   const [localSearch, setLocalSearch] = useState(searchQuery)
   const [showOnlineSearch, setShowOnlineSearch] = useState(false)
+  const [showOnlineSearchGate, setShowOnlineSearchGate] = useState(false)
   const [onlineResults, setOnlineResults] = useState<Song[]>([])
   const [selectedTag, setSelectedTag] = useState<string>('')
   const [selectedLang, setSelectedLang] = useState<string>('')
@@ -74,14 +76,24 @@ export default function LibraryView() {
       // montaría por debajo de su overlay (z-index más alto) y le robaría el
       // foco sin que el usuario vea nada — con cualquiera de los dos atajos.
       const editorAbierto = useAppStore.getState().isEditorOpen
+      // El buscador online es Pro. Se lee el perfil de forma imperativa igual
+      // que isEditorOpen, porque este listener se monta una sola vez.
+      const abrirBuscador = () => {
+        const { userPlan, userRole, premiumExpiresAt } = useAppStore.getState()
+        if (canUseOnlineSearchFromProfile({ plan: userPlan, role: userRole, premiumExpiresAt })) {
+          setShowOnlineSearch(true)
+        } else {
+          setShowOnlineSearchGate(true)
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault() // siempre: Ctrl+K es atajo nativo del navegador
         if (editorAbierto) return
-        setShowOnlineSearch(true)
+        abrirBuscador()
       } else if (e.key === '/' && !escribiendo) {
         if (editorAbierto) return // «/» no es atajo del navegador: no hace falta preventDefault
         e.preventDefault()
-        setShowOnlineSearch(true)
+        abrirBuscador()
       }
     }
     document.addEventListener('keydown', onKey)
@@ -533,10 +545,10 @@ export default function LibraryView() {
         <div className="header-actions">
           <button
             className="online-search-trigger"
-            onClick={() => setShowOnlineSearch(true)}
-            aria-label="Buscar canciones en internet"
+            onClick={() => canUseOnlineSearch ? setShowOnlineSearch(true) : setShowOnlineSearchGate(true)}
+            aria-label={canUseOnlineSearch ? 'Buscar canciones en internet' : 'Buscar canciones en internet (función Pro)'}
           >
-            <Globe size={14} opacity={0.6} />
+            {canUseOnlineSearch ? <Globe size={14} opacity={0.6} /> : <Lock size={13} opacity={0.7} />}
             <span>Buscar online…</span>
             <kbd>Ctrl K</kbd>
           </button>
@@ -707,6 +719,20 @@ export default function LibraryView() {
 
       {showOnlineSearch && (
         <LyricsSearchModal onClose={closeOnlineSearch} onImported={handleOnlineImported} onSearchLocal={handleBuscarEnBiblioteca} />
+      )}
+
+      {showOnlineSearchGate && (
+        <PremiumFeatureModal
+          icon={Globe}
+          title="Buscar letras online"
+          description="Trae la letra desde internet y la deja lista para proyectar, sin escribirla a mano. Es una función del plan Pro."
+          benefits={[
+            'Busca por título o artista y trae la letra completa',
+            'Las estrofas quedan separadas en diapositivas',
+            'La canción se sincroniza con tus dispositivos',
+          ]}
+          onClose={() => setShowOnlineSearchGate(false)}
+        />
       )}
 
       {importStatus && (

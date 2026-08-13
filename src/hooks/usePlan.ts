@@ -61,6 +61,17 @@ export function canCreateSongFromProfile(profile: PremiumProfileFields, ownSongC
   return isPremiumFromProfile(profile) || ownSongCount < FREE_SONG_LIMIT
 }
 
+/**
+ * Buscador de letras online (lrclib). Solo Pro.
+ *
+ * Vive aparte del hook porque los atajos Ctrl+K y «/» se registran en un
+ * listener con deps [] y leen el perfil de forma imperativa: si la regla se
+ * duplicara ahí, el botón y los atajos podrían acabar discrepando.
+ */
+export function canUseOnlineSearchFromProfile(profile: PremiumProfileFields): boolean {
+  return isPremiumFromProfile(profile)
+}
+
 export function usePlan() {
   const { userPlan, userRole, premiumExpiresAt } = useAppStore()
 
@@ -102,6 +113,9 @@ export function usePlan() {
   /** Importar versiones del catálogo HelloAO (+1.000). Solo Pro. */
   const canImportBibles = isPremium
 
+  /** Buscador de letras online (lrclib). Solo Pro. */
+  const canUseOnlineSearch = isPremium
+
   return {
     isPremium,
     plan: isPremium ? ('premium' as const) : ('free' as const),
@@ -114,5 +128,6 @@ export function usePlan() {
     canExportReports,
     canViewStats,
     canImportBibles,
+    canUseOnlineSearch,
   }
 }
