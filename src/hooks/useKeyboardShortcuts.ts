@@ -42,6 +42,11 @@ export function useKeyboardShortcuts() {
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
+      // Con un modal encima, Espacio y las flechas movían la proyección y Escape
+      // reponía el texto: el operador cree estar cerrando un diálogo y está
+      // cambiando lo que ve la congregación.
+      if (document.querySelector('.modal-overlay')) return
+
       const app = useAppStore.getState()
 
       if (e.altKey) {
