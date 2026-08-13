@@ -27,7 +27,7 @@
 
 .admin-spinner {
   width: 28px; height: 28px;
-  border: 3px solid rgba(212,175,55,0.15);
+  border: 3px solid rgba(201, 166, 88,0.15);
   border-top-color: var(--gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -110,7 +110,7 @@
 }
 .admin-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
 .admin-nav-item.active {
-  background: rgba(212,175,55,0.08);
+  background: rgba(201, 166, 88,0.08);
   color: var(--gold);
   font-weight: 600;
 }
@@ -175,7 +175,7 @@
   overflow: hidden;
 }
 .admin-stat-card:hover { transform: translateY(-3px); border-color: var(--gold-dim); }
-.admin-stat-card.active { border-color: var(--gold); background: rgba(212,175,55,0.03); }
+.admin-stat-card.active { border-color: var(--gold); background: rgba(201, 166, 88,0.03); }
 .admin-stat-label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 .admin-stat-value { font-size: 32px; font-weight: 700; color: var(--text-primary); margin-top: 6px; display: block; }
 .admin-stat-icon { position: absolute; right: 20px; bottom: 20px; opacity: 0.06; }
@@ -252,12 +252,12 @@
 .admin-btn-secondary:hover { background: var(--bg-hover); }
 .admin-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
 .admin-badge.free { background: rgba(255,255,255,0.05); color: var(--text-secondary); }
-.admin-badge.premium { background: rgba(212,175,55,0.1); color: var(--gold); border: 1px solid rgba(212,175,55,0.2); }
+.admin-badge.premium { background: rgba(201, 166, 88,0.1); color: var(--gold); border: 1px solid rgba(201, 166, 88,0.2); }
 .admin-action-btn {
   display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
   border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
 }
-.admin-action-btn.gold { background: rgba(212,175,55,0.1); color: var(--gold); }
+.admin-action-btn.gold { background: rgba(201, 166, 88,0.1); color: var(--gold); }
 .admin-action-btn.gold:hover { background: var(--gold); color: #000; }
 .admin-action-btn.danger { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 .admin-action-btn.danger:hover { background: rgba(255,76,76,0.1); color: #ff4c4c; }

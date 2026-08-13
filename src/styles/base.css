@@ -13,8 +13,10 @@
   --text-secondary: #8b98b0;
   --text-muted:     #4a5568;
 
-  --gold:       #d4a843;
-  --gold-dim:   #a07830;
+  /* Un solo dorado para landing y app. Antes la app usaba d4a843/d4af37 y la
+     landing c9a658, y convivían en pantalla vía PricingCards. */
+  --gold:       #c9a658;
+  --gold-dim:   #977d42;
   --blue:       #4a90d9;
   --blue-dim:   #2d5f99;
   --green:      #4caf7d;
@@ -27,8 +29,9 @@
   --radius-sm:  5px;
   --radius-lg:  12px;
 
+  /* Inter, ahora sí cargada en index.html. Una sola cara para app y landing. */
   --font-ui:    'Inter', -apple-system, sans-serif;
-  --font-display: 'Montserrat', sans-serif;
+  --font-display: 'Inter', -apple-system, sans-serif;
 }
 
 /* ─── Reset ───────────────────────────────────────────────────────────────────── */
@@ -195,14 +198,14 @@ a:hover { text-decoration: underline; }
 }
 .sync-indicator.synced {
   color: var(--gold);
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(201, 166, 88, 0.1);
 }
 .sync-user-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(201, 166, 88, 0.1);
   border-radius: 6px;
   padding-right: 4px;
 }

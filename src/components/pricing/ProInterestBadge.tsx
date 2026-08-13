@@ -76,16 +76,16 @@ export default function ProInterestBadge({ source, label = 'Pro', align = 'left'
         .pro-interest-badge {
           display: inline-flex; align-items: center; gap: 4px;
           padding: 1px 7px; border-radius: 999px;
-          border: 1px solid rgba(212, 175, 55, 0.4);
-          background: rgba(212, 175, 55, 0.12);
+          border: 1px solid rgba(201, 166, 88, 0.4);
+          background: rgba(201, 166, 88, 0.12);
           color: var(--gold); font-size: 10px; font-weight: 700;
           cursor: pointer; white-space: nowrap;
         }
-        .pro-interest-badge:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.2); }
+        .pro-interest-badge:hover { border-color: var(--gold); background: rgba(201, 166, 88, 0.2); }
         .pro-interest-popup {
           position: absolute; top: calc(100% + 6px); z-index: 200;
           width: 260px; padding: 10px;
-          background: var(--bg-elevated); border: 1px solid rgba(212, 175, 55, 0.45);
+          background: var(--bg-elevated); border: 1px solid rgba(201, 166, 88, 0.45);
           border-radius: 8px; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
           text-align: left; white-space: normal;
         }

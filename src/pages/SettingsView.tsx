@@ -569,7 +569,7 @@ export default function SettingsView() {
         .settings-input-wrap:focus-within {
           border-color: var(--gold);
           background: var(--bg-elevated);
-          box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+          box-shadow: 0 0 0 3px rgba(201, 166, 88, 0.08);
         }
         .settings-input-wrap svg {
           color: var(--text-muted);
@@ -599,9 +599,9 @@ export default function SettingsView() {
           gap: 10px;
           margin-bottom: 20px;
           padding: 16px;
-          background: rgba(212, 175, 55, 0.05);
+          background: rgba(201, 166, 88, 0.05);
           border-radius: 8px;
-          border: 1px solid rgba(212, 175, 55, 0.15);
+          border: 1px solid rgba(201, 166, 88, 0.15);
         }
         .sync-benefit-item {
           display: flex;
@@ -705,7 +705,7 @@ export default function SettingsView() {
           border-radius: 12px;
           font-weight: 700;
           font-size: 20px;
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+          box-shadow: 0 4px 12px rgba(201, 166, 88, 0.3);
         }
         .session-email {
           font-weight: 600;
@@ -801,7 +801,7 @@ export default function SettingsView() {
         }
         .lang-option.active {
           border-color: var(--gold);
-          background: rgba(212, 175, 55, 0.08);
+          background: rgba(201, 166, 88, 0.08);
           color: var(--gold);
         }
         .lang-flag {

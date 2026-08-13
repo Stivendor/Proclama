@@ -97,7 +97,7 @@ export default function TemplateCombobox({
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                   padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13,
-                  background: selected ? 'rgba(212,168,67,0.12)' : 'transparent',
+                  background: selected ? 'rgba(201, 166, 88,0.12)' : 'transparent',
                   color: selected ? 'var(--gold)' : 'var(--text-primary)',
                 }}
                 onMouseEnter={e => { if (!selected) e.currentTarget.style.background = 'var(--bg-hover)' }}

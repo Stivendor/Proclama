@@ -799,7 +799,7 @@ export default function MediaPanel() {
         .btn-add-youtube:hover {
           border-color: var(--gold);
           color: var(--text-primary);
-          background: rgba(212, 175, 55, 0.05);
+          background: rgba(201, 166, 88, 0.05);
         }
         .youtube-play-icon {
           color: #ef4444;
@@ -952,7 +952,7 @@ export default function MediaPanel() {
           background: var(--gold);
           border-color: var(--gold);
           color: black;
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+          box-shadow: 0 4px 12px rgba(201, 166, 88, 0.2);
         }
 
         .media-error {
@@ -1040,7 +1040,7 @@ export default function MediaPanel() {
           cursor: pointer;
           border: 1px solid var(--border);
         }
-        .media-item-card.projecting { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.4); border-width: 2px; }
+        .media-item-card.projecting { border-color: var(--gold); box-shadow: 0 0 10px rgba(201, 166, 88, 0.4); border-width: 2px; }
 
         .media-item-thumb { width: 100%; height: 100%; position: relative; }
         .media-item-thumb img, .media-item-thumb video { width: 100%; height: 100%; object-fit: cover; }
@@ -1077,7 +1077,7 @@ export default function MediaPanel() {
           opacity: 1;
           color: var(--gold);
           border-color: var(--gold);
-          background: rgba(212, 175, 55, 0.2);
+          background: rgba(201, 166, 88, 0.2);
         }
         .media-item-meta {
           position: absolute;

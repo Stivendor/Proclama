@@ -410,7 +410,7 @@ export default function NotesView() {
             </div>
             <div className="modal-body" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: 'rgba(212, 175, 55, 0.1)', borderRadius: 8, border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: 'rgba(201, 166, 88, 0.1)', borderRadius: 8, border: '1px solid rgba(201, 166, 88, 0.3)' }}>
                   <FileText size={32} color="var(--gold)" style={{ flexShrink: 0 }} />
                   <div>
                     <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>

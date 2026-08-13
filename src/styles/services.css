@@ -18,13 +18,13 @@
 }
 
 .service-name-selector:hover {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(201, 166, 88, 0.4);
   background: var(--bg-elevated);
 }
 
 .service-name-selector.open {
   border-color: var(--gold);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 0 2px rgba(201, 166, 88, 0.15);
 }
 
 .service-name-value {
@@ -93,7 +93,7 @@
 }
 
 .service-name-option-row.selected {
-  background: rgba(212, 175, 55, 0.08);
+  background: rgba(201, 166, 88, 0.08);
 }
 
 .service-name-option-btn {

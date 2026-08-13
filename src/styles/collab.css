@@ -2,7 +2,7 @@
 .collab-page {
   height: 100%; overflow-y: auto;
   background:
-    radial-gradient(120% 80% at 50% -10%, rgba(212, 168, 67, 0.07), transparent 60%),
+    radial-gradient(120% 80% at 50% -10%, rgba(201, 166, 88, 0.07), transparent 60%),
     var(--bg-base);
 }
 .collab-page-center { display: flex; align-items: center; justify-content: center; padding: 24px; }
@@ -202,7 +202,7 @@
 .collab-notice-icon {
   display: flex; align-items: center; justify-content: center;
   width: 52px; height: 52px; border-radius: 50%;
-  background: rgba(212, 168, 67, 0.1); border: 1px solid var(--gold-dim); color: var(--gold);
+  background: rgba(201, 166, 88, 0.1); border: 1px solid var(--gold-dim); color: var(--gold);
 }
 
 /* Letra */

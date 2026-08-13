@@ -9,7 +9,7 @@
 .premium-banner-refined {
   position: relative;
   background: #0d1117;
-  border: 1px solid rgba(212, 168, 67, 0.25);
+  border: 1px solid rgba(201, 166, 88, 0.25);
   border-radius: 14px;
   padding: 8px 16px;
   display: flex;
@@ -17,13 +17,13 @@
   overflow: hidden;
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(212, 168, 67, 0.05);
+    0 0 0 1px rgba(201, 166, 88, 0.05);
 }
 
 .premium-banner-glass-effect {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(212, 168, 67, 0.08) 0%, transparent 50%, rgba(74, 144, 217, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(201, 166, 88, 0.08) 0%, transparent 50%, rgba(74, 144, 217, 0.05) 100%);
   pointer-events: none;
 }
 
@@ -53,7 +53,7 @@
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(212, 168, 67, 0.3);
+  box-shadow: 0 2px 8px rgba(201, 166, 88, 0.3);
 }
 
 .premium-banner-divider {
