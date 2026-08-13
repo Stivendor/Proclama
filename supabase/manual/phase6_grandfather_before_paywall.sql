@@ -53,9 +53,15 @@ where email in (select email from _lifetime);
 -- el que ya tenía cuenta mientras FOUNDING_PHASE estuvo en true. No hardcodear
 -- la fecha — una fecha vieja deja afuera a los registrados entre esa fecha y el
 -- lanzamiento real.
+-- La caducidad se ancla a MEDIANOCHE DE COLOMBIA, no a la hora de correr el
+-- script: con `now() + interval '90 days'`, correrlo un domingo a las 3 de la
+-- tarde apaga el Pro de todo el mundo un domingo a las 3 de la tarde, en pleno
+-- servicio. Y hace falsa la frase "hasta el {fecha}" del aviso in-app.
+-- El +91 es a propósito: medianoche del día 91 = final completo del día 90.
 update public.profiles
 set plan = 'paid',
-    premium_expires_at = now() + interval '90 days'
+    premium_expires_at = ((now() at time zone 'America/Bogota')::date + 91)
+                         ::timestamp at time zone 'America/Bogota'
 where plan in ('free', 'founding')
   and created_at < now()
   and email not in (select email from _lifetime);

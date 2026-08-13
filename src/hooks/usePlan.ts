@@ -2,10 +2,12 @@ import { useAppStore } from '@/stores'
 
 /**
  * Fase de lanzamiento. true = todos premium (etapa "fundadores").
- * Al activar el modelo de pago, ponlo en false (solo tras correr el
- * grandfathering de la Fase 6 y tener el enforcement server-side listo).
+ *
+ * En false desde la activación del cobro. NO volver a ponerlo en true sin leer
+ * docs/COBRO.md: las cuentas que venían de la fase fundadores están en 'paid'
+ * con fecha de gracia, y el aviso in-app ya les anunció cuándo vence.
  */
-export const FOUNDING_PHASE = true
+export const FOUNDING_PHASE = false
 
 /** Canciones propias que un usuario free puede crear */
 export const FREE_SONG_LIMIT = 30

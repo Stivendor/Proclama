@@ -275,7 +275,7 @@ Vista en el sidebar.
   - `syncTermsAcceptance`: Sincroniza la aceptación de términos en el perfil.
   - `createSong / updateSong`: CRUD con soporte para visibilidad pública.
 - **`projection.ts`**: Orquestador de la comunicación entre ventanas.
-- **`usePlan.ts`**: Lógica de negocio para límites freemium (hoy: `FOUNDING_PHASE = true`).
+- **`usePlan.ts`**: Lógica de negocio para límites freemium (hoy: `FOUNDING_PHASE = false`, el cobro está activo; ver `docs/COBRO.md`).
 
 ### DDL `attendance_records`
 ```sql

@@ -255,7 +255,7 @@ src/
 
 ## Modelo Freemium
 
-El sistema tiene un flag `FOUNDING_PHASE = true` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium.
+El sistema tiene un flag `FOUNDING_PHASE` en `usePlan.ts`. Mientras esté activo, todos los usuarios tienen acceso premium. Hoy está en `false`: el cobro está activo y los gates de plan se aplican de verdad (ver `docs/COBRO.md`).
 
 **Características premium**:
 - Sincronización en la nube (Supabase)
