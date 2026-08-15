@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Save,
-  Sliders,
   LogOut,
   Menu,
   Cloud,
@@ -37,8 +36,6 @@ export default function SettingsView() {
     isSidebarOpen,
     toggleSidebar,
     user,
-    backgrounds,
-    fetchBackgrounds,
     acceptTerms,
     setActiveView,
     language,
@@ -53,8 +50,6 @@ export default function SettingsView() {
       isSidebarOpen: s.isSidebarOpen,
       toggleSidebar: s.toggleSidebar,
       user: s.user,
-      backgrounds: s.backgrounds,
-      fetchBackgrounds: s.fetchBackgrounds,
       acceptTerms: s.acceptTerms,
       setActiveView: s.setActiveView,
       language: s.language,
@@ -65,11 +60,6 @@ export default function SettingsView() {
     })),
   );
   const [saved, setSaved] = useState(false);
-  const [attendanceCategories, setAttendanceCategories] = useState<string[]>(
-    settings.attendanceCategories?.length > 0
-      ? settings.attendanceCategories
-      : ['Caballeros', 'Damas', 'Amigos', 'Niños']
-  );
   const [churchName, setChurchName] = useState(settings.churchName ?? "");
   const initialListedCountry = LATAM_COUNTRIES.find((item) => item.name === settings.country);
   const initialCountry = settings.country
@@ -111,10 +101,6 @@ export default function SettingsView() {
     setStartingTrial(false);
   };
 
-  useEffect(() => {
-    fetchBackgrounds();
-  }, []);
-
   // Auth states
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState("");
@@ -132,15 +118,14 @@ export default function SettingsView() {
     }
   };
 
-  const set = (key: string, value: any) =>
-    updateSettings({ [key]: value } as any);
-
+  // Guarda solo el formulario de la iglesia. Las categorías de asistencia
+  // vivían aquí de paso: se editan en Notas, y reenviarlas desde este snapshot
+  // local pisaba lo que hubiera llegado por sync.
   const handleSave = () => {
     const finalCountry = country === "OTHER" ? customCountry.trim() : country.trim();
     const finalCity = city === "OTHER" || country === "OTHER" ? customCity.trim() : city.trim();
 
     updateSettings({
-      attendanceCategories,
       churchName: churchName.trim(),
       country: finalCountry,
       city: finalCity,
@@ -148,27 +133,6 @@ export default function SettingsView() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
-
-  const FONTS = [
-    "Montserrat, sans-serif",
-    "Outfit, sans-serif",
-    "Rubik, sans-serif",
-    "Lexend, sans-serif",
-    "Kanit, sans-serif",
-    "Urbanist, sans-serif",
-    "Nunito, sans-serif",
-    "Inter, sans-serif",
-    "Playfair Display, serif",
-    "Lora, serif",
-    "Montserrat, sans-serif",
-    "Verdana, sans-serif",
-  ];
-
-  const TRANSITIONS = [
-    { value: "fade", label: "Fade (suave)" },
-    { value: "slide", label: "Slide (deslizar)" },
-    { value: "instant", label: "Instantáneo" },
-  ];
 
   const selectedCountry = LATAM_COUNTRIES.find((item) => item.name === country);
 
@@ -183,13 +147,6 @@ export default function SettingsView() {
           )}
           <h1>{t(language, 'settings.title')}</h1>
         </div>
-        <button
-          className="btn-primary"
-          onClick={handleSave}
-          aria-label={t(language, 'settings.save')}
-        >
-          <Save size={15} /> {saved ? t(language, 'settings.saved') : t(language, 'settings.save')}
-        </button>
       </div>
 
       <div className="settings-body">
@@ -448,6 +405,17 @@ export default function SettingsView() {
                 </label>
               )}
             </div>
+            {/* El botón vive aquí y no en la cabecera: es lo único de Ajustes
+                que no guarda solo, y arriba parecía guardar la vista entera. */}
+            <div className="church-info-actions">
+              <button
+                className="btn-primary"
+                onClick={handleSave}
+                aria-label={t(language, 'settings.save')}
+              >
+                <Save size={15} /> {saved ? t(language, 'settings.saved') : t(language, 'settings.save')}
+              </button>
+            </div>
           </section>
 
           {/* Language selector */}
@@ -502,36 +470,6 @@ export default function SettingsView() {
           width: 100%;
         }
 
-        .background-options { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
-        .gallery-container { display: flex; flex-direction: column; gap: 12px; }
-        .gallery-container label { display: flex; alignItems: center; gap: 6px; font-weight: 600; font-size: 13px; }
-        .backgrounds-gallery {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-          gap: 12px;
-          max-height: 300px;
-          overflow-y: auto;
-          padding: 4px;
-        }
-        .gallery-item {
-          aspect-ratio: 16/9;
-          border-radius: 6px;
-          overflow: hidden;
-          cursor: pointer;
-          border: 2px solid transparent;
-          transition: all 0.2s;
-          position: relative;
-          background: #000;
-        }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
-        .gallery-item:hover img { opacity: 1; transform: scale(1.05); }
-        .gallery-item.active { border-color: var(--gold); }
-        .gallery-item.active img { opacity: 1; }
-        .active-overlay {
-          position: absolute; inset: 0; background: rgba(0,0,0,0.3);
-          display: flex; align-items: center; justify-content: center; color: var(--gold);
-        }
-        .input-tip { font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block; }
         .settings-section-copy {
           font-size: 13px;
           color: var(--text-secondary);
@@ -545,6 +483,11 @@ export default function SettingsView() {
         }
         .church-info-grid .settings-field:first-child {
           grid-column: 1 / -1;
+        }
+        .church-info-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 18px;
         }
         .settings-field {
           display: flex;
