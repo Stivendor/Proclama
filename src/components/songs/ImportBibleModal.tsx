@@ -94,7 +94,7 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          backgroundColor: '#0d1117',
+          backgroundColor: 'var(--bg-base)',
           borderRadius: '12px',
           border: '1px solid var(--border-color)'
         }}
@@ -161,7 +161,7 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
                 padding: '12px 32px', 
                 fontSize: '1.1rem', 
                 background: '#c9a658', 
-                color: '#0d1117', 
+                color: 'var(--bg-base)', 
                 borderRadius: '8px', 
                 border: 'none', 
                 cursor: 'pointer', 

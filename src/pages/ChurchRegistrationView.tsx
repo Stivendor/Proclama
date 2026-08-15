@@ -281,7 +281,7 @@ export default function ChurchRegistrationView({ userId, userDisplayName, onComp
           font-weight: 700;
         }
         .church-reg-header p {
-          color: #8b98b0;
+          color: var(--text-secondary);
           font-size: 14px;
           margin: 0;
         }
@@ -411,7 +411,7 @@ export default function ChurchRegistrationView({ userId, userDisplayName, onComp
         /* ── Hint ── */
         .church-reg-hint {
           text-align: center;
-          color: #4a5568;
+          color: var(--text-muted);
           font-size: 12px;
           margin: 20px 0 0;
         }

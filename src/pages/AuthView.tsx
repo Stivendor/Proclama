@@ -659,7 +659,7 @@ function AuthStyles() {
         font-weight: 700;
       }
       .auth-header p {
-        color: #8b98b0;
+        color: var(--text-secondary);
         font-size: 14px;
         margin: 0;
       }
@@ -777,7 +777,7 @@ function AuthStyles() {
       }
       .auth-email-suggestion {
         font-size: 12px;
-        color: #8b98b0;
+        color: var(--text-secondary);
         margin-top: -6px;
         margin-bottom: 2px;
         padding-left: 4px;
@@ -812,7 +812,7 @@ function AuthStyles() {
         display: flex;
         align-items: center;
       }
-      .auth-eye-btn:hover { color: #8b98b0; }
+      .auth-eye-btn:hover { color: var(--text-secondary); }
 
       /* ── Checkbox ── */
       .auth-checkbox-label {
@@ -820,7 +820,7 @@ function AuthStyles() {
         align-items: flex-start;
         gap: 10px;
         font-size: 13px;
-        color: #8b98b0;
+        color: var(--text-secondary);
         cursor: pointer;
         padding: 2px 0;
       }
@@ -941,7 +941,7 @@ function AuthStyles() {
         display: flex;
         align-items: center;
         gap: 12px;
-        color: #4a5568;
+        color: var(--text-muted);
         font-size: 12px;
         margin: 2px 0;
       }

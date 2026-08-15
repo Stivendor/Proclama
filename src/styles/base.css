@@ -2,16 +2,19 @@
 
 /* ─── Variables ──────────────────────────────────────────────────────────────── */
 :root {
-  --bg-base:    #0d1117;
-  --bg-surface: #161b22;
-  --bg-elevated:#1c2230;
-  --bg-hover:   #21283a;
-  --border:     #2d3748;
-  --border-light: #3d4f6b;
+  /* Una sola escala de grises para landing y app. Antes la app era el azulado
+     de GitHub dark (#0d1117…) y la landing negro neutro, y se notaba el salto
+     al entrar. Estos valores son los de la landing (--ink/--surface/--raised). */
+  --bg-base:    #08090b;
+  --bg-surface: #0e1013;
+  --bg-elevated:#16181d;
+  --bg-hover:   #1e2127;
+  --border:     rgba(255,255,255,0.08);
+  --border-light: rgba(255,255,255,0.14);
 
-  --text-primary:   #e8edf5;
-  --text-secondary: #8b98b0;
-  --text-muted:     #4a5568;
+  --text-primary:   #f2f4f7;
+  --text-secondary: #a2a9b4;
+  --text-muted:     #6d7480;
 
   /* Un solo dorado para landing y app. Antes la app usaba d4a843/d4af37 y la
      landing c9a658, y convivían en pantalla vía PricingCards. */

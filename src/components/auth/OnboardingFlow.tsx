@@ -322,7 +322,7 @@ export default function OnboardingFlow() {
         .ob-btn-finish {
           display: flex; align-items: center; gap: 5px;
           padding: 7px 14px; border-radius: 8px;
-          background: var(--gold); color: #0d1117;
+          background: var(--gold); color: var(--bg-base);
           font-size: 12px; font-weight: 700; cursor: pointer;
           border: none; transition: opacity 0.15s;
         }
