@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Proclama',
         short_name: 'Proclama',
         description: 'Sistema de reconocimiento y proyección de alabanzas',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#08090b',
+        background_color: '#08090b',
         display: 'standalone',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

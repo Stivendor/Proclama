@@ -782,15 +782,11 @@ export default function LandingView() {
         .lp-steps p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--fg-2); }
 
         /* ── Precios ────────────────────────────────────────────
-           PricingCards se comparte con la app y lee sus tokens: dentro de la
-           landing traía el azulado de --bg-elevated (#1c2230) y el filete
-           grueso de --border (#2d3748). Se remapean aquí, no en el componente,
-           para que en la app siga viéndose igual que siempre. */
+           PricingCards se comparte con la app y lee sus tokens. La escala de
+           grises ya es la misma en ambos sitios; aquí solo baja la tarjeta un
+           escalón (surface en vez de raised) y suaviza el dorado del filete. */
         .lp .pricing {
           --bg-elevated: var(--surface);
-          --border: var(--line);
-          --text-primary: var(--fg);
-          --text-secondary: var(--fg-2);
           --gold-dim: rgba(201, 166, 88, 0.45);
         }
         .lp .pricing .plan-card { border-radius: 16px; padding: 28px; }
