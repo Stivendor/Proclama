@@ -20,6 +20,33 @@ export const supabase = createClient(
   ssrFallback ? 'placeholder-anon-key' : supabaseAnonKey,
 )
 
+export type AppUpdateConfig = {
+  minSupportedVersion: string
+  latestVersion: string
+  forceUpdate: boolean
+}
+
+export async function getAppUpdateConfig(): Promise<AppUpdateConfig | null> {
+  const { data, error } = await supabase
+    .from('app_update_config')
+    .select('min_supported_version, latest_version, force_update')
+    .eq('id', 1)
+    .maybeSingle()
+
+  if (error) {
+    console.warn('[AppUpdate] Could not read remote update config:', error)
+    return null
+  }
+
+  if (!data) return null
+
+  return {
+    minSupportedVersion: data.min_supported_version,
+    latestVersion: data.latest_version,
+    forceUpdate: data.force_update,
+  }
+}
+
 type SupabaseSongRow = {
   id: number
   user_id: string | null

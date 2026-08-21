@@ -74,6 +74,11 @@ const en: Translations = {
     support: 'I want to support Proclama',
     close: 'Close notice',
   },
+  forcedUpdate: {
+    title: 'Update required',
+    message: 'This version of Proclama is no longer supported. Update the app to continue.',
+    action: 'Update application',
+  },
   landing: {
     hero: {
       badge: 'Free · Spanish & English',

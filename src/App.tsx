@@ -8,9 +8,11 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useSongsRealtime } from "@/hooks/useSongsRealtime";
 import { useSetlistsRealtime } from "@/hooks/useSetlistsRealtime";
 import { useAuth } from "@/hooks/useAuth";
+import { useAppUpdateStatus } from "@/hooks/useAppUpdateStatus";
 import { graceStatus } from "@/components/pricing/pricingHelpers";
 import Sidebar from "@/components/layout/Sidebar";
 import LandingView from "@/pages/LandingView";
+import ForcedUpdateScreen from "@/components/ui/ForcedUpdateScreen";
 
 const LibraryView = lazy(() => import("@/pages/LibraryView"));
 const SongEditorModal = lazy(() => import("@/components/songs/SongEditorModal"));
@@ -124,6 +126,7 @@ function AppContent() {
 
   const [mounted, setMounted] = useState(false);
   const user = useAppStore((s) => s.user);
+  const { required: updateRequired } = useAppUpdateStatus();
 
   const { needsChurchReg, setNeedsChurchReg, showTermsUpdateModal, setShowTermsUpdateModal } =
     useAuth();
@@ -148,6 +151,10 @@ function AppContent() {
   const grace = graceStatus({ plan: userPlan, role: userRole, premiumExpiresAt });
 
   if (!mounted) return null;
+
+  if (updateRequired) {
+    return <ForcedUpdateScreen />;
+  }
 
   if (deviceBlocked) {
     return (

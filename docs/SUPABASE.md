@@ -174,6 +174,27 @@ Las políticas deben permitir:
 
 Las migraciones están en `supabase/migrations/` y se ejecutan con `supabase migration up`.
 
+### Actualización mínima de la aplicación
+
+La tabla `app_update_config` permite exigir una versión mínima a los clientes. La
+lectura es pública y la escritura no se expone al navegador. Para publicar una
+actualización obligatoria, ejecuta desde un entorno administrativo con permisos
+de escritura:
+
+```sql
+update public.app_update_config
+set min_supported_version = '1.2.0',
+    latest_version = '1.2.0',
+    force_update = true,
+    updated_at = now()
+where id = 1;
+```
+
+Después de confirmar que la versión nueva está desplegada, vuelve a poner
+`force_update = false` para que los clientes antiguos puedan continuar cuando
+sea apropiado. No otorgues `insert`, `update` ni `delete` a `anon` o
+`authenticated`.
+
 | Archivo | Descripción |
 |---------|-------------|
 | `20260510_attendance_records_complements.sql` | Índices + trigger updated_at |

@@ -8,10 +8,11 @@ export function useSWUpdate() {
 
     let reg: ServiceWorkerRegistration | null = null
     let updateInterval: ReturnType<typeof setInterval> | null = null
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void reg?.update()
+    }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') reg?.update()
-    })
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     const watchInstalling = (sw: ServiceWorker | null) => {
       if (!sw) return
@@ -36,12 +37,17 @@ export function useSWUpdate() {
         watchInstalling(reg?.installing ?? null)
       })
 
-      reg.update()
-      updateInterval = setInterval(() => { reg?.update() }, 60000)
+      void reg.update().catch((error) => console.warn('[SW] Update check failed:', error))
+      updateInterval = setInterval(() => {
+        void reg?.update().catch((error) => console.warn('[SW] Update check failed:', error))
+      }, 60000)
+    }).catch((error) => {
+      console.warn('[SW] Registration failed:', error)
     })
 
     return () => {
       if (updateInterval) clearInterval(updateInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
@@ -50,7 +56,9 @@ export function useSWUpdate() {
       if (r?.waiting) {
         r.waiting.postMessage({ type: 'SKIP_WAITING' })
         setTimeout(() => window.location.reload(), 800)
+        return
       }
+      void r?.update().catch((error) => console.warn('[SW] Update request failed:', error))
     })
   }, [])
 

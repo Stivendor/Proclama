@@ -72,6 +72,11 @@ const es = {
     support: 'Quiero apoyar Proclama',
     close: 'Cerrar aviso',
   },
+  forcedUpdate: {
+    title: 'Actualización necesaria',
+    message: 'Esta versión de Proclama ya no es compatible. Actualiza la aplicación para continuar.',
+    action: 'Actualizar aplicación',
+  },
   landing: {
     hero: {
       badge: 'Gratis · Español e inglés',
