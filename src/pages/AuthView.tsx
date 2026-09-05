@@ -6,6 +6,7 @@ import { useAppStore } from '@/stores'
 import { CURRENT_TERMS_VERSION } from '@/constants/terms'
 import TermsModal from '@/components/terms/TermsModal'
 import { LATAM_COUNTRIES } from '@/constants/latamLocations'
+import { isValidEmailAddress } from '@/services/emailValidation'
 
 function GoogleIcon() {
   return (
@@ -156,6 +157,7 @@ export default function AuthView() {
     setError(null)
     if (!fullName.trim()) return setError('Ingresa tu nombre.')
     if (!email.trim()) return setError('Ingresa tu correo.')
+    if (!isValidEmailAddress(email)) return setError('Ingresa un correo válido, por ejemplo nombre@dominio.com.')
     if (!password || password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.')
     if (!termsAccepted) return setError('Debes aceptar los Términos y Condiciones.')
     setStep(2)
