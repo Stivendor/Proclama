@@ -20,6 +20,17 @@ export function useSWUpdate() {
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
           setUpdateAvailable(true)
         }
+        // Un worker que pasa a `redundant` mientras se instalaba es una
+        // instalación fallida: workbox se rinde si una URL de la precaché
+        // responde 404 (`bad-precaching-response`). El SW viejo sigue
+        // controlando la página, así que la app "funciona" pero no se actualiza
+        // y el botón nunca aparece. `node scripts/check-pwa.mjs` lo previene.
+        if (sw.state === 'redundant') {
+          console.warn(
+            '[SW] El nuevo service worker falló al instalar (estado "redundant"). ' +
+            'Revisa que /sw.js no tenga URLs precacheadas que respondan 404.'
+          )
+        }
       })
     }
 

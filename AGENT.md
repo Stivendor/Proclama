@@ -18,7 +18,7 @@ Proclama es un sistema de proyección de alabanzas y Biblia para iglesias, dise�
 | Comunicación entre ventanas | BroadcastChannel API |
 | Drag & drop | @dnd-kit/core + @dnd-kit/sortable |
 | Iconos | lucide-react |
-| PWA | vite-plugin-pwa (autoUpdate, workbox) |
+| PWA | vite-plugin-pwa (prompt, workbox) |
 | SSG | vite-react-ssg |
 | Observabilidad | @vercel/analytics + @vercel/speed-insights |
 | Estilos | Vanilla CSS (sin framework CSS) |

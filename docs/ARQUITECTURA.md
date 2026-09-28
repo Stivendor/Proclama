@@ -128,7 +128,7 @@ La transición a `/admin` se detecta con `window.location.pathname.startsWith("/
 | Backend | Supabase (Auth, DB, Realtime, Edge Functions) |
 | UI | CSS Modules + Lucide React icons |
 | Drag & Drop | @dnd-kit |
-| PWA | vite-plugin-pwa |
+| PWA | vite-plugin-pwa (prompt) |
 | SSG | vite-react-ssg |
 | Testing | Vitest + Testing Library |
 | Charts | Recharts |

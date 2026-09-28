@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite-react-ssg build",
+    "build": "tsc && vite-react-ssg build && node scripts/check-pwa.mjs",
     "preview": "vite preview",
     "test": "vitest --run",
     "test:watch": "vitest",
@@ -48,7 +48,7 @@
     "jsdom": "^29.0.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.12",
-    "vite-plugin-pwa": "^0.20.5",
+    "vite-plugin-pwa": "^1.3.0",
     "vite-react-ssg": "^0.9.0",
     "vitest": "^4.1.2"
   },
