@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/services/supabase'
 import { Loader2, Music2 } from 'lucide-react'
 
@@ -16,28 +16,28 @@ function GoogleIcon() {
 export default function AuthView() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    cardRef.current?.querySelector<HTMLButtonElement>('.auth-btn-google')?.focus()
-  }, [])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     setError(null)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin, queryParams: { prompt: 'select_account' } }
-    })
-    if (error) {
-      setError(error.message)
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin, queryParams: { prompt: 'select_account' } }
+      })
+      if (error) {
+        setError(error.message)
+        setGoogleLoading(false)
+      }
+    } catch {
+      setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
       setGoogleLoading(false)
     }
   }
 
   return (
     <div className="auth-overlay">
-      <div className="auth-card" ref={cardRef}>
+      <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
             <Music2 size={32} color="var(--gold, #c9a658)" />
@@ -47,12 +47,12 @@ export default function AuthView() {
           <p>Accede o crea tu cuenta con Google</p>
         </div>
 
-        <button type="button" className="auth-btn-google" onClick={handleGoogleLogin} disabled={googleLoading}>
+        <button type="button" className="auth-btn-google" onClick={handleGoogleLogin} disabled={googleLoading} autoFocus>
           {googleLoading ? <Loader2 className="spin" size={18} /> : <GoogleIcon />}
           Continuar con Google
         </button>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div className="auth-error" role="alert">{error}</div>}
       </div>
 
       <AuthStyles />
