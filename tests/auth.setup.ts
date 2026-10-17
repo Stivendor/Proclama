@@ -6,9 +6,9 @@ import { AUTH_FILE } from './auth-file';
 
 /**
  * Mints a real Supabase session for the test account WITHOUT going through the
- * captcha-protected login UI:
- *   1. admin.generateLink (service_role) — exempt from captcha
- *   2. verifyOtp with the returned token_hash — also exempt from captcha
+ * Google OAuth redirect flow:
+ *   1. admin.generateLink (service_role)
+ *   2. verifyOtp with the returned token_hash
  * The session is written into a Playwright storageState file as the localStorage
  * entry supabase-js reads on startup (sb-<ref>-auth-token).
  *
@@ -24,7 +24,7 @@ setup('authenticate', async () => {
   expect(serviceKey, 'SUPABASE_SERVICE_ROLE_KEY missing in .env.local').toBeTruthy();
   expect(email, 'TEST_USER_EMAIL missing').toBeTruthy();
 
-  // 1. Admin generates a magic link (no captcha for service_role)
+  // 1. Admin generates a magic link (service_role)
   const admin = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -36,7 +36,7 @@ setup('authenticate', async () => {
   const tokenHash = linkData.properties?.hashed_token;
   expect(tokenHash, 'no hashed_token returned').toBeTruthy();
 
-  // 2. Verify the OTP to obtain a real session (no captcha on verifyOtp)
+  // 2. Verify the OTP to obtain a real session
   const anon = createClient(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });

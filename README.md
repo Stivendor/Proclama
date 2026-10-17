@@ -205,7 +205,8 @@ src/
 │       ├── adminQueries.ts
 │       └── adminLogs.ts
 ├── pages/
-│   ├── LandingView.tsx       # Landing + login (Google)
+│   ├── LandingView.tsx       # Landing (abre el login)
+│   ├── AuthView.tsx          # Login exclusivo con Google
 │   ├── LibraryView.tsx       # Biblioteca de canciones
 │   ├── SetlistsView.tsx      # Gestión de setlists
 │   ├── BibleView.tsx         # Biblia RVR1960

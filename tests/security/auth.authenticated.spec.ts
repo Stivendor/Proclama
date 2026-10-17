@@ -9,7 +9,7 @@ test.describe('Authenticated state', () => {
     await page.goto('/');
     await page.waitForSelector('.app-shell', { timeout: 20000 });
     await expect(page.locator('.app-shell')).toBeVisible();
-    await expect(page.locator('.landing-root')).not.toBeVisible();
+    await expect(page.locator('.lp')).not.toBeVisible();
   });
 
   test('protected routes are reachable when authenticated', async ({ page }) => {
