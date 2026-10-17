@@ -70,7 +70,7 @@ Main app is view-switched via `activeView` in `useAppStore` (not URL routes). re
 - `src/hooks/usePlan.ts` holds plan limits and tiers (`free`/`trial`/`paid`/`founding`); `FOUNDING_PHASE` is now `false` — paid plans are live, so plan gates actually bite. See `docs/COBRO.md` for the rollout runbook.
 - `isPremiumFromProfile()` in that file is the single "is premium" rule for both React and non-React callers, and it deliberately mirrors `public.is_premium()` in Supabase — change one and you must change the other.
 - Client-side premium checks are UI-only — real enforcement must be RLS or Edge Functions.
-- `VITE_*` env vars are public. Server secrets go in Supabase Edge Functions (`supabase secrets set`), never in Vite. Required local env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_TURNSTILE_SITE_KEY` in `.env.local`.
+- `VITE_*` env vars are public. Server secrets go in Supabase Edge Functions (`supabase secrets set`), never in Vite. Required local env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` in `.env.local`.
 
 ## More documentation
 - `AGENT.md` — detailed domain context: data model, BroadcastMessage types, Zustand store APIs, Supabase tables (may lag behind code; code wins)
