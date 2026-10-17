@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 /** Open the auth card.
@@ -8,9 +8,9 @@ import { test, expect } from '@playwright/test';
  *
  *  useAuth.ts has a 10-second safety timeout before resolving auth as
  *  unauthenticated, so we wait up to 15s for the landing to render. */
-async function waitForAuthCard(page: import('@playwright/test').Page) {
+async function waitForAuthCard(page: Page) {
   await page.waitForSelector('.lp-btn', { timeout: 15000 });
-  await page.getByRole('button', { name: 'Acceder' }).first().click();
+  await page.getByRole('button', { name: /^Acceder$/ }).first().click();
   await page.waitForSelector('.auth-card', { timeout: 8000 });
 }
 
@@ -26,6 +26,7 @@ test.describe('Route protection', () => {
   // We only look for the landing root (no auth) rather than opening the auth
   // card on every iteration to keep the test fast.
   test('protected routes show landing page, not app shell', async ({ page }) => {
+    test.setTimeout(90_000);
     for (const route of ['/library', '/setlists', '/settings', '/bible', '/notes']) {
       await page.goto(route);
       // Auth resolves in ≤10s via safety timeout; landing renders shortly after
@@ -51,10 +52,11 @@ test.describe('Google-only auth card', () => {
     await waitForAuthCard(page);
   });
 
-  test('auth card shows only the Google button', async ({ page }) => {
+  test('auth card shows the Google button', async ({ page }) => {
     const googleBtn = page.locator('.auth-btn-google');
     await expect(googleBtn).toBeVisible();
     await expect(googleBtn).toContainText('Continuar con Google');
+    await expect(page.locator('.auth-card button')).toHaveCount(1);
   });
 
   test('no email or password inputs exist', async ({ page }) => {
@@ -68,14 +70,8 @@ test.describe('Google-only auth card', () => {
     await expect(page.locator('.auth-toggle')).toHaveCount(0);
   });
 
-  test('error region has role=alert when present', async ({ page }) => {
+  test('clean load shows no error region and Google button is enabled', async ({ page }) => {
     await expect(page.locator('.auth-error')).toHaveCount(0);
-    const allErrorsAreAlerts = await page.evaluate(() =>
-      [...document.querySelectorAll('.auth-error')].every(
-        (el) => el.getAttribute('role') === 'alert'
-      )
-    );
-    expect(allErrorsAreAlerts).toBe(true);
     await expect(page.locator('.auth-btn-google')).toBeEnabled();
   });
 });
