@@ -118,9 +118,8 @@ Proclama reúne en una sola aplicación web:
 
 ### Autenticación y Seguridad
 
-- Login con email/contraseña via Supabase Auth.
+- Login exclusivo con Google OAuth via Supabase Auth.
 - Soporte MFA (TOTP) con código QR.
-- Protección anti-bot con Cloudflare Turnstile en login y registro.
 - Términos y condiciones con control de versión.
 - Cierre de sesión atómico — limpia estado global y local.
 
@@ -181,7 +180,6 @@ La ventana principal y la ventana de proyección se comunican mediante `Broadcas
 | UI e iconografía | CSS personalizado, Lucide React |
 | Drag and drop | @dnd-kit/core, @dnd-kit/sortable |
 | Routing | react-router-dom 7 |
-| Bot protection | @marsidev/react-turnstile (Cloudflare Turnstile) |
 | PWA | vite-plugin-pwa |
 | SSG | vite-react-ssg |
 | Observabilidad | @vercel/analytics, @vercel/speed-insights |
@@ -207,7 +205,8 @@ src/
 │       ├── adminQueries.ts
 │       └── adminLogs.ts
 ├── pages/
-│   ├── LandingView.tsx       # Landing + login/registro
+│   ├── LandingView.tsx       # Landing (abre el login)
+│   ├── AuthView.tsx          # Login exclusivo con Google
 │   ├── LibraryView.tsx       # Biblioteca de canciones
 │   ├── SetlistsView.tsx      # Gestión de setlists
 │   ├── BibleView.tsx         # Biblia RVR1960
@@ -283,7 +282,6 @@ Las variables requeridas para desarrollo:
 ```bash
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_TURNSTILE_SITE_KEY=your-turnstile-site-key   # clave pública de Cloudflare Turnstile
 ```
 
 Los secretos de servidor (API Bible, Service Role) se configuran directamente en Supabase Edge Functions con `supabase secrets set`, nunca en Vite.
