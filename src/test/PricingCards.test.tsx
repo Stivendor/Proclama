@@ -86,6 +86,29 @@ describe('PricingCards — precio fundador', () => {
     expect(screen.getByText(/precio fundador/i)).toBeInTheDocument()
   })
 
+  // Quien ya es premium tiene el precio asegurado (sea el fundador o el de
+  // lista; no hay tabla de pagos que los distinga). Ofrecerle "precio fundador
+  // hasta el 31-dic" es invitarlo a comprar algo que ya compró.
+  it('a quien ya es premium no se le vuelve a ofrecer la oferta', () => {
+    render(<PricingCards variant="app" isPremium />)
+
+    expect(document.querySelector('.plan-badge-pro')).toBeNull()
+    expect(screen.queryByText('$199.000')).not.toBeInTheDocument()
+    // Sin fecha: su precio ya está congelado y el 31-dic no le aplica.
+    expect(screen.queryByText(/31 de dic/i)).not.toBeInTheDocument()
+    // Y en su lugar, la confirmación de que lo que tiene sigue congelado.
+    expect(screen.getByText(/congelado de por vida mientras renueves/i)).toBeInTheDocument()
+  })
+
+  it('a quien todavía no es premium sí se le ofrece, con precio y fecha', () => {
+    render(<PricingCards variant="app" isPremium={false} trialEligible={false} />)
+
+    expect(document.querySelector('.plan-badge-pro')).toBeInTheDocument()
+    expect(screen.getByText(/\$99\.000 COP/)).toBeInTheDocument()
+    expect(screen.getByText('$199.000')).toBeInTheDocument()
+    expect(screen.getByText(/31 de dic/i)).toBeInTheDocument()
+  })
+
   it('la tarjeta Pro nombra cada función que el plan bloquea', () => {
     render(<PricingCards variant="marketing" onFreeCta={vi.fn()} />)
 

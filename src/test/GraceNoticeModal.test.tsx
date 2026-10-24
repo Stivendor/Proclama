@@ -54,6 +54,32 @@ describe('GraceNoticeModal', () => {
     expect(screen.queryByText(/12 de noviembre/i)).not.toBeInTheDocument()
   })
 
+  // Nombrar el 31-dic es la otra mitad del aviso: sin esa fecha el lector cree
+  // que toda la decisión que tiene por delante es esperar al 11 de noviembre.
+  it('nombra el día en que termina el precio fundador y el de lista que viene después', () => {
+    render(<GraceNoticeModal lastFullDay={en(90)} onClose={vi.fn()} />)
+
+    expect(screen.getByText(/31 de diciembre de 2026/i)).toBeInTheDocument()
+    expect(screen.getByText(/pasa a \$199\.000 COP al año/i)).toBeInTheDocument()
+  })
+
+  it('dice cuánto se ahorra, con el número calculado y no escrito a mano', () => {
+    render(<GraceNoticeModal lastFullDay={en(90)} onClose={vi.fn()} />)
+
+    expect(screen.getByText(/Te ahorras \$100\.000 al año/i)).toBeInTheDocument()
+  })
+
+  // Pasada la promoción el bloque entero se cae: un aviso que sigue hablando
+  // de una oferta muerta es peor que no decir nada.
+  it('sin promoción viva no ofrece ni fecha ni ahorro', () => {
+    vi.setSystemTime(new Date(`${FOUNDER_PRICE_UNTIL}T23:59:59-05:00`).getTime() + 86_400_000)
+
+    render(<GraceNoticeModal lastFullDay={en(90)} onClose={vi.fn()} />)
+
+    expect(screen.queryByText(/diciembre de 2026/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/te ahorras/i)).not.toBeInTheDocument()
+  })
+
   it('el enlace de WhatsApp cotiza el precio fundador y lleva el correo', () => {
     render(
       <GraceNoticeModal
@@ -63,7 +89,7 @@ describe('GraceNoticeModal', () => {
       />,
     )
 
-    const link = screen.getByText(/quiero apoyar/i).closest('a')
+    const link = screen.getByText(/asegurar precio fundador/i).closest('a')
     const texto = decodeURIComponent(link?.getAttribute('href') ?? '')
     expect(texto).toContain('$99.000 COP al año')
     expect(texto).toContain('iglesia@ejemplo.com')

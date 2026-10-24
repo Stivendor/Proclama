@@ -8,7 +8,7 @@ import FeedbackFAB from '@/components/ui/FeedbackFAB'
 import { useSWUpdate } from '@/hooks/useSWUpdate'
 import { t } from '@/i18n'
 import { FOUNDING_PHASE } from '@/hooks/usePlan'
-import { graceStatus } from '@/components/pricing/pricingHelpers'
+import { graceStatus, currentPrice, formatCOP, founderDeadline, founderOfferVisible, isFounderPriceActive } from '@/components/pricing/pricingHelpers'
 import { NAV_ORDER, type NavView } from '@/constants/nav'
 
 const NAV_META: Record<NavView, { icon: LucideIcon; labelKey: string }> = {
@@ -49,6 +49,28 @@ export default function Sidebar() {
   // Misma regla que el modal: si divergieran, el banner anunciaría un
   // vencimiento que el aviso no reconoce.
   const grace = graceStatus({ plan: userPlan, role: userRole, premiumExpiresAt })
+  const locale = language === 'en' ? 'en-US' : 'es-CO'
+
+  // Quien no está en gracia pero todavía no aseguró el precio fundador — un
+  // free, un trial, el que se registre mañana — también necesita ver la fecha
+  // del 31-dic: es la única superficie que le recuerda la oferta dentro de la
+  // app. No se apilan con el de gracia (`!grace`), porque el de gracia ya lleva
+  // la misma fecha y las dos cuentas se leen como duplicadas.
+  const promoVisible =
+    !grace &&
+    isFounderPriceActive() &&
+    founderOfferVisible({ plan: userPlan, premiumExpiresAt })
+
+  const irAPlanes = () => {
+    setActiveView('settings')
+    // La sección de Plan vive dentro de Ajustes. Sin esto el usuario cae arriba
+    // de una página larga y tiene que ir a buscar el precio a mano.
+    setTimeout(() => {
+      document
+        .getElementById('settings-plan')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
+  }
 
   const handleLogoClick = () => {
     useAppStore.getState().setForceLanding(true)
@@ -158,16 +180,62 @@ export default function Sidebar() {
         >
           <Sparkles size={13} color="#c9a658" style={{ flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, flex: 1 }}>
+            {/* Tres líneas, tres cosas distintas: lo que se pierde el 11-nov, el
+                precio que se acaba el 31-dic, y la acción. Sin la segunda, el
+                usuario cree que decidir es sólo esperar a noviembre. */}
             <strong style={{ color: '#c9a658' }}>
               {t(language, 'graceNotice.bannerLabel', {
-                date: grace.lastFullDay.toLocaleDateString(language === 'en' ? 'en-US' : 'es-CO', {
+                date: grace.lastFullDay.toLocaleDateString(locale, {
                   day: 'numeric',
                   month: 'short',
                 }),
               })}
             </strong>
             <br />
-            {t(language, 'graceNotice.bannerCta')} ›
+            {t(language, 'graceNotice.bannerOffer', {
+              price: formatCOP(currentPrice().amount),
+              deadline: founderDeadline().toLocaleDateString(locale, {
+                day: 'numeric',
+                month: 'short',
+              }),
+            })}
+            <br />
+            <strong style={{ color: '#c9a658' }}>{t(language, 'graceNotice.bannerCta')} ›</strong>
+          </span>
+        </button>
+      )}
+
+      {/* Promoción para todo el que todavía no la aseguró: mismo hueco que el
+          de gracia pero dos líneas, porque no tiene nada que perder ni una
+          fecha que contar — sólo el precio que se acaba. Muere solo el 1-ene. */}
+      {promoVisible && (
+        <button
+          onClick={irAPlanes}
+          style={{
+            margin: '0 10px 8px',
+            padding: '10px 11px',
+            borderRadius: 10,
+            background: 'rgba(201, 166, 88, 0.08)',
+            border: '1px solid rgba(201, 166, 88, 0.22)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            width: 'calc(100% - 20px)',
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
+          <Sparkles size={13} color="#c9a658" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45, flex: 1 }}>
+            {t(language, 'graceNotice.bannerOffer', {
+              price: formatCOP(currentPrice().amount),
+              deadline: founderDeadline().toLocaleDateString(locale, {
+                day: 'numeric',
+                month: 'short',
+              }),
+            })}
+            <br />
+            <strong style={{ color: '#c9a658' }}>{t(language, 'graceNotice.bannerCta')} ›</strong>
           </span>
         </button>
       )}
