@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Check, Heart, X } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { t } from '@/i18n'
-import { currentPrice, formatCOP, monthlyEquivalent, subscribeWhatsappUrl } from './pricingHelpers'
+import { currentPrice, formatCOP, monthlyEquivalent, subscribeWhatsappUrl, founderDeadline, founderSavings } from './pricingHelpers'
 
 interface Props {
   /** Último día completo con Pro, ya calculado por graceStatus(). */
@@ -39,10 +39,20 @@ export default function GraceNoticeModal({ lastFullDay, userEmail, onClose }: Pr
 
   // El último día completo, no el del vencimiento: la gracia caduca a las 00:00,
   // así que "sigue igual hasta el 12" sería un día de más — el 12 ya son Gratis.
-  const date = lastFullDay.toLocaleDateString(
-    language === 'en' ? 'en-US' : 'es-CO',
-    { day: 'numeric', month: 'long', year: 'numeric' },
-  )
+  const locale = language === 'en' ? 'en-US' : 'es-CO'
+  const date = lastFullDay.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+  // La otra fecha, la que de verdad obliga a decidir: la del precio fundador.
+  // Hasta ahora el aviso nombraba sólo la primera, y quien leía "hasta el 11 de
+  // noviembre" creía que esa era toda la decisión que tenía por delante.
+  const deadlineDate = founderDeadline().toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
   const { amount, strikethrough } = currentPrice()
 
   // Con promoción viva, el precio de lista va en el párrafo de costos y el
@@ -98,6 +108,17 @@ export default function GraceNoticeModal({ lastFullDay, userEmail, onClose }: Pr
               })}
             </p>
           )}
+          {/* Las dos piezas de escasez van condicionadas a la promoción viva,
+              igual que el párrafo de arriba: pasado el 31-dic el bloque entero
+              se cae y no queda un aviso hablando de una oferta muerta. */}
+          {strikethrough && (
+            <p>{t(language, 'graceNotice.deadline', { date: deadlineDate, list: listPrice })}</p>
+          )}
+          {strikethrough && (
+            <p className="grace-notice-savings">
+              {t(language, 'graceNotice.savings', { amount: formatCOP(founderSavings()) })}
+            </p>
+          )}
           <p>{t(language, 'graceNotice.thanks')}</p>
         </div>
 
@@ -111,7 +132,7 @@ export default function GraceNoticeModal({ lastFullDay, userEmail, onClose }: Pr
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t(language, 'graceNotice.support')}
+            {t(language, 'graceNotice.ctaFounder', { price: formatCOP(amount, true) })}
           </a>
         </div>
       </div>

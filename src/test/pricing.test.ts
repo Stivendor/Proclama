@@ -5,11 +5,18 @@ import {
   isTrialEligible,
   isFounderPriceActive,
   currentPrice,
+  founderDeadline,
+  founderSavings,
   graceStatus,
   daysUntil,
   monthlyEquivalent,
 } from '@/components/pricing/pricingHelpers'
-import { PRICING, FOUNDER_PRICE_UNTIL, GRACE_NOTICE_MAX_DAYS } from '@/constants/plans'
+import {
+  PRICING,
+  FOUNDER_PRICE_UNTIL,
+  GRACE_NOTICE_MAX_DAYS,
+  GRACE_EXPIRY_ISO,
+} from '@/constants/plans'
 
 // Derivadas de la constante, nunca escritas a mano: la fecha de la promoción se
 // mueve (ya se movió una vez) y unas fechas quemadas dejan estos tests en rojo
@@ -70,6 +77,19 @@ describe('precio fundador', () => {
     expect(isFounderPriceActive(DESPUES)).toBe(false)
   })
 
+  // El aviso nombra la fecha y el ahorro: si alguno de los dos se escribiera a
+  // mano, el día que se mueva la promoción quedaría mintiendo en el modal.
+  it('el deadline del fundador es el fin del día, en hora de Colombia', () => {
+    expect(founderDeadline().toISOString()).toBe(
+      new Date(`${FOUNDER_PRICE_UNTIL}T23:59:59-05:00`).toISOString(),
+    )
+  })
+
+  it('el ahorro es la diferencia contra el precio de lista, y 0 sin promoción', () => {
+    expect(founderSavings(DURANTE)).toBe(PRICING.annualCOP - PRICING.founderAnnualCOP)
+    expect(founderSavings(DESPUES)).toBe(0)
+  })
+
   // Si 12 × mensual no da el anual, alguien que haga la cuenta ve un número que
   // no cuadra justo en el momento de decidir si paga.
   it('la equivalencia mensual multiplicada por 12 devuelve el anual', () => {
@@ -109,14 +129,17 @@ describe('graceStatus', () => {
   const base = { plan: 'paid', role: 'user', now: AHORA }
 
   it('reconoce a quien está en la gracia y cuenta los días', () => {
-    expect(graceStatus({ ...base, premiumExpiresAt: en(90) })?.daysLeft).toBe(90)
+    // La huella: sólo el vencimiento exacto que repartió el script es gracia.
+    // Con el `now` de este bloque quedan 91 días, que es lo que el script puso
+    // (corrió el 13-ago con +91 para cerrar a medianoche de Colombia).
+    expect(graceStatus({ ...base, premiumExpiresAt: GRACE_EXPIRY_ISO })?.daysLeft).toBe(91)
   })
 
   // La gracia vence a las 00:00 del día siguiente al último día con Pro: si no
   // se distinguen, el aviso promete un día de más.
   it('el último día completo es el anterior al vencimiento', () => {
-    const s = graceStatus({ ...base, premiumExpiresAt: '2026-11-12T05:00:00.000Z' })
-    expect(s?.expiry.toISOString()).toBe('2026-11-12T05:00:00.000Z')
+    const s = graceStatus({ ...base, premiumExpiresAt: GRACE_EXPIRY_ISO })
+    expect(s?.expiry.toISOString()).toBe(GRACE_EXPIRY_ISO)
     expect(s?.lastFullDay.toISOString()).toBe('2026-11-11T05:00:00.000Z')
   })
 
@@ -140,11 +163,26 @@ describe('graceStatus', () => {
   })
 
   // El caso que justifica el tope: quien paga queda igual que quien está en la
-  // gracia — 'paid' con fecha — y sin él vería el banner de despedida.
+  // gracia — 'paid' con fecha — y sin el tope vería el banner de despedida.
   it('deja fuera a quien ya pagó el año', () => {
     expect(graceStatus({ ...base, premiumExpiresAt: en(365) })).toBeNull()
     expect(graceStatus({ ...base, premiumExpiresAt: en(GRACE_NOTICE_MAX_DAYS + 1) })).toBeNull()
-    expect(graceStatus({ ...base, premiumExpiresAt: en(GRACE_NOTICE_MAX_DAYS) })).not.toBeNull()
+  })
+
+  // Y el caso que justifica la huella: estar a punto de vencer NO basta. Es el
+  // cliente que ya transfirió el precio fundador — su vencimiento es pago +
+  // 365 días con hora del día — y al que, sin la huella, le saldría el aviso
+  // pidiéndole asegurar un precio que ya tiene congelado de por vida.
+  it('deja fuera a quien está a punto de vencer pero no tiene la fecha de la gracia', () => {
+    expect(graceStatus({ ...base, premiumExpiresAt: en(GRACE_NOTICE_MAX_DAYS) })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: en(30) })).toBeNull()
+    expect(graceStatus({ ...base, premiumExpiresAt: GRACE_EXPIRY_ISO })).not.toBeNull()
+  })
+
+  // Postgres devuelve '+00:00' y la constante va con 'Z': son el mismo instante
+  // y la comparación tiene que aguantar las dos grafías.
+  it('reconoce la huella escrita con +00:00 en vez de Z', () => {
+    expect(graceStatus({ ...base, premiumExpiresAt: '2026-11-12T05:00:00+00:00' })).not.toBeNull()
   })
 
   it('calla cuando la gracia ya venció', () => {

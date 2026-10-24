@@ -1,7 +1,7 @@
 import { Check, Sparkles } from 'lucide-react'
 import { useAppStore } from '@/stores'
 import { t } from '@/i18n'
-import { formatCOP, subscribeWhatsappUrl, currentPrice, monthlyEquivalent } from './pricingHelpers'
+import { formatCOP, subscribeWhatsappUrl, currentPrice, monthlyEquivalent, founderDeadline } from './pricingHelpers'
 
 interface PricingCardsProps {
   variant: 'marketing' | 'app'
@@ -31,6 +31,20 @@ export default function PricingCards(props: PricingCardsProps) {
 
   const { amount: price, strikethrough } = currentPrice()
   const per = t(language, 'landing.pricing.perYear')
+  const locale = language === 'en' ? 'en-US' : 'es-CO'
+  const founderDeadlineShort = founderDeadline().toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+  })
+
+  // La oferta sólo se ofrece a quien todavía puede comprarla. En la tarjeta de
+  // Ajustes, un premium ya tiene el precio asegurado — sea el fundador o el de
+  // lista — y enseñarle "precio fundador hasta el 31-dic" es invitarlo a comprar
+  // algo que ya compró. La landing no cambia: ahí nadie está logueado pagando.
+  // No se puede distinguir al fundador del que pagó de lista (no hay tabla de
+  // pagos), por eso el criterio es "es premium" y no "es fundador": en ambos
+  // casos dejar de vender es lo correcto.
+  const showFounderOffer = !!strikethrough && !(props.variant === 'app' && props.isPremium)
 
   // "Empezar prueba gratuita de 1 mes". En landing lleva a registro (el trial se
   // activa logueado); en app activa el trial sólo si la cuenta es elegible.
@@ -69,7 +83,7 @@ export default function PricingCards(props: PricingCardsProps) {
         <div className="plan-card plan-pro">
           {/* Un solo distintivo: el precio fundador manda sobre el gancho del
               trial, y el del trial no se muestra a quien ya no puede usarlo. */}
-          {strikethrough ? (
+          {showFounderOffer ? (
             <span className="plan-badge plan-badge-pro">
               <Sparkles size={13} /> {t(language, 'landing.pricing.premium.founderBadge')}
             </span>
@@ -80,7 +94,7 @@ export default function PricingCards(props: PricingCardsProps) {
           ) : null}
           <h3>{t(language, 'landing.pricing.premium.name')}</h3>
           <div className="plan-price">
-            {strikethrough && <s className="plan-price-was">{formatCOP(strikethrough)}</s>}
+            {showFounderOffer && <s className="plan-price-was">{formatCOP(strikethrough)}</s>}
             {formatCOP(price, true)}<span> {per}</span>
           </div>
           {/* El anual manda y esto va debajo y en pequeño: es una equivalencia
@@ -90,8 +104,18 @@ export default function PricingCards(props: PricingCardsProps) {
               price: formatCOP(monthlyEquivalent(price)),
             })}
           </p>
-          {strikethrough && (
-            <p className="plan-founder-note">{t(language, 'landing.pricing.premium.founderNote')}</p>
+          {showFounderOffer && (
+            <p className="plan-founder-note">
+              {t(language, 'landing.pricing.premium.founderNote', { date: founderDeadlineShort })}
+            </p>
+          )}
+          {/* Quien ya es premium no recibe la oferta: recibe la confirmación de
+              que lo que ya tiene sigue congelado. Sin fecha, porque su precio
+              ya está asegurado y el 31-dic no le aplica. */}
+          {strikethrough && props.variant === 'app' && props.isPremium && (
+            <p className="plan-founder-note">
+              {t(language, 'landing.pricing.premium.founderMineNote')}
+            </p>
           )}
           <p className="plan-tagline">{t(language, 'landing.pricing.premium.tagline')}</p>
           <ul>

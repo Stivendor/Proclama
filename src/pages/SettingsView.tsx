@@ -256,9 +256,11 @@ export default function SettingsView() {
             )}
           </section>
 
-          {/* Plan section */}
+          {/* Plan section — el id es lo que fija el banner del sidebar al hacer
+              clic en "Asegurar precio": sin él, el usuario cae arriba de una
+              página larga y tiene que ir a buscar el precio a mano. */}
           {user && (
-            <section className="settings-section">
+            <section className="settings-section" id="settings-plan">
               <h2>{t(language, 'settings.plan.title')}</h2>
               {isPremium && (
                 <p className="settings-plan-status">
