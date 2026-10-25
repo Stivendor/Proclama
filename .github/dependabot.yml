@@ -1,0 +1,30 @@
+# Configuración de Dependabot.
+# Sin este archivo solo corrían las "security updates" (una PR por cada
+# dependencia vulnerable = mucho ruido). Con `groups` se consolidan.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    # Dependabot solo puede auto-mergear si las reglas del repo lo permiten;
+    # aquí limitamos la cantidad de PRs simultáneos para no saturar.
+    groups:
+      # Todas las vulnerabilidades detectadas van en UNA sola PR semanal.
+      actualizaciones-de-seguridad:
+        applies-to: security-updates
+        patterns: ["*"]
+      # Version updates: menor + parche de dependencias de producción juntos.
+      dependencias-de-produccion:
+        applies-to: version-updates
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      # Version updates: menor + parche de dependencias de desarrollo juntas.
+      dependencias-de-desarrollo:
+        applies-to: version-updates
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    # Los cambios de MAYOR (breaking) se quedan en PRs individuales para
+    # que se revisen una por una.
