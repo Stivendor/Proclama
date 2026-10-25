@@ -5,7 +5,7 @@ import {
   ChevronRight 
 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { fetchAdminStats, fetchRegistrationChart, fetchUserActivity, fetchDauChart, type UserActivityRow } from "../services/adminQueries";
+import { fetchAdminStats, fetchRegistrationChart, fetchActiveToday, fetchDauChart, type ActiveTodayRow } from "../services/adminQueries";
 import { supabase } from "@/services/supabase";
 import type { AdminView } from "../AdminSidebar";
 
@@ -27,7 +27,8 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [chartData, setChartData] = useState<{ date: string; count: number }[]>([]);
   const [dauData, setDauData] = useState<{ date: string; count: number }[]>([]);
-  const [topUsers, setTopUsers] = useState<UserActivityRow[]>([]);
+  const [activeToday, setActiveToday] = useState<ActiveTodayRow[]>([]);
+  const [activityError, setActivityError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pingStatus, setPingStatus] = useState<"connecting" | "success" | "error">("connecting");
   const [refreshing, setRefreshing] = useState(false);
@@ -36,16 +37,20 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [s, c, dau, activity] = await Promise.all([
+      const [s, c, dau, today] = await Promise.all([
         fetchAdminStats(),
         fetchRegistrationChart(),
         fetchDauChart().catch(() => []),
-        fetchUserActivity().catch(() => []),
+        fetchActiveToday().then(
+          (rows) => ({ ok: true as const, rows }),
+          () => ({ ok: false as const, rows: [] as ActiveTodayRow[] })
+        ),
       ]);
       setStats(s as any);
       setChartData(c);
       setDauData(dau);
-      setTopUsers(activity.filter(u => u.activeDays > 0).slice(0, 10));
+      setActiveToday(today.rows);
+      setActivityError(!today.ok);
     } catch (e) { 
       console.error("Error loading dashboard stats:", e); 
     } finally { 
@@ -203,29 +208,45 @@ export default function DashboardPage({ onNavigate }: DashboardPageProps) {
           </div>
         </div>
 
-        {/* Bento: Top usuarios más activos */}
+        {/* Bento: Usuarios activos hoy */}
         <div className="bento-item bento-chart">
-          <span className="bento-label">Top Usuarios Más Activos (30 días)</span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
-            {topUsers.length > 0 ? topUsers.map((u, i) => (
-              <div key={u.userId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(255,255,255,0.015)", border: "1px solid var(--border)", borderRadius: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", width: 22 }}>#{i + 1}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {u.fullName || u.email}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    Última actividad: {u.lastActive ? new Date(u.lastActive).toLocaleDateString() : "—"}
-                  </div>
-                </div>
-                <span className="mod-count-badge">{u.activeDays} {u.activeDays === 1 ? "día" : "días"}</span>
-              </div>
-            )) : (
-              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 30, margin: 0, fontSize: 12 }}>
-                Aún no hay actividad registrada.
-              </p>
+          <div className="bento-card-header">
+            <span className="bento-label">Activos Hoy</span>
+            {!activityError && activeToday.length > 0 && (
+              <span className="mod-count-badge">
+                {activeToday.length} {activeToday.length === 1 ? "usuario" : "usuarios"}
+              </span>
             )}
           </div>
+
+          {activityError ? (
+            <p style={{ textAlign: "center", color: "#ff4757", padding: 30, margin: 0, fontSize: 12 }}>
+              No se pudo cargar la actividad de hoy. Intenta sincronizar.
+            </p>
+          ) : activeToday.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 340, overflowY: "auto" }}>
+              {activeToday.map((u, i) => (
+                <div key={u.userId} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "rgba(255,255,255,0.015)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", width: 22 }}>#{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {u.fullName || u.email}
+                    </div>
+                    {!!u.fullName && (
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {u.email}
+                      </div>
+                    )}
+                  </div>
+                  <span className="mod-count-badge">Hoy</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 30, margin: 0, fontSize: 12 }}>
+              Nadie ha usado la app hoy todavía.
+            </p>
+          )}
         </div>
 
         {/* Bento Item 4: Acciones de Moderación */}
