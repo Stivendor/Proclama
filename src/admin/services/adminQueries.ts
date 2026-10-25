@@ -7,7 +7,7 @@ export interface PaginatedResult<T> {
 
 // Cuentas propias del dueño: se excluyen de las métricas del dashboard para que
 // las estadísticas reflejen usuarios reales. La lista de la página Usuarios sí las muestra.
-// Ojo: admin_daily_active_users (RPC) las excluye por su cuenta en SQL.
+// Ojo: admin_daily_active_users y admin_active_today (RPCs) las excluyen por su cuenta en SQL.
 export const EXCLUDED_EMAILS = ["stivendor14yt@gmail.com", "stivendor101@gmail.com"];
 const pgList = (values: string[]) => `(${values.map(v => `"${v}"`).join(",")})`;
 
@@ -200,6 +200,25 @@ export async function fetchUserActivity(days = 30): Promise<UserActivityRow[]> {
     activeDays: Number(r.active_days),
     lastActive: r.last_active,
   }));
+}
+
+// --- Activos hoy (heartbeat del día actual) ---
+export interface ActiveTodayRow {
+  userId: string;
+  email: string;
+  fullName: string | null;
+}
+
+export async function fetchActiveToday(): Promise<ActiveTodayRow[]> {
+  const { data, error } = await supabase.rpc("admin_active_today");
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r: any) => !EXCLUDED_EMAILS.includes(r.email))
+    .map((r: any) => ({
+      userId: r.user_id,
+      email: r.email,
+      fullName: r.full_name,
+    }));
 }
 
 export async function fetchDauChart(days = 30): Promise<{ date: string; count: number }[]> {
