@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Search, Lock, Download, Check } from 'lucide-react'
 import { usePlan } from '@/hooks/usePlan'
 import ProInterestBadge from '@/components/pricing/ProInterestBadge'
-import { useBibleAPI } from '@/features/bible'
+import { useBibleAPI, filterBibles, groupBiblesByLanguage, bibleLanguageLabel } from '@/features/bible'
 import { useAppStore } from '@/stores'
 import { db } from '@/db'
 import type { HelloAOBibleInfo, ImportedBibleReference } from '@/types'
@@ -48,7 +48,7 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
         id: bible.id,
         name: bible.name,
         languageId: bible.language,
-        languageName: bible.languageEnglishName || bible.languageName || bible.language,
+        languageName: bibleLanguageLabel(bible),
         importedAt: Date.now()
       }
 
@@ -62,24 +62,11 @@ export default function ImportBibleModal({ onClose, onImportSuccess }: ImportBib
     }
   }
 
-  const filteredBibles = bibles.filter(b => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    return b.name.toLowerCase().includes(q) ||
-      b.englishName.toLowerCase().includes(q) ||
-      b.languageName.toLowerCase().includes(q) ||
-      (b.languageEnglishName && b.languageEnglishName.toLowerCase().includes(q))
-  })
-
-  const groupedBibles = filteredBibles.reduce((acc, bible) => {
-    const lang = bible.languageEnglishName || bible.languageName || bible.language
-    if (!acc[lang]) acc[lang] = []
-    // Evitar meter lo mismo dos veces por ids repetidos en HelloAO
-    if (!acc[lang].find(x => x.id === bible.id)) {
-      acc[lang].push(bible)
-    }
-    return acc
-  }, {} as Record<string, HelloAOBibleInfo[]>)
+  // El filtrado/agrupado vive en `features/bible/utils/importBibleSearch`:
+  // HelloAO omite `languageName`/`languageEnglishName` en algunas entradas y
+  // aquí se llamaba `.toLowerCase()` a secas, lo que rompía toda la pantalla.
+  const filteredBibles = filterBibles(bibles, searchQuery)
+  const groupedBibles = groupBiblesByLanguage(filteredBibles)
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>

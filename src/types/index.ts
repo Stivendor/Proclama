@@ -257,11 +257,17 @@ export interface ChurchNote {
 export interface HelloAOBibleInfo {
   id: string
   name: string
-  englishName: string
+  /**
+   * `englishName`, `languageName` y `languageEnglishName` vienen de fuentes
+   * mezcladas y el API de HelloAO los omite en algunas entradas (p.ej.
+   * `cug_wbt`, `plj_tsc`). Son opcionales a propósito: hay que poder manejar
+   * su ausencia sin que TS dé por sentado que existen.
+   */
+  englishName?: string
   language: string
-  languageName: string
-  languageEnglishName: string
-  shortName: string
+  languageName?: string
+  languageEnglishName?: string
+  shortName?: string
   totalNumberOfChapters: number
   totalNumberOfVerses: number
 }

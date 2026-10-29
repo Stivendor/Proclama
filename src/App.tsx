@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAppUpdateStatus } from "@/hooks/useAppUpdateStatus";
 import { graceStatus } from "@/components/pricing/pricingHelpers";
 import Sidebar from "@/components/layout/Sidebar";
+import AppErrorBoundary from "@/components/ui/AppErrorBoundary";
 import LandingView from "@/pages/LandingView";
 import ForcedUpdateScreen from "@/components/ui/ForcedUpdateScreen";
 
@@ -77,7 +78,9 @@ function RouterSync() {
 
 export default function App() {
   return (
-    <>
+    // Red de seguridad: si algo revienta en render, se ve un aviso con el
+    // error y botones de recuperación en vez de la pantalla negra.
+    <AppErrorBoundary>
       <RouterSync />
       <Routes>
         <Route path="/projection" element={
@@ -93,7 +96,7 @@ export default function App() {
       </Routes>
       <Analytics />
       <SpeedInsights />
-    </>
+    </AppErrorBoundary>
   );
 }
 
