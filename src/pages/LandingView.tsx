@@ -11,9 +11,6 @@ import HeroDemo from '@/components/landing/HeroDemo'
 // En el prerender del SSG no hay layout; useEffect allí evita el aviso de React.
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
-// En el prerender del SSG no hay layout; useEffect allí evita el aviso de React.
-const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
-
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-1.79-2.46V9.8a5.72 5.72 0 1 0 4.88 5.66V9.01a7.35 7.35 0 0 0 4.31 1.38V7.3a4.28 4.28 0 0 1-3.25-1.48Z" />
