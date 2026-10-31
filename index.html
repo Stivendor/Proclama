@@ -17,8 +17,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Inter es la cara de la app y de la landing. Montserrat, Outfit y Lora
          siguen porque el usuario las puede elegir para la proyección
-         (SettingsView) y Lora compone las letras. Fraunces salió: ya no se usa. -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=Montserrat:wght@400;600;700&family=Outfit:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+         (SettingsView) y Lora compone las letras. Fraunces salió: ya no se usa.
+         Solo Inter bloquea el primer pintado; las otras cargan en paralelo
+         (media=print → all) porque la landing no las necesita. -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Outfit:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
