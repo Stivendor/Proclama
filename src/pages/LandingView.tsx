@@ -7,6 +7,9 @@ import { t } from '@/i18n'
 import PricingCards from '@/components/pricing/PricingCards'
 import { FOUNDING_PHASE } from '@/hooks/usePlan'
 
+// En el prerender del SSG no hay layout; useEffect allí evita el aviso de React.
+const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 const TikTokIcon = ({ size = 20 }: { size?: number }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-1.79-2.46V9.8a5.72 5.72 0 1 0 4.88 5.66V9.01a7.35 7.35 0 0 0 4.31 1.38V7.3a4.28 4.28 0 0 1-3.25-1.48Z" />
@@ -63,7 +66,7 @@ export default function LandingView() {
   // secciones. Se pone antes de pintar para que no haya un fotograma en el que
   // aparecen y se vuelven a ocultar. Si este efecto no llega a correr —JS caído,
   // hidratación lenta del SSG— nada se esconde y la página se lee entera.
-  useLayoutEffect(() => {
+  useIsoLayoutEffect(() => {
     const root = rootRef.current
     if (!root) return
     root.classList.add('lp-animate')
@@ -124,7 +127,7 @@ export default function LandingView() {
           <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> {t(language, 'nav.back')}
         </button>
         <AuthView />
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
           .landing-auth { position: fixed; inset: 0; background: #08090b; z-index: 3000; }
           .landing-auth-back {
             position: absolute; top: 20px; left: 20px; z-index: 3001;
@@ -134,7 +137,7 @@ export default function LandingView() {
             color: #d6dae1; font-size: 14px; font-weight: 500;
           }
           .landing-auth-back:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        `}</style>
+        ` }} />
       </div>
     )
   }
@@ -516,7 +519,7 @@ export default function LandingView() {
         </div>
       </footer>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         /* ═══ Landing ═══════════════════════════════════════════
            Prefijo lp- para aislar del design system de la app.
            Escala fija, no fluida salvo en los dos titulares mayores.
@@ -880,7 +883,7 @@ export default function LandingView() {
           .lp-paper { padding: 12px; }
           .lp-footer-bottom { flex-direction: column; align-items: flex-start; }
         }
-      `}</style>
+      ` }} />
     </div>
   )
 }

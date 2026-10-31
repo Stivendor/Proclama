@@ -153,7 +153,12 @@ function AppContent() {
 
   const grace = graceStatus({ plan: userPlan, role: userRole, premiumExpiresAt });
 
-  if (!mounted) return null;
+  // El SSG prerenderiza la landing. El script inline de index.html decide si ese
+  // HTML sirve (anónimo, en "/", idioma es) o lo vacía; este primer render tiene
+  // que coincidir con lo que dejó para que la hidratación no falle.
+  const ssrLanding = typeof window === "undefined" || window.__SSR_LANDING__ === true;
+
+  if (!mounted) return ssrLanding ? <LandingView /> : null;
 
   if (updateRequired) {
     return <ForcedUpdateScreen />;
@@ -168,7 +173,7 @@ function AppContent() {
   }
 
   if (authStatus === "loading") {
-    return null;
+    return ssrLanding ? <LandingView /> : null;
   }
 
   if (forceLanding || authStatus === "unauthenticated") {

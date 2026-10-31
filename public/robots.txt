@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /projection
+Disallow: /admin
+Disallow: /colaborar
 
-Sitemap: https://proclama.lat/sitemap.xml
+Sitemap: https://www.proclama.lat/sitemap.xml
