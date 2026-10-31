@@ -83,9 +83,9 @@ const es = {
   landing: {
     hero: {
       badge: 'Gratis · Español e inglés',
-      title: 'Proyecta tu servicio.',
-      titleHighlight: 'Mide tu crecimiento.',
-      subtitle: 'Más de 3.000 canciones verificadas entre iglesias, listas para proyectar. Tu líder arma el setlist desde el celular con un enlace, y el domingo todo sale del propio dispositivo: el wifi inestable de tu iglesia no detiene el servicio.',
+      title: 'Tú cambias la estrofa.',
+      titleHighlight: 'La iglesia sigue cantando.',
+      subtitle: 'Más de 3.000 canciones verificadas entre iglesias, ya separadas en estrofas. Las buscas, haces clic y la congregación las ve al instante.',
       ctaAuthenticated: 'Ir a la aplicación',
       ctaGuest: 'Empieza gratis',
       viewReports: 'Ver los reportes',
@@ -159,10 +159,10 @@ const es = {
     },
     testimonial: {
       quote: '“Proclama ha sido una bendición para nuestra iglesia y departamento de comunicaciones ya que es una herramienta fácil de usar y muy rápida a la hora de proyectar alabanzas y versículos.”',
-      name: 'Stiven. Lider de comunicaciones',
+      name: 'Stiven, fundador de Proclama',
       role: 'IPUC Granizal · Medellín, Colombia',
     },
-    eyebrow: 'Proyección para iglesias',
+    eyebrow: 'Para quien proyecta en la iglesia',
     library: {
       eyebrow: 'La biblioteca',
       title: 'Más de 3.000 canciones que ya alguien corrigió por ti',
@@ -185,6 +185,16 @@ const es = {
       caveat: 'Los colaboradores son parte del plan Pro.',
       visualNote: 'Vista del colaborador en el teléfono',
     },
+    demo: {
+      song: 'Santo, Santo, Santo',
+      meta: '4 estrofas',
+      hint: 'Elige una estrofa para proyectarla.',
+      live: 'En vivo',
+      v1: '¡Santo! ¡Santo! ¡Santo! Señor omnipotente,\nsiempre el labio mío loores te dará;\n¡Santo! ¡Santo! ¡Santo! te adoro reverente,\nDios en tres personas, bendita Trinidad.',
+      v2: '¡Santo! ¡Santo! ¡Santo! en numeroso coro,\nsantos escogidos te adoran sin cesar,\nde alegría llenos, y sus coronas de oro\nrinden ante el trono y el cristalino mar.',
+      v3: '¡Santo! ¡Santo! ¡Santo! la inmensa muchedumbre\nde ángeles que cumplen tu santa voluntad,\nante ti se postra bañada de tu lumbre,\nante ti que has sido, que eres y serás.',
+      v4: '¡Santo! ¡Santo! ¡Santo! por más que estés velado\ne imposible sea tu gloria contemplar;\nsanto tú eres solo, y nada hay a tu lado\nen poder perfecto, pureza y caridad.',
+    },
     dual: {
       eyebrow: 'El mecanismo',
       title: 'Dos ventanas, una sola verdad',
@@ -204,7 +214,6 @@ const es = {
       network: 'descargada entera en el dispositivo. Es la que sigue proyectando sin wifi.',
       networkValue: 'RVR1960',
     },
-    testimonialNote: 'Testimonio del equipo fundador.',
     closing: {
       title: '¿Proyectas este domingo?',
       desc: 'Crea la cuenta, carga tu biblioteca y déjala lista antes del servicio.',

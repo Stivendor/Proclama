@@ -85,9 +85,9 @@ const en: Translations = {
   landing: {
     hero: {
       badge: 'Free · Spanish & English',
-      title: 'Project your service.',
-      titleHighlight: 'Measure your growth.',
-      subtitle: 'Over 3,000 songs verified between churches, ready to project. Your worship leader builds the setlist from their phone with a link, and on Sunday everything runs off the device itself: your church\'s unstable wifi does not stop the service.',
+      title: 'You change the verse.',
+      titleHighlight: 'The church keeps singing.',
+      subtitle: 'Over 3,000 songs verified by churches, already split into verses. Search, click, and the congregation sees it instantly.',
       ctaAuthenticated: 'Go to App',
       ctaGuest: 'Start free',
       viewReports: 'See the reports',
@@ -162,10 +162,10 @@ const en: Translations = {
     testimonial: {
 
       quote: '“Proclama has been a blessing for our church and our communications team: it is easy to use and very fast when it comes to projecting worship songs and verses.”',
-      name: 'Stiven, communications lead',
+      name: 'Stiven, founder of Proclama',
       role: 'IPUC Granizal · Medellín, Colombia',
     },
-    eyebrow: 'Projection for churches',
+    eyebrow: 'For whoever runs the screen at church',
     library: {
       eyebrow: 'The library',
       title: 'Over 3,000 songs someone already fixed for you',
@@ -188,6 +188,16 @@ const en: Translations = {
       caveat: 'Collaborators are part of the Pro plan.',
       visualNote: 'Collaborator view on the phone',
     },
+    demo: {
+      song: 'Holy, Holy, Holy',
+      meta: '4 verses',
+      hint: 'Pick a verse to project it.',
+      live: 'Live',
+      v1: 'Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to thee;\nHoly, holy, holy! merciful and mighty!\nGod in three persons, blessed Trinity!',
+      v2: 'Holy, holy, holy! all the saints adore thee,\ncasting down their golden crowns around the glassy sea;\ncherubim and seraphim falling down before thee,\nwhich wert, and art, and evermore shalt be.',
+      v3: 'Holy, holy, holy! though the darkness hide thee,\nthough the eye of sinful man thy glory may not see,\nonly thou art holy; there is none beside thee,\nperfect in power, in love, and purity.',
+      v4: 'Holy, holy, holy! Lord God Almighty!\nAll thy works shall praise thy name, in earth, and sky, and sea;\nHoly, holy, holy! merciful and mighty!\nGod in three persons, blessed Trinity!',
+    },
     dual: {
       eyebrow: 'The mechanism',
       title: 'Two windows, one single truth',
@@ -207,7 +217,6 @@ const en: Translations = {
       network: 'downloaded whole onto the device. It is the one that keeps projecting with no wifi.',
       networkValue: 'RVR1960',
     },
-    testimonialNote: 'Testimonial from the founding team.',
     closing: {
       title: 'Projecting this Sunday?',
       desc: 'Create your account, load your library and have it ready before the service.',

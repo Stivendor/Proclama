@@ -6,6 +6,7 @@ import { supabase } from '@/services/supabase'
 import { t } from '@/i18n'
 import PricingCards from '@/components/pricing/PricingCards'
 import { FOUNDING_PHASE } from '@/hooks/usePlan'
+import HeroDemo from '@/components/landing/HeroDemo'
 
 // En el prerender del SSG no hay layout; useEffect allí evita el aviso de React.
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -113,9 +114,11 @@ export default function LandingView() {
     window.deferredPrompt = undefined
   }
 
+  // El producto antes que el precio: la acción principal es empezar (o volver a
+  // la app si ya hay sesión); los planes quedan como acción secundaria.
   const primaryCta = () => {
-    if (FOUNDING_PHASE) setLandingShowAuth(true)
-    else scrollToSection('precios')
+    if (user) setForceLanding(false)
+    else setLandingShowAuth(true)
   }
 
   const userName = user?.email?.split('@')[0]
@@ -255,11 +258,14 @@ export default function LandingView() {
             <p className="lp-lede">{t(language, 'landing.hero.subtitle')}</p>
             <div className="lp-cta-row">
               <button className="lp-btn lp-btn-lg" onClick={primaryCta}>
-                {FOUNDING_PHASE ? t(language, 'landing.hero.enterApp') : t(language, 'landing.hero.viewPlans')}
+                {user ? t(language, 'landing.hero.ctaAuthenticated') : t(language, 'landing.hero.ctaGuest')}
                 <ArrowRight size={16} />
               </button>
-              <button className="lp-ghost lp-ghost-lg" onClick={() => scrollToSection('biblioteca')}>
-                {t(language, 'landing.hero.viewLibrary')}
+              <button
+                className="lp-ghost lp-ghost-lg"
+                onClick={() => scrollToSection(FOUNDING_PHASE ? 'biblioteca' : 'precios')}
+              >
+                {FOUNDING_PHASE ? t(language, 'landing.hero.viewLibrary') : t(language, 'landing.hero.viewPlans')}
               </button>
               {canInstall && (
                 <button className="lp-quiet" onClick={handleInstall}>
@@ -270,17 +276,7 @@ export default function LandingView() {
           </div>
 
           <div className="lp-wrap lp-hero-shot">
-            {/* ponytail: /projection.jpg = captura real de una letra proyectada.
-                Cae a /app.jpg mientras no exista. */}
-            <figure className="lp-frame">
-              <img
-                src="/app.jpg"
-                onError={(e) => { e.currentTarget.style.opacity = '0' }}
-                alt="Proclama abierto en la biblioteca: lista de canciones, las estrofas de la letra en diapositivas y la previsualización de la proyección abajo"
-                width={1600}
-                height={855}
-              />
-            </figure>
+            <HeroDemo language={language} />
           </div>
         </section>
 
@@ -464,7 +460,6 @@ export default function LandingView() {
             <figcaption>
               <strong>{t(language, 'landing.testimonial.name')}</strong>
               <span>{t(language, 'landing.testimonial.role')}</span>
-              <em>{t(language, 'landing.testimonialNote')}</em>
             </figcaption>
           </figure>
         </section>
@@ -703,13 +698,6 @@ export default function LandingView() {
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
         }
         .lp-frame img { display: block; width: 100%; height: auto; }
-        /* El marco del hero se disuelve por abajo en vez de cortarse en seco. */
-        .lp-hero-shot .lp-frame {
-          border-radius: 14px 14px 0 0;
-          border-bottom: 0;
-          -webkit-mask-image: linear-gradient(180deg, #000 58%, transparent 100%);
-          mask-image: linear-gradient(180deg, #000 58%, transparent 100%);
-        }
 
         /* ── Split ──────────────────────────────────────────── */
         .lp-split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 64px; align-items: center; }
@@ -812,7 +800,6 @@ export default function LandingView() {
         .lp-quote figcaption { display: flex; flex-direction: column; gap: 3px; }
         .lp-quote strong { font-size: 14px; font-weight: 500; color: var(--fg); }
         .lp-quote span { font-size: 14px; color: var(--fg-2); }
-        .lp-quote em { margin-top: 8px; font-size: 12px; font-style: normal; color: var(--fg-3); }
 
         /* ── Cierre ─────────────────────────────────────────── */
         .lp-closing {
@@ -869,16 +856,6 @@ export default function LandingView() {
           .lp-hero { padding-top: 64px; }
           .lp-hero-shot { margin-top: 48px; }
           .lp-cta-row > * { flex: 1 1 100%; }
-          /* A 390px una captura de escritorio entera es ilegible. Se deja
-             desplazar en horizontal a tamaño real en vez de miniaturizarla. */
-          .lp-hero-shot .lp-frame {
-            overflow-x: auto;
-            -webkit-mask-image: none;
-            mask-image: none;
-            border-radius: 12px;
-            border-bottom: 1px solid var(--line-2);
-          }
-          .lp-hero-shot .lp-frame img { min-width: 760px; }
           .lp-closing { padding: 48px 24px; }
           .lp-paper { padding: 12px; }
           .lp-footer-bottom { flex-direction: column; align-items: flex-start; }
