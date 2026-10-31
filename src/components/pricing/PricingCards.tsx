@@ -32,9 +32,12 @@ export default function PricingCards(props: PricingCardsProps) {
   const { amount: price, strikethrough } = currentPrice()
   const per = t(language, 'landing.pricing.perYear')
   const locale = language === 'en' ? 'en-US' : 'es-CO'
+  // La fecha límite está definida a las 23:59 de Bogotá. Sin timeZone, el build
+  // del SSG (en UTC) la pintaría un día después y no cuadraría al hidratar.
   const founderDeadlineShort = founderDeadline().toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
+    timeZone: 'America/Bogota',
   })
 
   // La oferta sólo se ofrece a quien todavía puede comprarla. En la tarjeta de
@@ -145,7 +148,7 @@ export default function PricingCards(props: PricingCardsProps) {
         </div>
       </div>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .pricing { width: 100%; max-width: 920px; margin: 0 auto; }
         .pricing .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 720px) { .pricing .plans-grid { grid-template-columns: 1fr; } }
@@ -203,7 +206,7 @@ export default function PricingCards(props: PricingCardsProps) {
         }
         .pricing .plan-btn-outline:hover { border-color: var(--gold-dim, rgba(201,166,88,0.5)); }
         .pricing .plan-current { margin-top: 16px; font-size: 13px; color: var(--text-secondary, #9aa6bb); }
-      `}</style>
+      ` }} />
     </div>
   )
 }

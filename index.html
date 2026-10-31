@@ -9,8 +9,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#08090b" />
     <title>Proclama — Sistema de Proyección para Iglesias</title>
-    <meta name="description" content="Proclama es un sistema profesional, gratuito y moderno para la proyección de alabanzas y Biblia en iglesias. Incluye búsqueda inteligente y fondos dinámicos." />
-    
+    <meta name="description" content="Proclama es un sistema profesional y moderno para la proyección de alabanzas y Biblia en iglesias, con plan gratuito. Incluye búsqueda inteligente y fondos dinámicos." />
+    <link rel="canonical" href="https://www.proclama.lat/" />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,24 +22,26 @@
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://proclama.lat/" />
+    <meta property="og:url" content="https://www.proclama.lat/" />
     <meta property="og:title" content="Proclama — Proyección Profesional para Iglesias" />
     <meta property="og:description" content="Proclama es un sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
-    <meta property="og:image" content="https://proclama.lat/og-image.png" />
+    <meta property="og:image" content="https://www.proclama.lat/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="es_ES" />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://proclama.lat/" />
-    <meta property="twitter:title" content="Proclama — Proyección Profesional para Iglesias" />
-    <meta property="twitter:description" content="Proclama es un sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
-    <meta property="twitter:image" content="https://proclama.lat/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Proclama — Proyección Profesional para Iglesias" />
+    <meta name="twitter:description" content="Proclama es un sistema ligero y potente para proyectar letras y Biblia con fondos de video y sincronización." />
+    <meta name="twitter:image" content="https://www.proclama.lat/og-image.png" />
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Proclama",
-      "description": "Sistema profesional y gratuito para la proyección de alabanzas y Biblia en iglesias. Incluye búsqueda inteligente, sincronización en la nube y fondos dinámicos.",
+      "description": "Sistema profesional para la proyección de alabanzas y Biblia en iglesias, con plan gratuito y planes de pago. Incluye búsqueda inteligente, sincronización en la nube y fondos dinámicos.",
       "applicationCategory": "ReligiousApp",
       "operatingSystem": "Web",
       "offers": {
@@ -46,15 +49,32 @@
         "price": "0",
         "priceCurrency": "USD"
       },
-      "url": "https://proclama.lat/"
+      "url": "https://www.proclama.lat/"
     }
     </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- El build prerenderiza la landing dentro de #root. Solo sirve a un anónimo
+         en "/" con idioma es; en cualquier otro caso se vacía antes de hidratar
+         para no mostrar la landing un instante ni chocar con lo que pinte React.
+         App.tsx lee __SSR_LANDING__ para que su primer render coincida. -->
+    <script>
+      (function () {
+        var keep = location.pathname === '/';
+        try {
+          for (var i = 0; keep && i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (/^sb-.+-auth-token$/.test(k)) keep = false;
+          }
+          var app = JSON.parse(localStorage.getItem('proclama-app') || '{}');
+          if (app.state && app.state.language && app.state.language !== 'es') keep = false;
+        } catch (e) {}
+        window.__SSR_LANDING__ = keep;
+        if (!keep) document.getElementById('root').innerHTML = '';
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Lemon Squeezy for payments -->
-    <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
     <!-- PWA Install prompt -->
     <script>
       window.addEventListener('beforeinstallprompt', (e) => {
