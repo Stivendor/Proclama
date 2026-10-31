@@ -13,9 +13,18 @@ export default defineConfig({
       manifest: false,
       workbox: {
         clientsClaim: true,
-        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // La RVR1960 (≈4,6 MB) no va en el precaché: se cachea al abrir la Biblia
+        // por primera vez. Offline funciona desde ese primer uso con conexión.
+        globIgnores: ['**/bible-rvr1960-*.js'],
         runtimeCaching: [
+          {
+            urlPattern: /\/assets\/bible-rvr1960-[\w-]+\.js$/,
+            handler: 'CacheFirst',
+            // El nombre lleva hash: cada versión nueva es otra entrada; 2 deja la vieja salir.
+            options: { cacheName: 'bible-cache', expiration: { maxEntries: 2 } }
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
